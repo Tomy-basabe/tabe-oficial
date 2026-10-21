@@ -4,6 +4,7 @@ export interface TipTapTemplate {
   id: string;
   name: string;
   emoji: string;
+  iconName?: string;
   description: string;
   content: JSONContent;
 }
@@ -73,12 +74,29 @@ const today = () => new Date().toLocaleDateString("es-AR");
 
 export const tipTapTemplates: TipTapTemplate[] = [
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 0. HOJA EN BLANCO
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  {
+    id: "blank",
+    name: "Hoja en blanco",
+    emoji: "📄",
+    iconName: "FileText",
+    description: "Comenzá desde cero con un documento limpio y vacío",
+    content: {
+      type: "doc",
+      content: [
+        pEmpty(),
+      ],
+    },
+  },
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 1. RESUMEN DE CLASE
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {
     id: "class-summary",
     name: "Resumen de Clase",
     emoji: "📚",
+    iconName: "BookOpen",
     description: "Apuntes completos con estructura profesional para cada clase",
     content: {
       type: "doc",
@@ -186,6 +204,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
     id: "exam-prep",
     name: "Preparación de Examen",
     emoji: "📖",
+    iconName: "GraduationCap",
     description: "Planificación y estudio organizado para tus exámenes",
     content: {
       type: "doc",
@@ -327,6 +346,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
     id: "lab-notes",
     name: "Notas de Laboratorio",
     emoji: "🔬",
+    iconName: "FlaskConical",
     description: "Informe completo para prácticas y experimentos",
     content: {
       type: "doc",
@@ -469,6 +489,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
     id: "cornell",
     name: "Método Cornell",
     emoji: "🎓",
+    iconName: "Layers",
     description: "Sistema probado de toma de notas para estudio efectivo",
     content: {
       type: "doc",

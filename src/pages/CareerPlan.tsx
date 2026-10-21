@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles, AlertTriangle } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles, FileUp, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -27,11 +27,11 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { usePageTitle } from "@/hooks/useDynamicTitle";
 
 const statusFilters = [
-  { value: "all", label: "Todas", color: "bg-secondary text-foreground" },
-  { value: "aprobada", label: "Aprobadas", color: "bg-[#ffd21c] text-black" },
-  { value: "regular", label: "Regulares", color: "bg-[#1475e5] text-white" },
-  { value: "cursable", label: "Cursables", color: "bg-[#25d06c] text-black" },
-  { value: "bloqueada", label: "Bloqueadas", color: "bg-muted text-muted-foreground" },
+  { value: "all", label: "Todas" },
+  { value: "aprobada", label: "Aprobadas" },
+  { value: "regular", label: "Regulares" },
+  { value: "cursable", label: "Cursables" },
+  { value: "bloqueada", label: "Bloqueadas" },
 ];
 
 export default function CareerPlan() {
@@ -217,45 +217,61 @@ export default function CareerPlan() {
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 sm:gap-5 neo-bento-card bento-hover-blue p-4 sm:p-6 lg:p-8 bg-card/80 backdrop-blur-sm">
-        <div className="absolute -top-24 -left-16 h-48 w-48 rounded-full bg-neon-cyan/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 right-12 h-52 w-52 rounded-full bg-neon-purple/15 blur-3xl pointer-events-none" />
-        <div className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-neon-cyan mb-2 sm:mb-3">
+      <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+        <div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2 border border-zinc-200/60 dark:border-zinc-700/60">
             Tu progreso académico
           </span>
-          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Plan de Carrera
           </h1>
-          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">
             Gestiona tus materias y correlativas
           </p>
         </div>
-        <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Promedio Header Badge */}
+          <div className="bg-zinc-100 dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 flex items-center gap-1.5 shadow-2xs">
+            <Award className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+            <span className="text-xs font-medium">
+              Promedio: <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{stats.promedio ? stats.promedio : "—"}</strong>
+            </span>
+          </div>
+
+          <div className="bg-zinc-100 dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 flex items-center gap-1.5 shadow-2xs">
+            <GraduationCap className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+            <span className="text-xs font-medium">
+              <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{stats.aprobadas}</strong>/{stats.total}
+            </span>
+          </div>
+
           <Button
             onClick={handleOpenAddModal}
             size="sm"
-            className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 tour-career-add text-xs sm:text-sm font-black"
+            className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs tour-career-add"
           >
-            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            <Plus className="w-3.5 h-3.5 mr-1" />
             Agregar Materia
           </Button>
+
           <Button
             onClick={() => navigate("/consultas")}
-            variant="secondary"
+            variant="outline"
             size="sm"
-            className="text-xs sm:text-sm font-bold"
+            className="rounded-lg text-xs font-medium border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
           >
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            <Zap className="w-3.5 h-3.5 mr-1 text-zinc-500" />
             Consultas
           </Button>
+
           <Button
             onClick={() => navigate("/mapa")}
-            variant="secondary"
+            variant="outline"
             size="sm"
-            className="text-xs sm:text-sm font-bold"
+            className="rounded-lg text-xs font-medium border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
           >
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 text-[#ffd21c]" />
+            <Zap className="w-3.5 h-3.5 mr-1 text-amber-500" />
             Ver Mapa
           </Button>
 
@@ -263,61 +279,71 @@ export default function CareerPlan() {
             onClick={() => setShowImportModal(true)}
             variant="outline"
             size="sm"
-            className="text-xs sm:text-sm font-bold"
+            className="rounded-lg text-xs font-medium border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
           >
-            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+            <BookOpen className="w-3.5 h-3.5 mr-1 text-zinc-500" />
             Importar Plan
           </Button>
+
           {subjects.length > 0 && (
             <Button
               onClick={() => setShowDeleteAllDialog(true)}
-              variant="destructive"
+              variant="outline"
               size="sm"
-              className="text-xs sm:text-sm font-bold border-2 border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-[-1px] transition-all"
+              className="rounded-lg text-xs font-medium border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
             >
               Borrar Todo
             </Button>
           )}
-          {/* Promedio Header Badge */}
-          <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
-            <Award className="w-4 h-4" />
-            <span className="text-xs sm:text-sm font-black">
-              Promedio: {stats.promedio ? stats.promedio : "—"}
-            </span>
-          </div>
-          <div className="bg-[#ffd21c] text-black px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 sm:gap-2">
-            <GraduationCap className="w-4 h-4" />
-            <span className="text-xs sm:text-sm font-black">{stats.aprobadas}/{stats.total}</span>
-          </div>
         </div>
       </div>
 
       {/* Stats Bar */}
-      <div className="neo-bento-card p-4 bg-muted/30 dark:bg-background">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-          <div className="text-center bg-[#ffd21c]/10 border-2 border-[#ffd21c]/50 rounded-xl py-2 px-1 shadow-[2px_2px_0_0_#000]">
-            <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
+      <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 shadow-2xs">
+        <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200/70 dark:divide-zinc-800/80 gap-3 sm:gap-0">
+          <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
               {stats.promedio ? stats.promedio : "—"}
             </p>
-            <p className="text-[10px] font-black uppercase text-foreground/80 tracking-widest mt-1">
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
               Promedio {stats.gradesCount > 0 ? `(${stats.gradesCount})` : ""}
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-black text-[#ffd21c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.aprobadas}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Aprobadas</p>
+          <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+              {stats.aprobadas}
+            </p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Aprobadas
+            </p>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-black text-[#1475e5] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.regulares}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Regulares</p>
+          <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+              {stats.regulares}
+            </p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Regulares
+            </p>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-black text-[#25d06c] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.cursables}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Cursables</p>
+          <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+              {stats.cursables}
+            </p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Cursables
+            </p>
           </div>
-          <div className="text-center col-span-2 sm:col-span-1">
-            <p className="text-3xl font-black text-muted-foreground drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">{stats.bloqueadas}</p>
-            <p className="text-[10px] font-black uppercase text-foreground/70 tracking-widest mt-1">Bloqueadas</p>
+          <div className="text-center sm:px-3 py-1 flex flex-col justify-center col-span-2 sm:col-span-1">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-400 dark:text-zinc-500 font-mono">
+              {stats.bloqueadas}
+            </p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+              Bloqueadas
+            </p>
           </div>
         </div>
       </div>
@@ -329,10 +355,10 @@ export default function CareerPlan() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="BUSCAR MATERIA..."
+            placeholder="Buscar materia o código..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-background rounded-lg border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-y-1 focus:shadow-none transition-all font-black uppercase tracking-wider text-sm"
+            className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#212121] rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-sm transition-all shadow-2xs"
           />
         </div>
 
@@ -341,14 +367,19 @@ export default function CareerPlan() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
-              <span className="text-xs font-black uppercase tracking-wider sm:hidden">Filtrar por año:</span>
+              <span className="text-xs font-medium text-zinc-500 sm:hidden">Filtrar por año:</span>
             </div>
             <div className="flex gap-1.5 flex-wrap">
               <Button
                 onClick={() => setSelectedYear(null)}
-                variant={selectedYear === null ? "default" : "outline"}
+                variant="outline"
                 size="sm"
-                className="text-xs font-bold"
+                className={cn(
+                  "rounded-lg text-xs font-medium transition-colors border",
+                  selectedYear === null
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
+                    : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
+                )}
               >
                 Todos
               </Button>
@@ -356,9 +387,14 @@ export default function CareerPlan() {
                 <Button
                   key={year}
                   onClick={() => setSelectedYear(year)}
-                  variant={selectedYear === year ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  className="text-xs font-bold"
+                  className={cn(
+                    "rounded-lg text-xs font-medium transition-colors border",
+                    selectedYear === year
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
+                      : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
+                  )}
                 >
                   Año {year}
                 </Button>
@@ -370,72 +406,81 @@ export default function CareerPlan() {
 
       {/* Status Filter Pills */}
       <div className="flex flex-wrap items-center gap-2">
-        {statusFilters.map((filter) => (
-          <Button
-            key={filter.value}
-            onClick={() => setSelectedStatus(filter.value)}
-            variant={selectedStatus === filter.value ? "default" : "outline"}
-            className={cn(
-              selectedStatus === filter.value && filter.value === "aprobada" && "bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90",
-              selectedStatus === filter.value && filter.value === "regular" && "bg-[#1475e5] text-white hover:bg-[#1475e5]/90",
-              selectedStatus === filter.value && filter.value === "cursable" && "bg-[#25d06c] text-black hover:bg-[#25d06c]/90",
-            )}
-          >
-            {filter.label}
-          </Button>
-        ))}
+        {statusFilters.map((filter) => {
+          const isSelected = selectedStatus === filter.value;
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setSelectedStatus(filter.value)}
+              className={cn(
+                "rounded-lg text-xs font-medium px-3 py-1.5 transition-colors cursor-pointer border select-none",
+                isSelected
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
+                  : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
+              )}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
 
         {/* Toggle Hide Approved (Mobile primary) */}
-        <Button
+        <button
+          type="button"
           onClick={() => setHideApproved(!hideApproved)}
-          variant={hideApproved ? "default" : "outline"}
-          className={cn(hideApproved && "bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90")}
+          className={cn(
+            "rounded-lg text-xs font-medium px-3 py-1.5 transition-colors cursor-pointer border select-none",
+            hideApproved
+              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
+              : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
+          )}
         >
           {hideApproved ? "Mostrando Solo Pendientes" : "Ocultar Aprobadas"}
-        </Button>
+        </button>
 
         {/* Indicador de orden para el usuario */}
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted text-[10px] sm:text-xs font-black uppercase tracking-wider text-muted-foreground border border-foreground/30">
-          ⚡ No aprobadas primero
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-800/60">
+          No aprobadas primero
         </span>
       </div>
 
       {/* Empty State Banner if no subjects */}
       {subjects.length === 0 && (
-        <div className="neo-bento-card p-6 sm:p-10 pb-8 sm:pb-10 text-center bg-card border-[3px] border-foreground rounded-2xl space-y-6 shadow-[8px_8px_0_0_hsl(var(--foreground))] max-w-3xl w-full h-auto min-h-fit overflow-visible mx-auto my-6">
-          <div className="w-16 h-16 rounded-2xl bg-[#ffd21c] border-[3px] border-foreground mx-auto flex items-center justify-center shadow-[4px_4px_0_0_#000]">
-            <Sparkles className="w-8 h-8 text-black fill-black" />
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-8 sm:p-12 text-center shadow-2xs max-w-2xl mx-auto my-8 space-y-5">
+          <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 mx-auto flex items-center justify-center">
+            <FileUp className="w-5 h-5 text-zinc-600 dark:text-zinc-300" />
           </div>
-          <div className="space-y-2">
-            <h3 className="font-black text-2xl uppercase tracking-wider text-foreground">
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               ¡Tu Plan de Carrera está vacío!
             </h3>
-            <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wide max-w-lg mx-auto">
-              Cargá tu plan en segundos subiendo un archivo Excel, PDF o fotos con nuestra Inteligencia Artificial.
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+              Cargá tu plan en segundos subiendo un archivo Excel, PDF o fotos.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2 overflow-visible">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 pt-2">
             <Button
               onClick={() => setShowAiImportModal(true)}
-              className="w-full sm:w-auto bg-[#25d06c] hover:bg-[#25d06c]/90 text-black border-[2px] border-foreground shadow-[3px_3px_0_0_#000] font-black uppercase text-xs sm:text-sm transition-all hover:-translate-y-0.5 shrink-0"
+              className="w-full sm:w-auto bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-3.5 py-2 text-xs font-medium transition-colors shadow-2xs"
             >
-              <Sparkles className="w-4 h-4 mr-1.5 fill-black" />
-              Cargar con IA (Excel, PDF, Fotos)
+              <FileUp className="w-3.5 h-3.5 mr-1.5" />
+              Subir Archivo (Excel, PDF, Fotos)
             </Button>
             <Button
               onClick={() => setShowImportModal(true)}
               variant="outline"
-              className="w-full sm:w-auto border-[2px] border-foreground font-black uppercase text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0"
+              className="w-full sm:w-auto rounded-lg text-xs font-medium border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
             >
-              <BookOpen className="w-4 h-4 mr-1.5" />
+              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
               Planes Oficiales
             </Button>
             <Button
               onClick={handleOpenAddModal}
-              variant="secondary"
-              className="w-full sm:w-auto border-[2px] border-foreground font-black uppercase text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0"
+              variant="outline"
+              className="w-full sm:w-auto rounded-lg text-xs font-medium border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
               Cargar Manual
             </Button>
           </div>
@@ -447,19 +492,21 @@ export default function CareerPlan() {
         {subjectsByYear.map(({ year, subjects: yearSubjects }) => (
           yearSubjects.length > 0 && (
             <div key={year}>
-              <div className="flex items-center gap-3 mb-6 neo-bento-card p-3 w-fit bg-muted/30 dark:bg-background">
-                <div className="w-10 h-10 rounded-lg bg-foreground text-background flex items-center justify-center">
-                  <span className="font-black text-xl">{year}</span>
-                </div>
-                <div className="pr-2">
-                  <h2 className="font-black text-lg uppercase tracking-widest">Año {year}</h2>
-                  <p className="text-[10px] font-black uppercase text-foreground/60 tracking-wider">
-                    {yearSubjects.filter(s => s.status === "aprobada").length}/{yearSubjects.length} completadas
-                  </p>
+              <div className="flex items-center justify-between pb-3 mb-5 border-b border-zinc-200/80 dark:border-zinc-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">
+                    {year}
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Año {year}</h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {yearSubjects.filter(s => s.status === "aprobada").length} de {yearSubjects.length} completadas
+                    </p>
+                  </div>
                 </div>
               </div>
               <div
-                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 pt-8 pb-4"
+                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               >
                 {yearSubjects.map((subject) => (
                   <SubjectCard
@@ -539,22 +586,22 @@ export default function CareerPlan() {
 
       {/* Diálogo de Confirmación Borrar Todo */}
       <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
-        <AlertDialogContent className="no-comic bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
+        <AlertDialogContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl p-6 max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl sm:text-2xl font-black uppercase text-foreground flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border-2 border-rose-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-rose-500" />
+            <AlertDialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
               </div>
               ¿Borrar todas las materias?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground font-bold text-sm mt-3 leading-relaxed">
-              Esta acción es <strong className="text-destructive font-black">permanente e irreversible</strong>. Se eliminarán todas tus materias cargadas, estados académicos, notas parciales y el progreso acumulado en tu carrera.
+            <AlertDialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
+              Esta acción es <strong className="font-semibold text-red-600 dark:text-red-400">permanente e irreversible</strong>. Se eliminarán todas tus materias cargadas, estados académicos, notas parciales y el progreso acumulado en tu carrera.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2.5">
+          <AlertDialogFooter className="mt-5 flex flex-col-reverse sm:flex-row gap-2">
             <AlertDialogCancel
               onClick={() => setShowDeleteAllDialog(false)}
-              className="px-5 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs hover:bg-muted"
+              className="rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3.5 py-2"
             >
               Cancelar
             </AlertDialogCancel>
@@ -564,7 +611,7 @@ export default function CareerPlan() {
                 setShowDeleteAllDialog(false);
                 deleteAllSubjects();
               }}
-              className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-black uppercase text-xs rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
             >
               Sí, Borrar Todo
             </button>

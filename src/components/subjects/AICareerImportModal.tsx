@@ -18,13 +18,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Loader2,
-  ArrowRight,
   BookOpen,
   ArrowLeft,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import {
   parseCareerPlanWithAI,
@@ -55,7 +53,7 @@ export function AICareerImportModal({
   const [files, setFiles] = useState<File[]>([]);
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [progressMsg, setProgressMsg] = useState("");
-  const [extractedPlan, setExtractedPlan] = useState<CareerPlanAIResult | null>(null);
+  const [, setExtractedPlan] = useState<CareerPlanAIResult | null>(null);
   const [careerName, setCareerName] = useState("");
   const [facultad, setFacultad] = useState("");
   const [editableSubjects, setEditableSubjects] = useState<ParsedSubject[]>([]);
@@ -187,41 +185,41 @@ export function AICareerImportModal({
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
     if (["xlsx", "xls", "csv"].includes(ext || "")) {
-      return <FileSpreadsheet className="w-5 h-5 text-[#25d06c]" />;
+      return <FileSpreadsheet className="w-4 h-4 text-emerald-500" />;
     }
     if (ext === "pdf") {
-      return <FileText className="w-5 h-5 text-[#ff4e4e]" />;
+      return <FileText className="w-4 h-4 text-rose-500" />;
     }
-    return <ImageIcon className="w-5 h-5 text-[#1475e5]" />;
+    return <ImageIcon className="w-4 h-4 text-sky-500" />;
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isSaving && step !== "processing" && !v && handleClose()}>
-      <DialogContent className="w-full max-w-4xl sm:w-[92vw] bg-card border-[3px] border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="w-full max-w-4xl sm:w-[92vw] bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
-        <DialogHeader className="p-5 sm:p-6 border-b-[3px] border-foreground bg-yellow-50/40 dark:bg-muted/10 shrink-0">
+        <DialogHeader className="p-5 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0 text-left">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-lg bg-[#FFE600] text-black font-black text-[10px] uppercase border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
-              IA POWERED
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+              IA Asistida
             </span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              {step === "upload" ? "Paso 1: Subida de archivos" : step === "processing" ? "Paso 2: Procesando" : "Paso 3: Verificación"}
+            <span className="text-xs text-zinc-400">
+              {step === "upload" ? "Paso 1: Archivos" : step === "processing" ? "Paso 2: Procesando" : "Paso 3: Verificación"}
             </span>
           </div>
-          <DialogTitle className="font-black text-xl sm:text-2xl uppercase tracking-wider text-foreground flex items-center gap-2 mt-1">
-            <Sparkles className="w-6 h-6 text-[#ffd21c] fill-[#ffd21c]" />
-            Cargar Plan de Carrera con IA
+          <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2 mt-1">
+            <Sparkles className="w-4 h-4 text-zinc-500" />
+            Cargar plan de carrera con IA
           </DialogTitle>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-            Subí planillas Excel, archivos PDF o capturas/fotos de tu plan de estudios y la IA armará tu malla con correlativas al instante.
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Sube planillas Excel, archivos PDF o capturas de tu programa y la IA generará el plan con correlatividades automáticamente.
           </p>
         </DialogHeader>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           {/* STEP 1: UPLOAD */}
           {step === "upload" && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Drag and drop zone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -234,17 +232,17 @@ export function AICareerImportModal({
                   e.stopPropagation();
                   handleFileChange(e.dataTransfer.files);
                 }}
-                className="border-[3px] border-dashed border-foreground/60 hover:border-foreground bg-muted/20 hover:bg-muted/40 rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all group flex flex-col items-center justify-center gap-3 shadow-[4px_4px_0_0_transparent] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5"
+                className="border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 bg-zinc-50/50 dark:bg-zinc-900/40 rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-colors group flex flex-col items-center justify-center gap-2.5"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#ffd21c] border-[3px] border-foreground flex items-center justify-center shadow-[3px_3px_0_0_#000] group-hover:scale-110 transition-transform">
-                  <Upload className="w-7 h-7 text-black stroke-[2.5]" />
+                <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                  <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-black text-sm uppercase tracking-wide text-foreground">
-                    Arrastrá tus archivos o hacé clic acá
+                  <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                    Arrastra tus archivos aquí o haz clic para buscar
                   </p>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">
-                    Formatos soportados: Excel (.xlsx, .xls, .csv), PDF (.pdf), Imágenes (.png, .jpg, .webp)
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Formatos soportados: Excel (.xlsx, .csv), PDF (.pdf), Imágenes (.png, .jpg, .webp)
                   </p>
                 </div>
                 <input
@@ -260,27 +258,27 @@ export function AICareerImportModal({
               {/* Uploaded files list */}
               {files.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-black uppercase tracking-wider text-foreground flex items-center justify-between">
-                    <span>Archivos seleccionados ({files.length})</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">Archivos seleccionados ({files.length})</span>
                     <button
                       type="button"
                       onClick={() => setFiles([])}
-                      className="text-[10px] text-destructive hover:underline font-bold"
+                      className="text-xs text-rose-500 hover:underline"
                     >
                       Quitar todos
                     </button>
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
                     {files.map((file, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 bg-card border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                        className="flex items-center justify-between p-2.5 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
                           {getFileIcon(file.name)}
                           <div className="truncate">
-                            <p className="text-xs font-black text-foreground truncate">{file.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-bold">
+                            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{file.name}</p>
+                            <p className="text-[10px] text-zinc-400">
                               {(file.size / 1024).toFixed(0)} KB
                             </p>
                           </div>
@@ -288,9 +286,9 @@ export function AICareerImportModal({
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(idx)}
-                          className="p-1 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
+                          className="p-1 text-zinc-400 hover:text-rose-500 transition-colors"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -300,7 +298,7 @@ export function AICareerImportModal({
 
               {/* Additional Notes */}
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-foreground block mb-1.5">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block mb-1">
                   Aclaraciones opcionales (Universidad, Orientación, Plan)
                 </label>
                 <textarea
@@ -308,16 +306,16 @@ export function AICareerImportModal({
                   onChange={(e) => setAdditionalNotes(e.target.value)}
                   placeholder="Ej: Licenciatura en Administración, Plan 2023, UBA. Hay materias optativas que aún no cursé."
                   rows={2}
-                  className="w-full px-3.5 py-2.5 bg-background border-[2px] border-foreground rounded-xl text-xs font-bold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#ffd21c] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs resize-none"
                 />
               </div>
 
               {/* Informative Box */}
-              <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 border-[2px] border-[#1475e5] rounded-xl flex items-start gap-3">
-                <BookOpen className="w-5 h-5 text-[#1475e5] shrink-0 mt-0.5" />
-                <p className="text-[11px] font-bold text-foreground leading-relaxed">
-                  <span className="font-black text-[#1475e5] block uppercase">¿Cómo funciona?</span>
-                  Nuestros modelos de Visión e IA leen la estructura de tu plan, detectan cada materia, su año correspondiente y las materias correlativas necesarias para cursar o rendir. Luego podrás revisar y ajustar todo antes de guardar.
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg flex items-start gap-2.5">
+                <BookOpen className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  <span className="font-medium text-zinc-800 dark:text-zinc-200 block">¿Cómo funciona?</span>
+                  El modelo procesa la estructura de tu plan, identificando materias, años correspondientes y las correlativas necesarias para cursar o rendir. Podrás revisar y ajustar el resultado antes de confirmar la importación.
                 </p>
               </div>
             </div>
@@ -325,47 +323,45 @@ export function AICareerImportModal({
 
           {/* STEP 2: PROCESSING */}
           {step === "processing" && (
-            <div className="py-12 flex flex-col items-center justify-center text-center space-y-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-3xl bg-[#ffd21c] border-4 border-foreground shadow-[6px_6px_0_0_#000] flex items-center justify-center animate-bounce">
-                  <TabeLogo size={52} className="drop-shadow-sm select-none pointer-events-none" />
-                </div>
+            <div className="py-16 flex flex-col items-center justify-center text-center space-y-5">
+              <div className="w-14 h-14 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
+                <TabeLogo size={36} className="opacity-90 select-none pointer-events-none" />
               </div>
 
-              <div className="max-w-md space-y-2">
-                <h3 className="font-black text-xl uppercase tracking-wider text-foreground">
-                  Procesando tu Plan de Carrera
+              <div className="max-w-md space-y-1.5">
+                <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">
+                  Procesando tu plan de carrera
                 </h3>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest min-h-[20px]">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 min-h-[18px]">
                   {progressMsg}
                 </p>
               </div>
 
-              <div className="w-full max-w-sm h-3 bg-secondary rounded-full overflow-hidden border-2 border-foreground">
-                <div className="h-full bg-[#25d06c] rounded-full animate-pulse w-3/4" />
+              <div className="w-full max-w-xs h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-zinc-900 dark:bg-zinc-100 rounded-full animate-pulse w-3/4" />
               </div>
             </div>
           )}
 
           {/* STEP 3: REVIEW & EDIT */}
           {step === "review" && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Career Metadata Input */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-muted/30 border-[2px] border-foreground rounded-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-zinc-50/60 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-foreground block mb-1">
-                    Nombre de la Carrera
+                  <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 block mb-1">
+                    Nombre de la carrera
                   </label>
                   <input
                     type="text"
                     value={careerName}
                     onChange={(e) => setCareerName(e.target.value)}
                     placeholder="Ej: Ingeniería en Sistemas"
-                    className="w-full px-3 py-2 bg-background border-[2px] border-foreground rounded-lg font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                    className="w-full px-2.5 py-1.5 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#1e1e1e] text-xs font-medium text-zinc-900 dark:text-zinc-100 shadow-2xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-foreground block mb-1">
+                  <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300 block mb-1">
                     Facultad / Universidad (Opcional)
                   </label>
                   <input
@@ -373,47 +369,47 @@ export function AICareerImportModal({
                     value={facultad}
                     onChange={(e) => setFacultad(e.target.value)}
                     placeholder="Ej: UTN, UBA, UNLP"
-                    className="w-full px-3 py-2 bg-background border-[2px] border-foreground rounded-lg font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                    className="w-full px-2.5 py-1.5 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#1e1e1e] text-xs font-medium text-zinc-900 dark:text-zinc-100 shadow-2xs"
                   />
                 </div>
               </div>
 
               {/* Metrics Pill Bar */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 bg-[#ffd21c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase">
-                  {editableSubjects.length} Materias
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  {editableSubjects.length} materias
                 </span>
-                <span className="px-3 py-1 bg-[#1475e5] text-white border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase">
-                  {uniqueYears.length} Años Académicos
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  {uniqueYears.length} años
                 </span>
-                <span className="px-3 py-1 bg-blue-500 text-white border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase">
-                  {editableSubjects.reduce((acc, s) => acc + s.requiere_regular.length, 0)} Regulares
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
+                  {editableSubjects.reduce((acc, s) => acc + s.requiere_regular.length, 0)} regulares
                 </span>
-                <span className="px-3 py-1 bg-[#25d06c] text-black border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg text-xs font-black uppercase">
-                  {editableSubjects.reduce((acc, s) => acc + s.requiere_aprobada.length, 0)} Aprobadas
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                  {editableSubjects.reduce((acc, s) => acc + s.requiere_aprobada.length, 0)} aprobadas
                 </span>
               </div>
 
               {/* Grouped Subjects */}
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {uniqueYears.map((yearNum) => {
                   const yearSubs = editableSubjects.filter((s) => s.año === yearNum);
                   return (
-                    <div key={yearNum} className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center font-black text-xs">
-                          {yearNum}
+                    <div key={yearNum} className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                          Año {yearNum}
                         </span>
-                        <h4 className="font-black text-sm uppercase tracking-wider text-foreground">
-                          Año {yearNum} ({yearSubs.length} materias)
+                        <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                          ({yearSubs.length} materias)
                         </h4>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {yearSubs.map((sub) => (
                           <div
                             key={sub.id}
-                            className="p-3 bg-card border-[2px] border-foreground rounded-xl shadow-[2px_2px_0_0_hsl(var(--foreground))] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            className="p-2.5 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                           >
                             <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                               {/* Codigo */}
@@ -421,7 +417,7 @@ export function AICareerImportModal({
                                 type="text"
                                 value={sub.codigo}
                                 onChange={(e) => handleUpdateSubject(sub.id!, "codigo", e.target.value.toUpperCase())}
-                                className="sm:col-span-3 px-2 py-1 bg-background border-[2px] border-foreground rounded-md text-xs font-black uppercase text-center"
+                                className="sm:col-span-3 px-2 py-1 bg-white dark:bg-[#1e1e1e] border border-zinc-200 dark:border-zinc-800 rounded-md text-xs font-mono uppercase text-center shadow-2xs"
                                 placeholder="CÓDIGO"
                               />
 
@@ -430,7 +426,7 @@ export function AICareerImportModal({
                                 type="text"
                                 value={sub.nombre}
                                 onChange={(e) => handleUpdateSubject(sub.id!, "nombre", e.target.value)}
-                                className="sm:col-span-7 px-2.5 py-1 bg-background border-[2px] border-foreground rounded-md text-xs font-black"
+                                className="sm:col-span-7 px-2.5 py-1 bg-white dark:bg-[#1e1e1e] border border-zinc-200 dark:border-zinc-800 rounded-md text-xs font-medium shadow-2xs"
                                 placeholder="Nombre de la materia"
                               />
 
@@ -438,7 +434,7 @@ export function AICareerImportModal({
                               <select
                                 value={sub.año}
                                 onChange={(e) => handleUpdateSubject(sub.id!, "año", parseInt(e.target.value) || 1)}
-                                className="sm:col-span-2 px-2 py-1 bg-background border-[2px] border-foreground rounded-md text-xs font-black uppercase"
+                                className="sm:col-span-2 px-2 py-1 bg-white dark:bg-[#1e1e1e] border border-zinc-200 dark:border-zinc-800 rounded-md text-xs font-medium shadow-2xs"
                               >
                                 {[1, 2, 3, 4, 5, 6].map((y) => (
                                   <option key={y} value={y}>
@@ -452,7 +448,7 @@ export function AICareerImportModal({
                             <div className="flex flex-wrap items-center gap-1.5 shrink-0 max-w-sm">
                               {sub.requiere_regular.length > 0 && (
                                 <span
-                                  className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded border border-blue-400"
+                                  className="text-[10px] font-medium px-1.5 py-0.5 bg-sky-500/10 text-sky-700 dark:text-sky-400 rounded border border-sky-500/20"
                                   title={`Requiere regular: ${sub.requiere_regular.join(", ")}`}
                                 >
                                   Reg: {sub.requiere_regular.join(", ")}
@@ -460,24 +456,24 @@ export function AICareerImportModal({
                               )}
                               {sub.requiere_aprobada.length > 0 && (
                                 <span
-                                  className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded border border-emerald-400"
+                                  className="text-[10px] font-medium px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded border border-emerald-500/20"
                                   title={`Requiere aprobada: ${sub.requiere_aprobada.join(", ")}`}
                                 >
                                   Aprob: {sub.requiere_aprobada.join(", ")}
                                 </span>
                               )}
                               {sub.requiere_regular.length === 0 && sub.requiere_aprobada.length === 0 && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 text-muted-foreground/60">
+                                <span className="text-[10px] text-zinc-400">
                                   Sin correlativas
                                 </span>
                               )}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteSubject(sub.id!)}
-                                className="p-1 hover:bg-destructive/10 text-destructive rounded-lg transition-colors ml-1"
+                                className="p-1 text-zinc-400 hover:text-rose-500 transition-colors ml-1"
                                 title="Eliminar materia"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -492,7 +488,7 @@ export function AICareerImportModal({
                   variant="outline"
                   size="sm"
                   onClick={handleAddBlankSubject}
-                  className="w-full text-xs font-black uppercase border-[2px] border-foreground"
+                  className="w-full text-xs font-medium border border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 rounded-lg h-8"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Agregar otra materia manualmente
@@ -501,19 +497,19 @@ export function AICareerImportModal({
 
               {/* Option to replace existing if count > 0 */}
               {existingSubjectsCount > 0 && (
-                <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/20 border-[2px] border-amber-500 rounded-xl space-y-2">
-                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <div className="p-3 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-1.5">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span className="font-black text-xs uppercase tracking-wide">
-                      Ya tenés {existingSubjectsCount} materias cargadas
+                    <span className="font-medium text-xs">
+                      Ya tienes {existingSubjectsCount} materias cargadas
                     </span>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-foreground">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-700 dark:text-zinc-300">
                     <input
                       type="checkbox"
                       checked={replaceExisting}
                       onChange={(e) => setReplaceExisting(e.target.checked)}
-                      className="w-4 h-4 rounded border-2 border-foreground accent-[#ffd21c]"
+                      className="w-3.5 h-3.5 rounded border-zinc-300 dark:border-zinc-700 accent-zinc-900 dark:accent-zinc-100"
                     />
                     <span>Reemplazar completamente mis materias existentes por este nuevo plan</span>
                   </label>
@@ -524,14 +520,14 @@ export function AICareerImportModal({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-4 sm:p-5 border-t-[3px] border-foreground bg-muted/20 shrink-0 flex flex-row items-center justify-between gap-2">
+        <DialogFooter className="p-4 sm:p-5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 shrink-0 flex flex-row items-center justify-between gap-2">
           {step === "upload" && (
             <>
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="text-xs font-black uppercase border-[2px] border-foreground"
+                className="text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg h-auto py-2 px-3.5"
               >
                 Cancelar
               </Button>
@@ -539,9 +535,9 @@ export function AICareerImportModal({
                 type="button"
                 onClick={handleProcessFiles}
                 disabled={files.length === 0}
-                className="bg-[#25d06c] text-black hover:bg-[#25d06c]/90 text-xs font-black uppercase border-[2px] border-foreground shadow-[2px_2px_0_0_#000]"
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium rounded-lg h-auto py-2 px-3.5 shadow-2xs transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5 mr-1 fill-black" />
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 Analizar con IA ({files.length})
               </Button>
             </>
@@ -549,8 +545,8 @@ export function AICareerImportModal({
 
           {step === "processing" && (
             <div className="w-full text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                Por favor esperá un momento, no cierres esta ventana...
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                Por favor espera un momento, no cierres esta ventana...
               </span>
             </div>
           )}
@@ -562,7 +558,7 @@ export function AICareerImportModal({
                 variant="outline"
                 onClick={() => setStep("upload")}
                 disabled={isSaving}
-                className="text-xs font-black uppercase border-[2px] border-foreground"
+                className="text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg h-auto py-2 px-3.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Atrás
@@ -571,17 +567,17 @@ export function AICareerImportModal({
                 type="button"
                 onClick={handleFinalConfirm}
                 disabled={isSaving || editableSubjects.length === 0}
-                className="bg-[#ffd21c] text-black hover:bg-[#ffd21c]/90 text-xs font-black uppercase border-[2px] border-foreground shadow-[2px_2px_0_0_#000]"
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium rounded-lg h-auto py-2 px-3.5 shadow-2xs transition-colors"
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                     Importando...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Confirmar e Importar Plan ({editableSubjects.length})
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                    Confirmar e importar ({editableSubjects.length})
                   </>
                 )}
               </Button>

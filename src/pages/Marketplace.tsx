@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
-  Store, Search, Download, Star, User, Users, Tag, Eye, ChevronLeft, ChevronRight,
-  Layers, Upload, X, GraduationCap, Calendar, FileText, Folder, Loader2,
-  HelpCircle, ShieldCheck, Check, ArrowUpDown
+  Search, Download, Star, User, Eye, ChevronLeft, ChevronRight,
+  Layers, Upload, X, GraduationCap, FileText, Folder, Loader2,
+  HelpCircle, ShieldCheck, Check, ArrowUpDown, Sparkles, Filter, Info,
+  BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw
 } from "lucide-react";
-import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz } from "@/hooks/useMarketplace";
+import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
 import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +20,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import HoldButton from "@/components/ui/HoldButton";
-
 
 interface Subject {
   id: string;
@@ -171,7 +170,7 @@ export default function Marketplace() {
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("¡Importado correctamente!");
+      toast.success("¡Importado correctamente a tu cuenta!");
       setImportOpen(false);
       setImportingResource(null);
     }
@@ -181,7 +180,7 @@ export default function Marketplace() {
   const handlePublish = async () => {
     if (!resourceToPublish) return;
     if (!description.trim()) {
-      toast.error("Por favor ingresa una descripción para el recurso");
+      toast.error("Por favor ingresa una breve descripción");
       return;
     }
     if (!category.trim()) {
@@ -196,17 +195,61 @@ export default function Marketplace() {
       setDescription("");
       setCategory("");
       setIsAnonymous(false);
-      // Recargar recursos propios
       window.location.reload();
     }
     setIsPublishing(false);
   };
 
-  const availableYears = [...new Set(subjects.map(s => s.year))].sort();
-
   const getAverageRating = (item: any) => {
     if (!item.rating_count) return 0;
     return item.rating_sum / item.rating_count;
+  };
+
+  // Helper visual para tipos de recursos con estética Notion
+  const getTypeConfig = (type: "deck" | "file" | "folder" | "apunte" | "quiz") => {
+    switch (type) {
+      case 'deck':
+        return {
+          icon: Layers,
+          label: 'Mazo',
+          countLabel: (item: any) => `${item.total_cards ?? 0} tarjetas`,
+          badgeClass: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
+          iconBg: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-800/50'
+        };
+      case 'quiz':
+        return {
+          icon: HelpCircle,
+          label: 'Quiz',
+          countLabel: (item: any) => `${item.total_questions ?? 0} preguntas`,
+          badgeClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+          iconBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/50'
+        };
+      case 'apunte':
+        return {
+          icon: GraduationCap,
+          label: 'Apunte',
+          countLabel: () => 'Documento',
+          badgeClass: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20',
+          iconBg: 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200/60 dark:border-orange-800/50'
+        };
+      case 'folder':
+        return {
+          icon: Folder,
+          label: 'Carpeta',
+          countLabel: () => 'Colección',
+          badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+          iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50'
+        };
+      case 'file':
+      default:
+        return {
+          icon: FileText,
+          label: 'Archivo',
+          countLabel: (item: any) => item.tipo ? item.tipo.toUpperCase() : 'Archivo',
+          badgeClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20',
+          iconBg: 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/50'
+        };
+    }
   };
 
   const InteractiveRating = ({ item, type }: { item: any; type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
@@ -247,7 +290,7 @@ export default function Marketplace() {
                 onMouseEnter={() => canRate && setHoverRating(star)}
                 className={cn(
                   "p-0.5 transition-transform",
-                  canRate ? "hover:scale-125 cursor-pointer focus:outline-none" : "cursor-not-allowed opacity-60"
+                  canRate ? "hover:scale-115 cursor-pointer focus:outline-none" : "cursor-not-allowed opacity-60"
                 )}
                 aria-label={`Calificar con ${star} estrellas`}
               >
@@ -255,22 +298,22 @@ export default function Marketplace() {
                   className={cn(
                     "w-3.5 h-3.5 transition-colors",
                     isFilled 
-                      ? "fill-neon-gold text-neon-gold drop-shadow-[0_0_2px_rgba(255,215,0,0.6)]" 
-                      : "text-muted-foreground/40"
+                      ? "fill-amber-400 text-amber-400" 
+                      : "text-zinc-300 dark:text-zinc-700"
                   )}
                 />
               </button>
             );
           })}
         </div>
-        <span className="text-xs font-black text-foreground">
+        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 ml-0.5">
           {avg > 0 ? avg.toFixed(1) : "-"}
         </span>
-        <span className="text-[10px] font-bold text-muted-foreground">
+        <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
           ({item.rating_count || 0})
         </span>
         {userVote && (
-          <span className="text-[9px] font-black uppercase bg-neon-gold/20 text-neon-gold px-1 py-0.5 rounded border border-neon-gold/40">
+          <span className="text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20">
             Tu voto: {userVote}★
           </span>
         )}
@@ -279,102 +322,111 @@ export default function Marketplace() {
   };
 
   const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
-    const Icon = type === 'deck' ? Layers : type === 'quiz' ? HelpCircle : type === 'file' ? FileText : type === 'apunte' ? GraduationCap : Folder;
-    const colorClass = type === 'deck' ? "#C688EB" : type === 'quiz' ? "#FFD700" : type === 'file' ? "#00E5FF" : type === 'apunte' ? "#FF9B71" : "#FF5C5C";
+    const config = getTypeConfig(type);
+    const Icon = config.icon;
 
     return (
-      <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] transition-all flex flex-col h-full group text-foreground">
-        <div className="p-5 flex-1 flex flex-col">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-14 h-14 rounded-lg border-2 border-foreground flex items-center justify-center shadow-[2px_2px_0_0_hsl(var(--foreground))] group-hover:rotate-3 transition-transform flex-shrink-0"
-                style={{ backgroundColor: colorClass }}
-              >
-                <Icon className="w-7 h-7 text-black" strokeWidth={2.5} />
+      <div className="bg-white dark:bg-[#212121] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs transition-all duration-200 group">
+        <div>
+          {/* Header de la tarjeta */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105", config.iconBg)}>
+                <Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-black text-lg uppercase leading-tight line-clamp-2 text-foreground">{item.nombre}</h3>
-                <p className="font-bold text-muted-foreground text-xs mt-1 uppercase">
-                  {type === 'deck' ? `${item.total_cards ?? 0} tarjetas` : type === 'quiz' ? `${item.total_questions ?? 0} preguntas` : type === 'file' ? 'Archivo individual' : type === 'apunte' ? 'Apunte' : 'Carpeta completa'}
-                </p>
+                <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate group-hover:text-primary transition-colors">
+                  {item.nombre}
+                </h3>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                  {config.countLabel(item)}
+                </span>
               </div>
             </div>
+            <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-md border shrink-0", config.badgeClass)}>
+              {config.label}
+            </span>
           </div>
 
-          {item.description && (
-            <p className="text-sm font-medium text-muted-foreground line-clamp-2 mb-4 h-10">{item.description}</p>
-          )}
+          {/* Descripción */}
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 min-h-[32px] mb-3 leading-relaxed">
+            {item.description || "Sin descripción proporcionada por el autor."}
+          </p>
 
-          <div className="flex flex-wrap gap-2 mb-4">
+          {/* Badges de materia y categoría */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-4">
             {item.subject && (
-              <span className="text-[10px] font-black uppercase bg-muted text-foreground border-2 border-foreground px-2 py-1 rounded">
-                Año {item.subject.year} · {item.subject.nombre}
+              <span className="text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <BookOpen className="w-3 h-3 text-zinc-400" />
+                {item.subject.nombre} {item.subject.year ? `(${item.subject.year}°)` : ''}
               </span>
             )}
             {item.category && (
-              <span className="text-[10px] font-black uppercase bg-foreground text-background border-2 border-foreground px-2 py-1 rounded">
+              <span className="text-[11px] font-medium bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-800 px-2 py-0.5 rounded-md">
                 {item.category}
               </span>
             )}
           </div>
+        </div>
 
-          <div className="flex items-center justify-between text-sm font-bold mb-4 bg-muted/50 border-2 border-foreground rounded-lg p-2 shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground">
-            <div className="flex items-center gap-2">
-              <Download className="w-4 h-4 text-foreground" strokeWidth={3} />
-              <span>{item.download_count}</span>
+        <div>
+          {/* Autor */}
+          <div className="flex items-center justify-between pt-3 pb-3 border-t border-zinc-100 dark:border-zinc-800/80 mb-3 text-xs">
+            {item.is_anonymous || item.creator?.is_anonymous ? (
+              <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
+                <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-[11px]">Estudiante Anónimo</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shrink-0">
+                  <User className="w-3 h-3" />
+                </div>
+                <span className="truncate font-medium text-[11px]">
+                  {item.creator?.nombre || item.creator?.username || `#${item.creator?.display_id || 'user'}`}
+                </span>
+                {item.creator?.nivel && (
+                  <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-1.5 py-0.2 rounded border border-zinc-200/60 dark:border-zinc-700/60 font-semibold shrink-0">
+                    Nv. {item.creator.nivel}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Descargas & Rating */}
+            <div className="flex items-center gap-1 text-zinc-400 dark:text-zinc-500 text-xs shrink-0">
+              <Download className="w-3.5 h-3.5" />
+              <span className="text-zinc-600 dark:text-zinc-400 font-medium">{item.download_count}</span>
             </div>
+          </div>
+
+          {/* Rating bar */}
+          <div className="flex items-center justify-between mb-4 px-2 py-1.5 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-100 dark:border-zinc-800">
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">Valoración</span>
             <InteractiveRating item={item} type={type} />
           </div>
 
-          {item.creator && (
-            <div className="flex flex-col gap-1 mb-4 pb-4 border-b-4 border-border">
-              <div className="flex items-center gap-2 text-sm font-black text-foreground">
-                {item.is_anonymous || item.creator?.is_anonymous ? (
-                  <>
-                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center border border-foreground/30 flex-shrink-0">
-                      <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={2.5} />
-                    </div>
-                    <span className="truncate flex-1 uppercase tracking-wider text-muted-foreground font-bold">
-                      Estudiante Anónimo
-                    </span>
-                    <span className="bg-muted text-muted-foreground border-2 border-foreground/20 text-[10px] px-2 py-0.5 rounded font-black">
-                      ANÓNIMO
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-4 h-4" strokeWidth={3} />
-                    <span className="truncate flex-1 uppercase">
-                      {item.creator.nombre || item.creator.username || `#${item.creator.display_id}`}
-                    </span>
-                    <span className="bg-[#BFFF00] text-black border-2 border-foreground text-[10px] px-2 py-0.5 rounded font-black">
-                      Nv. {item.creator.nivel}
-                    </span>
-                  </>
-                )}
-              </div>
-              {!(item.is_anonymous || item.creator?.is_anonymous) && item.creator.carrera && (
-                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground ml-6 uppercase">
-                  <GraduationCap className="w-3 h-3" strokeWidth={3} />
-                  <span className="truncate">{item.creator.carrera}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex gap-2 mt-auto">
+          {/* Botones de acción */}
+          <div className="flex items-center gap-2">
             {type === 'deck' && (
               <Button 
-                className="flex-1 bg-card text-foreground border-2 border-foreground hover:bg-muted font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[2px]" 
+                variant="outline" 
+                size="sm"
+                className="flex-1 h-8 text-xs font-medium rounded-lg text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800" 
                 onClick={() => handlePreview(item)}
               >
-                <Eye className="w-4 h-4 mr-2" strokeWidth={3} /> Preview
+                <Eye className="w-3.5 h-3.5 mr-1.5" /> Vista previa
               </Button>
             )}
             <Button
-              className="flex-1 text-black border-2 border-foreground font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[0px_0px_0_0_hsl(var(--foreground))] hover:translate-y-[2px] transition-all"
-              style={{ backgroundColor: colorClass }}
+              size="sm"
+              className={cn(
+                "h-8 text-xs font-medium rounded-lg transition-all shadow-2xs",
+                type === 'deck' ? "flex-1" : "w-full",
+                "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
+              )}
               onClick={() => {
                 if (type === 'deck') {
                   setImportingResource({ id: item.id, type: 'deck', data: item });
@@ -387,11 +439,11 @@ export default function Marketplace() {
                   setImportOpen(true);
                 } else {
                   setImportingResource({ id: item.id, type, data: item });
-                  handleImport(); // Direct import for files/folders for now (to root)
+                  handleImport();
                 }
               }}
             >
-              <Download className="w-4 h-4 mr-2" strokeWidth={3} /> Importar
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Importar
             </Button>
           </div>
         </div>
@@ -400,234 +452,419 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card border-4 border-foreground rounded-2xl p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))]">
+    <div className="p-4 lg:p-6 max-w-[1400px] mx-auto space-y-6">
+      {/* Header Notion/ChatGPT Style */}
+      <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl border-4 border-foreground bg-[#14B8A6] text-white flex items-center justify-center shadow-[4px_4px_0_0_hsl(var(--foreground))] shrink-0">
-            <ComunidadIcon className="w-10 h-10" />
+          <div className="w-12 h-12 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 flex items-center justify-center shrink-0 shadow-2xs">
+            <ComunidadIcon className="w-7 h-7" />
           </div>
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">
-                Comunidad
-              </h1>
-              <span className="bg-[#BFFF00] text-black border-2 border-foreground text-xs px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                Colaborativo
-              </span>
-            </div>
-            <p className="text-muted-foreground font-bold uppercase text-xs md:text-sm mt-1">
-              Explora, califica y comparte mazos, cuestionarios, apuntes y archivos con otros estudiantes
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Comunidad
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 mt-1 font-normal text-sm">
+              Explora, califica y descarga recursos creados por otros estudiantes para potenciar tu estudio.
             </p>
           </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
+
+        <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
           <Button 
             onClick={() => setPublishSelectOpen(true)}
-            className="w-full md:w-auto bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all font-black uppercase h-14 px-6 rounded-xl text-lg"
+            className="w-full md:w-auto bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 font-medium text-sm h-9 px-4 rounded-lg shadow-2xs flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
-            <Upload className="w-6 h-6 mr-2 stroke-[3]" /> Publicar Recurso
+            <Upload className="w-4 h-4" /> Publicar Recurso
           </Button>
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#C688EB]/25 text-[#A855F7] flex items-center justify-center shrink-0">
-            <Layers className="w-6 h-6 stroke-[2.5]" />
-          </div>
+      {/* Stats Bento Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <div className="neo-bento-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicDecks.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Mazos</p>
+            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Mazos públicos</p>
+            <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
+              {publicDecks.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <Layers className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#FFD700]/25 text-[#CA8A04] flex items-center justify-center shrink-0">
-            <HelpCircle className="w-6 h-6 stroke-[2.5]" />
-          </div>
+        <div className="neo-bento-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicQuizzes.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Quizzes</p>
+            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Quizzes de estudio</p>
+            <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
+              {publicQuizzes.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <HelpCircle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#FF9B71]/25 text-[#EA580C] flex items-center justify-center shrink-0">
-            <GraduationCap className="w-6 h-6 stroke-[2.5]" />
-          </div>
+        <div className="neo-bento-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicApuntes.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Apuntes</p>
+            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Apuntes compartidos</p>
+            <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
+              {publicApuntes.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+            <GraduationCap className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-4 flex items-center gap-3.5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#00E5FF]/25 text-[#0891B2] flex items-center justify-center shrink-0">
-            <FileText className="w-6 h-6 stroke-[2.5]" />
-          </div>
+        <div className="neo-bento-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-2xl md:text-3xl font-display font-black leading-none text-foreground">{publicFiles.length + publicFolders.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Archivos</p>
+            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Archivos y carpetas</p>
+            <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
+              {publicFiles.length + publicFolders.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" strokeWidth={3} />
-            <Input
-              placeholder="Buscar en la comunidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-14 bg-background text-foreground border-4 border-foreground rounded-xl font-bold text-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-            />
-          </div>
+      {/* Barra de Búsqueda y Filtros */}
+      <div className="neo-bento-card p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Input
+            placeholder="Buscar por nombre, materia o palabra clave..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-9 text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-all"
+          />
+          {searchTerm && (
+            <button 
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
           <Select value={categoryFilter || "all"} onValueChange={(v) => setCategoryFilter(v === "all" ? null : v)}>
-            <SelectTrigger className="w-full md:w-48 h-14 bg-background text-foreground border-4 border-foreground rounded-xl font-bold text-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0">
+            <SelectTrigger className="w-full md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
-            <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-              <SelectItem value="all" className="font-bold focus:bg-muted">Todas</SelectItem>
-              {categories.map(cat => <SelectItem key={cat} value={cat} className="font-bold focus:bg-muted">{cat}</SelectItem>)}
+            <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
+              <SelectItem value="all">Todas las categorías</SelectItem>
+              {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
             </SelectContent>
           </Select>
+
           <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-            <SelectTrigger className="w-full md:w-56 h-14 bg-background text-foreground border-4 border-foreground rounded-xl font-bold text-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0">
-              <div className="flex items-center gap-2 truncate">
-                <ArrowUpDown className="w-4 h-4 text-foreground shrink-0" strokeWidth={3} />
+            <SelectTrigger className="w-full md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+              <div className="flex items-center gap-1.5 truncate">
+                <ArrowUpDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <SelectValue placeholder="Ordenar por" />
               </div>
             </SelectTrigger>
-            <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-              <SelectItem value="downloads" className="font-bold focus:bg-muted">Más descargados</SelectItem>
-              <SelectItem value="rating" className="font-bold focus:bg-muted">Mejor calificados</SelectItem>
-              <SelectItem value="recent" className="font-bold focus:bg-muted">Más recientes</SelectItem>
+            <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
+              <SelectItem value="downloads">Más descargados</SelectItem>
+              <SelectItem value="rating">Mejor calificados</SelectItem>
+              <SelectItem value="recent">Más recientes</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      {/* Tabs Principales de Comunidad */}
       <Tabs defaultValue="decks" className="space-y-6 tour-marketplace-decks">
-        <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
-          <TabsList className="flex w-max md:w-full bg-muted p-1 border-4 border-foreground rounded-xl h-auto">
-            <TabsTrigger value="decks" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[120px]">
-              <Layers className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Mazos
+        <div className="overflow-x-auto pb-1 scrollbar-none">
+          <TabsList className="bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 inline-flex w-auto min-w-full sm:min-w-0">
+            <TabsTrigger 
+              value="decks" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <Layers className="w-4 h-4" /> Mazos
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicDecks.length}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="quizzes" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[150px]">
-              <HelpCircle className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Quizzes
+
+            <TabsTrigger 
+              value="quizzes" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4" /> Quizzes
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicQuizzes.length}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="apuntes" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[120px]">
-              <GraduationCap className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Apuntes
+
+            <TabsTrigger 
+              value="apuntes" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4" /> Apuntes
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicApuntes.length}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="files" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[120px]">
-              <FileText className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Archivos
+
+            <TabsTrigger 
+              value="files" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" /> Archivos
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicFiles.length}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="folders" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[120px]">
-              <Folder className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Carpetas
+
+            <TabsTrigger 
+              value="folders" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <Folder className="w-4 h-4" /> Carpetas
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicFolders.length}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="my-posts" className="data-[state=active]:bg-card data-[state=active]:border-2 data-[state=active]:border-foreground data-[state=active]:shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black uppercase py-3 px-4 rounded-lg text-foreground transition-all flex-1 min-w-[180px]">
-              <Upload className="w-5 h-5 mr-2 shrink-0" strokeWidth={2.5} /> Mis Pubs
+
+            <TabsTrigger 
+              value="my-posts" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" /> Mis Publicaciones
+              {myResources.filter(r => r.is_public).length > 0 && (
+                <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
+                  {myResources.filter(r => r.is_public).length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="decks">
+        {/* Tab Content: Mazos */}
+        <TabsContent value="decks" className="focus-visible:outline-none">
           {loading && publicDecks.length === 0 ? (
             <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
-              {publicDecks.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron mazos</p>}
+              {publicDecks.length === 0 && (
+                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron mazos</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                    {searchTerm ? "Prueba a modificar los filtros de búsqueda o categoría." : "Sé el primero en compartir un mazo de estudio con la comunidad."}
+                  </p>
+                  <Button 
+                    onClick={() => { setSelectedPublishType('deck'); setPublishSelectOpen(true); }}
+                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+                  >
+                    Publicar un mazo
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="quizzes">
+        {/* Tab Content: Quizzes */}
+        <TabsContent value="quizzes" className="focus-visible:outline-none">
           {loading && publicQuizzes.length === 0 ? (
             <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
-              {publicQuizzes.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron cuestionarios</p>}
+              {publicQuizzes.length === 0 && (
+                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+                    <HelpCircle className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron cuestionarios</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                    Comparte un quiz de autoevaluación para ayudar a otros estudiantes a medir sus conocimientos.
+                  </p>
+                  <Button 
+                    onClick={() => { setSelectedPublishType('quiz'); setPublishSelectOpen(true); }}
+                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+                  >
+                    Publicar un cuestionario
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="apuntes">
+        {/* Tab Content: Apuntes */}
+        <TabsContent value="apuntes" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
-            {publicApuntes.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron apuntes</p>}
+            {publicApuntes.length === 0 && (
+              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron apuntes</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                  Publica tus notas y resúmenes de Notion para que tus compañeros puedan estudiar con ellos.
+                </p>
+                <Button 
+                  onClick={() => { setSelectedPublishType('apunte'); setPublishSelectOpen(true); }}
+                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+                >
+                  Publicar un apunte
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="files">
+        {/* Tab Content: Archivos */}
+        <TabsContent value="files" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
-            {publicFiles.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron archivos</p>}
+            {publicFiles.length === 0 && (
+              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron archivos</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                  Comparte PDFs, guías o documentos de tu biblioteca académica.
+                </p>
+                <Button 
+                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
+                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+                >
+                  Publicar un archivo
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="folders">
+        {/* Tab Content: Carpetas */}
+        <TabsContent value="folders" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
-            {publicFolders.length === 0 && <p className="text-center py-20 text-muted-foreground col-span-full">No se encontraron carpetas</p>}
+            {publicFolders.length === 0 && (
+              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+                  <Folder className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron carpetas</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+                  Comparte carpetas completas de recursos organizados por temas o asignaturas.
+                </p>
+                <Button 
+                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
+                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+                >
+                  Publicar una carpeta
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="my-posts" className="space-y-6">
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl overflow-hidden text-foreground">
-            <div className="bg-foreground text-background p-4">
-              <h2 className="font-black uppercase text-xl">Tus contribuciones a la Comunidad</h2>
+        {/* Tab Content: Mis Publicaciones */}
+        <TabsContent value="my-posts" className="space-y-4 focus-visible:outline-none">
+          <div className="neo-bento-card overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
+                  Tus contribuciones a la comunidad
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-normal">
+                  Recursos que has hecho públicos para otros estudiantes. Puedes retirarlos en cualquier momento.
+                </p>
+              </div>
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                {myResources.filter(r => r.is_public).length} publicados
+              </span>
             </div>
-            <div className="p-4 space-y-3">
-              {myResources.filter(r => r.is_public).map(resource => (
-                <div key={resource.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/40 border-2 border-foreground rounded-lg gap-4 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded border-2 border-foreground flex items-center justify-center shadow-[1px_1px_0_0_hsl(var(--foreground))]",
-                      resource.type === 'deck' ? "bg-[#C688EB]" : resource.type === 'file' ? "bg-[#00E5FF]" : resource.type === 'apunte' ? "bg-[#FF9B71]" : "bg-[#FFD700]"
-                    )}>
-                      {resource.type === 'deck' ? <Layers className="w-5 h-5 text-black" strokeWidth={2.5} /> : resource.type === 'file' ? <FileText className="w-5 h-5 text-black" strokeWidth={2.5} /> : resource.type === 'apunte' ? <GraduationCap className="w-5 h-5 text-black" strokeWidth={2.5} /> : <Folder className="w-5 h-5 text-black" strokeWidth={2.5} />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black uppercase text-lg block leading-tight text-foreground">{resource.nombre}</span>
-                        {resource.is_anonymous && (
-                          <span className="bg-muted text-muted-foreground border-2 border-foreground/30 text-[10px] px-2 py-0.5 rounded font-black flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" /> ANÓNIMO
-                          </span>
-                        )}
+
+            <div className="p-4 sm:p-5 divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              {myResources.filter(r => r.is_public).map(resource => {
+                const config = getTypeConfig(resource.type);
+                const Icon = config.icon;
+                return (
+                  <div key={resource.id} className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", config.iconBg)}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <span className="font-bold text-muted-foreground text-xs uppercase">{resource.type === 'apunte' ? 'Apunte' : resource.type === 'deck' ? 'Mazo' : resource.type === 'quiz' ? 'Cuestionario' : resource.type === 'file' ? 'Archivo' : 'Carpeta'}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate block">
+                            {resource.nombre}
+                          </span>
+                          {resource.is_anonymous && (
+                            <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/60">
+                              <ShieldCheck className="w-3 h-3 text-zinc-400" /> Anónimo
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                          <span className="font-normal capitalize">{config.label}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Download className="w-3 h-3" /> {resource.download_count || 0} descargas
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    <HoldButton 
+                      size="sm"
+                      holdTime={900}
+                      backgroundColor="transparent"
+                      fillColor="#ef4444"
+                      textColor="#71717a"
+                      fillTextColor="#ffffff"
+                      icon={<X className="w-3.5 h-3.5 shrink-0" />}
+                      doneIcon={<Check className="w-3.5 h-3.5 shrink-0 text-white" />}
+                      doneLabel="Retirado"
+                      onHold={async () => {
+                        setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: false } : r));
+                        const success = await unpublishResource(resource.type as any, resource.id);
+                        if (!success) {
+                          setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: true } : r));
+                        }
+                      }}
+                      className="border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100/60 dark:hover:bg-red-900/40 text-xs font-medium rounded-lg px-3 py-1.5 transition-all self-start sm:self-auto cursor-pointer"
+                    >
+                      Mantener para Retirar
+                    </HoldButton>
                   </div>
-                  <HoldButton 
-                    size="sm"
-                    holdTime={900}
-                    backgroundColor="#FF5C5C"
-                    fillColor="#b91c1c"
-                    textColor="#000000"
-                    fillTextColor="#ffffff"
-                    icon={<X className="w-4 h-4 shrink-0" strokeWidth={3} />}
-                    doneIcon={<Check className="w-4 h-4 shrink-0 text-white" strokeWidth={3} />}
-                    doneLabel="Retirado"
-                    onHold={async () => {
-                      // Optimistic instant UI update
-                      setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: false } : r));
-                      const success = await unpublishResource(resource.type as any, resource.id);
-                      if (!success) {
-                        setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: true } : r));
-                      }
-                    }}
-                    className="border-2 border-foreground font-black uppercase rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] w-full sm:w-auto px-4 py-2 text-xs"
+                );
+              })}
+
+              {myResources.filter(r => r.is_public).length === 0 && (
+                <div className="py-12 text-center">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto mb-3">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Aún no has compartido publicaciones en la comunidad
+                  </p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 max-w-sm mx-auto">
+                    Tus mazos, apuntes y cuestionarios pueden ser de gran ayuda para otros estudiantes.
+                  </p>
+                  <Button 
+                    onClick={() => setPublishSelectOpen(true)}
+                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
                   >
-                    Mantener para Retirar
-                  </HoldButton>
+                    Publicar tu primer recurso
+                  </Button>
                 </div>
-              ))}
-              {myResources.filter(r => r.is_public).length === 0 && <p className="text-center py-10 font-black text-muted-foreground uppercase text-lg">Aún no has compartido publicaciones en la comunidad</p>}
+              )}
             </div>
           </div>
         </TabsContent>
@@ -635,63 +872,145 @@ export default function Marketplace() {
 
       {/* Preview Modal for Decks */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl max-w-lg">
-          <DialogHeader className="border-b-4 border-foreground pb-4">
-            <DialogTitle className="font-black uppercase text-2xl text-foreground">{previewDeck?.nombre}</DialogTitle>
+        <DialogContent className="bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-w-lg p-6">
+          <DialogHeader className="border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                Vista Previa
+              </span>
+              <DialogTitle className="font-semibold text-lg text-zinc-900 dark:text-zinc-100 truncate">
+                {previewDeck?.nombre}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Haz clic en la tarjeta para revelar la respuesta.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            <div 
-              className="min-h-[250px] p-8 bg-[#FFD700] text-black rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] cursor-pointer flex flex-col justify-center text-center transition-transform hover:scale-[1.02]" 
-              onClick={() => setShowAnswer(!showAnswer)}
-            >
-              <p className="text-sm font-black uppercase text-black/60 mb-4 bg-white/50 inline-block mx-auto px-3 py-1 rounded-full border-2 border-black">{showAnswer ? "Respuesta" : "Pregunta"}</p>
-              <p className="text-2xl font-black">{showAnswer ? previewCards[previewIndex]?.respuesta : previewCards[previewIndex]?.pregunta}</p>
-            </div>
-            <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg border-2 border-foreground">
-              <Button 
-                variant="outline" 
-                className="bg-card text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[0px_0px_0_0_hsl(var(--foreground))] hover:translate-y-[2px]" 
-                onClick={() => { setPreviewIndex(i => Math.max(0, i - 1)); setShowAnswer(false); }} 
-                disabled={previewIndex === 0}
+
+          <div className="space-y-4 pt-3">
+            {loadingPreview ? (
+              <div className="min-h-[220px] rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50">
+                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+              </div>
+            ) : previewCards.length === 0 ? (
+              <div className="min-h-[200px] rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-center p-6 text-center text-xs text-zinc-400">
+                Este mazo no contiene tarjetas con vista previa disponible.
+              </div>
+            ) : (
+              <div 
+                className={cn(
+                  "min-h-[220px] p-6 rounded-xl border transition-all cursor-pointer flex flex-col justify-between items-center text-center select-none shadow-2xs",
+                  showAnswer 
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/60" 
+                    : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                )} 
+                onClick={() => setShowAnswer(!showAnswer)}
               >
-                <ChevronLeft strokeWidth={3} />
-              </Button>
-              <span className="font-black text-lg text-foreground">{previewIndex + 1} / {previewCards.length}</span>
-              <Button 
-                variant="outline" 
-                className="bg-card text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[0px_0px_0_0_hsl(var(--foreground))] hover:translate-y-[2px]" 
-                onClick={() => { setPreviewIndex(i => Math.min(previewCards.length - 1, i + 1)); setShowAnswer(false); }} 
-                disabled={previewIndex === previewCards.length - 1}
-              >
-                <ChevronRight strokeWidth={3} />
-              </Button>
-            </div>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border",
+                    showAnswer 
+                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" 
+                      : "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700"
+                  )}>
+                    {showAnswer ? "Respuesta" : "Pregunta"}
+                  </span>
+                </div>
+
+                <div className="my-auto py-4">
+                  <p className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed">
+                    {showAnswer ? previewCards[previewIndex]?.respuesta : previewCards[previewIndex]?.pregunta}
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
+                  Toca para {showAnswer ? "ver pregunta" : "voltear tarjeta"}
+                </p>
+              </div>
+            )}
+
+            {previewCards.length > 0 && (
+              <div className="flex items-center justify-between pt-1">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-8 px-2.5 text-xs rounded-lg" 
+                  onClick={() => { setPreviewIndex(i => Math.max(0, i - 1)); setShowAnswer(false); }} 
+                  disabled={previewIndex === 0}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
+                </Button>
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {previewIndex + 1} de {previewCards.length}
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-8 px-2.5 text-xs rounded-lg" 
+                  onClick={() => { setPreviewIndex(i => Math.min(previewCards.length - 1, i + 1)); setShowAnswer(false); }} 
+                  disabled={previewIndex === previewCards.length - 1}
+                >
+                  Siguiente <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Import Modal Specially for Decks and Apuntes (needs subject) */}
+      {/* Import Modal */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl">
-          <DialogHeader className="border-b-4 border-foreground pb-4">
-            <DialogTitle className="font-black uppercase text-2xl text-foreground">Importar {importingResource?.type === 'deck' ? 'Mazo' : importingResource?.type === 'quiz' ? 'Cuestionario' : 'Apunte'}</DialogTitle>
+        <DialogContent className="bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-w-md p-6">
+          <DialogHeader className="border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+            <DialogTitle className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">
+              Importar {importingResource?.type === 'deck' ? 'Mazo' : importingResource?.type === 'quiz' ? 'Cuestionario' : 'Apunte'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Asigna este recurso a una materia de tu plan para organizarlo en tu espacio de estudio.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold text-lg focus:ring-0">
-                <SelectValue placeholder="Seleccionar materia (Opcional para apuntes)" />
-              </SelectTrigger>
-              <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
-                {subjects.map(s => <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-muted">{s.nombre} ({s.year}°)</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button 
-              className="w-full bg-[#00E5FF] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] hover:translate-y-[2px] hover:shadow-[0px_0px_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 rounded-xl text-lg" 
-              onClick={handleImport} 
-              disabled={importing || (importingResource?.type === 'deck' && !selectedSubject)}
-            >
-                {importing ? "Importando..." : `Importar ${importingResource?.type === 'deck' ? 'Mazo' : importingResource?.type === 'quiz' ? 'Cuestionario' : 'Apunte'}`}
-            </Button>
+
+          <div className="space-y-4 pt-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Materia de destino {importingResource?.type === 'apunte' ? '(Opcional)' : '(Requerida)'}
+              </label>
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger className="h-10 bg-zinc-50/50 dark:bg-zinc-800/40 text-zinc-900 dark:text-zinc-100 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg text-xs sm:text-sm">
+                  <SelectValue placeholder="Seleccionar materia..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs sm:text-sm">
+                  {subjects.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nombre} ({s.year}° Año)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button 
+                variant="outline"
+                className="flex-1 h-9 text-xs rounded-lg"
+                onClick={() => setImportOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900" 
+                onClick={handleImport} 
+                disabled={importing || (importingResource?.type === 'deck' && !selectedSubject)}
+              >
+                {importing ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Importando...
+                  </span>
+                ) : (
+                  `Importar ahora`
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -707,160 +1026,228 @@ export default function Marketplace() {
           setPublishSubject(null);
           setPublishSearch("");
           setCurrentFolderId(null);
-          setFolderHistory([{id: null, name: 'Raíz'}]);
+          setFolderHistory([{ id: null, name: 'Raíz' }]);
           setIsAnonymous(false);
           setDescription("");
           setCategory("");
         }
       }}>
-        <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="border-b-4 border-foreground pb-4">
-            <DialogTitle className="font-black uppercase text-2xl text-foreground">
-              {publishStep === 'type' && "¿Qué quieres publicar?"}
-              {publishStep === 'filter' && "Filtros de publicación"}
-              {publishStep === 'select' && "Selecciona el recurso"}
-              {publishStep === 'details' && "Detalles de la publicación"}
-            </DialogTitle>
+        <DialogContent className="bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">
+                  {publishStep === 'type' && "¿Qué tipo de recurso quieres publicar?"}
+                  {publishStep === 'filter' && "Filtra tus recursos"}
+                  {publishStep === 'select' && "Selecciona el elemento"}
+                  {publishStep === 'details' && "Detalles de la publicación"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  {publishStep === 'type' && "Selecciona el formato del contenido que deseas compartir."}
+                  {publishStep === 'filter' && "Acota por año o asignatura para encontrarlo rápidamente."}
+                  {publishStep === 'select' && "Elige cuál de tus recursos deseas hacer público."}
+                  {publishStep === 'details' && "Agrega una descripción para ayudar a otros estudiantes a encontrarlo."}
+                </DialogDescription>
+              </div>
+
+              {/* Stepper indicator */}
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                {['type', 'filter', 'select', 'details'].map((step, idx) => {
+                  const steps = ['type', 'filter', 'select', 'details'];
+                  const currentIndex = steps.indexOf(publishStep);
+                  const isCurrent = idx === currentIndex;
+                  const isDone = idx < currentIndex;
+                  return (
+                    <div 
+                      key={step}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all",
+                        isCurrent 
+                          ? "bg-zinc-900 dark:bg-zinc-100 w-5" 
+                          : isDone 
+                            ? "bg-zinc-400 dark:bg-zinc-600" 
+                            : "bg-zinc-200 dark:bg-zinc-800"
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="space-y-6 pt-4">
+          <div className="space-y-4 pt-3">
+            {/* Paso 1: Tipo de recurso */}
             {publishStep === 'type' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div 
-                  className="p-6 bg-[#00E5FF] text-black rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] cursor-pointer flex flex-col items-center gap-4 transition-all"
+                  className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 cursor-pointer flex items-center gap-3.5 transition-all group"
                   onClick={() => { setSelectedPublishType('file'); setPublishStep('filter'); }}
                 >
-                  <div className="p-4 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]"><FileText className="w-10 h-10 text-black" strokeWidth={2.5} /></div>
-                  <span className="font-black uppercase text-xl text-center">Archivo / Carpeta</span>
-                </div>
-                <div 
-                  className="p-6 bg-[#C688EB] text-black rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] cursor-pointer flex flex-col items-center gap-4 transition-all"
-                  onClick={() => { setSelectedPublishType('deck'); setPublishStep('filter'); }}
-                >
-                  <div className="p-4 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]"><Layers className="w-10 h-10 text-black" strokeWidth={2.5} /></div>
-                  <span className="font-black uppercase text-xl text-center">Flashcards</span>
-                </div>
-                <div 
-                  className="p-6 bg-[#FFD700] text-black rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] cursor-pointer flex flex-col items-center gap-4 transition-all"
-                  onClick={() => { setSelectedPublishType('quiz'); setPublishStep('filter'); }}
-                >
-                  <div className="p-4 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]"><HelpCircle className="w-10 h-10 text-black" strokeWidth={2.5} /></div>
-                  <span className="font-black uppercase text-xl text-center">Cuestionario</span>
-                </div>
-                <div 
-                  className="p-6 bg-[#FF9B71] text-black rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-4px] hover:shadow-[8px_8px_0_0_hsl(var(--foreground))] cursor-pointer flex flex-col items-center gap-4 transition-all"
-                  onClick={() => { setSelectedPublishType('apunte'); setPublishStep('filter'); }}
-                >
-                  <div className="p-4 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]"><GraduationCap className="w-10 h-10 text-black" strokeWidth={2.5} /></div>
-                  <span className="font-black uppercase text-xl text-center">Apunte</span>
-                </div>
-              </div>
-            )}
-
-            {publishStep === 'filter' && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <p className="text-sm font-bold text-muted-foreground uppercase">Filtra por año y materia para encontrar tus recursos (opcional):</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-foreground">Año</label>
-                      <Select value={publishYear?.toString() || "all"} onValueChange={(v) => { setPublishYear(v === "all" ? null : parseInt(v)); setPublishSubject(null); }}>
-                        <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold"><SelectValue placeholder="Todos los años" /></SelectTrigger>
-                        <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
-                          <SelectItem value="all" className="font-bold focus:bg-muted">Todos los años</SelectItem>
-                          {[1, 2, 3, 4, 5, 6].map(y => <SelectItem key={y} value={y.toString()} className="font-bold focus:bg-muted">{y}° Año</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-xs font-black uppercase text-foreground">Materia</label>
-                       <Select 
-                        value={publishSubject || "all"} 
-                        onValueChange={(v) => setPublishSubject(v === "all" ? null : v)}
-                      >
-                         <SelectTrigger className="h-12 bg-background text-foreground border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold"><SelectValue placeholder="Todas" /></SelectTrigger>
-                         <SelectContent className="bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl max-h-60 overflow-y-auto">
-                            <SelectItem value="all" className="font-bold focus:bg-muted">Todas las materias</SelectItem>
-                            <SelectItem value="unlinked" className="font-bold focus:bg-muted text-amber-500">Sin materia asignada</SelectItem>
-                            {subjects
-                              .filter(s => !publishYear || s.year === publishYear)
-                              .map(s => (
-                                <SelectItem key={s.id} value={s.id} className="font-bold focus:bg-muted">{s.nombre} ({s.year}°)</SelectItem>
-                              ))}
-                         </SelectContent>
-                       </Select>
-                    </div>
+                  <div className="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Archivo o Carpeta</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">PDFs, documentos o guías</p>
                   </div>
                 </div>
-                <div className="flex gap-4">
-                  <Button className="flex-1 bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted font-black uppercase h-14 rounded-xl text-lg" onClick={() => setPublishStep('type')}>Atrás</Button>
-                  <Button className="flex-1 bg-[#BFFF00] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#a6e600] font-black uppercase h-14 rounded-xl text-lg" onClick={() => setPublishStep('select')}>Continuar</Button>
+
+                <div 
+                  className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 cursor-pointer flex items-center gap-3.5 transition-all group"
+                  onClick={() => { setSelectedPublishType('deck'); setPublishStep('filter'); }}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Flashcards</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Mazos de memoria activa</p>
+                  </div>
+                </div>
+
+                <div 
+                  className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 cursor-pointer flex items-center gap-3.5 transition-all group"
+                  onClick={() => { setSelectedPublishType('quiz'); setPublishStep('filter'); }}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <HelpCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Cuestionario</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Tests de autoevaluación</p>
+                  </div>
+                </div>
+
+                <div 
+                  className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 cursor-pointer flex items-center gap-3.5 transition-all group"
+                  onClick={() => { setSelectedPublishType('apunte'); setPublishStep('filter'); }}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Apunte</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Páginas y notas de Notion</p>
+                  </div>
                 </div>
               </div>
             )}
 
-            {publishStep === 'select' && (
+            {/* Paso 2: Filtros */}
+            {publishStep === 'filter' && (
               <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Año de cursada</label>
+                    <Select value={publishYear?.toString() || "all"} onValueChange={(v) => { setPublishYear(v === "all" ? null : parseInt(v)); setPublishSubject(null); }}>
+                      <SelectTrigger className="h-9 text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+                        <SelectValue placeholder="Todos los años" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs sm:text-sm">
+                        <SelectItem value="all">Todos los años</SelectItem>
+                        {[1, 2, 3, 4, 5, 6].map(y => <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Materia</label>
+                    <Select 
+                      value={publishSubject || "all"} 
+                      onValueChange={(v) => setPublishSubject(v === "all" ? null : v)}
+                    >
+                      <SelectTrigger className="h-9 text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+                        <SelectValue placeholder="Todas las materias" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg max-h-56 overflow-y-auto text-xs sm:text-sm">
+                        <SelectItem value="all">Todas las materias</SelectItem>
+                        <SelectItem value="unlinked">Sin materia asignada</SelectItem>
+                        {subjects
+                          .filter(s => !publishYear || s.year === publishYear)
+                          .map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.nombre} ({s.year}°)</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 h-9 text-xs rounded-lg" 
+                    onClick={() => setPublishStep('type')}
+                  >
+                    Atrás
+                  </Button>
+                  <Button 
+                    className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900" 
+                    onClick={() => setPublishStep('select')}
+                  >
+                    Ver mis recursos <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Paso 3: Selección de recurso */}
+            {publishStep === 'select' && (
+              <div className="space-y-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" strokeWidth={2.5} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                   <Input 
-                    placeholder="Buscar por nombre..."
+                    placeholder="Filtrar por nombre..."
                     value={publishSearch}
                     onChange={(e) => setPublishSearch(e.target.value)}
-                    className="pl-10 h-12 bg-background text-foreground border-4 border-foreground rounded-xl font-bold shadow-[2px_2px_0_0_hsl(var(--foreground))] focus-visible:ring-0"
+                    className="pl-8 h-9 text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400"
                   />
                 </div>
 
                 {selectedPublishType === 'file' && (
-                   <div className="space-y-2">
-                     <div className="flex items-center gap-2 overflow-x-auto pb-2 text-sm bg-muted/50 border-2 border-foreground p-2 rounded-lg">
-                       {folderHistory.map((h, i) => (
-                         <React.Fragment key={i}>
-                           {i > 0 && <ChevronRight className="w-5 h-5 text-foreground shrink-0" strokeWidth={3} />}
-                           <button 
-                             className={`hover:bg-foreground hover:text-background px-2 py-1 rounded transition-colors whitespace-nowrap uppercase ${i === folderHistory.length - 1 ? 'font-black text-foreground' : 'font-bold text-muted-foreground'}`}
-                             onClick={() => {
-                               const newHistory = folderHistory.slice(0, i + 1);
-                               setFolderHistory(newHistory);
-                               setCurrentFolderId(h.id);
-                             }}
-                           >
-                             {h.name}
-                           </button>
-                         </React.Fragment>
-                       ))}
-                     </div>
-                   </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-1 px-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <FolderOpen className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    {folderHistory.map((h, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <ChevronRight className="w-3 h-3 text-zinc-400 shrink-0" />}
+                        <button 
+                          className={cn(
+                            "hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap",
+                            i === folderHistory.length - 1 ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'
+                          )}
+                          onClick={() => {
+                            const newHistory = folderHistory.slice(0, i + 1);
+                            setFolderHistory(newHistory);
+                            setCurrentFolderId(h.id);
+                          }}
+                        >
+                          {h.name}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
                 )}
 
-                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {(() => {
                     let filtered = myResources.filter(r => !r.is_public);
                     
                     if (selectedPublishType === 'file') {
-                      // Filter for folders and files
                       filtered = filtered.filter(r => r.type === 'file' || r.type === 'folder');
-                      if (publishYear) {
-                        filtered = filtered.filter(r => r.year === publishYear);
-                      }
+                      if (publishYear) filtered = filtered.filter(r => r.year === publishYear);
                       if (publishSubject === 'unlinked') {
                         filtered = filtered.filter(r => !r.subject_id);
                       } else if (publishSubject) {
                         filtered = filtered.filter(r => r.subject_id === publishSubject);
                       }
                       
-                      // Navigation logic
                       filtered = filtered.filter(r => {
                         if (r.type === 'file') return r.folder_id === currentFolderId;
                         if (r.type === 'folder') return r.parent_folder_id === currentFolderId;
                         return false;
                       });
                     } else {
-                      // Filter for decks, quizzes or apuntes
                       filtered = filtered.filter(r => r.type === selectedPublishType);
-                      if (publishYear) {
-                        filtered = filtered.filter(r => r.year === publishYear);
-                      }
+                      if (publishYear) filtered = filtered.filter(r => r.year === publishYear);
                       if (publishSubject === 'unlinked') {
                         filtered = filtered.filter(r => !r.subject_id);
                       } else if (publishSubject) {
@@ -875,165 +1262,215 @@ export default function Marketplace() {
 
                     if (filtered.length === 0) {
                       return (
-                        <div className="text-center py-10 px-4 text-muted-foreground border-4 border-dashed border-border rounded-xl space-y-3">
-                          <p className="font-black uppercase text-base">No se encontraron recursos con los filtros seleccionados.</p>
+                        <div className="text-center py-8 px-4 text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-2">
+                          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            No se encontraron recursos con los filtros seleccionados.
+                          </p>
                           {(publishYear || publishSubject || publishSearch) && (
                             <Button 
+                              size="sm"
+                              variant="outline"
                               onClick={() => { setPublishYear(null); setPublishSubject(null); setPublishSearch(""); }}
-                              className="bg-foreground text-background font-black uppercase px-4 py-2 rounded-lg text-sm"
+                              className="text-xs h-8 px-2.5 rounded-lg"
                             >
-                              Mostrar todos mis {selectedPublishType === 'apunte' ? 'apuntes' : 'recursos'}
+                              <RotateCcw className="w-3 h-3 mr-1" /> Quitar filtros
                             </Button>
                           )}
                         </div>
                       );
                     }
 
-                    return filtered.map(r => (
-                      <div 
-                        key={`${r.type}-${r.id}`}
-                        className="flex items-center justify-between p-4 bg-card rounded-xl border-4 border-foreground hover:bg-muted shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[2px] hover:shadow-[0_0_0_0_hsl(var(--foreground))] cursor-pointer transition-all group"
-                        onClick={() => {
-                          if (r.type === 'folder') {
-                            setCurrentFolderId(r.id);
-                            setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
-                          } else {
-                            const defaultCat = r.category || r.subject_name || (r.type === 'apunte' ? 'Apuntes' : '');
-                            const defaultDesc = r.description || '';
-                            setResourceToPublish({ 
-                              id: r.id, 
-                              type: r.type as any, 
-                              nombre: r.nombre,
-                              description: defaultDesc,
-                              category: defaultCat
-                            });
-                            setDescription(defaultDesc);
-                            setCategory(defaultCat);
-                            setPublishStep('details');
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-4 min-w-0 flex-1">
-                          <div className={cn(
-                            "w-12 h-12 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_#000] shrink-0 text-xl font-bold",
-                            r.type === 'deck' ? "bg-[#C688EB]" : r.type === 'file' ? "bg-[#00E5FF]" : r.type === 'folder' ? "bg-[#FFD700]" : r.type === 'quiz' ? "bg-[#FFD700]" : "bg-[#FF9B71]"
-                          )}>
-                            {r.type === 'deck' && <Layers className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                            {r.type === 'file' && <FileText className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                            {r.type === 'folder' && <Folder className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                            {r.type === 'quiz' && <HelpCircle className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                            {r.type === 'apunte' && (r.emoji || <GraduationCap className="w-6 h-6 text-black" strokeWidth={2.5} />)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="font-black text-lg uppercase text-foreground block truncate">{r.nombre}</span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {r.subject_name ? (
-                                <span className="text-[10px] font-bold uppercase bg-muted text-foreground border border-foreground/30 px-1.5 py-0.5 rounded">
-                                  {r.subject_name}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold uppercase bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded">
-                                  Sin materia
-                                </span>
-                              )}
-                              {r.year && (
-                                <span className="text-[10px] font-bold text-muted-foreground">
-                                  {r.year}° Año
-                                </span>
-                              )}
+                    return filtered.map(r => {
+                      const config = getTypeConfig(r.type);
+                      const Icon = config.icon;
+
+                      return (
+                        <div 
+                          key={`${r.type}-${r.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-[#212121] hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-all group"
+                          onClick={() => {
+                            if (r.type === 'folder') {
+                              setCurrentFolderId(r.id);
+                              setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
+                            } else {
+                              const defaultCat = r.category || r.subject_name || (r.type === 'apunte' ? 'Apuntes' : '');
+                              const defaultDesc = r.description || '';
+                              setResourceToPublish({ 
+                                id: r.id, 
+                                type: r.type as any, 
+                                nombre: r.nombre,
+                                description: defaultDesc,
+                                category: defaultCat
+                              });
+                              setDescription(defaultDesc);
+                              setCategory(defaultCat);
+                              setPublishStep('details');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", config.iconBg)}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 block truncate">
+                                {r.nombre}
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {r.subject_name ? (
+                                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                    {r.subject_name} {r.year ? `(${r.year}°)` : ''}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-zinc-400">
+                                    Sin materia
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
+
+                          {r.type === 'folder' ? (
+                            <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0 ml-2 group-hover:translate-x-0.5 transition-transform" />
+                          ) : (
+                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-primary shrink-0 ml-2">
+                              Elegir
+                            </span>
+                          )}
                         </div>
-                        {r.type === 'folder' ? <ChevronRight className="w-6 h-6 text-foreground shrink-0 ml-2" strokeWidth={3} /> : <span className="bg-foreground text-background px-3 py-1 text-xs font-black uppercase rounded shrink-0 ml-2">Seleccionar</span>}
-                      </div>
-                    ));
+                      );
+                    });
                   })()}
                 </div>
-                <Button className="w-full bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted font-black uppercase h-14 rounded-xl text-lg" onClick={() => setPublishStep('filter')}>Atrás</Button>
+
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-9 text-xs rounded-lg" 
+                    onClick={() => setPublishStep('filter')}
+                  >
+                    Atrás
+                  </Button>
+                </div>
               </div>
             )}
 
+            {/* Paso 4: Detalles */}
             {publishStep === 'details' && resourceToPublish && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <div className="p-4 bg-muted/40 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                   <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-12 h-12 rounded-lg border-2 border-black flex items-center justify-center shadow-[2px_2px_0_0_#000]",
-                      resourceToPublish.type === 'deck' ? "bg-[#C688EB]" : resourceToPublish.type === 'file' ? "bg-[#00E5FF]" : resourceToPublish.type === 'folder' ? "bg-[#FFD700]" : resourceToPublish.type === 'quiz' ? "bg-[#FFD700]" : "bg-[#FF9B71]"
-                    )}>
-                      {resourceToPublish.type === 'deck' && <Layers className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                      {resourceToPublish.type === 'file' && <FileText className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                      {resourceToPublish.type === 'folder' && <Folder className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                      {resourceToPublish.type === 'quiz' && <HelpCircle className="w-6 h-6 text-black" strokeWidth={2.5} />}
-                      {resourceToPublish.type === 'apunte' && <GraduationCap className="w-6 h-6 text-black" strokeWidth={2.5} />}
+              <div className="space-y-4">
+                {/* Elemento seleccionado */}
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", getTypeConfig(resourceToPublish.type).iconBg)}>
+                      {React.createElement(getTypeConfig(resourceToPublish.type).icon, { className: "w-4 h-4" })}
                     </div>
-                    <div>
-                      <span className="font-black text-lg block uppercase leading-tight text-foreground">{resourceToPublish.nombre}</span>
-                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{resourceToPublish.type === 'apunte' ? 'Apunte' : resourceToPublish.type}</span>
+                    <div className="min-w-0">
+                      <span className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 block truncate">
+                        {resourceToPublish.nombre}
+                      </span>
+                      <span className="text-[11px] text-zinc-400 capitalize">
+                        {getTypeConfig(resourceToPublish.type).label}
+                      </span>
                     </div>
-                   </div>
-                   <Button className="bg-card text-foreground border-2 border-foreground hover:bg-muted font-black uppercase h-10 px-4 rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))]" onClick={() => setPublishStep('select')}>Cambiar</Button>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-7 px-2 text-xs rounded-md shrink-0" 
+                    onClick={() => setPublishStep('select')}
+                  >
+                    Cambiar
+                  </Button>
                 </div>
                 
-                <div className="space-y-2">
-                  <label className="text-sm font-black text-foreground uppercase tracking-tight">Descripción</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Descripción del recurso</label>
                   <Textarea 
-                    placeholder="Describe este recurso para que otros sepan de qué se trata..."
+                    placeholder="Describe de qué temas trata, qué contiene o recomendaciones de estudio..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[120px] bg-background text-foreground border-4 border-foreground focus-visible:ring-0 rounded-xl font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] p-4 text-lg"
+                    className="min-h-[90px] text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400 p-3"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <label className="text-sm font-black text-foreground uppercase tracking-tight">Categoría / Etiquetas</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría o Etiquetas</label>
                   <Input 
-                    placeholder="Ej: Medicina, Fisiología, Resúmenes..."
+                    placeholder="Ej: Fisiología, Anatomía, Resumen Parcial..."
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="h-14 bg-background text-foreground border-4 border-foreground focus-visible:ring-0 rounded-xl font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] px-4 text-lg"
+                    className="h-9 text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400"
                   />
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {["Resumen", "Parcial", "Final", "Práctica", "Teoría"].map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setCategory(prev => prev ? `${prev}, ${tag}` : tag)}
+                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        +{tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
+                {/* Opción Anónima */}
                 <div 
                   onClick={() => setIsAnonymous(!isAnonymous)}
                   className={cn(
-                    "p-4 rounded-xl border-4 border-foreground cursor-pointer transition-all flex items-center justify-between shadow-[4px_4px_0_0_hsl(var(--foreground))] select-none",
+                    "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between select-none",
                     isAnonymous 
-                      ? "bg-muted/80 border-foreground" 
-                      : "bg-background hover:bg-muted/40"
+                      ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-300 dark:border-zinc-700" 
+                      : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50"
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      "w-11 h-11 rounded-lg border-2 border-foreground flex items-center justify-center font-bold flex-shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                      isAnonymous ? "bg-foreground text-background" : "bg-muted text-foreground"
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border",
+                      isAnonymous 
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" 
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700"
                     )}>
-                      <ShieldCheck className="w-6 h-6" strokeWidth={2.5} />
+                      <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="font-black uppercase text-sm text-foreground">Publicar como anónimo</p>
-                      <p className="text-xs text-muted-foreground font-bold">
+                      <p className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Publicar de forma anónima</p>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
                         Tu nombre, usuario y carrera permanecerán ocultos para los demás.
                       </p>
                     </div>
                   </div>
                   <div className={cn(
-                    "w-7 h-7 rounded-lg border-2 border-foreground flex items-center justify-center font-black transition-colors flex-shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                    isAnonymous ? "bg-[#BFFF00] text-black" : "bg-background"
+                    "w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ml-2",
+                    isAnonymous 
+                      ? "bg-zinc-900 dark:bg-zinc-100 border-transparent text-white dark:text-zinc-900" 
+                      : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                   )}>
-                    {isAnonymous && <Check className="w-4 h-4 stroke-[3]" />}
+                    {isAnonymous && <Check className="w-3.5 h-3.5" />}
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <Button className="flex-1 bg-card text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted font-black uppercase h-14 rounded-xl text-lg" onClick={() => setPublishStep('select')}>Volver</Button>
+                <div className="flex items-center gap-2 pt-2">
                   <Button 
-                    className="flex-1 bg-[#BFFF00] text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-[#a6e600] hover:translate-y-[2px] hover:shadow-[0_0_0_0_hsl(var(--foreground))] transition-all font-black uppercase h-14 rounded-xl text-lg"
+                    variant="outline"
+                    className="flex-1 h-9 text-xs rounded-lg" 
+                    onClick={() => setPublishStep('select')}
+                  >
+                    Volver
+                  </Button>
+                  <Button 
+                    className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
                     onClick={handlePublish}
                     disabled={isPublishing}
                   >
-                    {isPublishing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Publicar Ahora"}
+                    {isPublishing ? (
+                      <span className="flex items-center gap-1.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Publicando...
+                      </span>
+                    ) : (
+                      "Publicar en Comunidad"
+                    )}
                   </Button>
                 </div>
               </div>

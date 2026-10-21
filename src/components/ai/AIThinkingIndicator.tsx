@@ -1,48 +1,40 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { AiStatus, AiStatusProps, AiStatusState } from "@/components/ui/ai-status";
 
-interface AIThinkingIndicatorProps {
+export interface AIThinkingIndicatorProps extends Partial<AiStatusProps> {
   className?: string;
   size?: "sm" | "md" | "lg";
+  personaName?: string;
+  statusText?: string;
+  state?: AiStatusState | (string & {});
 }
 
 /**
- * Clean, minimalist Thinking Dots in vibrant gradient hues.
- * Free of clutter and framing ("solo los puntitos de pensar").
+ * Indicador de estado de la IA con animaciones fluidas, SVG de trazo de pluma y timer.
+ * Totalmente compatible con la API anterior (personaName, statusText) y el nuevo AiStatus.
  */
 export function AIThinkingIndicator({
   className,
   size = "md",
+  personaName,
+  statusText,
+  state = "thinking",
+  label,
+  detail,
+  ...props
 }: AIThinkingIndicatorProps) {
-  const dotSize =
-    size === "sm" ? "w-1.5 h-1.5" : size === "lg" ? "w-2.5 h-2.5" : "w-2 h-2";
+  const displayLabel = label ?? (personaName ? `${personaName} está pensando...` : "Pensando...");
+  const displayDetail = detail ?? statusText;
 
   return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-1.5 py-1 px-1 select-none",
-        className
-      )}
-      role="status"
-      aria-label="Pensando..."
-    >
-      <span
-        className={cn(
-          dotSize,
-          "rounded-full bg-sky-400 animate-bounce [animation-delay:-0.32s] shadow-[0_0_8px_rgba(56,189,248,0.6)]"
-        )}
-      />
-      <span
-        className={cn(
-          dotSize,
-          "rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.16s] shadow-[0_0_8px_rgba(99,102,241,0.6)]"
-        )}
-      />
-      <span
-        className={cn(
-          dotSize,
-          "rounded-full bg-pink-500 animate-bounce shadow-[0_0_8px_rgba(236,72,153,0.6)]"
-        )}
+    <div className={cn("inline-flex items-center select-none", className)}>
+      <AiStatus
+        state={state}
+        label={displayLabel}
+        detail={displayDetail}
+        timer={true}
+        {...props}
       />
     </div>
   );

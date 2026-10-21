@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
 import { recordGameMatch } from "@/lib/gameStorage";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { GameSearchingOpponent } from "@/components/games/GameSearchingOpponent";
 import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 // ======================================
@@ -151,7 +152,7 @@ export default function ChessGame() {
   const modeParam = searchParams.get("mode");
 
   // Decks
-  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "Mazo General TABE", total_questions: 15 };
   const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
 
@@ -779,16 +780,15 @@ export default function ChessGame() {
         </div>
 
         {mmStatus === "searching" ? (
-          <Card className="w-full max-w-xl z-10 card-gamer" style={{ borderColor: theme.board.borderColor }}>
-            <CardContent className="p-8 text-center space-y-6">
-              <Loader2 className="w-16 h-16 mx-auto animate-spin" style={{ color: theme.pieces.white.stroke }} />
-              <h2 className="text-2xl font-bold font-display">Buscando rival...</h2>
-              <p className="text-muted-foreground">Esperando a otro jugador que esté conectado.</p>
-              <Button variant="outline" onClick={leaveQueue} className="mt-4">
-                Cancelar
-              </Button>
-            </CardContent>
-          </Card>
+          <GameSearchingOpponent
+            gameTitle="Ajedrez Clásico"
+            gameIcon={Crown}
+            timeLeft={15}
+            maxTime={15}
+            userName={user?.user_metadata?.nombre || user?.email?.split('@')[0] || "Tú"}
+            onCancel={leaveQueue}
+            statusMessage="Buscando oponente para partida de ajedrez..."
+          />
         ) : (
           <div className="w-full max-w-xl z-10 space-y-4">
             {/* Theme Selector */}
@@ -1141,3 +1141,4 @@ export default function ChessGame() {
     </div>
   );
 }
+

@@ -61,15 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const AVAILABLE_THEMES = ['theme-neon-gold', 'theme-cyan', 'theme-blue', 'theme-purple', 'theme-green', 'theme-red', 'theme-pink', 'theme-black', 'theme-white'];
 
-  const applyTheme = (themeClass: string | null) => {
+  const applyTheme = (_themeClass?: string | null) => {
     const body = document.body;
     body.classList.remove(...AVAILABLE_THEMES);
-    if (themeClass && AVAILABLE_THEMES.includes(themeClass)) {
-      body.classList.add(themeClass);
-      try { localStorage.setItem("active-theme-color", themeClass); } catch (e) {}
-    } else {
-      try { localStorage.removeItem("active-theme-color"); } catch (e) {}
-    }
+    try { localStorage.removeItem("active-theme-color"); } catch (e) {}
   };
 
   const fetchProfile = async (userId: string) => {
@@ -192,10 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newUser) {
         setIsGuest(false);
         try { localStorage.removeItem("tabe_guest_mode"); } catch {}
-        const savedTheme = localStorage.getItem("active-theme-color") || "theme-neon-gold";
-        if (savedTheme) {
-          applyTheme(savedTheme);
-        }
+        applyTheme();
         if (newUserId !== currentUserId) {
           currentUserId = newUserId;
           fetchProfile(newUser.id);
@@ -224,9 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         currentUserId = null;
         setIsGuest(true);
-        const savedTheme = localStorage.getItem("active-theme-color") || "theme-neon-gold";
-        setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
-        applyTheme(savedTheme);
+        setProfile({ active_theme: null, active_badge: null, sidebar_config: null });
+        applyTheme();
       }
       setLoading(false);
     };
@@ -457,9 +448,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsGuest(true);
     try { localStorage.setItem("tabe_guest_mode", "true"); } catch {}
     // Guest dummy profile - check localStorage first
-    const savedTheme = localStorage.getItem("active-theme-color");
-    setProfile({ active_theme: savedTheme, active_badge: null, sidebar_config: null });
-    applyTheme(savedTheme);
+    setProfile({ active_theme: null, active_badge: null, sidebar_config: null });
+    applyTheme();
   };
 
   const googleIdentity = user?.identities?.find((id) => id.provider === "google") || null;

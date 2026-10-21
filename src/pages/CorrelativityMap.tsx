@@ -1,5 +1,4 @@
-
-import { useCallback, useMemo, useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
+import { useMemo, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -7,8 +6,6 @@ import {
     Background,
     useNodesState,
     useEdgesState,
-    addEdge,
-    Connection,
     MarkerType,
     Node,
     Edge,
@@ -16,13 +13,10 @@ import {
     BackgroundVariant
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useAuth } from "@/contexts/AuthContext";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, ZoomIn, ZoomOut, Zap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, Network } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
-import { Loader2 } from "lucide-react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { SubjectNode } from "@/components/correlativity/SubjectNode";
 import { useTheme } from "@/hooks/useTheme";
@@ -45,11 +39,19 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
     render() {
         if (this.state.hasError) {
             return (
-                <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center">
-                    <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4" />
-                    <h2 className="text-xl font-bold mb-2">Algo salió mal con el mapa</h2>
-                    <p className="text-muted-foreground mb-4">Intenta recargar la página.</p>
-                    <Button onClick={() => window.location.reload()}>Recargar</Button>
+                <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-[#FAFAFA] dark:bg-[#171717]">
+                    <AlertTriangle className="w-10 h-10 text-amber-500 mb-3" />
+                    <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                        Algo salió mal con el mapa
+                    </h2>
+                    <p className="text-xs text-zinc-500 mb-4">Intenta recargar la página para reintentar.</p>
+                    <Button
+                        size="sm"
+                        onClick={() => window.location.reload()}
+                        className="rounded-lg text-xs"
+                    >
+                        Recargar
+                    </Button>
                 </div>
             );
         }
@@ -63,12 +65,8 @@ const nodeTypes = {
     subject: SubjectNode,
 };
 
-// Layout configuration — smaller nodes for a tighter neural look
-const nodeWidth = 190;
-const nodeHeight = 80;
-
 const getLayoutedElements = (nodes: Node[], edges: Edge[], subjects: Subject[]) => {
-    // We group nodes by year.
+    // Agrupamos nodos por año
     const nodesByYear = new Map<number, Node[]>();
 
     nodes.forEach(node => {
@@ -81,25 +79,25 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], subjects: Subject[]) 
     });
 
     const newNodes: Node[] = [];
-    const xSpacing = 350;
-    const ySpacing = 120;
+    const xSpacing = 320;
+    const ySpacing = 110;
 
-    // Get all unique years and sort them
+    // Años únicos ordenados
     const years = Array.from(nodesByYear.keys()).sort((a, b) => a - b);
 
     years.forEach((year, yearIndex) => {
         const yearNodes = nodesByYear.get(year) || [];
 
-        // Sort nodes within the same year by numero_materia or alphabetically
+        // Ordenamos por número de materia
         yearNodes.sort((a, b) => {
             const subA = subjects.find(s => s.id === a.id);
             const subB = subjects.find(s => s.id === b.id);
             return (subA?.numero_materia || 0) - (subB?.numero_materia || 0);
         });
 
-        // Calculate a starting Y so they are centered roughly (optional)
+        // Centrado vertical
         const totalHeight = yearNodes.length * ySpacing;
-        let startY = -totalHeight / 2;
+        const startY = -totalHeight / 2;
 
         yearNodes.forEach((node, idx) => {
             newNodes.push({
@@ -118,20 +116,38 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], subjects: Subject[]) 
 };
 
 function CorrelativityMapContent() {
-    const { user } = useAuth();
     const navigate = useNavigate();
-    const { subjects, loading } = useSubjects();
+    const { subjects, loading, refetch } = useSubjects();
     const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+    // Métricas para las stats pills del header
+    const stats = useMemo(() => {
+        let aprobadas = 0;
+        let regulares = 0;
+        let cursables = 0;
+
+        subjects.forEach((s) => {
+            if (s.status === 'aprobada') aprobadas++;
+            else if (s.status === 'regular') regulares++;
+            else if (s.status === 'cursable') cursables++;
+        });
+
+        return { aprobadas, regulares, cursables };
+    }, [subjects]);
 
     useEffect(() => {
         if (loading || subjects.length === 0) return;
 
         try {
             const flowNodes: Node[] = subjects.map((subject) => {
-                const isProject = subject.nombre.toLowerCase().includes('proyecto') || subject.nombre.toLowerCase().includes('tesis');
+                const isProject =
+                    subject.nombre.toLowerCase().includes('proyecto') ||
+                    subject.nombre.toLowerCase().includes('tesis') ||
+                    subject.nombre.toLowerCase().includes('práctica profesional');
 
                 return {
                     id: subject.id,
@@ -148,6 +164,8 @@ function CorrelativityMapContent() {
             });
 
             const flowEdges: Edge[] = [];
+            const edgeStroke = isDark ? '#52525b' : '#cbd5e1';
+            const markerColor = isDark ? '#71717a' : '#94a3b8';
 
             subjects.forEach((subject) => {
                 subject.dependencies.forEach((dep) => {
@@ -157,9 +175,17 @@ function CorrelativityMapContent() {
                             source: dep.requiere_aprobada,
                             target: subject.id,
                             type: 'smoothstep',
-                            animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#ffd21c', width: 14, height: 14 },
-                            style: { stroke: '#ffd21c', strokeWidth: 3, opacity: 0.8 },
+                            animated: false,
+                            markerEnd: {
+                                type: MarkerType.ArrowClosed,
+                                color: markerColor,
+                                width: 10,
+                                height: 10
+                            },
+                            style: {
+                                stroke: edgeStroke,
+                                strokeWidth: 1.5,
+                            },
                         });
                     }
                     if (dep.requiere_regular) {
@@ -168,9 +194,18 @@ function CorrelativityMapContent() {
                             source: dep.requiere_regular,
                             target: subject.id,
                             type: 'smoothstep',
-                            animated: true,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: '#1475e5', width: 14, height: 14 },
-                            style: { stroke: '#1475e5', strokeWidth: 3, strokeDasharray: '6,4', opacity: 0.8 },
+                            animated: false,
+                            markerEnd: {
+                                type: MarkerType.ArrowClosed,
+                                color: markerColor,
+                                width: 10,
+                                height: 10
+                            },
+                            style: {
+                                stroke: edgeStroke,
+                                strokeWidth: 1.5,
+                                strokeDasharray: '4,4',
+                            },
                         });
                     }
                 });
@@ -187,38 +222,104 @@ function CorrelativityMapContent() {
         } catch (err) {
             console.error("Error calculating layout:", err);
         }
-
-    }, [subjects, loading, setNodes, setEdges]);
-
+    }, [subjects, loading, isDark, setNodes, setEdges]);
 
     if (loading) {
         return <LoadingScreen fullScreen message="Cargando Mapa de Correlativas..." submessage="Generando grafo de la carrera..." />;
     }
 
     return (
-        <div className="tabe-map h-screen w-full bg-background flex flex-col relative overflow-hidden">
-            <div className="absolute top-4 left-4 z-50 flex gap-2 items-center">
-                <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="border-[3px] border-foreground bg-card hover:-translate-y-0.5 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all rounded-xl h-10 w-10">
-                    <ArrowLeft className="h-5 w-5 text-foreground" />
-                </Button>
-                <Card className="px-4 py-2 bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl flex items-center gap-4">
-                    <h1 className="font-black text-lg uppercase tracking-widest flex items-center gap-2 text-foreground">
-                        <Zap className="text-foreground w-5 h-5 fill-yellow-400" />
-                        Mapa de Correlativas
-                    </h1>
-                </Card>
+        <div className="tabe-map h-screen w-full bg-[#FAFAFA] dark:bg-[#171717] flex flex-col relative overflow-hidden select-none">
+            {/* Barra superior estilo Notion / Figma */}
+            <header className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between pointer-events-none">
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    {/* Botón Volver al Plan */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(-1)}
+                        className="backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3 py-1.5 h-9 shadow-xs text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        <span>Volver al Plan</span>
+                    </Button>
+
+                    {/* Título y Stats Pills */}
+                    <div className="backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-1.5 h-9 shadow-xs flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <Network className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                            <h1 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 tracking-tight">
+                                Mapa de Correlatividades
+                            </h1>
+                        </div>
+
+                        {/* Pills de estadísticas */}
+                        <div className="hidden md:flex items-center gap-1.5 pl-3 border-l border-zinc-200 dark:border-zinc-800 text-[11px]">
+                            <span className="px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono text-[10px]">
+                                {subjects.length} materias
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[10px]">
+                                {stats.aprobadas} aprobadas
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-400 font-mono text-[10px]">
+                                {stats.regulares} regulares
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono text-[10px]">
+                                {stats.cursables} cursables
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Acciones derechas */}
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => refetch(true)}
+                        className="backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3 py-1.5 h-9 shadow-xs text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Recargar mapa"
+                    >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Recargar</span>
+                    </Button>
+                </div>
+            </header>
+
+            {/* Leyenda inferior sutil */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden sm:block pointer-events-auto">
+                <div className="backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs rounded-xl px-4 py-2 flex items-center gap-4 text-[11px] text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span>Aprobada</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-sky-500" />
+                        <span>Regular</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span>Cursable</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 opacity-60">
+                        <span className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                        <span>Bloqueada</span>
+                    </div>
+                    <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="flex items-center gap-3 text-[10px] font-mono text-zinc-500">
+                        <span className="flex items-center gap-1.5">
+                            <span className="inline-block w-3.5 border-b border-zinc-400 dark:border-zinc-500" />
+                            <span>Req. Aprobada</span>
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                            <span className="inline-block w-3.5 border-b border-dashed border-zinc-400 dark:border-zinc-500" />
+                            <span>Req. Regular</span>
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            {/* Legend */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden sm:block">
-                <Card className="px-5 py-3 bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex gap-5 text-[10px] rounded-xl font-black uppercase tracking-widest">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-yellow-300 dark:bg-yellow-900/60 border-2 border-foreground"></div><span className="text-foreground">Aprobada</span></div>
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-blue-300 dark:bg-blue-900/60 border-2 border-foreground"></div><span className="text-foreground">Regular</span></div>
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-green-300 dark:bg-green-900/60 border-2 border-foreground"></div><span className="text-foreground">Cursable</span></div>
-                    <div className="flex items-center gap-2 opacity-50"><div className="w-3 h-3 rounded bg-zinc-200 dark:bg-zinc-800/60 border-2 border-foreground"></div><span className="text-foreground">Bloqueada</span></div>
-                </Card>
-            </div>
-
+            {/* Lienzo de ReactFlow */}
             <div className="flex-1 w-full h-full">
                 <ReactFlow
                     nodes={nodes}
@@ -228,15 +329,34 @@ function CorrelativityMapContent() {
                     onEdgesChange={onEdgesChange}
                     fitView
                     fitViewOptions={{ padding: 0.2 }}
-                    className="bg-muted/10"
-                    colorMode={theme}
+                    className="bg-transparent"
+                    colorMode={isDark ? 'dark' : 'light'}
                     minZoom={0.1}
                     proOptions={{ hideAttribution: true }}
-                    defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
+                    defaultEdgeOptions={{ type: 'smoothstep', animated: false }}
                 >
-                    <Controls className="bg-card border-[3px] border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] text-foreground fill-foreground overflow-hidden" position="bottom-right" />
-                    <MiniMap className="bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]" nodeColor="hsl(var(--foreground))" maskColor="rgba(100,100,100,0.2)" position="bottom-left" />
-                    <Background gap={30} size={1} color="hsl(var(--foreground))" variant={BackgroundVariant.Dots} />
+                    <Controls
+                        position="bottom-right"
+                        className="!bg-white/90 dark:!bg-zinc-900/90 !border !border-zinc-200/80 dark:!border-zinc-800/80 !rounded-xl !shadow-xs !overflow-hidden backdrop-blur-md [&>button]:!bg-transparent [&>button]:!border-b [&>button]:!border-zinc-200/80 dark:[&>button]:!border-zinc-800/80 [&>button]:!text-zinc-700 dark:[&>button]:!text-zinc-300 hover:[&>button]:!bg-zinc-100 dark:hover:[&>button]:!bg-zinc-800 [&>button:last-child]:!border-b-0"
+                    />
+                    <MiniMap
+                        position="bottom-left"
+                        className="!bg-white/80 dark:!bg-zinc-900/80 !border !border-zinc-200/80 dark:!border-zinc-800/80 !rounded-xl !shadow-xs !overflow-hidden backdrop-blur-xs"
+                        nodeColor={(n) => {
+                            const status = n.data?.status;
+                            if (status === 'aprobada') return '#10b981';
+                            if (status === 'regular') return '#0ea5e9';
+                            if (status === 'cursable') return '#f59e0b';
+                            return isDark ? '#3f3f46' : '#d4d4d8';
+                        }}
+                        maskColor={isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)'}
+                    />
+                    <Background
+                        gap={24}
+                        size={1}
+                        color={isDark ? '#3f3f46' : '#cbd5e1'}
+                        variant={BackgroundVariant.Dots}
+                    />
                 </ReactFlow>
             </div>
         </div>

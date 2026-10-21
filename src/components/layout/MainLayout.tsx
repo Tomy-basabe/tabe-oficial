@@ -245,7 +245,7 @@ export function MainLayout() {
         const hasTabegochi = parsed?.some((i: any) => 
           (i.path || i.id) === "/tabegochi" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tabegochi"))
         );
-        if (hasTabetalk || hasMarketplace || !hasTabegochi) {
+        if (hasTabetalk || hasMarketplace || hasTabegochi) {
           localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(displayItems));
         }
       }
@@ -337,76 +337,56 @@ export function MainLayout() {
 
   return (
     <ComicEffectsProvider>
-      <div 
-        className="min-h-screen bg-background relative overflow-hidden"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--border)) 2px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }}
-      >
-        {/* Neo-Brutalism Pattern Background */}
-        {/* Mobile Header (El usuario especificó: sin panel vertical, todo en la barra horizontal de abajo) */}
+      <div className="min-h-screen bg-white dark:bg-[#171717] text-zinc-900 dark:text-zinc-100 relative overflow-hidden">
+        {/* Mobile Header */}
         {!isFullScreenPage && (
-          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(4rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-card/95 backdrop-blur-md border-b-2 border-foreground/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.06)] flex items-center justify-between px-4">
+          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-white/90 dark:bg-[#1f1f1f]/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
-              <TabeLogo size={38} className="shrink-0" />
-              <span className="font-extrabold text-lg tracking-tight text-foreground">TABE</span>
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
-                COMIC
-              </span>
+              <TabeLogo size={32} className="shrink-0" />
+              <span className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">TABE</span>
             </Link>
 
             {/* Quick Level / XP Badge on mobile header */}
             <Link 
               to="/metricas"
-              className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-secondary border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-transform"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors"
             >
-              <div className="w-5 h-5 rounded-lg bg-[#1475e5] text-white flex items-center justify-center font-black text-[10px]">
-                ⚡
-              </div>
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[10px] font-black text-foreground">NV. {xpData.level}</span>
-                <span className="text-[9px] font-bold text-muted-foreground">{xpData.currentXp} XP</span>
-              </div>
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">NV. {xpData.level}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">({xpData.currentXp} XP)</span>
             </Link>
           </header>
         )}
 
-        {/* Sidebar (Desktop Only: en móvil todo está en la barra horizontal de abajo) */}
+        {/* Sidebar (Desktop Only) */}
         {!isFullScreenPage && (
           <aside
             className={cn(
-              "hidden lg:flex fixed top-0 left-0 h-full border-r-4 border-foreground transition-all duration-300 flex-col bg-card shadow-[4px_0_0_0_hsl(var(--foreground))] z-40",
-              isCollapsed ? "w-20" : "w-64"
+              "hidden lg:flex fixed top-0 left-0 h-full border-r border-zinc-200/80 dark:border-zinc-800/80 transition-all duration-200 flex-col bg-[#F7F7F5] dark:bg-[#212121] z-40",
+              isCollapsed ? "w-16" : "w-60"
             )}
           >
           {/* Toggle Button (Desktop Only) */}
-          <div className="hidden lg:flex absolute -right-3.5 top-5 z-50">
-            <Button
-              size="icon"
-              variant="outline"
+          <div className="hidden lg:flex absolute -right-3 top-4 z-50">
+            <button
               aria-label={isCollapsed ? "Desplegar panel lateral" : "Plegar / guardar panel lateral"}
               title={isCollapsed ? "Desplegar panel lateral" : "Plegar / guardar panel lateral"}
-              className="h-7 w-7 rounded-xl bg-[#FFE600] text-black border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-[#ffe033] hover:scale-105 active:translate-y-[1px] transition-all cursor-pointer"
+              className="h-6 w-6 rounded-md bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors cursor-pointer"
               onClick={toggleCollapse}
             >
-              {isCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5 stroke-[2.5]" /> : <PanelLeftClose className="h-3.5 w-3.5 stroke-[2.5]" />}
-            </Button>
+              {isCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+            </button>
           </div>
 
           {/* Logo Header */}
-          <div className={cn("h-16 flex items-center border-b-3 border-foreground flex-shrink-0 transition-all overflow-hidden bg-secondary/30", isCollapsed ? "justify-center px-0" : "justify-between px-4 sm:px-5 gap-2")}>
-            <div className="flex items-center gap-3 min-w-0">
-              <TabeLogo size={42} className="shrink-0" />
+          <div className={cn("h-14 flex items-center border-b border-zinc-200/80 dark:border-zinc-800/80 flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-between px-4 gap-2")}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <TabeLogo size={32} className="shrink-0" />
               {!isCollapsed && (
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h1 className="font-black text-xl tracking-tight text-foreground truncate">TABE</h1>
-                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FFE600] text-black border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-3">
-                      COMIC
-                    </span>
+                    <h1 className="font-semibold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 truncate">TABE</h1>
                   </div>
-                  <p className="text-[11px] font-bold text-muted-foreground truncate">Tu espacio académico</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">Espacio académico</p>
                 </div>
               )}
             </div>
@@ -457,32 +437,33 @@ export function MainLayout() {
                           toggleCategory(item.id);
                         }}
                         className={cn(
-                          "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2 cursor-pointer",
+                          "w-full flex items-center rounded-lg transition-colors select-none justify-center p-2 cursor-pointer",
                           hasActiveChild || isHovered
-                            ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                            : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40 hover:scale-105"
+                            ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/70 dark:bg-zinc-800"
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100"
                         )}
                         aria-label={item.label}
                       >
                         <div className={cn(
-                          "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
-                          hasActiveChild ? "bg-[#FFE600] text-black border-black" : "bg-card text-foreground"
+                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors border",
+                          hasActiveChild 
+                            ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 font-semibold" 
+                            : "bg-transparent text-zinc-500 border-transparent hover:text-zinc-800 dark:hover:text-zinc-200"
                         )}>
-                          <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <Icon className="w-4 h-4 stroke-[2]" />
                         </div>
                       </button>
 
-                      {/* Floating Category Menu on Hover with cool spring bounce entrance */}
+                      {/* Floating Category Menu on Hover (Apple / Notion clean flyout) */}
                       {isHovered && item.items && (
-                        <div className="absolute left-[calc(100%+10px)] top-0 z-50 bg-card border-3 border-foreground rounded-2xl p-2.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] min-w-[210px] space-y-1.5 animate-sidebar-entrance">
-                          <div className="absolute -left-2 top-3.5 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
-                          <div className="px-2 py-1 border-b-2 border-foreground/20 mb-1 flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-md bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border border-black shadow-[1px_1px_0_0_#000]">
-                              <Icon className="w-3 h-3 stroke-[2.5]" />
+                        <div className="absolute left-[calc(100%+8px)] top-0 z-50 bg-white/95 dark:bg-[#1a1a1d]/95 backdrop-blur-md border border-zinc-200/90 dark:border-zinc-800/90 rounded-xl p-1.5 shadow-xl min-w-[200px] space-y-0.5 animate-in fade-in-0 zoom-in-95 duration-150">
+                          <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 mb-1 flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs border border-zinc-200/60 dark:border-zinc-700/60">
+                              <Icon className="w-3 h-3 stroke-[2]" />
                             </div>
-                            <span className="font-black text-xs uppercase tracking-wider text-foreground">{item.label}</span>
+                            <span className="font-semibold text-xs tracking-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-0.5">
                             {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                           </div>
                         </div>
@@ -506,28 +487,23 @@ export function MainLayout() {
                       onFocus={() => preloadRoute(path)}
                       style={{ animationDelay: `${index * 30}ms` }}
                       className={cn(
-                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2 px-3 py-1.5 text-xs animate-sidebar-entrance",
+                        "flex items-center rounded-lg transition-colors group relative select-none gap-2.5 px-2.5 py-1.5 text-xs",
                         isActive
-                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-secondary/60 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.02] font-extrabold"
+                          ? "font-medium bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100"
+                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", isActive && "stroke-[2.5]")} />
-                      <span className="truncate flex-1 text-left font-bold text-xs">
+                      <Icon className={cn("w-3.5 h-3.5 shrink-0 transition-colors text-zinc-500 group-hover:text-zinc-800 dark:group-hover:text-zinc-200", isActive && "text-zinc-900 dark:text-zinc-100 stroke-[2.2]")} />
+                      <span className="truncate flex-1 text-left font-medium text-xs">
                         {item.label}
                       </span>
                       {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
-                        <span className={cn(
-                          "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
-                          isActive
-                            ? "bg-black text-white border-black"
-                            : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
-                        )}>
+                        <span className="ml-auto text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded border bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700/80">
                           AI
                         </span>
                       )}
                       {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black shrink-0" />
+                        <span className="ml-auto w-1 h-1 rounded-full bg-zinc-900 dark:bg-zinc-100 shrink-0" />
                       )}
                     </Link>
                   );
@@ -545,8 +521,8 @@ export function MainLayout() {
                       className={cn(
                         "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2.5",
                         isActive
-                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-105 font-extrabold"
+                          ? "bg-zinc-200/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100"
                       )}
                       aria-label={item.label}
                     >
@@ -558,14 +534,13 @@ export function MainLayout() {
                       />
                     </Link>
 
-                    {/* Popout badge only for this item when hovered */}
-                    <div className="hidden group-hover/navitem:flex absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 bg-card border-3 border-foreground rounded-xl px-3 py-1.5 shadow-[4px_4px_0_0_hsl(var(--foreground))] items-center gap-2 whitespace-nowrap pointer-events-none animate-sidebar-entrance">
-                      <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
-                      <span className="font-black text-xs uppercase tracking-wider text-foreground">
+                    {/* Popout tooltip only for this item when hovered (Apple minimalist style) */}
+                    <div className="hidden group-hover/navitem:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1 shadow-md items-center gap-2 whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+                      <span className="font-medium text-xs tracking-tight text-zinc-900 dark:text-zinc-100">
                         {item.label}
                       </span>
                       {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
-                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#00E5FF] text-black border border-black shadow-[1px_1px_0_0_#000]">
+                        <span className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80">
                           AI
                         </span>
                       )}
@@ -623,25 +598,27 @@ export function MainLayout() {
                             toggleCategory(item.id);
                           }}
                           className={cn(
-                            "w-full flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none gap-2.5 px-3 py-2 cursor-pointer",
+                            "w-full flex items-center rounded-lg transition-colors select-none gap-2 px-2.5 py-1.5 cursor-pointer text-xs font-medium",
                             hasActiveChild || isVisible
-                              ? "font-black text-foreground bg-secondary/80 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                              : "text-foreground/75 border-transparent hover:bg-secondary/60 hover:text-foreground hover:border-foreground/40"
+                              ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-800/60"
+                              : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/40 dark:hover:bg-zinc-800/40 hover:text-zinc-900 dark:hover:text-zinc-100"
                           )}
                         >
                           <div className={cn(
-                            "w-7 h-7 rounded-lg border-2 border-foreground/50 flex items-center justify-center shrink-0 transition-colors",
-                            hasActiveChild ? "bg-[#FFE600] text-black border-black" : "bg-card text-foreground"
+                            "w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors border",
+                            hasActiveChild 
+                              ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 font-semibold" 
+                              : "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60"
                           )}>
-                            <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <Icon className="w-3.5 h-3.5 stroke-[2]" />
                           </div>
-                          <span className="font-black text-xs uppercase tracking-wider truncate flex-1 text-left">{item.label}</span>
-                          <ChevronDown className={cn("w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-transform duration-150 stroke-[3]", isVisible && "rotate-180")} />
+                          <span className="font-semibold text-xs tracking-tight truncate flex-1 text-left text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-transform duration-150 stroke-[2]", isVisible && "rotate-180")} />
                         </button>
 
                         {/* Regular expanded category list in normal sidebar */}
                         {isVisible && item.items && (
-                          <div className="space-y-1 ml-4 border-l-3 border-foreground/40 pl-2.5 my-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                          <div className="space-y-0.5 ml-2 border-l border-zinc-200/80 dark:border-zinc-800/80 pl-2 my-1">
                             {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
                           </div>
                         )}
@@ -658,34 +635,29 @@ export function MainLayout() {
                       onTouchStart={() => preloadRoute(path)}
                       onFocus={() => preloadRoute(path)}
                       className={cn(
-                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none",
-                        isInsideCategory ? "gap-2 px-3 py-1.5 text-xs" : "gap-3 px-3 py-2",
+                        "flex items-center rounded-lg transition-colors group relative select-none",
+                        isInsideCategory ? "gap-2 px-2.5 py-1.5 text-xs" : "gap-2.5 px-3 py-2 text-xs",
                         isActive
-                          ? "font-black bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0_0_#000] translate-x-1"
-                          : "text-foreground/85 border-transparent hover:border-foreground hover:bg-card hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-0.5 hover:scale-[1.01] font-extrabold"
+                          ? "font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
                       )}
                     >
                       <Icon
                         className={cn(
-                          "w-4 h-4 transition-all flex-shrink-0",
-                          isActive ? "stroke-[2.5]" : ""
+                          "w-4 h-4 transition-colors flex-shrink-0 text-zinc-500 group-hover:text-zinc-800 dark:group-hover:text-zinc-200",
+                          isActive && "text-zinc-900 dark:text-zinc-100 stroke-[2.2]"
                         )}
                       />
-                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-bold text-xs" : "font-black text-xs uppercase tracking-tight")}>
+                      <span className={cn("truncate flex-1 text-left", isInsideCategory ? "font-medium text-xs text-zinc-700 dark:text-zinc-300" : "font-semibold text-xs tracking-tight text-zinc-800 dark:text-zinc-200")}>
                         {item.label}
                       </span>
                       {(targetPath === "/TABEAI" || item.id === "item-/TABEAI") && (
-                        <span className={cn(
-                          "ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border leading-none transition-colors",
-                          isActive
-                            ? "bg-black text-white border-black"
-                            : "bg-[#00E5FF] text-black border-black shadow-[1px_1px_0_0_#000]"
-                        )}>
+                        <span className="ml-auto text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded border bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700/80">
                           AI
                         </span>
                       )}
                       {isActive && targetPath !== "/TABEAI" && item.id !== "item-/TABEAI" && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 shrink-0" />
                       )}
                     </Link>
                   );
@@ -697,114 +669,7 @@ export function MainLayout() {
           </ScrollArea>
         )}
 
-        {/* User Progress Summary - Comic Gamified Card */}
-        <div className={cn("border-t-3 border-foreground flex-shrink-0 transition-all bg-secondary/20 relative group/xp", isCollapsed ? "p-2" : "p-3")}>
-          <div className={cn(
-            "rounded-2xl border-3 border-foreground bg-card shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all relative overflow-hidden",
-            isCollapsed ? "p-2 flex flex-col items-center gap-1 cursor-pointer hover:border-black" : "p-3.5"
-          )}>
-            {/* Decorative comic corner */}
-            <div className="absolute top-0 right-0 w-12 h-12 bg-[#FFE600]/15 rounded-bl-full pointer-events-none" />
-
-            {isCollapsed ? (
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-xs border-2 border-black shadow-[2px_2px_0_0_#000]">
-                  {xpData.level}
-                </div>
-                <div className="w-8 h-1.5 bg-secondary rounded-full border border-black overflow-hidden mt-1">
-                  <div className="h-full bg-[#FFE600]" style={{ width: `${xpData.progress}%` }} />
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2.5 relative z-10">
-                  <div className="relative shrink-0">
-                    <div className="w-11 h-11 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-base border-2 border-black shadow-[2px_2px_0_0_#000]">
-                      {xpData.level}
-                    </div>
-                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center text-[10px] font-black shadow-xs">
-                      ⚡
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-black text-xs tracking-tight text-foreground uppercase">
-                        Nivel {xpData.level}
-                      </span>
-                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000]">
-                        {Math.round(xpData.progress)}%
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5">
-                      <span className="text-foreground font-black">{xpData.currentXp.toLocaleString()}</span> XP total
-                    </p>
-                  </div>
-                </div>
-
-                {/* Chunky Comic XP Bar */}
-                <div className="space-y-1 relative z-10">
-                  <div className="h-3 bg-secondary rounded-full border-2 border-foreground overflow-hidden p-[1px] shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#1475e5] via-[#00E5FF] to-[#BFFF00] rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(6, xpData.progress)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground px-0.5">
-                    <span className="font-black uppercase text-[9px]">Siguiente nivel</span>
-                    <span className="font-black text-foreground">{Math.round(xpData.xpForNext)} XP</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Floating XP card when collapsed on hover */}
-          {isCollapsed && (
-            <div className="hidden group-hover/xp:block absolute left-[calc(100%+10px)] bottom-2 z-50 bg-card border-3 border-foreground rounded-2xl p-3.5 shadow-[6px_6px_0_0_hsl(var(--foreground))] w-56 animate-sidebar-entrance pointer-events-none">
-              <div className="absolute -left-2 bottom-4 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-foreground" />
-              <div className="flex items-center gap-3 mb-2.5 relative z-10">
-                <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-xl bg-[#FFE600] text-black flex items-center justify-center font-black text-base border-2 border-black shadow-[2px_2px_0_0_#000]">
-                    {xpData.level}
-                  </div>
-                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center text-[10px] font-black">
-                    ⚡
-                  </div>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="font-black text-xs tracking-tight text-foreground uppercase">
-                      Nivel {xpData.level}
-                    </span>
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000]">
-                      {Math.round(xpData.progress)}%
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5">
-                    <span className="text-foreground font-black">{xpData.currentXp.toLocaleString()}</span> XP total
-                  </p>
-                </div>
-              </div>
-
-              {/* Chunky Comic XP Bar */}
-              <div className="space-y-1 relative z-10">
-                <div className="h-3 bg-secondary rounded-full border-2 border-foreground overflow-hidden p-[1px] shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#1475e5] via-[#00E5FF] to-[#BFFF00] rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(6, xpData.progress)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground px-0.5">
-                  <span className="font-black uppercase text-[9px]">Siguiente nivel</span>
-                  <span className="font-black text-foreground">{Math.round(xpData.xpForNext)} XP</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </aside>
+        </aside>
       )}
 
       {/* Main Content */}

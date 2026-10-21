@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogFooter, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Users, FileText, Copy, Loader2, BookOpen, ChevronRight, ArrowLeft } from "lucide-react";
@@ -79,15 +79,40 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
       (noteSubject.codigo && s.codigo && s.codigo.toLowerCase().trim() === noteSubject.codigo.toLowerCase().trim())
     );
     if (match) {
-      setTargetYear(match.año.toString());
       setTargetSubjectId(match.id);
+      setTargetYear(match.año.toString());
     }
   };
 
-  // Unique years from my subjects
+  useEffect(() => {
+    if (open) {
+      if (preselectedNote) {
+        setStep("select-subject");
+        setSelectedNote({
+          id: preselectedNote.id,
+          titulo: preselectedNote.titulo,
+          emoji: preselectedNote.emoji,
+          subject_id: preselectedNote.subject_id,
+          cover_url: preselectedNote.cover_url || null,
+          subject: preselectedNote.subject,
+        });
+        autoMatchSubject(preselectedNote.subject);
+      } else {
+        setStep("select-friend");
+        setSelectedFriend(null);
+        setSelectedNote(null);
+        setFriendNotes([]);
+        setTargetSubjectId("");
+        setTargetYear("all");
+      }
+    }
+  }, [open, preselectedNote]);
+
   const myYears = useMemo(() => {
     const years = new Set<number>();
-    mySubjects.forEach(s => years.add(s.año));
+    mySubjects.forEach(s => {
+      if (s.año) years.add(s.año);
+    });
     return Array.from(years).sort((a, b) => a - b);
   }, [mySubjects]);
 
@@ -100,33 +125,10 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
     return mySubjects.find(s => s.id === targetSubjectId);
   }, [mySubjects, targetSubjectId]);
 
-  // Reset when modal opens/closes
-  useEffect(() => {
-    if (!open) {
-      const timer = setTimeout(() => {
-        setStep(preselectedNote ? "select-subject" : "select-friend");
-        setSelectedFriend(null);
-        setFriendNotes([]);
-        setSelectedNote(null);
-        setTargetYear("all");
-        setTargetSubjectId("");
-      }, 250);
-      return () => clearTimeout(timer);
-    } else {
-      if (preselectedNote) {
-        setStep("select-subject");
-        setSelectedNote(preselectedNote as any);
-        autoMatchSubject(preselectedNote.subject);
-      } else {
-        setStep("select-friend");
-      }
-    }
-  }, [open, preselectedNote]);
-
   const handleSelectFriend = async (friend: Friend) => {
     setSelectedFriend(friend);
-    setStep("select-note");
     setLoadingNotes(true);
+    setStep("select-note");
 
     try {
       const { data, error } = await supabase
@@ -141,7 +143,7 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
       if (error) throw error;
       setFriendNotes((data || []) as FriendNote[]);
-    } catch (err) {
+    } catch {
       toast.error("Error al cargar los apuntes del amigo");
       setFriendNotes([]);
     } finally {
@@ -163,7 +165,6 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
     setImporting(true);
     try {
-      // Fetch full content and details of the note
       const { data, error } = await supabase
         .from("notion_documents")
         .select("contenido, titulo, emoji, cover_url")
@@ -196,27 +197,26 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg bg-card text-foreground border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-2xl p-0 overflow-hidden">
-        {/* Neo-brutalist Header */}
-        <div className="relative px-5 sm:px-6 py-4 sm:py-5 border-b-4 border-foreground bg-[#BFFF00] text-black pr-14">
+      <DialogContent className="max-w-md sm:max-w-lg bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-2xl p-5 sm:p-6">
+        <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-xl border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
-              <Copy className="w-5 h-5 text-[#BFFF00]" strokeWidth={2.5} />
+            <div className="w-9 h-9 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 text-zinc-700 dark:text-zinc-300">
+              <Copy className="w-4 h-4" />
             </div>
             <div>
-              <DialogTitle className="font-black text-black text-lg sm:text-xl uppercase tracking-tight leading-tight">
+              <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 Importar Apunte de Amigo
               </DialogTitle>
-              <p className="text-black/80 font-bold text-xs mt-0.5">
-                Se creará una copia independiente en tus apuntes
-              </p>
+              <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+                Se guardará una copia editable e independiente en tus apuntes
+              </DialogDescription>
             </div>
           </div>
-        </div>
+        </DialogHeader>
 
         {/* Step indicator (when browsing from start) */}
         {!preselectedNote && (
-          <div className="flex items-center justify-between px-6 pt-4 pb-2 border-b border-border/40 bg-muted/20">
+          <div className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800/60 text-xs">
             {[
               { n: 1, label: "Amigo", stepId: "select-friend" },
               { n: 2, label: "Apunte", stepId: "select-note" },
@@ -227,19 +227,19 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
               const isActive = step === s.stepId;
               return (
                 <React.Fragment key={s.n}>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-1.5">
                     <div className={cn(
-                      "w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-foreground flex items-center justify-center text-xs font-black transition-all",
-                      isActive ? "bg-foreground text-background shadow-[1px_1px_0_0_hsl(var(--foreground))]" :
-                      isDone ? "bg-[#BFFF00] text-black" : "bg-muted text-muted-foreground"
+                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold transition-all",
+                      isActive ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" :
+                      isDone ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
                     )}>
                       {isDone ? "✓" : s.n}
                     </div>
-                    <span className={cn("text-[11px] sm:text-xs font-black uppercase tracking-tight", isActive ? "text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("text-[11px] font-medium", isActive ? "text-zinc-900 dark:text-zinc-100 font-semibold" : "text-zinc-400")}>
                       {s.label}
                     </span>
                   </div>
-                  {i < 2 && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  {i < 2 && <ChevronRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 shrink-0" />}
                 </React.Fragment>
               );
             })}
@@ -247,33 +247,32 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
         )}
 
         {/* Body Content */}
-        <div className="px-5 sm:px-6 py-4 sm:py-5 min-h-[200px]">
-
+        <div className="py-3 min-h-[200px]">
           {/* Step 1: Select Friend */}
           {step === "select-friend" && (
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Elegí un amigo</p>
+            <div className="space-y-2.5">
+              <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Elegí un amigo de tu red:</p>
               {friends.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-3">
-                  <Users className="w-12 h-12 opacity-30" />
-                  <p className="font-bold text-sm">Aún no tienes amigos agregados</p>
+                <div className="flex flex-col items-center justify-center py-10 text-zinc-400 gap-2 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                  <Users className="w-8 h-8 opacity-40" />
+                  <p className="text-xs font-medium">Aún no tienes amigos agregados</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                   {friends.map(friend => (
                     <button
                       key={friend.user_id}
                       onClick={() => handleSelectFriend(friend)}
-                      className="w-full flex items-center gap-3 p-3 bg-background border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-left rounded-xl"
+                      className="w-full flex items-center gap-3 p-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 transition-all text-left rounded-xl group cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-[#C688EB] border-2 border-black flex items-center justify-center font-black text-black text-lg shrink-0 shadow-[1px_1px_0_0_#000]">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-semibold text-xs text-zinc-700 dark:text-zinc-300 shrink-0">
                         {(friend.nombre || friend.username || "A").charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-sm text-foreground truncate">{friend.nombre || friend.username || "Amigo"}</p>
-                        {friend.username && <p className="text-xs text-muted-foreground font-bold">@{friend.username}</p>}
+                        <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">{friend.nombre || friend.username || "Amigo"}</p>
+                        {friend.username && <p className="text-[11px] text-zinc-400">@{friend.username}</p>}
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -283,49 +282,49 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
           {/* Step 2: Select Note */}
           {step === "select-note" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-black uppercase text-muted-foreground tracking-wider">
-                  Apuntes de <span className="text-foreground">{ownerName}</span>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  Apuntes de <strong className="text-zinc-900 dark:text-zinc-100">{ownerName}</strong>
                 </p>
                 <button
                   onClick={() => { setStep("select-friend"); setFriendNotes([]); }}
-                  className="text-xs font-black uppercase text-primary hover:underline flex items-center gap-1"
+                  className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Volver
                 </button>
               </div>
 
               {loadingNotes ? (
-                <div className="flex items-center justify-center py-12 gap-3 text-muted-foreground">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <span className="font-bold text-sm">Cargando apuntes de {ownerName}...</span>
+                <div className="flex items-center justify-center py-10 gap-2 text-zinc-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-xs">Cargando apuntes...</span>
                 </div>
               ) : friendNotes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-3">
-                  <FileText className="w-12 h-12 opacity-30" />
-                  <p className="font-bold text-sm">Este amigo aún no tiene apuntes creados</p>
+                <div className="flex flex-col items-center justify-center py-8 text-zinc-400 gap-2 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                  <FileText className="w-8 h-8 opacity-40" />
+                  <p className="text-xs font-medium">Este compañero aún no tiene apuntes creados</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                   {friendNotes.map(note => (
                     <button
                       key={note.id}
                       onClick={() => handleSelectNote(note)}
-                      className="w-full flex items-center gap-3 p-3 bg-background border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-left rounded-xl"
+                      className="w-full flex items-center gap-3 p-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 transition-all text-left rounded-xl group cursor-pointer"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-[#FFD700] border-2 border-black flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000] overflow-hidden">
-                        <TabeIconRenderer iconId={note.emoji || "book"} size={22} />
+                      <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 text-base">
+                        <TabeIconRenderer iconId={note.emoji || "book"} size={18} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-sm text-foreground truncate">{note.titulo || "Sin título"}</p>
+                        <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">{note.titulo || "Sin título"}</p>
                         {note.subject && (
-                          <p className="text-xs text-muted-foreground font-bold">
+                          <p className="text-[11px] text-zinc-400">
                             {note.subject.codigo || note.subject.nombre} · Año {note.subject.año}
                           </p>
                         )}
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -335,23 +334,21 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
           {/* Step 3: Select Target Subject */}
           {step === "select-subject" && (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {/* Note Preview Card */}
-              <div className="p-3.5 bg-muted/40 border-3 border-foreground rounded-xl shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-lg bg-[#FFD700] border-2 border-foreground flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] overflow-hidden">
-                  <TabeIconRenderer iconId={noteEmoji} size={24} />
+              <div className="p-3 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 rounded-xl flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0">
+                  <TabeIconRenderer iconId={noteEmoji} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm text-foreground uppercase tracking-tight line-clamp-2 leading-snug">
+                  <p className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 line-clamp-1">
                     {noteTitle}
                   </p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[11px] font-bold text-muted-foreground">
-                      De: <strong className="text-foreground">@{ownerName}</strong>
-                    </span>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[11px] text-zinc-400">
+                    <span>De: @{ownerName}</span>
                     {originalSubject && (
-                      <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-foreground uppercase shadow-[1px_1px_0_0_hsl(var(--foreground))]">
-                        {originalSubject.codigo || originalSubject.nombre} · Año {originalSubject.año}
+                      <span className="px-1.5 py-0.2 bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded font-medium">
+                        {originalSubject.codigo || originalSubject.nombre}
                       </span>
                     )}
                   </div>
@@ -359,58 +356,50 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
               </div>
 
               {!preselectedNote && (
-                <div className="flex justify-start">
-                  <button
-                    onClick={() => setStep("select-note")}
-                    className="text-xs font-black uppercase text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Elegir otro apunte
-                  </button>
-                </div>
+                <button
+                  onClick={() => setStep("select-note")}
+                  className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Elegir otro apunte
+                </button>
               )}
 
               {/* Subject Selection Area */}
-              <div className="space-y-3 pt-1">
-                <p className="text-xs font-black uppercase tracking-wider text-foreground">
+              <div className="space-y-2.5 pt-1">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   ¿A qué materia querés asignarlo?
-                </p>
+                </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {/* Year Select */}
-                  <div className="sm:col-span-1 space-y-1">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-                      Año
-                    </span>
+                  <div className="sm:col-span-1">
                     <Select value={targetYear} onValueChange={(v) => { setTargetYear(v); setTargetSubjectId(""); }}>
-                      <SelectTrigger className="w-full h-11 bg-background text-foreground border-3 border-foreground font-bold shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl focus:ring-0">
+                      <SelectTrigger className="w-full h-9 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 text-xs rounded-lg">
                         <SelectValue placeholder="Año" />
                       </SelectTrigger>
-                      <SelectContent className="bg-card text-foreground border-3 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-                        <SelectItem value="all" className="font-bold cursor-pointer">Todos</SelectItem>
+                      <SelectContent className="bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-xs rounded-xl shadow-md">
+                        <SelectItem value="all">Todos los años</SelectItem>
                         {myYears.map(y => (
-                          <SelectItem key={y} value={y.toString()} className="font-bold cursor-pointer">Año {y}</SelectItem>
+                          <SelectItem key={y} value={y.toString()}>{y}° Año</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Subject Select */}
-                  <div className="sm:col-span-2 space-y-1">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-                      Tu Materia
-                    </span>
+                  <div className="sm:col-span-2">
                     <Select value={targetSubjectId} onValueChange={setTargetSubjectId}>
-                      <SelectTrigger className="w-full h-11 bg-background text-foreground border-3 border-foreground font-bold shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-xl focus:ring-0">
-                        <BookOpen className="w-4 h-4 mr-2 shrink-0 text-muted-foreground" />
+                      <SelectTrigger className="w-full h-9 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 text-xs rounded-lg">
+                        <BookOpen className="w-3.5 h-3.5 mr-1.5 shrink-0 text-zinc-400" />
                         <SelectValue placeholder="Elegí materia..." />
                       </SelectTrigger>
-                      <SelectContent className="bg-card text-foreground border-3 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] max-h-56">
+                      <SelectContent className="bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-xs rounded-xl shadow-md max-h-56">
                         {filteredSubjects.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-muted-foreground font-bold">Sin materias disponibles</div>
+                          <div className="px-3 py-2 text-xs text-zinc-400">Sin materias disponibles</div>
                         ) : (
                           filteredSubjects.map(s => (
-                            <SelectItem key={s.id} value={s.id} className="font-bold cursor-pointer">
-                              <span className="font-black text-[#00E5FF] mr-1.5">{s.codigo ? `[${s.codigo}]` : ''}</span>
+                            <SelectItem key={s.id} value={s.id} className="text-xs">
+                              <span className="text-zinc-400 mr-1.5">{s.codigo ? `[${s.codigo}]` : ''}</span>
                               {s.nombre}
                             </SelectItem>
                           ))
@@ -422,18 +411,12 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
                 {/* Target Subject Preview Confirmation */}
                 {selectedTargetSubject && (
-                  <div className="flex items-center gap-2 p-2.5 bg-[#BFFF00]/15 border-2 border-foreground/40 rounded-xl text-xs font-bold text-foreground">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#BFFF00] border border-black shrink-0" />
+                  <div className="flex items-center gap-2 p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
-                      Se guardará en: <strong className="font-black">{selectedTargetSubject.nombre}</strong> (Año {selectedTargetSubject.año})
+                      Se guardará en: <strong>{selectedTargetSubject.nombre}</strong> (Año {selectedTargetSubject.año})
                     </span>
                   </div>
-                )}
-
-                {mySubjects.length === 0 && (
-                  <p className="text-xs text-muted-foreground font-bold bg-muted/40 border border-foreground/20 rounded-lg p-2.5">
-                    ⚠️ No tienes materias configuradas en tu plan. Creá materias en tu plan de carrera para asociar apuntes.
-                  </p>
                 )}
               </div>
             </div>
@@ -442,25 +425,27 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
 
         {/* Footer */}
         {step === "select-subject" && (
-          <DialogFooter className="px-5 sm:px-6 py-4 border-t-3 border-foreground bg-muted/20 flex flex-row gap-3 sm:justify-between">
+          <DialogFooter className="pt-3 border-t border-zinc-100 dark:border-zinc-800/60 flex flex-row gap-2 justify-end">
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => onOpenChange(false)}
-              className="flex-1 h-12 border-3 border-foreground font-black uppercase rounded-xl bg-card text-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              className="rounded-lg text-xs font-medium"
             >
               Cancelar
             </Button>
             <Button
               type="button"
+              size="sm"
               onClick={handleImport}
               disabled={importing || !targetSubjectId}
-              className="flex-1 h-12 bg-[#BFFF00] text-black border-3 border-foreground font-black uppercase rounded-xl shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs"
             >
               {importing ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importando...</>
+                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Importando...</>
               ) : (
-                <><Copy className="w-4 h-4 mr-2" /> Importar Copia</>
+                <><Copy className="w-3.5 h-3.5 mr-1.5" /> Importar Copia</>
               )}
             </Button>
           </DialogFooter>

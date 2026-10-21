@@ -1,12 +1,28 @@
 import { useMemo, useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CalendarEvent } from "@/hooks/useCalendarEvents";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarEvent, isExamType } from "@/hooks/useCalendarEvents";
 import { Subject } from "@/hooks/useSubjects";
-import { Calendar as CalendarIcon, Clock, Filter, AlertCircle, GraduationCap, LayoutPanelLeft, List as ListIcon, CheckCircle2, BookOpen, Timer } from "lucide-react";
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  Filter, 
+  AlertCircle, 
+  GraduationCap, 
+  LayoutPanelLeft, 
+  List as ListIcon, 
+  CheckCircle2, 
+  BookOpen, 
+  Timer,
+  ChevronRight,
+  ArrowLeft,
+  ArrowRight
+} from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { toast } from "sonner";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
+import { getExamTheme } from "@/lib/examThemes";
 
 interface ExamsListModalProps {
   open: boolean;
@@ -16,33 +32,13 @@ interface ExamsListModalProps {
   onEditExam?: (event: CalendarEvent) => void;
 }
 
-const EXAM_TYPES = [
-  "P1",
-  "P2",
-  "Global",
-  "Recuperatorio P1",
-  "Recuperatorio P2",
-  "Recuperatorio Global",
-  "Final"
-];
-
-const eventTypeColors: Record<string, string> = {
-  P1: "bg-[#00FF9D] border-foreground text-black font-black",
-  P2: "bg-[#00F0FF] border-foreground text-black font-black",
-  Global: "bg-[#FFD21C] border-foreground text-black font-black",
-  "Recuperatorio P1": "bg-[#FF3366] border-foreground text-black font-black",
-  "Recuperatorio P2": "bg-[#FF3366] border-foreground text-black font-black",
-  "Recuperatorio Global": "bg-[#FF3366] border-foreground text-black font-black",
-  Final: "bg-[#B000FF] border-foreground text-white font-black",
-};
-
 export type KanbanStatus = "pending" | "studying" | "ready" | "done";
 
-const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: string }[] = [
-  { id: "pending", label: "Pendiente", icon: Timer, color: "text-muted-foreground" },
-  { id: "studying", label: "En Estudio", icon: BookOpen, color: "text-neon-cyan" },
-  { id: "ready", label: "Listo para rendir", icon: AlertCircle, color: "text-neon-gold" },
-  { id: "done", label: "Rendido", icon: CheckCircle2, color: "text-neon-green" },
+const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; dotColor: string; bgAccent: string }[] = [
+  { id: "pending", label: "Pendiente", icon: Timer, dotColor: "bg-zinc-400", bgAccent: "border-t-zinc-400" },
+  { id: "studying", label: "En Estudio", icon: BookOpen, dotColor: "bg-sky-500", bgAccent: "border-t-sky-500" },
+  { id: "ready", label: "Listo para Rendir", icon: AlertCircle, dotColor: "bg-amber-500", bgAccent: "border-t-amber-500" },
+  { id: "done", label: "Rendido", icon: CheckCircle2, dotColor: "bg-emerald-500", bgAccent: "border-t-emerald-500" },
 ];
 
 export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: ExamsListModalProps) {
@@ -51,7 +47,7 @@ export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: 
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const { updateEvent } = useCalendarEvents();
 
-  // Create a map for quick subject lookup by ID
+  // Map for quick subject lookup by ID
   const subjectMap = useMemo(() => {
     const map = new Map<string, Subject>();
     subjects.forEach(s => map.set(s.id, s));
@@ -65,10 +61,8 @@ export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: 
 
     return events
       .filter((e) => {
-        // Is it an exam type?
-        if (!EXAM_TYPES.includes(e.tipo_examen)) return false;
+        if (!isExamType(e.tipo_examen)) return false;
         
-        // Is it today or in the future?
         const eventDate = parseLocalDate(e.fecha);
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
@@ -99,59 +93,56 @@ export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: 
       .sort((a, b) => parseLocalDate(a.fecha).getTime() - parseLocalDate(b.fecha).getTime());
   }, [events, subjects]);
 
-  // 2. Extract unique years and subjects from upcoming exams for filters
-  const { availableYears, availableSubjects } = useMemo(() => {
+  const availableYears = useMemo(() => {
     const years = new Set<string>();
-    const filteredSubjectsList = new Map<string, string>(); // id -> name
+    upcomingExams.forEach((exam) => {
+      if (exam.subject_id) {
+        const subject = subjectMap.get(exam.subject_id);
+        if (subject) years.add(subject.año.toString());
+      }
+    });
+    return Array.from(years).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [upcomingExams, subjectMap]);
 
+  const availableSubjects = useMemo(() => {
+    const filteredSubjectsList = new Map<string, string>();
     upcomingExams.forEach((exam) => {
       if (exam.subject_id) {
         const subject = subjectMap.get(exam.subject_id);
         if (subject) {
-          years.add(subject.año.toString());
-          
-          // Only add to availableSubjects if no year is selected OR it matches the selected year
           if (selectedYear === "all" || subject.año.toString() === selectedYear) {
             filteredSubjectsList.set(subject.id, subject.nombre);
           }
         }
       }
     });
-
-    return {
-      availableYears: Array.from(years).sort((a, b) => parseInt(a) - parseInt(b)),
-      availableSubjects: Array.from(filteredSubjectsList.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-    };
+    return Array.from(filteredSubjectsList.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [upcomingExams, subjectMap, selectedYear]);
 
-  // Resetea la materia seleccionada si cambiamos de año
   useEffect(() => {
     setSelectedSubject("all");
   }, [selectedYear]);
 
-  // 3. Apply active filters
   const filteredExams = useMemo(() => {
     return upcomingExams.filter((exam) => {
-      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
-      
       if (selectedYear !== "all" && exam.subject_id) {
         const subject = subjectMap.get(exam.subject_id);
         if (subject && subject.año.toString() !== selectedYear) return false;
       }
-      
+      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
       return true;
     });
   }, [upcomingExams, selectedSubject, selectedYear, subjectMap]);
 
-  // Helper to calculate days remaining
   const getDaysRemaining = (targetDateStr: string) => {
     const target = parseLocalDate(targetDateStr);
     target.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const getExamStatus = (notas: string | null): KanbanStatus => {
@@ -164,278 +155,315 @@ export function ExamsListModal({ open, onClose, events, subjects, onEditExam }: 
 
   const updateExamStatus = async (exam: CalendarEvent, newStatus: KanbanStatus) => {
     let newNotas = exam.notas || "";
-    // Remove old status tags
     newNotas = newNotas.replace(/\[status:\w+\]/g, "").trim();
-    // Add new status tag
     newNotas = `${newNotas} [status:${newStatus}]`.trim();
 
     try {
       await updateEvent(exam.id, { notas: newNotas });
       toast.success(`Examen movido a ${KANBAN_COLUMNS.find(c => c.id === newStatus)?.label}`);
-    } catch (error) {
+    } catch {
       toast.error("Error al actualizar el estado del examen");
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-background border-4 border-foreground shadow-[12px_12px_0_0_hsl(var(--foreground))] rounded-xl max-h-[85vh] flex flex-col p-6">
-        <DialogHeader className="mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
-            <DialogTitle className="text-2xl font-display font-black uppercase tracking-tight flex items-center gap-3 text-foreground">
-              <div className="w-12 h-12 rounded-xl bg-[#FF3366] flex items-center justify-center border-4 border-foreground shadow-[4px_4px_0_0_#000]">
-                <GraduationCap className="w-7 h-7 text-black" />
+      <DialogContent className="max-w-3xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-2xl max-h-[85vh] flex flex-col p-5 sm:p-6">
+        <DialogHeader className="mb-3 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+            <DialogTitle className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                <GraduationCap className="w-5 h-5" />
               </div>
-              Próximos Exámenes
+              <span>Próximos Exámenes</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                {upcomingExams.length}
+              </span>
             </DialogTitle>
             
-            <div className="flex gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 self-start sm:self-auto">
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
-                  viewMode === "list" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                  "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all",
+                  viewMode === "list"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                 )}
               >
-                <ListIcon className="w-4 h-4" />
+                <ListIcon className="w-3.5 h-3.5" />
                 Lista
               </button>
               <button
                 onClick={() => setViewMode("kanban")}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border-[3px] border-foreground",
-                  viewMode === "kanban" ? "bg-[#FFD21C] text-black shadow-[4px_4px_0_0_#000] translate-y-[-2px]" : "bg-muted text-foreground hover:bg-muted/80 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                  "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all",
+                  viewMode === "kanban"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                 )}
               >
-                <LayoutPanelLeft className="w-4 h-4" />
-                Kanban 📋
+                <LayoutPanelLeft className="w-3.5 h-3.5" />
+                Tablero
               </button>
             </div>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
             {viewMode === "list" 
-              ? "Visualiza y filtra tus instancias de evaluación (parciales, globales y finales) ordenadas cronológicamente."
-              : "Organiza tu progreso de estudio arrastrando tus exámenes entre las diferentes etapas."}
+              ? "Instancias de evaluación ordenadas cronológicamente para organizar tu estudio."
+              : "Organiza tu progreso de estudio moviendo tus exámenes entre las diferentes etapas."}
           </DialogDescription>
         </DialogHeader>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 rounded-xl bg-[#4ECDC4] border-4 border-foreground shadow-[4px_4px_0_0_#000]">
-          <div className="flex items-center gap-2 text-black mr-2">
-            <Filter className="w-5 h-5" />
-            <span className="text-sm font-black uppercase tracking-widest whitespace-nowrap">Filtros:</span>
+        <div className="flex flex-wrap items-center gap-2 mb-4 p-2 rounded-xl bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80">
+          <div className="flex items-center gap-1.5 text-zinc-500 text-xs px-1.5 shrink-0">
+            <Filter className="w-3.5 h-3.5" />
+            <span className="font-medium text-[11px] uppercase tracking-wider">Filtros</span>
           </div>
           
-          <div className="flex flex-wrap gap-2 w-full">
-            <select
+          {/* Desplegable de Años */}
+          <div className="w-[140px]">
+            <Select
               value={selectedYear}
-              onChange={(e) => {
-                setSelectedYear(e.target.value);
+              onValueChange={(val) => {
+                setSelectedYear(val);
                 setSelectedSubject("all");
               }}
-              className="bg-background text-foreground border-[3px] border-foreground rounded-lg px-3 py-2 text-sm min-w-[120px] focus:outline-none focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold"
             >
-              <option value="all">Todos los años</option>
-              {availableYears.map((y) => (
-                <option key={y} value={y}>{y}° Año</option>
-              ))}
-            </select>
+              <SelectTrigger className="h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors shadow-2xs focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100">
+                <SelectValue placeholder="Año" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg">
+                <SelectItem value="all" className="text-xs font-medium">Todos los años</SelectItem>
+                {availableYears.map((y) => (
+                  <SelectItem key={y} value={y} className="text-xs font-medium">
+                    {y}° Año
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <select
+          {/* Desplegable de Materias */}
+          <div className="flex-1 min-w-[200px]">
+            <Select
               value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-background text-foreground border-[3px] border-foreground rounded-lg px-3 py-2 text-sm flex-1 md:flex-none min-w-[200px] focus:outline-none focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold"
+              onValueChange={(val) => setSelectedSubject(val)}
             >
-              <option value="all">Todas las materias</option>
-              {availableSubjects.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors shadow-2xs focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 truncate">
+                <SelectValue placeholder="Todas las materias" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-zinc-200 dark:border-zinc-800 rounded-xl max-h-[260px] shadow-lg">
+                <SelectItem value="all" className="text-xs font-medium">Todas las materias</SelectItem>
+                {availableSubjects.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="text-xs font-medium">
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1 overflow-y-auto pr-1">
           {filteredExams.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
-              <GraduationCap className="w-12 h-12 mb-4 opacity-20" />
-              <p className="font-medium text-lg">No hay exámenes programados</p>
-              <p className="text-sm mt-1">
+            <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-400 dark:text-zinc-500 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+              <GraduationCap className="w-10 h-10 mb-2 opacity-30" />
+              <p className="font-medium text-sm text-zinc-700 dark:text-zinc-300">No hay exámenes programados</p>
+              <p className="text-xs text-zinc-500 mt-1 max-w-xs">
                 Agrega un nuevo evento en el calendario de tipo Parcial o Final para que aparezca aquí.
               </p>
             </div>
           ) : viewMode === "list" ? (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {filteredExams.map((exam) => {
                 const daysRemaining = getDaysRemaining(exam.fecha);
-                const isUrgent = daysRemaining <= 3;
+                const isUrgent = daysRemaining > 0 && daysRemaining <= 3;
                 const isToday = daysRemaining === 0;
+                const theme = getExamTheme(exam.tipo_examen);
+                const notesDisplay = cleanDisplayNotes(exam.notas);
 
                 return (
                   <div 
                     key={exam.id}
                     onClick={() => onEditExam?.(exam)}
                     className={cn(
-                      "p-4 bg-card text-foreground rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-4 justify-between",
-                      onEditExam && "cursor-pointer"
+                      "p-3.5 bg-white dark:bg-[#1a1a1d] text-zinc-900 dark:text-zinc-100 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs transition-all hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col md:flex-row gap-3 justify-between items-start md:items-center border-l-4",
+                      theme.borderAccent ? theme.borderAccent : "border-l-zinc-300",
+                      onEditExam && "cursor-pointer group"
                     )}
                     title={onEditExam ? "Click para modificar este examen" : undefined}
                   >
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-1.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span 
-                          className={cn(
-                            "px-2.5 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border-2",
-                            !exam.color && eventTypeColors[exam.tipo_examen]
-                          )}
-                          style={exam.color ? { backgroundColor: exam.color, borderColor: 'var(--foreground)', color: '#000' } : undefined}
-                        >
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                          theme.badge
+                        )}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", theme.dot)} />
                           {exam.tipo_examen}
                         </span>
+
                         {exam.subject_nombre && (
-                          <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                            📚 {exam.subject_nombre}
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1 truncate max-w-[180px]">
+                            <BookOpen className="w-3 h-3 text-zinc-400" />
+                            {exam.subject_nombre}
                           </span>
                         )}
                       </div>
                       
-                      <h4 className="text-xl font-black uppercase tracking-tight text-black">
+                      <h4 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors">
                         {exam.titulo}
                       </h4>
                       
-                      {cleanDisplayNotes(exam.notas) && (
-                        <p className="text-sm text-muted-foreground italic line-clamp-2">
-                          {cleanDisplayNotes(exam.notas)}
+                      {notesDisplay && (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 italic font-normal">
+                          {notesDisplay}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-start md:items-end justify-between min-w-[140px] gap-2 md:gap-0 pl-0 md:pl-4 md:border-l-[3px] border-foreground">
-                      <div className="flex flex-col items-start md:items-end">
-                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                          <CalendarIcon className="w-4 h-4 opacity-70" />
+                    <div className="flex items-center justify-between w-full md:w-auto gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-zinc-800/60">
+                      <div className="flex flex-col items-start md:items-end text-right">
+                        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
                           {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', {
-                            year: 'numeric',
                             month: 'short',
                             day: 'numeric'
                           })}
                         </span>
                         {exam.hora && (
-                          <span className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {exam.hora}
+                          <span className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3" />
+                            {exam.hora} hs
                           </span>
                         )}
                       </div>
 
-                      <div className={cn(
-                        "flex items-center gap-1.5 text-sm font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000] w-full md:w-auto mt-2",
-                        isToday 
-                          ? "bg-[#FF3366] text-black animate-pulse" 
-                          : isUrgent 
-                            ? "bg-[#FFE66D] text-black" 
-                            : "bg-[#00F0FF] text-black"
-                      )}>
-                        {isToday ? (
-                          <>
-                            <AlertCircle className="w-4 h-4" />
-                            <span>¡Es hoy!</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Faltan {daysRemaining} días</span>
-                          </>
-                        )}
-                      </div>
+                      {/* Countdown badge */}
+                      {isToday ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                          ¡Hoy!
+                        </span>
+                      ) : isUrgent ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          <AlertCircle className="w-3 h-3" />
+                          {daysRemaining}d
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                          <Timer className="w-3 h-3" />
+                          {daysRemaining}d
+                        </span>
+                      )}
+
+                      <ChevronRight className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-full min-h-[400px]">
-              {KANBAN_COLUMNS.map((col) => (
-                <div key={col.id} className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-lg border-4 border-foreground shadow-[4px_4px_0_0_#000]">
-                    <col.icon className="w-5 h-5 text-foreground" />
-                    <span className="text-sm font-black uppercase tracking-widest truncate">{col.label}</span>
-                    <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-sm bg-background border-2 border-foreground">
-                      {filteredExams.filter(e => getExamStatus(e.notas) === col.id).length}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 space-y-3 min-h-[100px] p-1">
-                    {filteredExams
-                      .filter(e => getExamStatus(e.notas) === col.id)
-                      .map((exam) => {
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-full min-h-[380px]">
+              {KANBAN_COLUMNS.map((col) => {
+                const columnExams = filteredExams.filter(e => getExamStatus(e.notas) === col.id);
+
+                return (
+                  <div 
+                    key={col.id} 
+                    className={cn(
+                      "flex flex-col gap-2.5 bg-zinc-50/70 dark:bg-[#141416] border border-zinc-200/80 dark:border-zinc-800/80 p-2.5 rounded-xl border-t-2",
+                      col.bgAccent
+                    )}
+                  >
+                    <div className="flex items-center justify-between px-1 border-b border-zinc-200/60 dark:border-zinc-800/60 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn("w-1.5 h-1.5 rounded-full", col.dotColor)} />
+                        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{col.label}</span>
+                      </div>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                        {columnExams.length}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2 p-0.5">
+                      {columnExams.map((exam) => {
                         const daysRemaining = getDaysRemaining(exam.fecha);
                         const isUrgent = daysRemaining <= 3 && col.id !== "done";
+                        const isToday = daysRemaining === 0 && col.id !== "done";
+                        const theme = getExamTheme(exam.tipo_examen);
                         
                         return (
                           <div 
                             key={exam.id}
                             onClick={() => onEditExam?.(exam)}
                             className={cn(
-                              "p-3 rounded-lg border-[3px] border-foreground bg-card text-foreground flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] group shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                              isUrgent && "bg-[#FF6B6B] text-black",
+                              "p-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#1e1e21] text-zinc-900 dark:text-zinc-100 flex flex-col gap-1.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700 group shadow-2xs border-l-3",
+                              theme.borderAccent ? theme.borderAccent : "border-l-zinc-400",
                               onEditExam && "cursor-pointer"
                             )}
                             title={onEditExam ? "Click para modificar este examen" : undefined}
                           >
                             <div className="flex justify-between items-start">
-                              <span className="text-[10px] font-bold opacity-70 truncate max-w-[80px]">
-                                {exam.subject_nombre || "Sin materia"}
+                              <span className="text-[10px] text-zinc-400 truncate max-w-[80px]">
+                                {exam.subject_nombre || "General"}
                               </span>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
-                                {col.id !== "todo" && (
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                {col.id !== "pending" && (
                                   <button 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id);
+                                      const prevIdx = KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1;
+                                      updateExamStatus(exam, KANBAN_COLUMNS[prevIdx].id);
                                     }}
-                                    className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
-                                    title="Mover a etapa anterior"
+                                    className="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                                    title="Mover anterior"
                                   >
-                                    ⬅️
+                                    <ArrowLeft className="w-3 h-3" />
                                   </button>
                                 )}
                                 {col.id !== "done" && (
                                   <button 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id);
+                                      const nextIdx = KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1;
+                                      updateExamStatus(exam, KANBAN_COLUMNS[nextIdx].id);
                                     }}
-                                    className="p-1 rounded hover:bg-black/10 text-black border-2 border-transparent hover:border-black transition-all"
-                                    title="Mover a siguiente etapa"
+                                    className="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                                    title="Mover siguiente"
                                   >
-                                    ➡️
+                                    <ArrowRight className="w-3 h-3" />
                                   </button>
                                 )}
                               </div>
                             </div>
                             
-                            <h5 className="text-sm font-black uppercase tracking-tight leading-tight line-clamp-2">
+                            <h5 className="text-xs font-semibold leading-snug line-clamp-2">
                               {exam.titulo}
                             </h5>
 
-                            <div className="flex items-center justify-between text-[10px] mt-1">
-                              <span className="flex items-center gap-1">
-                                <CalendarIcon className="w-3 h-3 opacity-60" />
+                            <div className="flex items-center justify-between text-[10px] pt-1 border-t border-zinc-100 dark:border-zinc-800/60 mt-0.5 text-zinc-500">
+                              <span>
                                 {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                               </span>
                               <span className={cn(
-                                "font-black uppercase tracking-widest text-[9px] px-1.5 py-0.5 rounded-sm border-2 border-black bg-white",
-                                isUrgent && "bg-black text-white"
+                                "font-medium px-1.5 py-0.2 rounded-full",
+                                isToday ? "bg-rose-500/10 text-rose-600" : isUrgent ? "bg-amber-500/10 text-amber-600" : "text-zinc-400"
                               )}>
-                                {daysRemaining === 0 ? "¡Hoy!" : `Faltan ${daysRemaining}d`}
+                                {isToday ? "¡Hoy!" : `${daysRemaining}d`}
                               </span>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

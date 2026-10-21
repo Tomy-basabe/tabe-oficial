@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TestimonialsColumn, TestimonialItem } from "@/components/ui/testimonials-columns-1";
-import { KineticHeading } from "@/components/ui/kinetic-heading";
 
 export function TestimonialsSection() {
   const [reviews, setReviews] = useState<TestimonialItem[]>([]);
@@ -32,7 +30,7 @@ export function TestimonialsSection() {
           text: r.description,
           name: r.name,
           role: r.career || "Estudiante universitario",
-          image: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}&backgroundColor=1475e5,ff9415,48bd22,FF2E93,00E5FF&fontSize=42&fontWeight=800`,
+          image: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.name)}&backgroundColor=e4e4e7&textColor=18181b&fontSize=42&fontWeight=600`,
         }));
 
         setReviews(formatted);
@@ -65,29 +63,15 @@ export function TestimonialsSection() {
           viewport={{ once: true }}
           className="flex flex-col items-center justify-center max-w-2xl mx-auto text-center space-y-4 mb-12"
         >
-          <KineticHeading
-            as="h2"
-            effect="neon-glow"
-            badge="OPINIONES DE ESTUDIANTES // VERIFICADAS"
-            badgeColor="green"
-            className="text-3xl md:text-5xl font-black uppercase tracking-tight"
-          >
-            QUÉ DICEN LOS{" "}
-            <motion.span
-              whileHover={{ scale: 1.1, rotate: -2 }}
-              className="text-[#1475e5] underline decoration-wavy decoration-[#ff9415] inline-block cursor-pointer"
-            >
-              ESTUDIANTES
-            </motion.span>
-          </KineticHeading>
-          <p className="text-muted-foreground font-medium text-sm md:text-base max-w-lg">
-            Opiniones de universitarios que ya utilizan TABE para organizar su carrera.
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">Lo que dicen los estudiantes</h2>
+          <p className="text-muted-foreground text-base md:text-lg max-w-lg">
+            Opiniones de universitarios que ya usan TABE para organizar su carrera.
           </p>
         </motion.div>
 
         {loading ? (
           <div className="flex justify-center items-center py-16">
-            <div className="w-8 h-8 rounded-full border-3 border-[#1475e5] border-t-transparent animate-spin" />
+            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
         ) : reviews.length > 0 ? (
           /* Real user reviews animated columns with mask */
@@ -101,8 +85,8 @@ export function TestimonialsSection() {
             )}
           </div>
         ) : (
-          <div className="max-w-md mx-auto text-center border-2 border-dashed border-border rounded-2xl p-8 bg-card/50">
-            <p className="font-bold text-muted-foreground text-sm">
+          <div className="max-w-md mx-auto text-center border border-border/70 rounded-2xl p-8 bg-card">
+            <p className="text-muted-foreground text-sm">
               Todavía no hay opiniones publicadas por los usuarios.
             </p>
           </div>

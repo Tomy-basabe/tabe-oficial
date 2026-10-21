@@ -7,7 +7,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -74,7 +73,6 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
     }
   }, [open]);
 
-  // Abre el enlace directo en una pestaña nueva
   const handleOpenExportPage = () => {
     const cleanBase = campusUrl.trim().replace(/\/+$/, "");
     window.open(`${cleanBase}/calendar/export.php`, "_blank");
@@ -105,7 +103,6 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
 
       toast.success(`¡Campus conectado! Se detectaron ${detectedCourses.length} materias y ${parsedEvents.length} eventos.`);
 
-      // Sincronizar automáticamente la primera vez si el usuario está autenticado
       if (user) {
         setSyncing(true);
         const res = await syncMoodleToTabe(user.id, parsedEvents, detectedCourses, {
@@ -179,197 +176,190 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-lg w-[95vw] p-6 border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl bg-card">
-        <DialogHeader className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#FF7900] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center shrink-0">
-              <GraduationCap className="w-6 h-6" />
+      <DialogContent className="max-w-lg w-[95vw] p-6 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-2xl bg-white dark:bg-[#1f1f1f] space-y-4">
+        <DialogHeader className="space-y-1 text-left">
+          <DialogTitle className="text-xl font-semibold tracking-tight flex items-center gap-2.5 text-zinc-900 dark:text-zinc-100">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-4 h-4" />
             </div>
-            <div>
-              <DialogTitle className="font-black text-xl uppercase tracking-tight text-foreground">
-                Campus Virtual Moodle
-              </DialogTitle>
-              <DialogDescription className="text-xs font-bold text-muted-foreground">
-                Sincronizá tus materias, entregas y parciales automáticamente.
-              </DialogDescription>
-            </div>
-          </div>
+            <span>Campus Virtual Moodle</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+            Sincronizá tus materias, entregas y parciales automáticamente desde el campus.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 pt-1">
           {session ? (
             /* VISTA CONECTADO */
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl border-3 border-foreground bg-muted/30 shadow-[3px_3px_0_0_hsl(var(--foreground))] space-y-3">
+            <div className="space-y-3.5">
+              <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full border-2 border-foreground bg-[#00FF9D] text-black flex items-center justify-center font-black text-lg shrink-0">
+                  <div className="w-9 h-9 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
                     UTN
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-black text-sm uppercase truncate text-foreground">
+                      <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">
                         {session.fullname}
                       </p>
-                      <span className="shrink-0 text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#00FF9D] text-black border border-foreground">
+                      <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                         Vinculado
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-muted-foreground truncate">
-                      Campus Virtual UTN FRM
-                    </p>
+                    <p className="text-[11px] text-zinc-500 truncate">Campus Virtual UTN FRM</p>
                     {courseNames.length > 0 && (
-                      <p className="text-[11px] font-black text-[#FF7900] mt-0.5">
-                        {courseNames.length} materias detectadas ({events.length} eventos / tareas)
+                      <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium mt-0.5">
+                        {courseNames.length} materias ({events.length} entregas/eventos)
                       </p>
                     )}
                   </div>
                 </div>
 
                 {session.lastSync && (
-                  <p className="text-[11px] font-bold text-muted-foreground">
+                  <p className="text-[10px] text-zinc-400 pt-1 border-t border-zinc-200/50 dark:border-zinc-800/50">
                     Última sincronización: {new Date(session.lastSync).toLocaleString("es-AR")}
                   </p>
                 )}
               </div>
 
               {/* Opciones de Sincronización */}
-              <div className="p-4 rounded-xl border-2 border-foreground bg-card space-y-2.5">
-                <p className="text-xs font-black uppercase text-foreground">¿Qué querés sincronizar?</p>
+              <div className="p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/30 space-y-2">
+                <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200">¿Qué querés sincronizar?</p>
 
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-foreground">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-zinc-700 dark:text-zinc-300">
                   <input
                     type="checkbox"
                     checked={syncSubjects}
                     onChange={(e) => setSyncSubjects(e.target.checked)}
-                    className="w-4 h-4 rounded border-2 border-foreground accent-[#FF7900]"
+                    className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-0"
                   />
-                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Sincronizar materias detectadas a mis asignaturas</span>
                 </label>
 
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-foreground">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-zinc-700 dark:text-zinc-300">
                   <input
                     type="checkbox"
                     checked={syncCalendar}
                     onChange={(e) => setSyncCalendar(e.target.checked)}
-                    className="w-4 h-4 rounded border-2 border-foreground accent-[#FF7900]"
+                    className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-0"
                   />
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>Sincronizar tareas, TP y parciales a mi Calendario</span>
+                  <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Sincronizar tareas, TP y parciales al Calendario</span>
                 </label>
               </div>
 
               {syncResult && (
-                <div className="p-3 rounded-xl border-2 border-foreground bg-[#00FF9D]/20 text-foreground text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                <div className="p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>{syncResult}</span>
                 </div>
               )}
 
               <div className="flex items-center gap-2 pt-1">
-                <Button
+                <button
+                  type="button"
                   onClick={handleSyncNow}
                   disabled={syncing || (!syncSubjects && !syncCalendar)}
-                  className="flex-1 font-black uppercase text-xs py-5 bg-[#FF7900] hover:bg-[#FF7900]/90 text-black border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                  className="flex-1 h-9 rounded-lg font-medium text-xs bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
                 >
                   {syncing ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sincronizando...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Sincronizando...</span>
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Sincronizar Ahora
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Sincronizar Ahora</span>
                     </>
                   )}
-                </Button>
+                </button>
 
-                <Button
+                <button
+                  type="button"
                   onClick={handleDisconnect}
                   disabled={syncing}
-                  variant="outline"
-                  className="font-black uppercase text-xs py-5 border-2 border-foreground text-destructive hover:bg-destructive/10"
+                  className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                  title="Desconectar campus"
                 >
                   <LogOut className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
             </div>
           ) : (
-            /* VISTA VINCULAR (PASO A PASO GUIADO) */
-            <div className="space-y-4">
-              {/* Botón de Acción Directa */}
-              <div className="p-4 rounded-xl border-3 border-foreground bg-[#FFE600]/20 space-y-3">
-                <p className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-                  <Info className="w-4 h-4 text-[#FF7900]" />
-                  Paso 1: Abrí tu calendario en el campus
+            /* VISTA VINCULAR (PASO A PASO) */
+            <div className="space-y-3.5">
+              <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 space-y-2.5">
+                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Paso 1: Abrí tu calendario en el campus</span>
                 </p>
-                <p className="text-xs font-bold text-muted-foreground">
-                  Hacé clic en el siguiente botón para ir directo a la pantalla oficial de exportación de tu campus:
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Hacé clic para ir directo a la pantalla oficial de exportación de tu campus virtual:
                 </p>
-                <Button
+                <button
                   type="button"
                   onClick={handleOpenExportPage}
-                  className="w-full font-black uppercase text-xs py-4 bg-[#FF7900] hover:bg-[#FF7900]/90 text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center gap-2"
+                  className="w-full h-9 rounded-lg font-medium text-xs border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                 >
-                  <span>Abrir Exportar Calendario en mi Campus</span>
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
+                  <span>Abrir exportación en mi Campus</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                </button>
               </div>
 
-              {/* Guía en 3 Pasos */}
-              <div className="p-3.5 rounded-xl border-2 border-foreground bg-muted/40 text-xs font-bold space-y-2">
-                <p className="font-black uppercase text-foreground">Paso 2: En la pantalla del campus seleccioná:</p>
-                <ul className="space-y-1 text-muted-foreground pl-1">
-                  <li>✅ <strong>Eventos a exportar:</strong> "Todos los eventos"</li>
-                  <li>✅ <strong>Periodo:</strong> "Eventos recientes y próximos 60 días" (o el que quieras)</li>
-                  <li>✅ Hacé clic en el botón <strong>"Obtener URL del calendario"</strong> y copiá el enlace.</li>
+              <div className="p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/70 bg-zinc-50/40 dark:bg-zinc-900/30 text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400">
+                <p className="font-semibold text-zinc-800 dark:text-zinc-200">Paso 2: En la pantalla del campus seleccioná:</p>
+                <ul className="space-y-1 pl-1 text-[11px] leading-relaxed">
+                  <li>• <strong>Eventos a exportar:</strong> "Todos los eventos"</li>
+                  <li>• <strong>Periodo:</strong> "Eventos recientes y próximos 60 días"</li>
+                  <li>• Hacé clic en <strong>"Obtener URL del calendario"</strong> y copiá el enlace.</li>
                 </ul>
               </div>
 
-              {/* Formulario para Pegar el Enlace */}
               <form onSubmit={handleConnectFeed} className="space-y-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase text-foreground">
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     Paso 3: Pegá el enlace del calendario generado
                   </label>
                   <div className="relative">
-                    <Link className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                    <Link className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
                     <Input
                       type="url"
-                      placeholder="https://campusvirtual.frm.utn.edu.ar/calendar/export_execute.php?..."
+                      placeholder="https://campusvirtual.../calendar/export_execute.php?..."
                       value={feedUrl}
                       onChange={(e) => setFeedUrl(e.target.value)}
                       disabled={loading}
-                      className="pl-9 font-bold text-xs border-2 border-foreground rounded-xl"
+                      className="pl-8 text-xs h-9 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 rounded-lg"
                     />
                   </div>
                 </div>
 
                 {errorMsg && (
-                  <div className="p-3 rounded-xl border-2 border-foreground bg-destructive/15 text-destructive text-xs font-bold flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{errorMsg}</span>
                   </div>
                 )}
 
-                <Button
+                <button
                   type="submit"
                   disabled={loading || !feedUrl.trim()}
-                  className="w-full font-black uppercase text-xs py-5 bg-[#00FF9D] hover:bg-[#00FF9D]/90 text-black border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] active:translate-x-0.5 active:translate-y-0.5 transition-all mt-1"
+                  className="w-full h-9 rounded-lg font-medium text-xs bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Descargando materias y entregas...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Descargando materias y entregas...</span>
                     </>
                   ) : (
-                    "Vincular Campus y Sincronizar"
+                    <span>Vincular Campus y Sincronizar</span>
                   )}
-                </Button>
+                </button>
 
-                <p className="text-[11px] font-bold text-center text-muted-foreground">
-                  🔒 No requiere tu contraseña. Tu enlace es privado y permite a T.A.B.E. mantener tus entregas siempre al día.
+                <p className="text-[11px] text-center text-zinc-400">
+                  🔒 No requiere tu contraseña. Tu enlace es privado para mantener tus entregas al día.
                 </p>
               </form>
             </div>

@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import { useStudyRoadmapWizard, daysUntil } from "@/hooks/useStudyRoadmapWizard";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
-import { StudyRoadmap, ExamDateOption, WizardEventOption } from "@/types/studyRoadmap";
+import { StudyRoadmap, ExamDateOption, WizardEventOption, NotionDocOption } from "@/types/studyRoadmap";
 import { ACCEPTED_MATERIAL, MAX_FILES } from "@/lib/materialExtractor";
 import { fetchUserNotionDocs } from "@/lib/notionMaterialExtractor";
-import { NotionDocOption } from "@/types/studyRoadmap";
 import { computeLevelPlan } from "@/lib/roadmapHeuristics";
 import { IsoCubesLoader } from "./IsoCubesLoader";
 import {
@@ -20,17 +19,14 @@ import {
   Flame,
   Zap,
   Clock,
-  Headphones,
+  Radio,
   PenTool,
   Check,
   X,
   CalendarCheck,
   Layers,
   Loader2,
-  Radio,
   Search,
-  CheckSquare,
-  Square,
   GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,9 +39,9 @@ interface RoadmapWizardProps {
 
 const PROCESSING_TIPS = [
   "Cada nivel se arma con fragmentos reales de tus apuntes.",
-  "Más material = más niveles. Menos días = ritmo más intenso.",
-  "Los desafíos de cada nivel salen de tu propio contenido.",
-  "Al superar un nivel ganás Tabecoins y XP para tu mascota.",
+  "Más material = más niveles. Menos días = ritmo más enfocado.",
+  "Los desafíos de cada nivel se generan a partir de tu propio contenido.",
+  "Al superar un nivel avanzás en tu progreso y consolidás conocimientos.",
 ];
 
 const EVENT_DONE_TYPES = new Set(["Estudio", "Clase"]);
@@ -67,7 +63,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
   const [loadingNotionDocs, setLoadingNotionDocs] = useState(false);
   const [docSearch, setDocSearch] = useState("");
   const [filterSubjectDocs, setFilterSubjectDocs] = useState(true);
-  const [materialSourceTab, setMaterialSourceTab] = useState<"files" | "notion">("notion");
+  const [materialSourceTab, setMaterialSourceTab] = useState<"notion" | "files">("notion");
 
   // Cargar apuntes del usuario para el Wizard
   useEffect(() => {
@@ -85,6 +81,13 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       isMounted = false;
     };
   }, [userId]);
+
+  // Rotar tips en procesamiento
+  useEffect(() => {
+    if (state.step !== 5) return;
+    const t = setInterval(() => setTipIdx((i) => (i + 1) % PROCESSING_TIPS.length), 3200);
+    return () => clearInterval(t);
+  }, [state.step]);
 
   // Filtrar apuntes según búsqueda y materia seleccionada
   const filteredNotionDocs = useMemo(() => {
@@ -105,7 +108,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
     [subjects]
   );
 
-  // Eventos futuros reales de la materia elegida (parciales, globales, finales, TP...)
+  // Eventos futuros reales de la materia elegida
   const subjectEvents = useMemo<WizardEventOption[]>(() => {
     if (!state.subjectId) return [];
     const today = new Date().toISOString().split("T")[0];
@@ -117,19 +120,8 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
           !EVENT_DONE_TYPES.has(e.tipo_examen)
       )
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
-      .slice(0, 6)
-      .map((e) => ({
-        id: e.id,
-        label: `${e.tipo_examen}${e.titulo && e.titulo !== e.tipo_examen ? " · " + e.titulo : ""}`,
-        date: e.fecha,
-      }));
+      .slice(0, 6);
   }, [events, state.subjectId]);
-
-  useEffect(() => {
-    if (state.step !== 5) return;
-    const t = setInterval(() => setTipIdx((i) => (i + 1) % PROCESSING_TIPS.length), 3200);
-    return () => clearInterval(t);
-  }, [state.step]);
 
   const totalSize = state.files.reduce((a, f) => a + f.size, 0);
   const hasMaterial =
@@ -154,37 +146,50 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
     .reduce((a, t) => a + (t.estimatedMinutes || 0), 0);
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4 md:p-6 bg-card border-4 border-foreground rounded-2xl shadow-[8px_8px_0px_#000]">
-      {/* Barra de progreso de pasos */}
-      <div className="mb-6 pb-4 border-b-2 border-foreground/30 flex items-center justify-between">
+    <div className="w-full max-w-2xl mx-auto p-5 sm:p-7 bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl shadow-sm transition-all">
+      {/* ── BARRA DE PROGRESO DE PASOS (ESTILO APPLE) ── */}
+      <div className="mb-6 pb-4 border-b border-border/40 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {state.step > 1 && state.step !== 5 && (
             <button
               onClick={() => wizard.setStep((state.step === 6 ? 4 : state.step - 1) as any)}
-              className="p-1.5 rounded-lg border-2 border-foreground bg-muted hover:bg-muted/80 text-foreground transition-transform active:scale-95"
+              className="p-1.5 rounded-lg border border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Paso anterior"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
             </button>
           )}
-          <span className="font-black text-xs uppercase tracking-wider text-muted-foreground">Paso {state.step} de 6</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Paso <span className="text-foreground font-semibold">{state.step}</span> de 6
+          </span>
         </div>
 
-        <div className="flex gap-1.5">
+        {/* Indicador de píldoras */}
+        <div className="flex items-center gap-1.5">
           {[1, 2, 3, 4, 5, 6].map((st) => (
             <div
               key={st}
               className={cn(
-                "h-2 rounded-full border border-foreground transition-all",
-                st === state.step ? "w-8 bg-[#FFE600]" : st < state.step ? "w-4 bg-[#BFFF00]" : "w-3 bg-muted"
+                "h-1.5 rounded-full transition-all duration-300",
+                st === state.step
+                  ? "w-6 bg-primary"
+                  : st < state.step
+                  ? "w-3 bg-primary/40"
+                  : "w-2 bg-muted"
               )}
             />
           ))}
         </div>
 
-        {onCancel && state.step !== 5 && (
-          <button onClick={onCancel} className="text-[10px] font-black uppercase text-muted-foreground hover:text-foreground underline">
+        {onCancel && state.step !== 5 ? (
+          <button
+            onClick={onCancel}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
             Cancelar
           </button>
+        ) : (
+          <div className="w-8" />
         )}
       </div>
 
@@ -192,52 +197,63 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       {state.step === 1 && (
         <div className="space-y-5 animate-in fade-in duration-200">
           <div>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-foreground">¿Qué materia vas a rendir?</h2>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground mt-1">
-              Solo aparecen tus materias <b>regulares</b> y <b>cursables</b>.
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+              ¿Qué materia vas a rendir?
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Selecciona una de tus materias regulares o en curso para estructurar tu plan.
             </p>
           </div>
 
           {loadingSubjects ? (
-            <div className="py-10 flex items-center justify-center gap-2 text-muted-foreground font-black text-xs uppercase">
-              <Loader2 className="w-4 h-4 animate-spin" /> Cargando tus materias...
+            <div className="py-12 flex items-center justify-center gap-2 text-muted-foreground text-xs font-medium">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span>Cargando tus materias...</span>
             </div>
           ) : eligibleSubjects.length === 0 ? (
-            <div className="p-5 border-3 border-dashed border-foreground/50 rounded-xl text-center space-y-3">
-              <p className="text-sm font-bold text-foreground">Todavía no tenés materias regulares o cursables.</p>
-              <p className="text-xs text-muted-foreground">Marcá el estado de tus materias para poder armar tu ruta.</p>
+            <div className="p-6 border border-dashed border-border/80 rounded-xl text-center space-y-3 bg-muted/20">
+              <p className="text-sm font-medium text-foreground">
+                Todavía no tenés materias regulares o cursables.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Actualizá el estado de tus materias para generar una ruta personalizada.
+              </p>
               <Link
-                to="/subjects"
-                className="inline-flex px-4 py-2 bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground rounded-lg shadow-[3px_3px_0px_#000] hover:-translate-y-0.5 transition-all"
+                to="/materias"
+                className="inline-flex px-3.5 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-all shadow-xs"
               >
                 Ir a Mis Materias
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1 scrollbar-none">
               {eligibleSubjects.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => wizard.selectSubject(s.id, s.nombre)}
-                  className="p-4 rounded-xl border-3 border-foreground bg-card hover:bg-[#FFE600] hover:text-black transition-all shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none text-left font-black text-sm uppercase flex items-center justify-between group cursor-pointer"
+                  className="p-3.5 rounded-xl border border-border/60 bg-card/60 hover:bg-accent/40 hover:border-primary/40 transition-all duration-150 text-left flex items-center justify-between group cursor-pointer shadow-xs"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 shrink-0 rounded-lg bg-muted group-hover:bg-black group-hover:text-white border-2 border-foreground flex items-center justify-center transition-colors">
-                      <BookOpen className="w-5 h-5" />
+                    <div className="w-8 h-8 shrink-0 rounded-lg bg-muted/60 border border-border/40 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                      <BookOpen className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <span className="block truncate">{s.nombre}</span>
+                      <span className="block text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                        {s.nombre}
+                      </span>
                       <span
                         className={cn(
-                          "text-[9px] px-1.5 py-0.5 rounded border border-foreground inline-block mt-0.5 text-black",
-                          s.status === "regular" ? "bg-[#00E5FF]" : "bg-[#BFFF00]"
+                          "text-[10px] px-2 py-0.5 rounded-full inline-block mt-0.5 font-medium border",
+                          s.status === "regular"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         )}
                       >
-                        {s.status === "regular" ? "Regular · final" : "Cursable"}
+                        {s.status === "regular" ? "Regular · Final" : "Cursable"}
                       </span>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </button>
               ))}
             </div>
@@ -249,29 +265,32 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       {state.step === 2 && (
         <div className="space-y-5 animate-in fade-in duration-200">
           <div>
-            <span className="text-[10px] font-black uppercase px-2.5 py-1 bg-[#FFE600] text-black border-2 border-foreground rounded-full shadow-[2px_2px_0px_#000] inline-block mb-2">
-              {state.subjectName}
-            </span>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-foreground">¿Para qué evento estudiás?</h2>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground mt-1">
-              La ruta se arma <b>para ese evento</b>: el ritmo y la cantidad de niveles dependen de los días que faltan.
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-medium mb-2">
+              <span>{state.subjectName}</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+              ¿Para qué fecha o evento te preparás?
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              El ritmo y la cantidad de niveles se calibrarán según los días restantes.
             </p>
           </div>
 
           {subjectEvents.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[11px] font-black uppercase text-muted-foreground flex items-center gap-1.5">
-                <CalendarCheck className="w-3.5 h-3.5" /> De tu calendario
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <CalendarCheck className="w-3.5 h-3.5 text-primary" />
+                Eventos agendados en tu calendario
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {subjectEvents.map((ev) => (
                   <button
                     key={ev.id}
                     onClick={() => wizard.selectEvent(ev)}
-                    className="p-3 rounded-xl border-3 border-foreground bg-card hover:bg-[#BFFF00] hover:text-black transition-all shadow-[4px_4px_0px_#000] hover:-translate-y-0.5 text-left cursor-pointer"
+                    className="p-3 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/70 hover:border-primary/40 transition-all text-left cursor-pointer"
                   >
-                    <span className="text-xs font-black uppercase block truncate">{ev.label}</span>
-                    <span className="text-[11px] font-bold opacity-80">
+                    <span className="text-xs font-medium text-foreground block truncate">{ev.label}</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">
                       {fmtDate(ev.date)} · en {daysUntil(ev.date)} día/s
                     </span>
                   </button>
@@ -281,29 +300,32 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
           )}
 
           <div className="space-y-2">
-            {subjectEvents.length > 0 && <span className="text-[11px] font-black uppercase text-muted-foreground">O elegí una fecha</span>}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {subjectEvents.length > 0 && (
+              <span className="text-xs font-medium text-muted-foreground">O elegí un plazo:</span>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {[
-                { id: "manana", label: "Mañana", desc: "Modo emergencia / ultra intensivo", icon: Zap, color: "hover:bg-[#FF3366] hover:text-white" },
-                { id: "2dias", label: "En 2 días", desc: "Sprint rápido de 48 horas", icon: Flame, color: "hover:bg-[#FF9900] hover:text-black" },
-                { id: "proxima_semana", label: "Próxima semana", desc: "Ruta equilibrada y completa", icon: Calendar, color: "hover:bg-[#BFFF00] hover:text-black" },
-                { id: "personalizado", label: "Fecha personalizada", desc: "Elegir un día específico", icon: Clock, color: "hover:bg-[#00E5FF] hover:text-black" },
+                { id: "manana", label: "Mañana", desc: "Modo intensivo / Sprint exprés", icon: Zap },
+                { id: "2dias", label: "En 2 días", desc: "Sprint de 48 horas focalizado", icon: Flame },
+                { id: "proxima_semana", label: "Próxima semana", desc: "Ruta equilibrada y profunda", icon: Calendar },
+                { id: "personalizado", label: "Fecha personalizada", desc: "Elegir un día específico del calendario", icon: Clock },
               ].map((opt) => (
                 <button
                   key={opt.id}
                   onClick={() => wizard.selectExamDate(opt.id as ExamDateOption, state.customExamDate)}
                   className={cn(
-                    "p-4 rounded-xl border-3 border-foreground bg-card transition-all shadow-[4px_4px_0px_#000] text-left font-black cursor-pointer group hover:-translate-y-0.5",
-                    opt.color,
-                    state.examDateOption === opt.id && opt.id === "personalizado" && "bg-[#00E5FF] text-black"
+                    "p-3.5 rounded-xl border transition-all text-left cursor-pointer flex items-center gap-3",
+                    state.examDateOption === opt.id
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
+                      : "border-border/60 bg-card/60 hover:bg-muted/50 text-foreground"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <opt.icon className="w-5 h-5 shrink-0" />
-                    <div>
-                      <span className="text-sm uppercase block">{opt.label}</span>
-                      <span className="text-[11px] font-medium opacity-80 block">{opt.desc}</span>
-                    </div>
+                  <div className="w-8 h-8 rounded-lg bg-muted/60 border border-border/40 flex items-center justify-center text-muted-foreground shrink-0">
+                    <opt.icon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold block">{opt.label}</span>
+                    <span className="text-[11px] text-muted-foreground block">{opt.desc}</span>
                   </div>
                 </button>
               ))}
@@ -311,20 +333,22 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
           </div>
 
           {state.examDateOption === "personalizado" && (
-            <div className="p-4 bg-muted/60 border-2 border-foreground rounded-xl space-y-2 shadow-[3px_3px_0px_#000]">
-              <label className="text-xs font-black uppercase text-foreground block">Fecha exacta del evento:</label>
+            <div className="p-4 bg-muted/30 border border-border/60 rounded-xl space-y-3 animate-in fade-in duration-150">
+              <label className="text-xs font-medium text-foreground block">
+                Fecha exacta del examen:
+              </label>
               <input
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
                 value={state.customExamDate}
                 onChange={(e) => wizard.selectExamDate("personalizado", e.target.value)}
-                className="w-full px-3 py-2 bg-background border-2 border-foreground rounded-lg font-bold text-sm text-foreground focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border/70 rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <button
                 onClick={() => wizard.setStep(3)}
-                className="mt-2 w-full py-2.5 bg-[#FFE600] text-black font-black uppercase text-xs border-2 border-foreground rounded-lg shadow-[3px_3px_0px_#000] hover:-translate-y-0.5 transition-all"
+                className="w-full py-2 bg-primary text-primary-foreground font-medium text-xs rounded-lg hover:bg-primary/90 transition-all cursor-pointer shadow-xs"
               >
-                Confirmar fecha ➔
+                Confirmar fecha y continuar ➔
               </button>
             </div>
           )}
@@ -335,16 +359,18 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       {state.step === 3 && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <div>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-foreground">Tu meta y tu estilo</h2>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground mt-1">
-              Definen la profundidad de los niveles y la dificultad de los desafíos.
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+              Tu meta y estilo de estudio
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Ajustan la profundidad conceptual y la exigencia de las evaluaciones.
             </p>
           </div>
 
-          <div className="p-4 bg-muted/60 border-2 border-foreground rounded-xl shadow-[3px_3px_0px_#000] space-y-3">
-            <div className="flex justify-between text-xs font-black uppercase">
-              <span>Meta de dominio</span>
-              <span className="text-primary text-base">{state.targetMastery}%</span>
+          <div className="p-4 bg-muted/30 border border-border/60 rounded-xl space-y-4">
+            <div className="flex justify-between items-center text-xs font-medium">
+              <span className="text-muted-foreground">Meta de dominio deseada</span>
+              <span className="text-primary font-semibold text-sm">{state.targetMastery}%</span>
             </div>
             <input
               type="range"
@@ -353,15 +379,9 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
               step={5}
               value={state.targetMastery}
               onChange={(e) => wizard.setTargetMastery(Number(e.target.value))}
-              className="w-full h-3 accent-[#FFE600] cursor-pointer"
+              className="w-full h-1.5 bg-muted rounded-lg accent-primary cursor-pointer"
             />
-            <div className="h-6 w-full bg-background border-2 border-foreground rounded-lg overflow-hidden p-0.5">
-              <div
-                className="h-full bg-gradient-to-r from-[#FFE600] via-[#00E5FF] to-[#BFFF00] border-r-2 border-foreground transition-all duration-200"
-                style={{ width: `${state.targetMastery}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2 pt-1">
               {[
                 { val: 60, desc: "Aprobar" },
                 { val: 75, desc: "Promoción" },
@@ -372,35 +392,39 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                   key={m.val}
                   onClick={() => wizard.setTargetMastery(m.val)}
                   className={cn(
-                    "py-2 rounded-lg border-2 border-foreground font-black text-center text-xs shadow-[2px_2px_0px_#000] transition-all",
-                    state.targetMastery === m.val ? "bg-[#FFE600] text-black" : "bg-card text-foreground hover:bg-muted"
+                    "py-1.5 rounded-lg border text-xs font-medium text-center transition-all cursor-pointer",
+                    state.targetMastery === m.val
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-background/80 text-foreground border-border/60 hover:bg-muted"
                   )}
                 >
-                  {m.val}%<span className="block text-[9px] uppercase opacity-70">{m.desc}</span>
+                  {m.val}%<span className="block text-[10px] text-muted-foreground opacity-90">{m.desc}</span>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <span className="text-xs font-black uppercase text-foreground block">¿Cómo preferís estudiar?</span>
+            <span className="text-xs font-medium text-foreground block">¿Cómo preferís abordar cada nivel?</span>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: "leer", label: "Leer", desc: "Guía teórica antes del desafío", icon: BookOpen },
-                { id: "podcast", label: "Podcast IA", desc: "Clase explicada por voz en tiempo real", icon: Radio },
-                { id: "practicar", label: "Practicar", desc: "Directo a rendir el nivel", icon: PenTool },
+                { id: "leer", label: "Lectura", desc: "Guía teórica previa", icon: BookOpen },
+                { id: "podcast", label: "Podcast IA", desc: "Voz sintetizada", icon: Radio },
+                { id: "practicar", label: "Práctica", desc: "Directo a desafíos", icon: PenTool },
               ].map((p) => (
                 <button
                   key={p.id}
                   onClick={() => wizard.setStudyPreference(p.id as any)}
                   className={cn(
-                    "p-2.5 rounded-xl border-2 border-foreground font-black text-xs uppercase flex flex-col items-center gap-1 transition-all shadow-[2px_2px_0px_#000] cursor-pointer",
-                    state.studyPreference === p.id ? "bg-[#FFE600] text-black" : "bg-muted text-foreground hover:bg-card"
+                    "p-3 rounded-xl border text-xs font-medium flex flex-col items-center gap-1.5 transition-all cursor-pointer",
+                    state.studyPreference === p.id
+                      ? "bg-primary/10 border-primary text-primary ring-1 ring-primary"
+                      : "bg-card/60 border-border/60 text-foreground hover:bg-muted/50"
                   )}
                 >
                   <p.icon className="w-4 h-4" />
-                  <span>{p.label}</span>
-                  <span className="text-[9px] font-medium normal-case opacity-70 text-center leading-tight">{p.desc}</span>
+                  <span className="font-semibold">{p.label}</span>
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">{p.desc}</span>
                 </button>
               ))}
             </div>
@@ -408,9 +432,9 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
 
           <button
             onClick={wizard.goToUploadStep}
-            className="w-full py-3 bg-[#BFFF00] hover:bg-[#a6df00] text-black font-black uppercase text-sm border-3 border-foreground rounded-xl shadow-[4px_4px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
-            <span>Continuar a mi material</span>
+            <span>Continuar al material de estudio</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -420,30 +444,30 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       {state.step === 4 && (
         <div className="space-y-5 animate-in fade-in duration-200">
           <div>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-foreground">
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
               Cargá tu material de estudio
             </h2>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground mt-1">
-              Podés usar tus apuntes creados en TABE, subir PDFs/archivos o pegar texto. La IA lee subpáginas, diagramas Mermaid y desplegables.
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Podés vincular tus apuntes de TABE, subir documentos en PDF o pegar el programa.
             </p>
           </div>
 
-          {/* Selector de Pestañas de Material */}
-          <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 border-2 border-foreground rounded-xl shadow-[3px_3px_0px_#000]">
+          {/* Segmented Control Notion / Apple */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 border border-border/50 rounded-xl">
             <button
               type="button"
               onClick={() => setMaterialSourceTab("notion")}
               className={cn(
-                "py-2 px-3 rounded-lg font-black text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer",
+                "py-1.5 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer",
                 materialSourceTab === "notion"
-                  ? "bg-[#FFE600] text-black border-2 border-foreground shadow-[2px_2px_0px_#000]"
-                  : "text-foreground hover:bg-card border border-transparent"
+                  ? "bg-background text-foreground shadow-xs border border-border/40"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Mis Apuntes de TABE</span>
+              <span>Apuntes de TABE</span>
               {state.selectedDocIds.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-black text-[#FFE600] text-[10px] flex items-center justify-center font-black">
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
                   {state.selectedDocIds.length}
                 </span>
               )}
@@ -453,16 +477,16 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
               type="button"
               onClick={() => setMaterialSourceTab("files")}
               className={cn(
-                "py-2 px-3 rounded-lg font-black text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer",
+                "py-1.5 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer",
                 materialSourceTab === "files"
-                  ? "bg-[#00E5FF] text-black border-2 border-foreground shadow-[2px_2px_0px_#000]"
-                  : "text-foreground hover:bg-card border border-transparent"
+                  ? "bg-background text-foreground shadow-xs border border-border/40"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Archivos & Texto</span>
               {state.files.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-black text-[#00E5FF] text-[10px] flex items-center justify-center font-black">
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
                   {state.files.length}
                 </span>
               )}
@@ -472,18 +496,17 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
           {/* ── SUB-TAB 1: MIS APUNTES DE TABE (NOTION) ── */}
           {materialSourceTab === "notion" && (
             <div className="space-y-3.5 animate-in fade-in duration-150">
-              {/* Banner explicativo de capacidades */}
-              <div className="p-3 bg-muted/50 border-2 border-foreground rounded-xl text-xs font-bold text-foreground space-y-1 shadow-[2px_2px_0px_#000]">
-                <div className="flex items-center gap-1.5 text-primary text-[11px] font-black uppercase">
+              <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1">
+                <div className="flex items-center gap-1.5 text-primary text-xs font-medium">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Extracción Inteligente de Apuntes</span>
+                  <span>Extracción Inteligente</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground font-medium">
-                  Al seleccionar un apunte, TABE AI leerá también todas sus <b>subpáginas anidadas (/pagina)</b>, abrirá todos los <b>desplegables/toggles</b> y analizará los <b>diagramas Mermaid</b> para estructurar tu ruta.
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  TABE AI analiza tus apuntes, subpáginas anidadas y diagramas para construir las lecciones de cada nivel.
                 </p>
               </div>
 
-              {/* Filtros y Buscador de Apuntes */}
+              {/* Filtros y Buscador */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -491,8 +514,8 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                     type="text"
                     value={docSearch}
                     onChange={(e) => setDocSearch(e.target.value)}
-                    placeholder="Buscar apunte por título..."
-                    className="w-full pl-8 pr-3 py-2 text-xs font-bold bg-muted/40 border-2 border-foreground rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none shadow-[2px_2px_0px_#000]"
+                    placeholder="Buscar por título..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/30 border border-border/60 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   {docSearch && (
                     <button
@@ -510,8 +533,10 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                     type="button"
                     onClick={() => setFilterSubjectDocs(!filterSubjectDocs)}
                     className={cn(
-                      "px-3 py-2 rounded-xl border-2 border-foreground text-[11px] font-black uppercase transition-all shadow-[2px_2px_0px_#000] cursor-pointer whitespace-nowrap",
-                      filterSubjectDocs ? "bg-[#BFFF00] text-black" : "bg-card text-foreground"
+                      "px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer whitespace-nowrap",
+                      filterSubjectDocs
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "bg-muted/40 text-muted-foreground border-border/50 hover:text-foreground"
                     )}
                   >
                     {filterSubjectDocs ? `Solo ${state.subjectName}` : "Todos los apuntes"}
@@ -519,13 +544,13 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                 )}
               </div>
 
-              {/* Acciones masivas de selección */}
+              {/* Acciones masivas */}
               {filteredNotionDocs.length > 0 && (
-                <div className="flex items-center justify-between text-[11px] font-black uppercase text-muted-foreground px-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
                   <span>
-                    {state.selectedDocIds.length} seleccionado(s) de {filteredNotionDocs.length}
+                    {state.selectedDocIds.length} de {filteredNotionDocs.length} seleccionado(s)
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs">
                     <button
                       type="button"
                       onClick={() => {
@@ -551,32 +576,23 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                 </div>
               )}
 
-              {/* Lista de Apuntes Scrolleable */}
-              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {/* Lista de Apuntes */}
+              <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 scrollbar-none">
                 {loadingNotionDocs ? (
-                  <div className="py-8 text-center text-xs font-black uppercase text-muted-foreground flex items-center justify-center gap-2">
+                  <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     <span>Cargando tus apuntes...</span>
                   </div>
                 ) : filteredNotionDocs.length === 0 ? (
-                  <div className="py-8 text-center border-2 border-dashed border-foreground/30 rounded-2xl bg-muted/20 p-4 space-y-2">
-                    <BookOpen className="w-6 h-6 mx-auto text-muted-foreground opacity-60" />
-                    <p className="text-xs font-bold text-muted-foreground">
+                  <div className="py-8 text-center border border-dashed border-border/60 rounded-xl bg-muted/20 p-4 space-y-2">
+                    <BookOpen className="w-5 h-5 mx-auto text-muted-foreground/60" />
+                    <p className="text-xs text-muted-foreground">
                       {docSearch
                         ? `No hay apuntes que coincidan con "${docSearch}".`
                         : filterSubjectDocs && state.subjectId
-                        ? `No tenés apuntes asignados a "${state.subjectName}". Cambiá a "Todos los apuntes" o subí tus PDFs en la otra pestaña.`
-                        : "Aún no creaste apuntes en TABE. Podés subir archivos PDF/DOCX en la pestaña contigua."}
+                        ? `No tenés apuntes asignados a "${state.subjectName}". Podés desmarcar el filtro o subir archivos en la otra pestaña.`
+                        : "Aún no creaste apuntes en TABE. Podés subir archivos PDF en la pestaña contigua."}
                     </p>
-                    {filterSubjectDocs && state.subjectId && (
-                      <button
-                        type="button"
-                        onClick={() => setFilterSubjectDocs(false)}
-                        className="px-3 py-1 bg-card hover:bg-muted border border-foreground rounded-lg text-[10px] font-black uppercase cursor-pointer shadow-[2px_2px_0px_#000]"
-                      >
-                        Ver todos mis apuntes
-                      </button>
-                    )}
                   </div>
                 ) : (
                   filteredNotionDocs.map((doc) => {
@@ -586,38 +602,38 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                         key={doc.id}
                         onClick={() => wizard.toggleNotionDoc({ id: doc.id, title: doc.title })}
                         className={cn(
-                          "p-3 rounded-xl border-2 border-foreground transition-all cursor-pointer flex items-center justify-between gap-3 shadow-[3px_3px_0px_#000] select-none",
+                          "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none",
                           isSelected
-                            ? "bg-[#FFE600]/20 border-foreground ring-2 ring-[#FFE600]"
-                            : "bg-card hover:bg-muted/60"
+                            ? "bg-primary/5 border-primary/40 ring-1 ring-primary/30"
+                            : "bg-card/60 border-border/50 hover:bg-muted/40"
                         )}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className={cn(
-                              "w-5 h-5 rounded border-2 border-foreground flex items-center justify-center shrink-0 transition-colors",
-                              isSelected ? "bg-[#BFFF00] text-black" : "bg-background"
+                              "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                              isSelected ? "bg-primary border-primary text-primary-foreground" : "border-border/80 bg-background"
                             )}
                           >
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>
 
-                          <div className="w-8 h-8 rounded-lg bg-muted border border-foreground flex items-center justify-center text-base shrink-0 shadow-[1px_1px_0px_#000]">
+                          <div className="w-7 h-7 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center text-sm shrink-0">
                             {doc.emoji || "📝"}
                           </div>
 
                           <div className="min-w-0 space-y-0.5">
-                            <span className="text-xs font-black uppercase block truncate text-foreground">
+                            <span className="text-xs font-medium text-foreground block truncate">
                               {doc.title}
                             </span>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {doc.subpagesCount && doc.subpagesCount > 0 ? (
-                                <span className="px-1.5 py-0.2 rounded bg-[#00E5FF] text-black text-[9px] font-black uppercase border border-foreground flex items-center gap-1">
-                                  <GitBranch className="w-2.5 h-2.5" />
-                                  {doc.subpagesCount} subpágina(s)
+                                <span className="px-1.5 py-0.2 rounded bg-muted text-muted-foreground text-[10px] font-medium border border-border/40 flex items-center gap-1">
+                                  <GitBranch className="w-2.5 h-2.5 text-primary" />
+                                  {doc.subpagesCount} subpáginas
                                 </span>
                               ) : null}
-                              <span className="text-[9px] text-muted-foreground font-semibold">
+                              <span className="text-[10px] text-muted-foreground">
                                 {doc.updated_at ? fmtDate(doc.updated_at) : "Reciente"}
                               </span>
                             </div>
@@ -625,7 +641,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                         </div>
 
                         {isSelected && (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-[#BFFF00] text-black border border-foreground rounded shrink-0 shadow-[1px_1px_0px_#000]">
+                          <span className="text-[10px] font-medium px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full shrink-0">
                             Incluido
                           </span>
                         )}
@@ -649,12 +665,12 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                 onDrop={handleDrop}
                 onClick={() => document.getElementById("wizard-file-input")?.click()}
                 className={cn(
-                  "p-5 border-3 border-dashed rounded-2xl text-center transition-all bg-card flex flex-col items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0px_#000]",
+                  "p-5 border border-dashed rounded-xl text-center transition-all bg-muted/20 flex flex-col items-center justify-center gap-2 cursor-pointer",
                   dragOver
                     ? "border-primary bg-primary/10 scale-[1.01]"
                     : state.files.length
-                    ? "border-[#BFFF00] bg-[#BFFF00]/10"
-                    : "border-foreground/40 hover:border-foreground"
+                    ? "border-primary/40 bg-primary/5"
+                    : "border-border/70 hover:border-primary/50"
                 )}
               >
                 <input
@@ -668,38 +684,38 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                   }}
                   className="hidden"
                 />
-                <div className="w-10 h-10 rounded-xl bg-muted border-2 border-foreground flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                  <Upload className="w-5 h-5 text-foreground" />
+                <div className="w-9 h-9 rounded-lg bg-muted/60 border border-border/40 flex items-center justify-center">
+                  <Upload className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <span className="font-black text-xs uppercase block text-foreground">
-                  Arrastrá archivos o hacé clic
+                <span className="font-medium text-xs block text-foreground">
+                  Arrastrá archivos o hacé clic para explorar
                 </span>
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  PDF · PPTX · DOCX · TXT · MD · CSV — hasta {MAX_FILES} archivos
+                <span className="text-[11px] text-muted-foreground">
+                  PDF, DOCX, TXT, MD — hasta {MAX_FILES} archivos
                 </span>
               </div>
 
               {state.files.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-black uppercase text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5" /> {state.files.length} archivo/s · {(totalSize / 1024 / 1024).toFixed(1)} MB
+                      <Layers className="w-3.5 h-3.5" /> {state.files.length} archivo(s) · {(totalSize / 1024 / 1024).toFixed(1)} MB
                     </span>
                   </div>
-                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 scrollbar-none">
                     {state.files.map((f, i) => (
                       <div
                         key={`${f.name}-${i}`}
-                        className="flex items-center gap-2 p-2 bg-muted/50 border-2 border-foreground rounded-lg"
+                        className="flex items-center gap-2 p-2 bg-muted/30 border border-border/50 rounded-lg"
                       >
-                        <FileText className="w-4 h-4 shrink-0 text-primary" />
-                        <span className="text-xs font-bold truncate flex-1">{f.name}</span>
+                        <FileText className="w-3.5 h-3.5 shrink-0 text-primary" />
+                        <span className="text-xs truncate flex-1 text-foreground">{f.name}</span>
                         <span className="text-[10px] text-muted-foreground shrink-0">
                           {(f.size / 1024).toFixed(0)} KB
                         </span>
                         <button
                           onClick={() => wizard.removeFile(i)}
-                          className="p-0.5 rounded border border-foreground bg-card hover:bg-destructive hover:text-white transition-colors"
+                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                           aria-label={`Quitar ${f.name}`}
                         >
                           <X className="w-3 h-3" />
@@ -711,54 +727,54 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
               )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase text-muted-foreground">
-                  Y/o pegá temario, resumen o programa de la materia:
+                <label className="text-xs font-medium text-muted-foreground">
+                  O pegá el temario, resumen o programa de la materia:
                 </label>
                 <textarea
                   rows={2}
                   value={state.pastedText}
                   onChange={(e) => wizard.setPastedText(e.target.value)}
-                  placeholder="Ej: Unidad 1: Límites y continuidad. Unidad 2: Derivadas..."
-                  className="w-full p-2.5 bg-muted/40 border-2 border-foreground rounded-xl font-medium text-xs text-foreground focus:outline-none resize-none shadow-[2px_2px_0px_#000]"
+                  placeholder="Ej: Unidad 1: Álgebra matricial. Unidad 2: Espacios vectoriales..."
+                  className="w-full p-2.5 bg-muted/30 border border-border/60 rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 />
               </div>
             </div>
           )}
 
           {/* Resumen del Material Seleccionado */}
-          <div className="p-3 bg-muted/60 border-2 border-foreground rounded-xl text-xs font-bold text-foreground space-y-1.5 shadow-[2px_2px_0px_#000]">
+          <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1.5">
             <div className="flex items-center justify-between flex-wrap gap-1">
-              <span className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-primary" />
-                Material Consolidado:
+                Material consolidado:
               </span>
-              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
+              <div className="flex items-center gap-1 text-[11px]">
                 {state.selectedDocIds.length > 0 && (
-                  <span className="px-1.5 py-0.5 bg-[#FFE600] text-black border border-foreground rounded">
+                  <span className="px-1.5 py-0.2 bg-primary/10 text-primary border border-primary/20 rounded-full font-medium">
                     {state.selectedDocIds.length} apunte(s)
                   </span>
                 )}
                 {state.files.length > 0 && (
-                  <span className="px-1.5 py-0.5 bg-[#00E5FF] text-black border border-foreground rounded">
+                  <span className="px-1.5 py-0.2 bg-muted text-foreground border border-border/40 rounded-full font-medium">
                     {state.files.length} archivo(s)
                   </span>
                 )}
                 {state.pastedText.trim() && (
-                  <span className="px-1.5 py-0.5 bg-[#BFFF00] text-black border border-foreground rounded">
+                  <span className="px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-medium">
                     Texto
                   </span>
                 )}
               </div>
             </div>
 
-            <p className="text-[11px] text-muted-foreground font-medium">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               {hasMaterial ? (
                 <span>
                   Estimamos <b>{previewPlan.min}–{previewPlan.max} niveles</b> para {state.eventLabel || "tu examen"} en {daysLeft} día/s adaptados a tu meta del {state.targetMastery}%.
                 </span>
               ) : (
                 <span>
-                  Si no cargás material, TABE AI deducirá el <b>temario universitario de {state.subjectName}</b> por su nombre oficial.
+                  Si no cargás material, TABE AI deducirá el temario universitario estándar de <b>{state.subjectName}</b>.
                 </span>
               )}
             </p>
@@ -766,37 +782,42 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
 
           <button
             onClick={wizard.processMaterialAndGenerate}
-            className="w-full py-3.5 bg-[#FFE600] hover:bg-[#ffe100] text-black font-black uppercase text-sm border-3 border-foreground rounded-xl shadow-[4px_4px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
             <span>
               {hasMaterial
-                ? "Generar mi ruta con IA 🚀"
-                : "Generar ruta desde el nombre de la materia 🚀"}
+                ? "Generar ruta de estudio con IA"
+                : "Generar temario sugerido con IA"}
             </span>
           </button>
         </div>
       )}
 
-      {/* ───── PASO 5: PROCESANDO (LOADER ISOMÉTRICO) ───── */}
+      {/* ───── PASO 5: PROCESANDO (LOADER ELEGANTE) ───── */}
       {state.step === 5 && (
-        <div className="py-6 px-2 text-center space-y-5 animate-in fade-in duration-300">
-          <div className="rounded-2xl border-4 border-foreground bg-[#0f0f14] shadow-[6px_6px_0px_#000] py-4 overflow-hidden">
-            <IsoCubesLoader scale={0.62} duration={3} />
+        <div className="py-8 px-2 text-center space-y-6 animate-in fade-in duration-300">
+          <div className="rounded-2xl border border-border/50 bg-muted/20 py-6 overflow-hidden flex items-center justify-center">
+            <IsoCubesLoader scale={0.65} duration={3} />
           </div>
 
-          <div>
-            <h3 className="text-base md:text-lg font-black uppercase tracking-wide text-foreground">{state.processingStatusText}</h3>
-            <p className="text-xs font-medium text-muted-foreground mt-1 min-h-[2rem] transition-opacity">
+          <div className="space-y-1.5">
+            <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+              {state.processingStatusText}
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto min-h-[2.5rem]">
               {PROCESSING_TIPS[tipIdx]}
             </p>
           </div>
 
-          <div className="max-w-md mx-auto w-full space-y-2">
-            <div className="h-4 w-full bg-background border-2 border-foreground rounded-lg overflow-hidden p-0.5 shadow-[2px_2px_0px_#000]">
-              <div className="h-full bg-[#BFFF00] transition-all duration-500 rounded" style={{ width: `${state.processingProgress}%` }} />
+          <div className="max-w-xs mx-auto w-full space-y-2">
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500 rounded-full"
+                style={{ width: `${state.processingProgress}%` }}
+              />
             </div>
-            <span className="text-[10px] font-black uppercase text-muted-foreground">
+            <span className="text-[11px] font-medium text-muted-foreground">
               {state.processingProgress}% · {state.subjectName}{state.eventLabel ? ` · ${state.eventLabel}` : ""}
             </span>
           </div>
@@ -807,75 +828,86 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
       {state.step === 6 && (
         <div className="space-y-5 animate-in fade-in duration-200">
           <div>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-foreground">Tu ruta personalizada</h2>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground mt-1">
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+              Tu ruta personalizada
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               {state.generatedTopics.length} niveles
-              {totalMinutes > 0 ? ` · ~${Math.round(totalMinutes / 60 * 10) / 10} h de estudio` : ""}
-              {state.subjectOnly
-                ? ` · temario deducido de "${state.subjectName}" (cargá material para personalizarlo más)`
-                : ` · armada con ${state.files.length + (state.pastedText.trim() ? 1 : 0)} fuente/s de tu material`}
-              . Desactivá los niveles que no quieras.
+              {totalMinutes > 0 ? ` · ~${Math.round(totalMinutes / 60 * 10) / 10} h estimadas` : ""}
+              . Podés desmarcar temas que ya domines.
             </p>
           </div>
 
-          <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-none">
             {state.generatedTopics.map((topic, idx) => (
               <div
                 key={topic.id}
                 onClick={() => wizard.toggleTopic(topic.id)}
                 className={cn(
-                  "p-3 rounded-xl border-2 border-foreground transition-all cursor-pointer flex items-start gap-3 shadow-[3px_3px_0px_#000]",
-                  topic.selected ? "bg-card text-foreground" : "bg-muted/40 opacity-60"
+                  "p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none",
+                  topic.selected
+                    ? "bg-card/80 border-border/70 text-foreground"
+                    : "bg-muted/20 border-border/40 opacity-60"
                 )}
               >
                 <div
                   className={cn(
-                    "w-5 h-5 mt-0.5 rounded border-2 border-foreground flex items-center justify-center shrink-0",
-                    topic.selected ? "bg-[#BFFF00] text-black" : "bg-background"
+                    "w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors",
+                    topic.selected ? "bg-primary border-primary text-primary-foreground" : "border-border/80 bg-background"
                   )}
                 >
-                  {topic.selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {topic.selected && <Check className="w-3 h-3 stroke-[3]" />}
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-black uppercase block truncate">
+                    <span className="text-xs font-semibold block truncate">
                       Nivel {idx + 1}: {topic.title}
                     </span>
                     {topic.estimatedMinutes ? (
-                      <span className="text-[10px] font-black text-muted-foreground shrink-0">~{topic.estimatedMinutes} min</span>
+                      <span className="text-[10px] text-muted-foreground font-medium shrink-0">
+                        ~{topic.estimatedMinutes} min
+                      </span>
                     ) : null}
                   </div>
-                  <p className="text-[11px] font-medium text-muted-foreground line-clamp-2">{topic.summary}</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                    {topic.summary}
+                  </p>
                   {topic.keyTopics && topic.keyTopics.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-0.5">
                       {topic.keyTopics.slice(0, 5).map((k) => (
-                        <span key={k} className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF] text-black border border-foreground">
+                        <span
+                          key={k}
+                          className="text-[10px] font-medium px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/40"
+                        >
                           {k}
                         </span>
                       ))}
                     </div>
-                  )}
-                  {topic.sourceFiles && topic.sourceFiles.length > 0 && (
-                    <span className="text-[9px] font-bold text-muted-foreground block truncate">📄 {topic.sourceFiles.join(" · ")}</span>
                   )}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
-            <span className="px-2 py-1 rounded-full border-2 border-foreground bg-[#FFE600] text-black">{state.eventLabel || "Examen"} · {fmtDate(state.customExamDate)}</span>
-            <span className="px-2 py-1 rounded-full border-2 border-foreground bg-muted">Meta {state.targetMastery}%</span>
-            <span className="px-2 py-1 rounded-full border-2 border-foreground bg-muted">Estilo: {state.studyPreference}</span>
+          <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+            <span className="px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/50 text-[11px] font-medium">
+              {state.eventLabel || "Examen"} · {fmtDate(state.customExamDate)}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/50 text-[11px] font-medium">
+              Meta: {state.targetMastery}%
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/50 text-[11px] font-medium">
+              Estilo: {state.studyPreference}
+            </span>
           </div>
 
           <button
             onClick={wizard.finalizeRoadmap}
-            className="w-full py-3.5 bg-[#BFFF00] hover:bg-[#a6df00] text-black font-black uppercase text-sm border-3 border-foreground rounded-xl shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            <span>¡Crear mi mapa de niveles! 🗺️</span>
+            <span>Crear mapa de niveles</span>
           </button>
         </div>
       )}

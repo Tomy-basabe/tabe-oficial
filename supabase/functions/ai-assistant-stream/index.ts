@@ -285,6 +285,7 @@ serve(async (req) => {
       let quizzes: any[] = [];
       let friendships: any[] = [];
       let achievements: any[] = [];
+      let discordMembersData: any[] = [];
       let chatMemory = "";
 
       if (userId) {
@@ -298,7 +299,7 @@ serve(async (req) => {
         }
       }
 
-      const [ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR] = await Promise.all([
+      const [ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR, discordR] = await Promise.all([
         serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
         serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
         serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
@@ -314,6 +315,7 @@ serve(async (req) => {
         serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
         serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
         serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
+        serviceClient.from("discord_server_members").select("server_id, role, discord_servers(id, name)").eq("user_id", userId).limit(10),
       ]);
 
       uss = ussR.data || [];
@@ -331,6 +333,7 @@ serve(async (req) => {
       quizzes = quizzesR.data || [];
       friendships = friendshipsR.data || [];
       achievements = achievementsR.data || [];
+      discordMembersData = (discordR && discordR.data) || [];
     }
 
 
@@ -476,6 +479,49 @@ serve(async (req) => {
       `Logros desbloqueados: ${achievements.length > 0 ? achievements.map((a: any) => a.achievements?.nombre || a.achievement_id).join("; ") : "ninguno"}`,
     ].join("\n");
 
+    // Formatear mensajes recientes de grupos y canales de Discord
+    let discordMsgsStr = "Sin mensajes recientes en grupos de estudio.";
+    if (discordMembersData.length > 0) {
+      const serverIds = discordMembersData.map((m: any) => m.server_id).filter(Boolean);
+      try {
+        const { data: channels } = await serviceClient
+          .from("discord_channels")
+          .select("id, server_id, name, type")
+          .in("server_id", serverIds.slice(0, 5))
+          .eq("type", "text")
+          .limit(10);
+        
+        if (channels && channels.length > 0) {
+          const channelIds = channels.map((c: any) => c.id);
+          const { data: recentMsgs } = await serviceClient
+            .from("discord_messages")
+            .select("id, channel_id, user_id, content, created_at")
+            .in("channel_id", channelIds)
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+          if (recentMsgs && recentMsgs.length > 0) {
+            const authorIds = [...new Set(recentMsgs.map((m: any) => m.user_id))];
+            const { data: authorProfiles } = await serviceClient
+              .from("profiles")
+              .select("user_id, nombre, username")
+              .in("user_id", authorIds);
+            const authorMap = new Map((authorProfiles || []).map((a: any) => [a.user_id, a.nombre || a.username || "Compañero"]));
+            const channelMap = new Map(channels.map((c: any) => [c.id, c.name]));
+
+            discordMsgsStr = recentMsgs.map((m: any) => {
+              const chName = channelMap.get(m.channel_id) || "general";
+              const author = authorMap.get(m.user_id) || (m.user_id === userId ? "Tú" : "Compañero");
+              const dateStr = m.created_at ? m.created_at.split("T")[0] : "";
+              return `- [#${chName}] ${author} (${dateStr}): "${m.content.slice(0, 160)}"`;
+            }).join("\n");
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load discord messages:", e);
+      }
+    }
+
     const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
 
     const metricasSection = metricasStr
@@ -516,6 +562,7 @@ serve(async (req) => {
       metricasSection +
       "=== AGENDA ===\n" + eventosStr + "\n\n" +
       "=== PROFESORES Y CONSULTAS ===\n" + profesoresStr + "\n\n" +
+      "=== GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES (CHATS / CANALES) ===\n" + discordMsgsStr + "\n\n" +
       "=== RECURSOS DEL ESTUDIANTE ===\n" + recursosStr + "\n\n" +
       "=== SESIONES ===\n" + sesionesStr + "\n" +
       chatMemory + "\n\n" +
@@ -554,7 +601,13 @@ serve(async (req) => {
       "   - Si pide una cantidad masiva como 50 o 100 cartas, creá el primer lote completo en el llamado de la herramienta y explícale con entusiasmo que ya se guardaron.\n" +
       "   - Para modificar cartas existentes o agregar a un mazo existente, usá 'manage_flashcards'. Para modificar preguntas o agregar a un cuestionario existente, usá 'manage_quizzes'.\n" +
       "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
-      "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).";
+      "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).\n" +
+      "12. ACCESO A INTERACCIONES, PROFESORES Y GRUPOS DE ESTUDIO (FOROS Y CHATS):\n" +
+      "    Tenes acceso total a los profesores del estudiante, sus horarios de consulta, compañeros y a las conversaciones/mensajes de sus grupos de estudio (canales de chat/foros) detallados arriba.\n" +
+      "    - Si el estudiante te consulta sobre sus profesores ('cuándo atiende el profe', 'horario de consulta de...', 'qué profesores tengo'): responde con los datos de PROFESORES Y CONSULTAS.\n" +
+      "    - Si te consulta sobre mensajes de compañeros o grupos ('qué preguntaron en el grupo', 'qué hablaron en el canal', 'recordame mensajes importantes de profes/ayudantes', 'qué dudas tienen mis compañeros'): responde basándote en los mensajes de GRUPOS DE ESTUDIO Y CONVERSACIONES.\n" +
+      "    - Si te pide ayuda para organizar grupos de estudio ('armame un grupo con mis compañeros', 'con quién puedo estudiar'): menciónale a sus compañeros y sugiere temas o canales.\n" +
+      "    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.";
     }
 
     const tools = [
@@ -971,6 +1024,63 @@ serve(async (req) => {
       : ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
 
     const temperature = power_level === "bajo" ? 0.2 : power_level === "alto" ? 0.35 : 0.25;
+    const NVIDIA_API_KEY = Deno.env.get("NVIDIA_API_KEY");
+    const candidateNvidiaModels = power_level === "bajo"
+      ? ["openai/gpt-oss-20b", "google/diffusiongemma-26b-a4b-it", "nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.3"]
+      : ["nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.3", "openai/gpt-oss-20b", "nvidia/nemotron-3.5-lightning-30b-a3b", "google/diffusiongemma-26b-a4b-it", "google/gemma-4-31b-it"];
+
+    if (!streamRes && NVIDIA_API_KEY && !hasImage) {
+      for (const nvModel of candidateNvidiaModels) {
+        try {
+          const nvBody: Record<string, unknown> = {
+            model: nvModel,
+            messages: groqMessages,
+            temperature,
+            max_tokens: 8192,
+            stream: true,
+          };
+          if (shouldPassTools) {
+            nvBody.tools = tools;
+            nvBody.tool_choice = "auto";
+          }
+          streamRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${NVIDIA_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(nvBody)
+          });
+
+          if (!streamRes.ok && shouldPassTools) {
+            streamRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${NVIDIA_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: nvModel,
+                messages: groqMessages,
+                temperature,
+                max_tokens: 8192,
+                stream: true
+              })
+            });
+          }
+
+          if (streamRes.ok) {
+            console.log(`[NVIDIA NIM] Streaming exitoso con modelo: ${nvModel}`);
+            break;
+          } else {
+            const errBody = await streamRes.text().catch(() => "");
+            lastError = `[NVIDIA ${nvModel} ${streamRes.status}] ${errBody}`;
+          }
+        } catch (nvErr: any) {
+          lastError = `[NVIDIA error ${nvModel}] ${nvErr.message}`;
+        }
+      }
+    }
 
     if (!streamRes && GROQ_API_KEY) {
       for (const groqModel of candidateGroqModels) {

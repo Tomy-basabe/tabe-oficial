@@ -34,16 +34,7 @@
           document.documentElement.classList.add("light");
           document.documentElement.classList.remove("dark");
         }
-        var activeColor = localStorage.getItem("active-theme-color") || "theme-neon-gold";
-        if (activeColor) {
-          if (document.body) {
-            document.body.classList.add(activeColor);
-          } else {
-            document.addEventListener("DOMContentLoaded", function () {
-              if (document.body) document.body.classList.add(activeColor);
-            });
-          }
-        }
+        try { localStorage.removeItem("active-theme-color"); } catch (e) {}
       } catch (e) {}
     })();
   </script>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Flag, Gauge, Medal, Users, Loader2, Wifi, WifiOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
+import { GameDeckSelector } from "@/components/games/GameDeckSelector";
 import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
 
 // ============================================================
@@ -99,7 +100,7 @@ export default function KartRaceGame() {
   const modeParam = searchParams.get("mode");
 
   // ---- Deck selection ----
-  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "Mazo General TABE", total_questions: 15 };
   const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
@@ -586,74 +587,18 @@ export default function KartRaceGame() {
 
   if (gamePhase === "select_deck") {
     return (
-      <div className="min-h-screen p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/juegos")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl md:text-2xl font-display font-bold flex items-center gap-2">
-            <Gauge className="w-6 h-6 text-red-500" /> Carrera de Karts
-          </h1>
-        </div>
-
-        <Card className="card-gamer">
-          <CardContent className="p-6 space-y-4">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center">
-                <Gauge className="w-10 h-10 text-red-500" />
-              </div>
-              <h2 className="font-display font-bold text-xl mb-2">Elegí tu mazo</h2>
-              <p className="text-muted-foreground text-sm">
-                Carrera de hasta 8 jugadores. Respondé rápido para ganar turbo y llegar al podio.
-              </p>
-            </div>
-
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-              {decks.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">No tenés mazos todavía</p>
-                  <Button variant="outline" onClick={() => navigate("/cuestionarios")}>
-                    Crear cuestionario
-                  </Button>
-                </div>
-              ) : (
-                decks.map((deck) => (
-                  <button
-                    key={deck.id}
-                    onClick={() => setSelectedDeck(deck)}
-                    className={cn(
-                      "w-full text-left p-4 rounded-xl border transition-all duration-200",
-                      selectedDeck?.id === deck.id
-                        ? "border-red-500 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                        : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
-                    )}
-                  >
-                    <p className="font-medium">{deck.nombre}</p>
-                    <p className="text-xs text-muted-foreground">{deck.total_questions} preguntas</p>
-                  </button>
-                ))
-              )}
-            </div>
-
-            {selectedDeck && (
-              <div className="space-y-2 pt-2">
-                <Button
-                  className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-lg py-6 font-display font-bold"
-                  onClick={enterLobby}
-                >
-                  <Wifi className="w-5 h-5 mr-2" /> Buscar carrera online
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full py-5 font-display"
-                  onClick={startSoloRace}
-                >
-                  <WifiOff className="w-4 h-4 mr-2" /> Jugar solo vs Bots
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="space-y-4">
+        <GameDeckSelector
+          gameTitle="Carrera de Karts"
+          gameSubtitle="Respondé con rapidez y precisión para acumular turbo y superar a tus oponentes en la pista."
+          gameIcon={Gauge}
+          gameRules="Cada respuesta correcta activa el turbo de tu kart. Cuanto más rápido respondas, mayor impulso obtendrás hacia la meta."
+          decks={decks}
+          selectedDeck={selectedDeck}
+          onSelectDeck={(deck) => setSelectedDeck(deck as QuizDeck)}
+          onStartSearch={modeParam === "bot" ? startSoloRace : enterLobby}
+          actionButtonLabel={modeParam === "bot" ? "Iniciar carrera vs Bots" : "Buscar carrera online"}
+        />
       </div>
     );
   }
@@ -669,114 +614,108 @@ export default function KartRaceGame() {
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="card-gamer max-w-md w-full">
-          <CardContent className="p-6 space-y-6">
-            {/* Circular Timer */}
-            <div className="text-center">
-              <div className="relative w-28 h-28 mx-auto mb-4">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-secondary/40"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="url(#kartTimerGrad)"
-                    strokeWidth="2.5"
-                    strokeDasharray={`${progress}, 100`}
-                    strokeLinecap="round"
-                    className="transition-all duration-1000"
-                  />
-                  <defs>
-                    <linearGradient id="kartTimerGrad">
-                      <stop offset="0%" stopColor="#ef4444" />
-                      <stop offset="100%" stopColor="#f59e0b" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-display font-bold text-3xl tabular-nums">{lobbyTimer}</span>
-                  <span className="text-[10px] text-muted-foreground">/ {LOBBY_TIMEOUT}s</span>
-                </div>
-              </div>
+        <div className="w-full max-w-md bg-card border border-border/80 shadow-xl rounded-2xl p-7 text-center space-y-6 relative overflow-hidden">
+        {/* Subtle top indicator bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-muted">
+          <div
+            className="h-full bg-primary transition-all duration-1000 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
 
-              <h2 className="font-display font-bold text-xl mb-1">Buscando jugadores…</h2>
-              <p className="text-muted-foreground text-sm">
-                {onlineCount}/{MAX_PLAYERS} conectados · Empieza en{" "}
-                {Math.max(0, LOBBY_TIMEOUT - lobbyTimer)}s
-              </p>
-            </div>
+        {/* Header */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-center gap-1.5">
+            <Badge variant="outline" className="text-[11px] font-normal py-0.5 px-2 bg-muted/40">
+              Carrera de Karts
+            </Badge>
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Buscando jugadores
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {onlineCount}/{MAX_PLAYERS} conectados · Inicia en {Math.max(0, LOBBY_TIMEOUT - lobbyTimer)}s
+          </p>
+        </div>
 
-            {/* Player Slots */}
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: MAX_PLAYERS }).map((_, i) => {
-                const player = lobbyPlayers[i];
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "aspect-square rounded-xl border-2 flex flex-col items-center justify-center text-center p-1.5 transition-all duration-500",
-                      player
-                        ? "border-neon-green/50 bg-neon-green/10 animate-in fade-in zoom-in-95"
-                        : "border-border/30 bg-secondary/20 border-dashed"
+        {/* Circular Timer Minimal */}
+        <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className="text-muted/40"
+            />
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeDasharray={`${progress}, 100`}
+              strokeLinecap="round"
+              className="text-primary transition-all duration-1000 ease-linear"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-mono text-sm font-bold text-foreground tabular-nums">{lobbyTimer}s</span>
+          </div>
+        </div>
+
+        {/* Player Slots */}
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: MAX_PLAYERS }).map((_, i) => {
+            const player = lobbyPlayers[i];
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "aspect-square rounded-xl border flex flex-col items-center justify-center text-center p-2 transition-all",
+                  player
+                    ? "border-primary/40 bg-primary/5 shadow-sm"
+                    : "border-dashed border-border/70 bg-muted/20"
+                )}
+              >
+                {player ? (
+                  <>
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center mb-1 text-xs font-semibold text-primary-foreground"
+                      style={{ backgroundColor: KART_PALETTE[i].hex }}
+                    >
+                      {player.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-[10px] font-medium truncate w-full leading-tight text-foreground">
+                      {player.displayName}
+                    </span>
+                    {player.userId === user?.id && (
+                      <span className="text-[8px] text-primary font-medium">(Tú)</span>
                     )}
-                  >
-                    {player ? (
-                      <>
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center mb-0.5"
-                          style={{ backgroundColor: KART_PALETTE[i].hex + "30" }}
-                        >
-                          <svg viewBox="0 0 80 40" className="w-6 h-3">
-                            <rect x="10" y="12" width="60" height="18" rx="6" fill={KART_PALETTE[i].hex} />
-                            <circle cx="22" cy="34" r="5" fill="#1e293b" />
-                            <circle cx="58" cy="34" r="5" fill="#1e293b" />
-                          </svg>
-                        </div>
-                        <span className="text-[9px] font-medium truncate w-full leading-tight">
-                          {player.displayName}
-                        </span>
-                        {player.userId === user?.id && (
-                          <span className="text-[8px] text-neon-cyan font-bold">(Tú)</span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Loader2 className="w-4 h-4 text-muted-foreground/30 animate-spin" />
-                        <span className="text-[8px] text-muted-foreground/40 mt-0.5">
-                          Esperando
-                        </span>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Progress bar */}
-            <div className="space-y-2">
-              <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-1000"
-                  style={{ width: `${progress}%` }}
-                />
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="w-4 h-4 text-muted-foreground/40 animate-spin" />
+                    <span className="text-[9px] text-muted-foreground/60 mt-1">
+                      Libre
+                    </span>
+                  </>
+                )}
               </div>
-              <p className="text-xs text-center text-muted-foreground">
-                {onlineCount >= 2
-                  ? `${onlineCount} jugadores online · ¡Lobby preparado!`
-                  : "Buscando corredores en tu carrera..."}
-              </p>
-            </div>
+            );
+          })}
+        </div>
 
-            <Button variant="outline" className="w-full" onClick={leaveLobby}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Cancelar
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Info helper */}
+        <div className="bg-muted/30 border border-border/60 rounded-xl p-3 text-xs text-muted-foreground text-center">
+          {onlineCount >= 2
+            ? `${onlineCount} corredores listos. ¡Partida a punto de comenzar!`
+            : "Esperando corredores de tu carrera..."}
+        </div>
+
+        <Button variant="outline" className="w-full h-10 text-xs font-medium border-border/80 hover:bg-muted" onClick={leaveLobby}>
+          <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Cancelar
+        </Button>
+      </div>
       </div>
     );
   }
@@ -1020,3 +959,4 @@ export default function KartRaceGame() {
     </div>
   );
 }
+

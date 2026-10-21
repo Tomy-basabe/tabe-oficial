@@ -42,7 +42,6 @@ export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Escuchar cambios de preferencia (por ejemplo si se resetea desde Configuración)
     const handleConsentChange = (e: any) => {
       const newPref = e.detail?.preference || getCookieConsent();
       setPreference(newPref);
@@ -53,7 +52,6 @@ export function CookieConsent() {
 
     window.addEventListener(COOKIE_EVENT_NAME, handleConsentChange);
 
-    // Si aún no decidió, mostrar con ligero delay para suavizar la entrada
     if (!getCookieConsent()) {
       const timer = setTimeout(() => setVisible(true), 1200);
       return () => {
@@ -86,18 +84,18 @@ export function CookieConsent() {
       aria-label="Consentimiento de cookies"
       className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300"
     >
-      <div className="bg-card text-card-foreground border-4 border-foreground rounded-2xl p-5 shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col gap-4">
+      <div className="bg-card/95 backdrop-blur-xl text-card-foreground border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
         {/* Cabecera */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black border-2 border-foreground flex items-center justify-center shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-              <Cookie className="w-5 h-5" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/15 flex items-center justify-center shrink-0">
+              <Cookie className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-black text-sm uppercase tracking-tight text-foreground flex items-center gap-1.5">
+              <h3 className="font-semibold text-sm tracking-tight text-foreground flex items-center gap-1.5">
                 Privacidad y Cookies
               </h3>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 Cumplimiento Ley 25.326 & RGPD
               </span>
             </div>
@@ -106,45 +104,45 @@ export function CookieConsent() {
             type="button"
             onClick={handleOnlyNecessary}
             title="Cerrar y usar solo necesarias"
-            className="w-7 h-7 rounded-lg border-2 border-foreground bg-muted hover:bg-destructive hover:text-white flex items-center justify-center transition-colors shrink-0"
+            className="w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Mensaje */}
-        <p className="text-xs font-bold leading-relaxed text-muted-foreground">
+        <p className="text-xs font-normal leading-relaxed text-muted-foreground">
           Utilizamos cookies esenciales para la sesión y preferencias del estudiante.
-          Opcionalmente usamos analíticas para optimizar el rendimiento y prevenir errores. No vendemos ni cedemos datos a terceros.
+          Opcionalmente usamos métricas de rendimiento y prevención de errores. No comercializamos datos personales.
         </p>
 
         {/* Enlace a Privacidad */}
-        <div className="flex items-center gap-1 text-[11px] font-black text-foreground">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#0066FF]" />
-          <span>Conocé todos los detalles en nuestra</span>
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>Leé todos los detalles en nuestra</span>
           <Link
             to="/privacidad"
-            className="text-[#0066FF] hover:underline underline-offset-2 ml-1"
+            className="text-primary hover:underline underline-offset-4 font-semibold"
           >
             Política de Privacidad
           </Link>
         </div>
 
-        {/* Botones de Acción Neobrutalistas */}
+        {/* Botones de Acción */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button
             type="button"
             onClick={handleOnlyNecessary}
-            className="py-2.5 px-3 rounded-xl border-2 border-foreground bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1"
+            className="py-2.5 px-3 rounded-xl border border-border bg-secondary/80 hover:bg-secondary text-secondary-foreground font-medium text-xs transition-colors flex items-center justify-center cursor-pointer"
           >
             Solo necesarias
           </button>
           <button
             type="button"
             onClick={handleAcceptAll}
-            className="py-2.5 px-3 rounded-xl border-2 border-foreground bg-[#BFFF00] text-black font-black text-xs uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5"
+            className="py-2.5 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <Check className="w-4 h-4" />
+            <Check className="w-3.5 h-3.5" />
             Aceptar todas
           </button>
         </div>

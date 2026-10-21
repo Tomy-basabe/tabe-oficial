@@ -58,6 +58,7 @@ function computeStudyStreak(allDates: string[], storedBestStreak = 0): { current
 
   if (startCheckDate) {
     const cursor = new Date(startCheckDate);
+    cursor.setHours(12, 0, 0, 0);
     while (true) {
       const curStr = toLocalDateStr(cursor);
       if (dateSet.has(curStr)) {
@@ -257,7 +258,10 @@ export function useDashboardStats() {
       ]);
 
       const sessionsData = sessionsRes.data || [];
-      const allDates = (allDatesRes.data || []).map(r => r.fecha).filter(Boolean);
+      const allDates = Array.from(new Set([
+        ...(allDatesRes.data || []).map((r: any) => r.fecha),
+        ...sessionsData.map((s: any) => s.fecha)
+      ])).filter(Boolean) as string[];
 
       const { currentStreak, bestStreak } = computeStudyStreak(
         allDates,
@@ -304,14 +308,16 @@ export function useDashboardStats() {
   }, [user, isGuest]);
 
   useEffect(() => {
+    // Si hay caché reciente la mostramos de inmediato, pero siempre revalidamos en segundo plano
     const daily = user ? getStoredDashboardStats(user.id) : null;
     const fresh = daily !== null && (Date.now() - daily.timestamp < STATS_CACHE_TTL_MS);
-    if (fresh) {
+    if (fresh && daily) {
+      setUserStats(daily.userStats);
+      setStudySessions(daily.studySessions);
       setLoading(false);
-      return;
     }
-    fetchStats(!_cachedUserStats);
-  }, [fetchStats, user]);
+    fetchStats(!fresh && !_cachedUserStats);
+  }, [fetchStats, user, isGuest]);
 
   // Refrescar inmediatamente si se invalida la caché de estadísticas desde cualquier pantalla
   useEffect(() => {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings2, Sparkles, BookOpen, Hash, Calendar } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Settings2, BookOpen, Hash, Calendar } from "lucide-react";
 import { SubjectWithStatus } from "@/hooks/useSubjects";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComicAudio } from "@/components/comic/ComicAudio";
@@ -55,46 +54,47 @@ export function EditSubjectModal({ subject, open, onClose, onSubmit }: EditSubje
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="sm:max-w-md bg-card border-4 border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-5 sm:p-6">
-        <DialogHeader className="space-y-2 pb-3 border-b-2 border-border/80 text-left">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-lg bg-[#FFE600] text-black font-black text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-1">
-              EDITAR MATERIA
+      <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl p-5 sm:p-6">
+        <DialogHeader className="space-y-1.5 pb-3 border-b border-zinc-100 dark:border-zinc-800/80 text-left">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+              Editar detalles
             </span>
             {subject && (
-              <span className="px-2 py-0.5 rounded-lg bg-secondary text-foreground font-black text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                 {subject.codigo}
               </span>
             )}
           </div>
-          <DialogTitle className="font-black text-xl sm:text-2xl uppercase tracking-tight text-foreground flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#00E5FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0">
-              <Settings2 className="w-4 h-4 stroke-[2.5]" />
-            </div>
-            Información de la Materia
+          <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-zinc-500" />
+            Información de la materia
           </DialogTitle>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Modifica el nombre oficial, código o ubicación de la asignatura en el plan.
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
-          <div className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
+          <div className="space-y-3">
             <div>
-              <label className="font-black text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-[#FFE600]" /> Nombre de la Materia
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1">
+                <BookOpen className="w-3.5 h-3.5 text-zinc-400" /> Nombre de la materia
               </label>
               <input
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej: Análisis Matemático I"
-                className="w-full mt-1.5 px-4 py-3 bg-secondary/50 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] font-black text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-[#FFE600] transition-all"
+                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-black text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" /> Código
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1">
+                  Código
                 </label>
                 <input
                   type="text"
@@ -102,37 +102,37 @@ export function EditSubjectModal({ subject, open, onClose, onSubmit }: EditSubje
                   onChange={(e) => setCodigo(e.target.value.toUpperCase())}
                   placeholder="Ej: AM1"
                   maxLength={10}
-                  className="w-full mt-1.5 px-4 py-3 bg-secondary/50 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] font-black text-sm text-foreground uppercase placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-[#00E5FF] transition-all"
+                  className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 uppercase placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="font-black text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-[#FF2E93]" /> N° Correlativo
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1">
+                  <Hash className="w-3.5 h-3.5 text-zinc-400" /> N° de orden
                 </label>
                 <input
                   type="number"
                   value={numeroMateria}
                   onChange={(e) => setNumeroMateria(parseInt(e.target.value) || 1)}
                   min={1}
-                  className="w-full mt-1.5 px-4 py-3 bg-secondary/50 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] font-black text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-[#FF2E93] transition-all"
+                  className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-black text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#48BD22]" /> Año en el Plan
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 mb-1">
+                <Calendar className="w-3.5 h-3.5 text-zinc-400" /> Año en el plan
               </label>
               <Select value={año.toString()} onValueChange={(val) => setAño(parseInt(val))}>
-                <SelectTrigger className="w-full mt-1.5 px-4 py-3 bg-secondary/50 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] font-black text-sm text-foreground focus:outline-none focus:ring-4 focus:ring-[#48BD22] h-auto">
+                <SelectTrigger className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs h-auto">
                   <SelectValue placeholder="Seleccione el año" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-3 border-black shadow-[5px_5px_0_0_#000] rounded-xl font-black">
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg">
                   {[1, 2, 3, 4, 5, 6].map(y => (
-                    <SelectItem key={y} value={y.toString()} className="font-black uppercase text-xs cursor-pointer focus:bg-[#FFE600] focus:text-black">
+                    <SelectItem key={y} value={y.toString()} className="text-xs font-medium cursor-pointer">
                       Año {y}
                     </SelectItem>
                   ))}
@@ -141,25 +141,20 @@ export function EditSubjectModal({ subject, open, onClose, onSubmit }: EditSubje
             </div>
           </div>
 
-          <div className="flex gap-2.5 pt-3 border-t-2 border-border/80">
+          <div className="flex gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-wider bg-secondary hover:bg-secondary/80 border-2 border-black shadow-[3px_3px_0_0_#000] transition-all"
+              className="flex-1 py-2 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={!nombre.trim() || !codigo.trim() || loading}
-              className={cn(
-                "flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-wider border-3 border-black transition-all",
-                nombre.trim() && codigo.trim() && !loading
-                  ? "bg-[#FFE600] text-black shadow-[4px_4px_0_0_#000] hover:bg-[#ffe033] active:translate-y-[1px]"
-                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-muted"
-              )}
+              className="flex-1 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-3.5 py-2 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Guardando..." : "Guardar Cambios"}
+              {loading ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
         </form>

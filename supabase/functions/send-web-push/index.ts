@@ -393,10 +393,10 @@ serve(async (req) => {
               pushBody = `Llevás ${stats.racha_actual} días consecutivos. Dedicále 15 minutos hoy para no perderla.`;
               pushUrl = "/pomodoro";
             } else {
-              // Recordatorio de cuidado de mascota en segundo plano
-              pushTitle = "🐾 ¡Cuidá a tu mascota en TABE! ❤️";
-              pushBody = "¡Recordá alimentarla y mimarla hoy en TABE-GOTCHI para mantenerla sana y que no muera!";
-              pushUrl = "/tabe-gotchi";
+              // Recordatorio de estudio alternativo en segundo plano
+              pushTitle = "📚 ¡Momento de estudiar en TABE! ✨";
+              pushBody = "Dedicále unos minutos hoy a tus materias pendientes y sumá horas de estudio.";
+              pushUrl = "/pomodoro";
             }
           }
 

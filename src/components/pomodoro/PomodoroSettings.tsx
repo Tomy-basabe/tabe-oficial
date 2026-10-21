@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Minus, Plus, X, Volume2, Repeat, RotateCcw, PictureInPicture2 } from "lucide-react";
+import { Minus, Plus, X, Volume2, Repeat, RotateCcw, PictureInPicture2, AlertCircle, Play, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +37,7 @@ export function PomodoroSettings({
   type NumericSettings = Exclude<keyof typeof settings, "soundType" | "continuousAlarm" | "autoPip">;
 
   const [localValues, setLocalValues] = useState<Partial<Record<NumericSettings, string>>>({});
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   const LIMITS: Record<NumericSettings, { min: number; max: number }> = {
     work: { min: 1, max: 180 },
@@ -54,7 +55,11 @@ export function PomodoroSettings({
     );
 
     setLocalValues({ ...localValues, [key]: undefined });
-    onSettingsChange({ ...settings, [key]: newValue });
+    onSettingsChange({
+      ...settings,
+      autoPip: settings.autoPip ?? true,
+      [key]: newValue,
+    });
   };
 
   const handleInputChange = (key: NumericSettings, value: string) => {
@@ -66,11 +71,11 @@ export function PomodoroSettings({
     if (isRunning) return;
     
     const strVal = localValues[key];
-    if (strVal === undefined) return; // Not edited
+    if (strVal === undefined) return;
 
     let numValue = parseInt(strVal, 10);
     if (isNaN(numValue)) {
-      numValue = settings[key]; // Revert to previous valid value
+      numValue = settings[key];
     } else {
       numValue = Math.max(
         LIMITS[key].min,
@@ -80,171 +85,367 @@ export function PomodoroSettings({
 
     setLocalValues({ ...localValues, [key]: undefined });
     if (numValue !== settings[key]) {
-      onSettingsChange({ ...settings, [key]: numValue });
+      onSettingsChange({
+        ...settings,
+        autoPip: settings.autoPip ?? true,
+        [key]: numValue,
+      });
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, key: NumericSettings) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.currentTarget.blur();
     }
   };
 
-  const settingsConfig = [
-    { key: "work" as const, label: "TRABAJO", unit: "min", color: "text-[#FF6B6B]" },
-    { key: "shortBreak" as const, label: "DESCANSO CORTO", unit: "min", color: "text-[#4ECDC4]" },
-    { key: "longBreak" as const, label: "DESCANSO LARGO", unit: "min", color: "text-[#FFE66D]" },
-    { key: "longBreakInterval" as const, label: "INTERVALO LARGO", unit: "pomodoros", color: "text-foreground" },
+  const playSoundPreview = (soundType: SoundType) => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      setIsPlayingPreview(true);
+
+      const now = ctx.currentTime;
+      if (soundType === "zen") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(528, now);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.6);
+      } else if (soundType === "arcade") {
+        [0, 0.1, 0.2].forEach((offset, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(440 + idx * 220, now + offset);
+          gain.gain.setValueAtTime(0.2, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.09);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.1);
+        });
+      } else {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(800, now);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+
+      setTimeout(() => setIsPlayingPreview(false), 800);
+    } catch {
+      setIsPlayingPreview(false);
+    }
+  };
+
+  const settingsConfig: { key: NumericSettings; label: string; desc: string; unit: string; color: string }[] = [
+    {
+      key: "work",
+      label: "Foco / Estudio",
+      desc: "Tiempo de concentración profunda",
+      unit: "min",
+      color: "text-rose-600 dark:text-rose-400",
+    },
+    {
+      key: "shortBreak",
+      label: "Descanso Corto",
+      desc: "Pausa rápida entre ciclos de trabajo",
+      unit: "min",
+      color: "text-teal-600 dark:text-teal-400",
+    },
+    {
+      key: "longBreak",
+      label: "Descanso Largo",
+      desc: "Pausa extendida para desconectar",
+      unit: "min",
+      color: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      key: "longBreakInterval",
+      label: "Intervalo de Descanso Largo",
+      desc: "Cantidad de pomodoros antes de la pausa larga",
+      unit: "ciclos",
+      color: "text-zinc-700 dark:text-zinc-300",
+    },
   ];
 
   const presets = [
-    { label: "Clásico", values: { work: 25, shortBreak: 5, longBreak: 15, longBreakInterval: 4 } },
-    { label: "Enfoque", values: { work: 50, shortBreak: 10, longBreak: 20, longBreakInterval: 4 } },
-    { label: "Rápido", values: { work: 15, shortBreak: 3, longBreak: 10, longBreakInterval: 4 } },
+    { label: "Clásico (25 / 5)", values: { work: 25, shortBreak: 5, longBreak: 15, longBreakInterval: 4 } },
+    { label: "Enfoque Profundo (50 / 10)", values: { work: 50, shortBreak: 10, longBreak: 20, longBreakInterval: 4 } },
+    { label: "Rápido (15 / 3)", values: { work: 15, shortBreak: 3, longBreak: 10, longBreakInterval: 4 } },
   ] as const;
 
+  const isPresetActive = (pValues: typeof presets[number]["values"]) => {
+    return (
+      settings.work === pValues.work &&
+      settings.shortBreak === pValues.shortBreak &&
+      settings.longBreak === pValues.longBreak &&
+      settings.longBreakInterval === pValues.longBreakInterval
+    );
+  };
+
   return (
-    <div className="p-5">
-      <div className="flex items-center justify-between mb-6 pb-4 border-b-4 border-foreground">
-        <h3 className="font-display font-black text-xl uppercase tracking-wider text-foreground">CONFIGURACIÓN</h3>
+    <div className="p-5 sm:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
+        <div>
+          <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Configuración de Temporizador
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Personaliza la duración de cada ciclo, alarmas y modos de ventana
+          </p>
+        </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg bg-muted text-foreground border-2 border-foreground hover:bg-[#ff3366] hover:text-black hover:border-black shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none transition-all"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          aria-label="Cerrar ajustes"
         >
-          <X className="w-5 h-5 font-bold" />
+          <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 pb-4 border-b-2 border-dashed border-foreground/30">
-          <span className="w-full text-[10px] font-black uppercase tracking-wider text-muted-foreground">PREESTABLECIDOS</span>
-          {presets.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              disabled={isRunning}
-              onClick={() => onSettingsChange({ ...settings, ...preset.values })}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-foreground border-2 border-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#00f0ff] hover:text-black active:translate-y-[2px] active:shadow-none disabled:opacity-50"
-            >
-              {preset.label === "Clásico" && <RotateCcw className="w-3.5 h-3.5" />}
-              {preset.label}
-            </button>
-          ))}
+
+      {isRunning && (
+        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            El cronómetro está en marcha. Paúsalo para modificar las duraciones de los ciclos.
+          </span>
         </div>
-        {settingsConfig.map(({ key, label, unit, color }) => (
-          <div key={key} className="flex items-center justify-between">
-            <span className="font-bold text-foreground text-sm uppercase tracking-wider">{label}</span>
-            <div className="flex items-center gap-2">
+      )}
+
+      {/* Presets Rápidos */}
+      <div className="space-y-2">
+        <label className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          Plantillas Rápidas
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          {presets.map((preset) => {
+            const active = isPresetActive(preset.values);
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                disabled={isRunning}
+                onClick={() =>
+                  onSettingsChange({
+                    ...settings,
+                    ...preset.values,
+                    autoPip: settings.autoPip ?? true,
+                  })
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  active
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs font-semibold"
+                    : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 border border-zinc-200/60 dark:border-zinc-700/50",
+                  isRunning && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {active ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <RotateCcw className="w-3 h-3 text-zinc-400" />
+                )}
+                <span>{preset.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Duraciones */}
+      <div className="space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/60">
+        {settingsConfig.map(({ key, label, desc, unit, color }) => (
+          <div key={key} className="pt-3.5 first:pt-0 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 block">
+                {label}
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate">
+                {desc}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => updateSetting(key, -1)}
-                disabled={isRunning}
+                disabled={isRunning || settings[key] <= LIMITS[key].min}
                 className={cn(
-                  "w-8 h-8 rounded-md bg-muted text-foreground border-2 border-foreground flex items-center justify-center transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                  isRunning
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-[#00f0ff] hover:text-black hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none"
+                  "w-7 h-7 rounded-md border border-zinc-200 dark:border-zinc-700/70 bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors shadow-2xs cursor-pointer",
+                  (isRunning || settings[key] <= LIMITS[key].min) && "opacity-40 cursor-not-allowed"
                 )}
               >
-                <Minus className="w-4 h-4 font-bold" />
+                <Minus className="w-3.5 h-3.5" />
               </button>
-              <input
-                type="number"
-                value={localValues[key] !== undefined ? localValues[key] : settings[key].toString()}
-                onChange={(e) => handleInputChange(key, e.target.value)}
-                onBlur={() => handleInputBlur(key)}
-                onKeyDown={(e) => handleKeyDown(e, key)}
-                disabled={isRunning}
-                className={cn(
-                  "font-display font-black w-16 text-center bg-background border-[3px] border-foreground rounded-lg py-1 transition-all outline-none focus:ring-4 focus:ring-[#00f0ff] shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                  color,
-                  isRunning ? "cursor-not-allowed opacity-70" : "cursor-text hover:bg-muted/50"
-                )}
-              />
+
+              <div className="relative">
+                <input
+                  type="number"
+                  value={localValues[key] !== undefined ? localValues[key] : settings[key].toString()}
+                  onChange={(e) => handleInputChange(key, e.target.value)}
+                  onBlur={() => handleInputBlur(key)}
+                  onKeyDown={(e) => handleKeyDown(e, key)}
+                  disabled={isRunning}
+                  className={cn(
+                    "w-12 h-7 text-center font-mono text-xs font-semibold bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/70 rounded-md outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition-colors",
+                    "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                    color,
+                    isRunning && "opacity-60 cursor-not-allowed"
+                  )}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() => updateSetting(key, 1)}
-                disabled={isRunning}
+                disabled={isRunning || settings[key] >= LIMITS[key].max}
                 className={cn(
-                  "w-8 h-8 rounded-md bg-muted text-foreground border-2 border-foreground flex items-center justify-center transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                  isRunning
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-[#00f0ff] hover:text-black hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-none"
+                  "w-7 h-7 rounded-md border border-zinc-200 dark:border-zinc-700/70 bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors shadow-2xs cursor-pointer",
+                  (isRunning || settings[key] >= LIMITS[key].max) && "opacity-40 cursor-not-allowed"
                 )}
               >
-                <Plus className="w-4 h-4 font-bold" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground w-16">{unit}</span>
+
+              <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 w-10 text-left pl-1">
+                {unit}
+              </span>
             </div>
           </div>
         ))}
-        
-        {/* Sound Type */}
-        <div className="flex items-center justify-between pt-6 mt-4 border-t-4 border-foreground">
-          <div className="flex items-center gap-2">
-            <Volume2 className="w-5 h-5 text-foreground" />
-            <span className="font-bold text-foreground text-sm uppercase tracking-wider">Sonido de Alarma</span>
+      </div>
+
+      {/* Sonido de Alarma */}
+      <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <Volume2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+              Sonido de Alarma
+            </span>
           </div>
-          <div className="w-40 relative">
-            <Select 
-              value={settings.soundType} 
-              onValueChange={(val: SoundType) => onSettingsChange({ ...settings, soundType: val })}
-              disabled={isRunning}
-            >
-              <SelectTrigger className="h-10 text-xs font-bold bg-background border-[3px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg">
-                <SelectValue placeholder="Sonido" />
-              </SelectTrigger>
-              <SelectContent className="border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] font-bold rounded-xl bg-background">
-                <SelectItem value="classic" className="focus:bg-[#FFE66D] focus:text-black">Clásico (Beep)</SelectItem>
-                <SelectItem value="zen" className="focus:bg-[#4ECDC4] focus:text-black">Zen (Campana)</SelectItem>
-                <SelectItem value="arcade" className="focus:bg-[#FF6B6B] focus:text-black">Arcade</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+            Tono reproducido al finalizar cada ciclo
+          </span>
         </div>
 
-        {/* Continuous Alarm */}
-        <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-foreground/30 mt-4">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-5 h-5 text-foreground" />
-              <span className="font-bold text-foreground text-sm uppercase tracking-wider">Alarma Continua</span>
-            </div>
-            <span className="text-[10px] font-bold text-muted-foreground ml-7 uppercase tracking-wider">Suena hasta detenerla</span>
-          </div>
-          <Switch 
-            checked={settings.continuousAlarm}
-            onCheckedChange={(checked) => onSettingsChange({ ...settings, continuousAlarm: checked })}
-            disabled={isRunning}
-            className="border-2 border-foreground data-[state=checked]:bg-[#00ff9d]"
-          />
-        </div>
+        <div className="flex items-center gap-2">
+          <Select
+            value={settings.soundType}
+            onValueChange={(val: SoundType) => {
+              onSettingsChange({
+                ...settings,
+                soundType: val,
+                autoPip: settings.autoPip ?? true,
+              });
+              playSoundPreview(val);
+            }}
+          >
+            <SelectTrigger className="h-8 w-36 text-xs font-medium bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xs">
+              <SelectValue placeholder="Sonido" />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#212121] border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg">
+              <SelectItem value="zen" className="text-xs cursor-pointer">
+                🔔 Zen (Campana)
+              </SelectItem>
+              <SelectItem value="classic" className="text-xs cursor-pointer">
+                ⏰ Clásico (Beep)
+              </SelectItem>
+              <SelectItem value="arcade" className="text-xs cursor-pointer">
+                👾 Arcade Retro
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
-        {/* Auto PiP on Tab Switch */}
-        <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-foreground/30 mt-4">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <PictureInPicture2 className="w-5 h-5 text-foreground" />
-              <span className="font-bold text-foreground text-sm uppercase tracking-wider">PiP Automático</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_#000]">
-                MEET STYLE
-              </span>
-            </div>
-            <span className="text-[10px] font-bold text-muted-foreground ml-7 uppercase tracking-wider">Abre ventana flotante al cambiar de pestaña</span>
-          </div>
-          <Switch 
-            checked={settings.autoPip ?? true}
-            onCheckedChange={(checked) => onSettingsChange({ ...settings, autoPip: checked })}
-            disabled={isRunning}
-            className="border-2 border-foreground data-[state=checked]:bg-[#00ff9d]"
-          />
+          <button
+            type="button"
+            onClick={() => playSoundPreview(settings.soundType)}
+            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors shadow-2xs cursor-pointer"
+            title="Escuchar prueba de sonido"
+          >
+            <Play className={cn("w-3.5 h-3.5", isPlayingPreview && "text-rose-500 fill-current")} />
+          </button>
         </div>
       </div>
-      {isRunning && (
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6 text-center bg-muted p-2 rounded-lg border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-          ⏸️ Pausá el timer para cambiar la configuración
-        </p>
-      )}
+
+      {/* Alarma Continua */}
+      <div className="pt-3.5 border-t border-zinc-100 dark:divide-zinc-800/60 flex items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <Repeat className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+              Alarma Continua
+            </span>
+          </div>
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+            Sigue sonando hasta que la apagues manualmente
+          </span>
+        </div>
+
+        <Switch
+          checked={settings.continuousAlarm}
+          onCheckedChange={(checked) =>
+            onSettingsChange({
+              ...settings,
+              continuousAlarm: checked,
+              autoPip: settings.autoPip ?? true,
+            })
+          }
+        />
+      </div>
+
+      {/* Auto PiP al cambiar de pestaña */}
+      <div className="pt-3.5 border-t border-zinc-100 dark:divide-zinc-800/60 flex items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <PictureInPicture2 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+              Ventana Flotante Automática (PiP)
+            </span>
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              Meet Style
+            </span>
+          </div>
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+            Abre automáticamente el mini cronómetro si cambias de pestaña
+          </span>
+        </div>
+
+        <Switch
+          checked={settings.autoPip ?? true}
+          onCheckedChange={(checked) =>
+            onSettingsChange({
+              ...settings,
+              autoPip: checked,
+            })
+          }
+        />
+      </div>
+
+      {/* Footer Listo */}
+      <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white transition-colors shadow-2xs cursor-pointer"
+        >
+          Listo
+        </button>
+      </div>
     </div>
   );
 }

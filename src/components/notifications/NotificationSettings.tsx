@@ -1,4 +1,4 @@
-import { Bell, BellOff, Clock, Calendar, Heart } from "lucide-react";
+import { Bell, BellOff, Clock, Calendar } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
@@ -26,30 +26,30 @@ export function NotificationSettings() {
 
   if (!isSupported) {
     return (
-      <div className="card-gamer rounded-xl p-6">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <BellOff className="w-5 h-5" />
-          <p>Las notificaciones no están soportadas en este navegador</p>
+      <div className="rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs">
+        <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+          <BellOff className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">Las notificaciones no están soportadas en este navegador o entorno.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Simple enable prompt if permission not granted */}
+    <div className="space-y-3.5">
+      {/* Aviso de activación de permisos */}
       {permission !== "granted" && (
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-[#18181b] border border-zinc-200/90 dark:border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-muted text-muted-foreground flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              <BellOff className="w-6 h-6" strokeWidth={2.5} />
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 flex items-center justify-center shrink-0">
+              <BellOff className="w-5 h-5" strokeWidth={2} />
             </div>
             <div>
-              <h4 className="font-black uppercase text-base text-foreground">Activar Notificaciones</h4>
-              <p className="font-bold text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Activar Notificaciones Web</h4>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
                 {permission === "denied"
-                  ? "Notificaciones bloqueadas por el navegador. Habilitá los permisos en los ajustes de tu navegador."
-                  : "Habilitá las alertas para recibir recordatorios de estudio y avisos de parciales."}
+                  ? "Las notificaciones están bloqueadas en tu navegador. Puedes habilitarlas desde los ajustes de sitio."
+                  : "Habilita alertas para recibir recordatorios diarios de estudio y avisos previos a tus parciales."}
               </p>
             </div>
           </div>
@@ -58,27 +58,27 @@ export function NotificationSettings() {
             <button
               onClick={handleEnableNotifications}
               disabled={isSubscribingPush}
-              className="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00FF9D] text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_0_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 self-start sm:self-auto"
+              className="px-4 py-2 rounded-lg font-medium text-xs bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors cursor-pointer flex items-center justify-center gap-2 shrink-0 self-start sm:self-auto shadow-2xs"
             >
-              <Bell className="w-4 h-4 fill-black" />
+              <Bell className="w-3.5 h-3.5" />
               <span>{isSubscribingPush ? "Activando..." : "Permitir Notificaciones"}</span>
             </button>
           )}
         </div>
       )}
 
-      {/* Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Study Reminders */}
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+      {/* Cuadrícula de opciones */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Recordatorios de estudio */}
+        <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 space-y-3.5 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#00E5FF] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center">
-                <Clock className="w-5 h-5 text-black" strokeWidth={2.5} />
+              <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-500/20 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" strokeWidth={2} />
               </div>
               <div>
-                <h4 className="font-black uppercase text-sm text-foreground">Recordatorio Diario</h4>
-                <p className="font-bold text-xs text-muted-foreground">Aviso diario a las 9 AM para mantener tu racha</p>
+                <h4 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Recordatorio Diario</h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Aviso para mantener tu racha activa</p>
               </div>
             </div>
             <Switch
@@ -88,51 +88,26 @@ export function NotificationSettings() {
           </div>
 
           {settings.studyReminders && (
-            <div className="pt-3 border-t-2 border-border/70 space-y-1.5">
-              <label className="text-xs font-black uppercase text-foreground">Hora del recordatorio</label>
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Hora del recordatorio</label>
               <input
                 type="time"
                 value={settings.reminderTime}
                 onChange={(e) => updateSettings({ reminderTime: e.target.value })}
-                className="px-3.5 py-2.5 bg-background text-foreground rounded-xl border-2 border-foreground font-black text-sm w-full shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:outline-none"
+                className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200 dark:border-zinc-800 font-mono text-xs w-full focus:outline-none focus:ring-1 focus:ring-zinc-400"
               />
             </div>
           )}
-        </div>
-
-        {/* Pet Reminders */}
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        </div>        {/* Avisos de Exámenes */}
+        <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 space-y-3.5 md:col-span-2 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#FF2E93] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center">
-                <Heart className="w-5 h-5 text-white" strokeWidth={2.5} />
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Calendar className="w-4 h-4" strokeWidth={2} />
               </div>
               <div>
-                <h4 className="font-black uppercase text-sm text-foreground">Cuidado de Mascota</h4>
-                <p className="font-bold text-xs text-muted-foreground">Alertas para alimentar y salvar a tu mascota</p>
-              </div>
-            </div>
-            <Switch
-              checked={settings.petReminders ?? true}
-              onCheckedChange={(checked) => updateSettings({ petReminders: checked })}
-            />
-          </div>
-
-          <div className="pt-3 border-t-2 border-border/70 text-[11px] font-bold text-muted-foreground">
-            Llegan a las 9:00 AM incluso con la app cerrada si tu mascota pasa más de 16-24 hs sin atención.
-          </div>
-        </div>
-
-        {/* Exam Reminders */}
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 space-y-4 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-black" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h4 className="font-black uppercase text-sm text-foreground">Avisos de Exámenes</h4>
-                <p className="font-bold text-xs text-muted-foreground">Alertas antes de cada parcial o final (excluye clases o entregas)</p>
+                <h4 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Avisos de Parciales y Exámenes</h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Notificación previa a cada fecha de examen registrada en tu calendario</p>
               </div>
             </div>
             <Switch
@@ -142,26 +117,26 @@ export function NotificationSettings() {
           </div>
 
           {settings.examReminders && (
-            <div className="pt-3 border-t-2 border-border/70 space-y-1.5">
-              <label className="text-xs font-black uppercase text-foreground">Anticipación de la alerta</label>
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Anticipación del aviso</label>
               <Select
                 value={String(settings.daysBeforeExam)}
                 onValueChange={(val) => updateSettings({ daysBeforeExam: Number(val) })}
               >
-                <SelectTrigger className="w-full px-3.5 py-2.5 h-auto bg-background rounded-xl border-2 border-foreground font-black text-xs shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:ring-0">
+                <SelectTrigger className="w-full px-3 py-2 h-auto bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 font-medium text-xs focus:ring-1 focus:ring-zinc-400">
                   <SelectValue placeholder="Seleccionar anticipación" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                  <SelectItem value="1" className="font-bold cursor-pointer rounded-lg text-xs">
+                <SelectContent className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-xl">
+                  <SelectItem value="1" className="font-medium cursor-pointer rounded-md text-xs">
                     1 día antes (Recomendado)
                   </SelectItem>
-                  <SelectItem value="2" className="font-bold cursor-pointer rounded-lg text-xs">
+                  <SelectItem value="2" className="font-medium cursor-pointer rounded-md text-xs">
                     2 días antes
                   </SelectItem>
-                  <SelectItem value="3" className="font-bold cursor-pointer rounded-lg text-xs">
+                  <SelectItem value="3" className="font-medium cursor-pointer rounded-md text-xs">
                     3 días antes
                   </SelectItem>
-                  <SelectItem value="7" className="font-bold cursor-pointer rounded-lg text-xs">
+                  <SelectItem value="7" className="font-medium cursor-pointer rounded-md text-xs">
                     1 semana antes
                   </SelectItem>
                 </SelectContent>

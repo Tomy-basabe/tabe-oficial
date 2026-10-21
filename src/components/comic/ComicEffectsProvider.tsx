@@ -63,20 +63,20 @@ const COMIC_COLORS = [
 const SPARKLE_CHARS = ["✦", "★", "✸", "•", "✖"];
 
 export function ComicEffectsProvider({ children }: { children: React.ReactNode }) {
-  let isApuntes = false;
+  let isQuiet = false;
   try {
     const location = useLocation();
-    isApuntes = location.pathname.startsWith("/apuntes");
+    isQuiet = location.pathname.startsWith("/apuntes") || location.pathname.startsWith("/carrera");
   } catch {
     if (typeof window !== "undefined") {
-      isApuntes = window.location.pathname.startsWith("/apuntes");
+      isQuiet = window.location.pathname.startsWith("/apuntes") || window.location.pathname.startsWith("/carrera");
     }
   }
 
   const [comicMode, setComicMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("tabe-comic-mode");
-      return saved !== null ? JSON.parse(saved) : true;
+      return saved !== null ? JSON.parse(saved) : false;
     } catch {
       return true;
     }
@@ -94,19 +94,19 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   const lastBurstRef = useRef<number>(0);
 
   useEffect(() => {
-    ComicAudio.setMuted(!soundEnabled || isApuntes);
+    ComicAudio.setMuted(!soundEnabled || isQuiet);
     localStorage.setItem("tabe-comic-sound", JSON.stringify(soundEnabled));
-  }, [soundEnabled, isApuntes]);
+  }, [soundEnabled, isQuiet]);
 
   // Sync comic-mode-active class to document.documentElement (disabled in /apuntes)
   useEffect(() => {
-    if (comicMode && !isApuntes) {
+    if (comicMode && !isQuiet) {
       document.documentElement.classList.add("comic-mode-active");
     } else {
       document.documentElement.classList.remove("comic-mode-active");
     }
     localStorage.setItem("tabe-comic-mode", JSON.stringify(comicMode));
-  }, [comicMode, isApuntes]);
+  }, [comicMode, isQuiet]);
 
   const toggleComicMode = useCallback(() => {
     setComicMode((prev) => !prev);
@@ -120,7 +120,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   const triggerBurst = useCallback(
     (x: number, y: number, customWord?: string) => {
       // Never trigger bursts or sounds in notes (/apuntes)
-      if (!comicMode || isApuntes) return;
+      if (!comicMode || isQuiet) return;
 
       const now = Date.now();
       // Throttle bursts to at most 1 every 250ms
@@ -128,7 +128,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
       lastBurstRef.current = now;
 
       // Play comic pop sound
-      if (soundEnabled && !isApuntes) {
+      if (soundEnabled && !isQuiet) {
         ComicAudio.playPop();
       }
 
@@ -140,15 +140,15 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
         );
       }
     },
-    [comicMode, soundEnabled, isApuntes]
+    [comicMode, soundEnabled, isQuiet]
   );
 
   // Global click listener to trigger burst on clickable items or anywhere in comic mode
   useEffect(() => {
-    if (!comicMode || isApuntes) return;
+    if (!comicMode || isQuiet) return;
 
     const handleClick = (e: MouseEvent) => {
-      if (isApuntes) return;
+      if (isQuiet) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest("#comic-mode-toggle, .no-comic, .ProseMirror, .notion-container, [data-no-comic]")) return;
 
@@ -157,7 +157,7 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
 
     window.addEventListener("click", handleClick, { passive: true });
     return () => window.removeEventListener("click", handleClick);
-  }, [comicMode, triggerBurst, isApuntes]);
+  }, [comicMode, triggerBurst, isQuiet]);
 
   const contextValue = React.useMemo(
     () => ({
@@ -175,18 +175,18 @@ export function ComicEffectsProvider({ children }: { children: React.ReactNode }
   return (
     <ComicContext.Provider value={contextValue}>
       {children}
-      <ComicParticlesOverlay isApuntes={isApuntes} comicMode={comicMode} />
+      <ComicParticlesOverlay isQuiet={isQuiet} comicMode={comicMode} />
     </ComicContext.Provider>
   );
 }
 
 // Independent overlay component that handles particle DOM without re-rendering parent tree
-function ComicParticlesOverlay({ isApuntes, comicMode }: { isApuntes: boolean; comicMode: boolean }) {
+function ComicParticlesOverlay({ isQuiet, comicMode }: { isQuiet: boolean; comicMode: boolean }) {
   const [particles, setParticles] = useState<ComicParticle[]>([]);
   const particleIdRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!comicMode || isApuntes) return;
+    if (!comicMode || isQuiet) return;
 
     const handleBurstEvent = (e: Event) => {
       const { x, y, customWord } = (e as CustomEvent).detail || {};
@@ -229,9 +229,9 @@ function ComicParticlesOverlay({ isApuntes, comicMode }: { isApuntes: boolean; c
 
     window.addEventListener("tabe-comic-burst", handleBurstEvent);
     return () => window.removeEventListener("tabe-comic-burst", handleBurstEvent);
-  }, [comicMode, isApuntes]);
+  }, [comicMode, isQuiet]);
 
-  if (!comicMode || isApuntes || particles.length === 0) return null;
+  if (!comicMode || isQuiet || particles.length === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">

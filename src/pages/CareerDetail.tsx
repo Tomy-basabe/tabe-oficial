@@ -25,12 +25,14 @@ export default function CareerDetail() {
   if (!module) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center bg-card border-[3px] border-foreground shadow-[8px_8px_0_0_#000] dark:shadow-[8px_8px_0_0_#fff] p-12 rounded-3xl max-w-md">
-          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-6" />
-          <h1 className="text-2xl font-black uppercase tracking-widest mb-4">Plan no encontrado</h1>
-          <p className="text-muted-foreground font-bold mb-8">Lo sentimos, el plan de estudios que estás buscando no existe en nuestra base de datos pública.</p>
-          <Button onClick={() => navigate("/carreras")} variant="default">
-            <ArrowLeft className="w-5 h-5" /> Volver al listado
+        <div className="text-center bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg p-10 sm:p-12 rounded-3xl max-w-md">
+          <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Plan no encontrado</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-normal mb-6">
+            El plan de estudios que estás buscando no existe en nuestra base de datos pública.
+          </p>
+          <Button onClick={() => navigate("/carreras")} variant="default" className="rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-medium px-4 py-2">
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Volver al listado
           </Button>
         </div>
       </div>
@@ -66,79 +68,80 @@ export default function CareerDetail() {
         {JSON.stringify(structuredData)}
       </script>
 
-      <nav className="border-b-[3px] border-foreground/10 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b border-zinc-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/carreras")} className="flex items-center gap-2 border-[3px] border-transparent hover:border-foreground transition-colors group px-3 py-1.5 h-auto">
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-bold">Volver a Carreras</span>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate("/carreras")} 
+            className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors group px-3 py-1.5 h-auto rounded-xl cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-xs font-medium">Volver a Carreras</span>
           </Button>
-          <div className="font-display font-black text-2xl tracking-widest uppercase">TABE</div>
+          <div className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">TABE</div>
         </div>
       </nav>
 
-      <header className="relative py-20 overflow-hidden">
-        <div className="container mx-auto px-4 relative z-10 text-center">
+      <header className="relative py-16 sm:py-20 overflow-hidden bg-zinc-50/50 dark:bg-[#121212]/50 border-b border-zinc-200/80 dark:border-zinc-800/80">
+        <div className="container mx-auto px-4 relative z-10 text-center max-w-3xl">
           <div className="flex flex-col items-center justify-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center p-1.5 bg-card border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center p-2 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
               <UniversityLogo universityId={id || ""} className="w-full h-full" />
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#ffd21c] text-black rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]">
-              <GraduationCap className="w-4 h-4" />
-              <span className="text-xs font-black uppercase tracking-widest">Plan de Estudios Oficial</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-full border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
+              <GraduationCap className="w-3.5 h-3.5 text-blue-500" />
+              <span>Plan de Estudios Oficial</span>
             </div>
           </div>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-display font-black mb-6 tracking-tight uppercase">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight text-zinc-900 dark:text-zinc-100">
             {name}
           </h1>
-          <div className="flex flex-wrap justify-center gap-4 text-foreground">
-            <div className="flex items-center gap-2 bg-card border-[3px] border-foreground px-4 py-2 rounded-lg shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] font-bold">
-              <Calendar className="w-5 h-5" />
+          <div className="flex flex-wrap justify-center gap-3 text-zinc-600 dark:text-zinc-400 pt-2">
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800 px-3.5 py-1.5 rounded-xl shadow-2xs text-xs font-medium">
+              <Calendar className="w-4 h-4 text-zinc-400" />
               <span>{years.length} Años de cursado</span>
             </div>
-            <div className="flex items-center gap-2 bg-card border-[3px] border-foreground px-4 py-2 rounded-lg shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] font-bold">
-              <BookOpen className="w-5 h-5" />
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800 px-3.5 py-1.5 rounded-xl shadow-2xs text-xs font-medium">
+              <BookOpen className="w-4 h-4 text-zinc-400" />
               <span>{subjects.length} Materias totales</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 pb-32">
-        <div className="max-w-5xl mx-auto space-y-12">
+      <main className="container mx-auto px-4 py-12 pb-28 max-w-5xl">
+        <div className="space-y-12">
           {years.map((year) => (
-            <section key={year} className="space-y-6">
-              <div className="flex items-center gap-4 transition-all">
-                <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
-                <h2 className="text-2xl font-black px-6 py-2 rounded-lg bg-foreground text-background shadow-[4px_4px_0_0_hsl(var(--foreground))] uppercase tracking-widest border-[3px] border-transparent">
+            <section key={year} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold px-3 py-1 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                   {year}° Año
-                </h2>
-                <div className="h-[3px] flex-1 bg-foreground/20 rounded-full" />
+                </span>
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-3.5">
                 {subjects
                   .filter((s: any) => s.año === year)
                   .sort((a: any, b: any) => (a.numero_materia || 0) - (b.numero_materia || 0))
                   .map((subject: any) => (
                     <div 
                       key={subject.id} 
-                      className="group bg-card p-6 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all duration-300"
+                      className="group bg-white dark:bg-[#1a1a1a] p-4 sm:p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-xs hover:shadow-sm transition-all"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-2">
-                          <div className="inline-flex items-center gap-1.5 bg-foreground text-background px-2 py-0.5 rounded-sm">
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                              Materia {subject.numero_materia}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-black leading-tight uppercase">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1.5">
+                          <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                            Materia {subject.numero_materia}
+                          </span>
+                          <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">
                             {subject.nombre}
                           </h3>
                           {subject.codigo && (
-                            <p className="text-xs text-muted-foreground font-bold font-mono">ID: {subject.codigo}</p>
+                            <p className="text-xs text-zinc-400 font-mono">ID: {subject.codigo}</p>
                           )}
                         </div>
-                        <FileJson className="w-6 h-6 text-foreground/30 group-hover:text-foreground transition-colors shrink-0" />
+                        <FileJson className="w-5 h-5 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors shrink-0" />
                       </div>
                     </div>
                   ))}
@@ -147,13 +150,19 @@ export default function CareerDetail() {
           ))}
         </div>
 
-        <section className="mt-24 text-center max-w-2xl mx-auto p-8 rounded-2xl border-[3px] border-foreground bg-card shadow-[8px_8px_0_0_#000] dark:shadow-[8px_8px_0_0_#fff]">
-          <h2 className="text-3xl font-display font-black mb-4 uppercase tracking-widest">¿Querés gestionar este plan?</h2>
-          <p className="text-muted-foreground mb-8 font-bold text-sm">
-            Registrate en TABE para marcar tus materias aprobadas, ver correlatividades interactivas y recibir sugerencias de estudio personalizadas.
+        <section className="mt-20 text-center max-w-2xl mx-auto p-8 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#151515] shadow-sm">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-2">
+            ¿Querés gestionar este plan?
+          </h2>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-6 font-normal text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+            Registrate en TABE para marcar tus materias aprobadas, ver correlatividades interactivas y recibir sugerencias de estudio.
           </p>
-          <Button size="lg" onClick={() => navigate("/auth")} className="text-lg bg-[#25d06c] text-black hover:bg-[#25d06c]/90">
-            Empezar gratis <ChevronRight className="w-5 h-5" />
+          <Button 
+            size="lg" 
+            onClick={() => navigate("/registro")} 
+            className="text-xs sm:text-sm font-medium bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 rounded-xl px-5 py-2.5 h-auto cursor-pointer"
+          >
+            Empezar gratis <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </section>
       </main>

@@ -3,9 +3,8 @@ import Joyride, { Step, CallBackProps, STATUS, TooltipRenderProps } from "react-
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import { Sparkles, X, ChevronRight, ChevronLeft } from "lucide-react";
-import { ComicAudio } from "@/components/comic/ComicAudio";
 
-function ComicTourTooltip({
+function ModernTourTooltip({
     index,
     isLastStep,
     size,
@@ -17,28 +16,24 @@ function ComicTourTooltip({
     tooltipProps,
 }: TooltipRenderProps) {
     const handleNextClick = (e: React.MouseEvent<HTMLElement>) => {
-        ComicAudio.playPop();
         if (primaryProps.onClick) {
             primaryProps.onClick(e);
         }
     };
 
     const handleBackClick = (e: React.MouseEvent<HTMLElement>) => {
-        ComicAudio.playPop();
         if (backProps.onClick) {
             backProps.onClick(e);
         }
     };
 
     const handleSkipClick = (e: React.MouseEvent<HTMLElement>) => {
-        ComicAudio.playPop();
         if (skipProps.onClick) {
             skipProps.onClick(e);
         }
     };
 
     const handleCloseClick = (e: React.MouseEvent<HTMLElement>) => {
-        ComicAudio.playPop();
         if (closeProps.onClick) {
             closeProps.onClick(e);
         }
@@ -58,49 +53,61 @@ function ComicTourTooltip({
     return (
         <div
             {...tooltipProps}
-            className="relative z-[10001] max-w-sm sm:max-w-md w-[calc(100vw-32px)] sm:w-auto bg-card text-foreground border-4 border-foreground rounded-2xl p-4 sm:p-5 shadow-[6px_6px_0_0_#ff9415] space-y-3.5 select-none animate-in fade-in zoom-in-95 duration-200"
+            className="relative z-[10001] max-w-sm sm:max-w-md w-[calc(100vw-32px)] sm:w-[380px] bg-white dark:bg-[#1e1e1e] text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-zinc-800/90 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3.5 select-none animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl"
         >
-            {/* Encabezado Neo-Brutalist: Badge y botón cerrar */}
-            <div className="flex items-center justify-between gap-2 border-b-2 border-border/80 pb-2.5">
-                <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-[#FFE600] text-black font-black text-[11px] sm:text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-1 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 fill-black stroke-black" />
-                        Guía TABE
-                    </span>
-                    {size > 1 && (
-                        <span className="px-2 py-0.5 rounded-lg bg-secondary text-foreground font-black text-[10px] sm:text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
-                            Paso {index + 1} de {size}
+            {/* Encabezado Estilo Notion/ChatGPT: Badge, contador y botón cerrar */}
+            <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs border border-zinc-200/60 dark:border-zinc-700/60">
+                            <Sparkles className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                            Guía T.A.B.E.
                         </span>
-                    )}
+                        {size > 1 && (
+                            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
+                                {index + 1} de {size}
+                            </span>
+                        )}
+                    </div>
+
+                    <button
+                        {...closeProps}
+                        onClick={handleCloseClick}
+                        type="button"
+                        title="Cerrar tutorial"
+                        className="w-7 h-7 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
 
-                <button
-                    {...closeProps}
-                    onClick={handleCloseClick}
-                    type="button"
-                    title="Cerrar tutorial"
-                    className="w-7 h-7 rounded-lg bg-secondary hover:bg-destructive hover:text-white border-2 border-black shadow-[1.5px_1.5px_0_0_#000] flex items-center justify-center transition-all cursor-pointer"
-                >
-                    <X className="w-4 h-4 stroke-[3]" />
-                </button>
+                {/* Barra de progreso sutil */}
+                {size > 1 && (
+                    <div className="w-full h-1 bg-zinc-100 dark:bg-zinc-800/90 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-300 ease-out rounded-full"
+                            style={{ width: `${((index + 1) / size) * 100}%` }}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Contenido explicativo */}
-            <div className="text-xs sm:text-sm font-bold text-foreground leading-relaxed pt-0.5">
+            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 font-normal leading-relaxed pt-0.5">
                 {step.content}
             </div>
 
             {/* Acciones: Saltar, Atrás, Siguiente */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t-2 border-border/80">
+            <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80">
                 {/* Botón Saltar */}
                 {skipProps && (
                     <button
                         {...skipProps}
                         onClick={handleSkipClick}
                         type="button"
-                        className="text-[11px] sm:text-xs font-black uppercase text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                        className="text-xs font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 px-2 py-1 rounded-md transition-colors cursor-pointer"
                     >
-                        Saltar
+                        Saltar tour
                     </button>
                 )}
 
@@ -111,9 +118,9 @@ function ComicTourTooltip({
                             {...backProps}
                             onClick={handleBackClick}
                             type="button"
-                            className="px-3 py-1.5 rounded-xl bg-secondary text-foreground font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-secondary/80 active:translate-y-[1px] flex items-center gap-1 transition-all cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium transition-colors shadow-2xs flex items-center gap-1 cursor-pointer"
                         >
-                            <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
+                            <ChevronLeft className="w-3.5 h-3.5" />
                             Atrás
                         </button>
                     )}
@@ -123,10 +130,10 @@ function ComicTourTooltip({
                         {...primaryProps}
                         onClick={handleNextClick}
                         type="button"
-                        className="px-4 py-2 rounded-xl bg-[#FFE600] text-black font-black text-xs sm:text-sm uppercase tracking-wide border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#ffe033] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[1px] active:translate-y-[1px] flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 text-xs font-medium transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
                     >
-                        <span>{nextLabel}</span>
-                        <ChevronRight className="w-4 h-4 stroke-[3]" />
+                        <span>{isLastStep ? "Entendido" : nextLabel}</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                 </div>
             </div>
@@ -362,13 +369,19 @@ export function TutorialTour() {
 
             if (routeSteps && routeSteps.length > 0 && !tutorialsCompleted[currentPath]) {
                 // Verificar que los elementos objetivo realmente existan en el DOM antes de arrancar Joyride
-                const availableSteps = routeSteps.filter((s) => {
-                    try {
-                        return typeof s.target === 'string' && document.querySelector(s.target) !== null;
-                    } catch {
-                        return false;
-                    }
-                });
+                const availableSteps = routeSteps
+                    .filter((s) => {
+                        try {
+                            return typeof s.target === 'string' && document.querySelector(s.target) !== null;
+                        } catch {
+                            return false;
+                        }
+                    })
+                    .map((s) => ({
+                        ...s,
+                        disableBeacon: true,
+                        disableScrolling: true,
+                    }));
 
                 if (availableSteps.length > 0) {
                     setTourSteps(availableSteps);
@@ -386,7 +399,48 @@ export function TutorialTour() {
         return () => clearTimeout(timer);
     }, [user, isGuest, location.pathname]);
 
-    // Hack: Force Joyride to re-calculate its overlay mask when scrolling Radix's viewport
+    // Escuchar evento personalizado para reiniciar el tour desde configuración o ayuda
+    useEffect(() => {
+        const handleTriggerTour = () => {
+            const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
+            let tutorialsCompleted: Record<string, boolean> = {};
+            try {
+                tutorialsCompleted = JSON.parse(rawTutorials);
+            } catch {
+                tutorialsCompleted = {};
+            }
+            delete tutorialsCompleted[location.pathname];
+            try {
+                localStorage.setItem("tabe-tutorials-completed", JSON.stringify(tutorialsCompleted));
+            } catch {}
+
+            const routeSteps = TOUR_STEPS_BY_ROUTE[location.pathname];
+            if (routeSteps && routeSteps.length > 0) {
+                const availableSteps = routeSteps
+                    .filter((s) => {
+                        try {
+                            return typeof s.target === 'string' && document.querySelector(s.target) !== null;
+                        } catch {
+                            return false;
+                        }
+                    })
+                    .map((s) => ({
+                        ...s,
+                        disableBeacon: true,
+                        disableScrolling: true,
+                    }));
+                if (availableSteps.length > 0) {
+                    setTourSteps(availableSteps);
+                    setRun(true);
+                }
+            }
+        };
+
+        window.addEventListener("tabe:restart-tour", handleTriggerTour);
+        return () => window.removeEventListener("tabe:restart-tour", handleTriggerTour);
+    }, [location.pathname]);
+
+    // Forzar a Joyride a recalcular su spotlight cuando se hace scroll
     useEffect(() => {
         if (!run) return;
         const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
@@ -407,7 +461,7 @@ export function TutorialTour() {
         if (finishedStatuses.includes(status) || type === 'error:target_not_found') {
             setRun(false);
 
-            // Mark this specific route as visited to never trap or re-freeze the user
+            // Marcar ruta como visitada para no interrumpir nuevamente
             const rawTutorials = localStorage.getItem("tabe-tutorials-completed") || "{}";
             let tutorialsCompleted: Record<string, boolean> = {};
             try {
@@ -421,28 +475,21 @@ export function TutorialTour() {
             } catch {}
         }
 
-        // Before step renders, ensure the target is scrolled into the ScrollArea viewport
+        // Antes de renderizar el paso, centrar el scroll si está en radix viewport
         if (type === 'step:before') {
             const targetEl = document.querySelector(step.target as string);
             const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
 
             if (targetEl && viewport && viewport.contains(targetEl)) {
-                // Calculate position of target relative to the scrolling container
                 const targetRectTop = targetEl.getBoundingClientRect().top;
                 const scrollContentTop = viewport.firstElementChild?.getBoundingClientRect().top || 0;
-
-                // Absolute pixel distance from the top of the scrollable content
                 const absoluteTargetTop = targetRectTop - scrollContentTop;
-
-                // Center the item vertically by subtracting half the viewport height
                 const viewportHeight = viewport.getBoundingClientRect().height;
                 const offset = absoluteTargetTop - (viewportHeight / 2) + 20;
 
                 viewport.scrollTo({ top: Math.max(0, offset), behavior: 'instant' });
-                // Force an immediate recalculation manually
                 window.dispatchEvent(new Event('resize'));
             } else if (targetEl) {
-                // Just fallback to native scroll if not in scrollarea
                 targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
             }
         }
@@ -460,18 +507,23 @@ export function TutorialTour() {
             showSkipButton
             disableOverlayClose={false}
             steps={tourSteps}
-            tooltipComponent={ComicTourTooltip}
+            tooltipComponent={ModernTourTooltip}
             locale={{
                 back: 'Atrás',
                 close: 'Cerrar',
-                last: 'Siguiente',
+                last: 'Entendido',
                 next: 'Siguiente',
                 skip: 'Saltar',
             }}
             styles={{
                 options: {
                     zIndex: 10000,
-                    overlayColor: 'rgba(0, 0, 0, 0.65)',
+                    overlayColor: 'rgba(0, 0, 0, 0.45)',
+                    spotlightShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45), 0 0 15px rgba(0, 0, 0, 0.25)',
+                    arrowColor: 'transparent',
+                },
+                spotlight: {
+                    borderRadius: 12,
                 },
             }}
         />

@@ -4,51 +4,61 @@ import { useTheme } from "@/hooks/useTheme";
 
 export function LandingFooter() {
     const { resolvedTheme } = useTheme();
-    const logo = resolvedTheme === "dark" ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
+    const logo = "/logo.png";
 
     return (
-        <footer className="border-t-2 border-border bg-card/50">
+        <footer className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#111111]/50 backdrop-blur-md">
             <div className="container mx-auto px-4 md:px-6 py-12">
-                <div className="grid md:grid-cols-4 gap-10">
-                    <div className="md:col-span-1 space-y-4">
-                        <Link to="/" className="flex items-center gap-2.5" title="TABE - Tu Asistente de Bolsillo Estudiantil">
-                            <img src={logo} alt="TABE - Tu Asistente de Bolsillo Estudiantil" className="w-9 h-9 object-contain" />
-                            <span className="font-black text-xl tracking-tight">TABE</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
+                    <div className="col-span-2 md:col-span-1 space-y-3">
+                        <Link to="/" className="flex items-center gap-2.5" title="TABE">
+                            <img src={logo} alt="TABE" className="w-8 h-8 object-contain" />
+                            <span className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">TABE</span>
                         </Link>
-                        <p className="text-sm text-muted-foreground leading-relaxed">Tu asistente de bolsillo estudiantil: la plataforma todo-en-uno para universitarios.</p>
-                        <a href="https://www.instagram.com/tabe_oficial/" target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-[#ff9415] transition-colors font-bold">
-                            <Instagram className="w-4 h-4" /> @tabe_oficial
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-normal">
+                            Tu asistente de bolsillo estudiantil: la plataforma todo-en-uno concebida para estudiantes universitarios.
+                        </p>
+                        <a 
+                            href="https://www.instagram.com/tabe_oficial/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors font-medium"
+                        >
+                            <Instagram className="w-3.5 h-3.5" /> @tabe_oficial
                         </a>
                     </div>
-                    <div className="space-y-3">
-                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Producto</h4>
-                        <div className="flex flex-col gap-2">
-                            <Link to="/carreras" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Carreras</Link>
-                            <Link to="/guia-de-estudio" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Guías de Estudio</Link>
-                            <Link to="/registro" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Registrarse</Link>
+
+                    <div className="space-y-2.5">
+                        <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Plataforma</h4>
+                        <div className="flex flex-col space-y-1.5">
+                            <Link to="/carreras" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Carreras</Link>
+                            <Link to="/guia-de-estudio" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Guías de Estudio</Link>
+                            <Link to="/registro" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Registrarse</Link>
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Empresa</h4>
-                        <div className="flex flex-col gap-2">
-                            <Link to="/acerca-de" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Acerca de</Link>
-                            <Link to="/contacto" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Contacto</Link>
+
+                    <div className="space-y-2.5">
+                        <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Comunidad</h4>
+                        <div className="flex flex-col space-y-1.5">
+                            <Link to="/acerca-de" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Acerca de</Link>
+                            <Link to="/contacto" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Contacto</Link>
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <h4 className="font-extrabold text-xs uppercase tracking-widest text-muted-foreground">Legal</h4>
-                        <div className="flex flex-col gap-2">
-                            <Link to="/privacidad" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Privacidad</Link>
-                            <Link to="/terminos" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-bold">Términos</Link>
+
+                    <div className="space-y-2.5">
+                        <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Legal</h4>
+                        <div className="flex flex-col space-y-1.5">
+                            <Link to="/privacidad" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Privacidad</Link>
+                            <Link to="/terminos" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Términos y Condiciones</Link>
                         </div>
                     </div>
                 </div>
-                <div className="mt-10 pt-6 border-t-2 border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 font-bold">
-                        Hecho por un estudiante para estudiantes <Heart className="w-3 h-3 text-[#ff9415] fill-[#ff9415]" />
+
+                <div className="mt-10 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+                    <p>© {new Date().getFullYear()} TABE. Todos los derechos reservados.</p>
+                    <p className="flex items-center gap-1">
+                        Hecho por un estudiante para estudiantes <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
                     </p>
-                    <p className="text-xs text-muted-foreground font-bold">© {new Date().getFullYear()} TABE. Todos los derechos reservados.</p>
                 </div>
             </div>
         </footer>

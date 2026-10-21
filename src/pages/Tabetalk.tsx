@@ -235,7 +235,7 @@ export default function Tabetalk() {
             <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-background dark:bg-[#0d121d]">
               <button
                 onClick={() => setMobileView("servers")}
-                className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
+                className="p-1.5 rounded-lg border-2 border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 shadow-2xs active:translate-x-0 active:translate-y-0 transition-all"
               >
                 <ArrowLeft className="w-4 h-4 stroke-[3]" />
               </button>
@@ -282,7 +282,7 @@ export default function Tabetalk() {
             <div className="md:hidden flex items-center gap-2 h-12 px-3 border-b border-border bg-background dark:bg-[#0d121d] shrink-0">
               <button
                 onClick={() => setMobileView("channels")}
-                className="p-1.5 rounded-lg border-2 border-black bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all"
+                className="p-1.5 rounded-lg border-2 border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 shadow-2xs active:translate-x-0 active:translate-y-0 transition-all"
               >
                 <ArrowLeft className="w-4 h-4 stroke-[3]" />
               </button>
@@ -342,8 +342,8 @@ export default function Tabetalk() {
               />
             ) : (
               <div className="flex-1 flex items-center justify-center p-6 text-center">
-                <div className="max-w-md p-8 rounded-2xl bg-card border-3 border-black shadow-[6px_6px_0px_#000] flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-2xl bg-[#FFE600] border-2 border-black flex items-center justify-center mb-4 shadow-[3px_3px_0px_#000]">
+                <div className="max-w-md p-8 rounded-2xl bg-card border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFE600] border-2 border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-center mb-4 shadow-2xs">
                     <Hash className="w-8 h-8 text-black stroke-[2.5]" />
                   </div>
                   <h3 className="text-xl font-black text-foreground uppercase tracking-wide mb-2">
@@ -381,38 +381,38 @@ export default function Tabetalk() {
 
           {/* Formas flotantes cómic / gaming decorativas de fondo (Zero network / Zero websocket) */}
           <div className="pointer-events-none z-0 absolute top-8 left-8 sm:top-10 sm:left-14 comic-float-a hidden sm:flex items-center justify-center">
-            <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[3px_3px_0px_#000] rotate-12 flex items-center justify-center text-black font-black text-sm">
+            <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs rotate-12 flex items-center justify-center text-black font-black text-sm">
               ★
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-24 left-20 sm:top-24 sm:left-28 comic-float-b hidden md:flex items-center justify-center">
-            <span className="text-xl font-black text-[#00E5FF] drop-shadow-[2px_2px_0px_#000] select-none">
+            <span className="text-xl font-black text-zinc-900 dark:text-zinc-100 drop-shadow-2xs select-none">
               ✦
             </span>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-8 right-8 sm:top-10 sm:right-16 comic-float-b hidden sm:flex items-center justify-center">
-            <div className="relative px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black border-2 border-black shadow-[3px_3px_0px_#000] font-black text-[10px] uppercase tracking-wider -rotate-6">
+            <div className="relative px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs font-black text-[10px] uppercase tracking-wider -rotate-6">
               TABE!
-              <div className="absolute -bottom-1 left-2 w-1.5 h-1.5 bg-[#FFE600] border-r-2 border-b-2 border-black rotate-45" />
+              <div className="absolute -bottom-1 left-2 w-1.5 h-1.5 bg-[#FFE600] border-r-2 border-b-2 border-zinc-200/80 dark:border-zinc-800/80 rotate-45" />
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-24 right-16 sm:top-24 sm:right-28 comic-float-c hidden md:flex items-center justify-center">
-            <div className="w-7 h-7 rounded-md bg-[#FF2E93] border-2 border-black shadow-[2px_2px_0px_#000] -rotate-12 flex items-center justify-center text-white font-black text-xs">
+            <div className="w-7 h-7 rounded-md bg-[#FF2E93] border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs -rotate-12 flex items-center justify-center text-white font-black text-xs">
               ★
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-1/2 left-6 sm:left-10 -translate-y-1/2 comic-float-c hidden lg:flex items-center justify-center">
-            <div className="w-8 h-8 rounded-lg bg-[#00E5FF] border-2 border-black shadow-[3px_3px_0px_#000] rotate-6 flex items-center justify-center text-black font-black text-sm">
+            <div className="w-8 h-8 rounded-lg bg-[#00E5FF] border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs rotate-6 flex items-center justify-center text-black font-black text-sm">
               ⚡
             </div>
           </div>
 
           <div className="pointer-events-none z-0 absolute top-1/2 right-6 sm:right-10 -translate-y-1/2 comic-float-a hidden lg:flex items-center justify-center">
-            <div className="px-2 py-0.5 rounded-md bg-[#10B981] border-2 border-black shadow-[3px_3px_0px_#000] text-white font-black text-[9px] uppercase tracking-wider rotate-3">
+            <div className="px-2 py-0.5 rounded-md bg-[#10B981] border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs text-white font-black text-[9px] uppercase tracking-wider rotate-3">
               XP +50
             </div>
           </div>
@@ -422,22 +422,22 @@ export default function Tabetalk() {
             
             {/* Top Retro Gaming Badges */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 <Flame className="w-3 h-3 fill-black stroke-black" />
                 TABETALK V2.0
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#00E5FF] text-black font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 <Zap className="w-3 h-3 fill-black stroke-black" />
                 P2P DIRECTO
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#FF2E93] text-white font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_#000]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 font-black text-[10px] sm:text-xs uppercase tracking-wider border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 CO-STUDY
               </span>
             </div>
 
             {/* Logo Arcade Neobrutalista Redimensionado */}
             <div className="relative mb-2.5 group cursor-pointer" onClick={handleOpenCreateModal}>
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#FFE600] border-3 border-black shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:shadow-[7px_7px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] transition-all duration-200">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#FFE600] border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs sm:shadow-2xs flex items-center justify-center -rotate-2 group-hover:rotate-0 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all duration-200">
                 <img 
                   src="/tabe-talk.png" 
                   alt="Tabetalk" 
@@ -445,7 +445,7 @@ export default function Tabetalk() {
                   onError={(e) => { e.currentTarget.src = "/logo.png"; }} 
                 />
               </div>
-              <div className="absolute -top-1.5 -right-1.5 bg-black text-[#FFE600] text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border border-black shadow-[1.5px_1.5px_0px_#000]">
+              <div className="absolute -top-1.5 -right-1.5 bg-black text-zinc-900 dark:text-zinc-100 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                 LIVE
               </div>
             </div>
@@ -453,14 +453,14 @@ export default function Tabetalk() {
             {/* Título Neobrutalista Equilibrado */}
             <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-foreground mb-2 leading-none">
               ¡BIENVENIDO A{" "}
-              <span className="inline-block bg-[#FFE600] text-black px-2.5 py-0.5 rounded-lg border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] rotate-1">
+              <span className="inline-block bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 px-2.5 py-0.5 rounded-lg border-2 sm:border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs rotate-1">
                 TABETALK
               </span>
               !
             </h1>
 
             {/* Subtítulo / Descripción Compacta */}
-            <div className="max-w-md mx-auto mb-4 p-2.5 rounded-xl bg-card border-2 border-black shadow-[3px_3px_0px_#000]">
+            <div className="max-w-md mx-auto mb-4 p-2.5 rounded-xl bg-card border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
               <p className="text-muted-foreground text-xs sm:text-sm font-bold leading-normal">
                 Selecciona un servidor o conéctate con tus compañeros para estudiar, encender tu cámara y compartir pantalla sin límites.
               </p>
@@ -470,9 +470,9 @@ export default function Tabetalk() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full max-w-md mx-auto mb-5 sm:mb-6">
               <button
                 onClick={handleOpenCreateModal}
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer group"
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#FFE600] hover:bg-[#FFE600]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all cursor-pointer group"
               >
-                <div className="w-5 h-5 rounded-md bg-black text-[#FFE600] flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
+                <div className="w-5 h-5 rounded-md bg-black text-zinc-900 dark:text-zinc-100 flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
                 <span>CREAR SERVIDOR</span>
@@ -480,9 +480,9 @@ export default function Tabetalk() {
 
               <button
                 onClick={handleOpenJoinModal}
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#00E5FF] hover:bg-[#00E5FF]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer group"
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#00E5FF] hover:bg-[#00E5FF]/95 text-black font-black uppercase text-xs sm:text-sm px-5 py-3 rounded-xl border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all cursor-pointer group"
               >
-                <div className="w-5 h-5 rounded-md bg-black text-[#00E5FF] flex items-center justify-center group-hover:-rotate-12 transition-transform shrink-0">
+                <div className="w-5 h-5 rounded-md bg-black text-zinc-900 dark:text-zinc-100 flex items-center justify-center group-hover:-rotate-12 transition-transform shrink-0">
                   <KeyRound className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
                 <span>UNIRSE CON CÓDIGO</span>
@@ -497,14 +497,14 @@ export default function Tabetalk() {
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("voice")}
-                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#00E5FF] text-black border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-2 border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
                           <Video className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#00E5FF]/20 text-foreground border border-zinc-200/80 dark:border-zinc-800/80">
                           P2P DIRECTO
                         </span>
                       </div>
@@ -515,13 +515,13 @@ export default function Tabetalk() {
                         Transmisión directa punto a punto entre navegadores sin lag ni intermediarios.
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Explorar sala</span>
                       <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                   Click para ver detalles de llamada WebRTC
                 </TooltipContent>
               </Tooltip>
@@ -531,14 +531,14 @@ export default function Tabetalk() {
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("screen")}
-                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#FF2E93] text-white border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-2 border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
                           <MonitorUp className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF2E93]/20 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FF2E93]/20 text-foreground border border-zinc-200/80 dark:border-zinc-800/80">
                           CO-STUDY
                         </span>
                       </div>
@@ -549,13 +549,13 @@ export default function Tabetalk() {
                         Transmite diapositivas, código o apuntes en vivo en calidad HD a tus compañeros.
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Cómo transmitir</span>
                       <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                   Click para ver cómo compartir pantalla
                 </TooltipContent>
               </Tooltip>
@@ -565,14 +565,14 @@ export default function Tabetalk() {
                 <TooltipTrigger asChild>
                   <div
                     onClick={() => setActiveFeatureModal("community")}
-                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[1.5px_1.5px_0px_#000] transition-all cursor-pointer text-left flex flex-col justify-between group"
+                    className="p-3.5 sm:p-4 rounded-xl bg-card border-2 sm:border-3 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-2xs active:translate-x-0 active:translate-y-0 active:shadow-2xs transition-all cursor-pointer text-left flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#FFE600] text-black border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000] group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-2 border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
                           <Users className="w-4 h-4 stroke-[2.5]" />
                         </div>
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FFE600]/30 text-foreground border border-black">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#FFE600]/30 text-foreground border border-zinc-200/80 dark:border-zinc-800/80">
                           CANALES
                         </span>
                       </div>
@@ -583,13 +583,13 @@ export default function Tabetalk() {
                         Canales de texto y voz organizados por materia, apuntes y grupos de estudio.
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
+                    <div className="mt-2.5 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80/10 flex items-center justify-between text-[10px] font-black text-primary uppercase">
                       <span>Unirse con código</span>
                       <span>→</span>
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-black shadow-[3px_3px_0px_#000]">
+                <TooltipContent side="bottom" className="bg-black text-white font-bold border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs">
                   Click para unirse o crear un espacio
                 </TooltipContent>
               </Tooltip>
@@ -599,15 +599,15 @@ export default function Tabetalk() {
 
           {/* Modal Interactivo de Cards Neobrutalistas */}
           <Dialog open={!!activeFeatureModal} onOpenChange={(open) => !open && setActiveFeatureModal(null)}>
-            <DialogContent className="bg-card border-3 border-black text-foreground sm:max-w-md p-0 overflow-hidden shadow-[8px_8px_0px_#000]">
-              <DialogHeader className="p-6 pb-4 bg-muted/30 border-b-2 border-black">
+            <DialogContent className="bg-card border-3 border-zinc-200/80 dark:border-zinc-800/80 text-foreground sm:max-w-md p-0 overflow-hidden shadow-2xs">
+              <DialogHeader className="p-6 pb-4 bg-muted/30 border-b-2 border-zinc-200/80 dark:border-zinc-800/80">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000] ${
+                  <div className={`w-12 h-12 rounded-xl border-2 border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-center shadow-2xs ${
                     activeFeatureModal === "voice" 
-                      ? "bg-[#00E5FF] text-black" 
+                      ? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200" 
                       : activeFeatureModal === "screen" 
-                        ? "bg-[#FF2E93] text-white" 
-                        : "bg-[#FFE600] text-black"
+                        ? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200" 
+                        : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
                   }`}>
                     {activeFeatureModal === "voice" && <Video className="w-6 h-6 stroke-[2.5]" />}
                     {activeFeatureModal === "screen" && <MonitorUp className="w-6 h-6 stroke-[2.5]" />}
@@ -683,7 +683,7 @@ export default function Tabetalk() {
                   </div>
                 )}
 
-                <div className="pt-4 flex items-center justify-end gap-3 border-t-2 border-black/10">
+                <div className="pt-4 flex items-center justify-end gap-3 border-t-2 border-zinc-200/80 dark:border-zinc-800/80/10">
                   <Button
                     variant="ghost"
                     onClick={() => setActiveFeatureModal(null)}
@@ -701,7 +701,7 @@ export default function Tabetalk() {
                         handleOpenCreateModal();
                       }
                     }}
-                    className="bg-[#FFE600] hover:bg-[#FFE600]/90 text-black font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
+                    className="bg-[#FFE600] hover:bg-[#FFE600]/90 text-black font-black uppercase text-xs border-2 border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all"
                   >
                     Crear o Unirse a Servidor
                   </Button>

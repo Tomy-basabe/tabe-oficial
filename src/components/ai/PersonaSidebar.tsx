@@ -43,24 +43,24 @@ export function PersonaSidebar({
         <aside
             aria-label="Panel de personalidades y conversaciones"
             className={cn(
-                "h-full border-foreground bg-card text-foreground flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl md:shadow-none overflow-hidden select-none",
+                "h-full border-zinc-200/80 dark:border-zinc-800/80 bg-[#F7F7F5] dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 flex flex-col fixed md:relative top-0 left-0 shrink-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl md:shadow-none overflow-hidden select-none",
                 isOpen
-                    ? "w-72 max-w-[85vw] translate-x-0 opacity-100 border-r-4 pointer-events-auto"
+                    ? "w-72 max-w-[85vw] translate-x-0 opacity-100 border-r border-zinc-200/80 dark:border-zinc-800/80 pointer-events-auto"
                     : "w-0 max-w-0 -translate-x-full md:translate-x-0 opacity-0 pointer-events-none border-r-0"
             )}
         >
             <div className="w-72 h-full flex flex-col shrink-0">
                 {/* Personas section */}
-                <div className="p-4 border-b-4 border-foreground">
+                <div className="p-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
                     <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-black text-foreground uppercase tracking-wider">
+                        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                             Tus IAs
                         </span>
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="w-8 h-8 text-foreground hover:bg-[#BFFF00] hover:!text-black border-2 border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px]"
+                                className="w-7 h-7 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-2xs"
                                 onClick={onCreatePersona}
                                 title="Crear nueva IA"
                             >
@@ -154,10 +154,10 @@ export function PersonaSidebar({
             </div>
 
             {/* Chat sessions section */}
-            <div className="p-4 border-b-4 border-foreground flex gap-2">
+            <div className="p-4 border-b border-zinc-200/80 dark:border-zinc-800/80 flex gap-2">
                 <Button
                     onClick={onNewChat}
-                    className="flex-1 justify-center gap-2 bg-[#00E5FF] hover:bg-[#00cce6] !text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] font-black uppercase text-xs h-10 rounded-xl"
+                    className="flex-1 justify-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg font-medium text-xs h-9 shadow-2xs transition-colors"
                 >
                     <Plus className="w-4 h-4 !text-black" strokeWidth={3} /> Nuevo Chat
                 </Button>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Layers, Play, Plus, Sparkles, Trash2, MoreVertical, BookOpen, Check, X, Zap, ShoppingBag } from "lucide-react";
+import { Layers, Play, Plus, Trash2, MoreVertical, BookOpen, Check, X, Zap, ShoppingBag, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -28,167 +29,283 @@ interface FlashcardDeckProps {
   index: number;
 }
 
-export function FlashcardDeck({ deck, onStartStudy, onAddCard, onDeleteDeck, onManageCards, onEditDeck, onImportCards, onPublishDeck, index }: FlashcardDeckProps) {
-  const [isHovered, setIsHovered] = useState(false);
+export function FlashcardDeck({
+  deck,
+  onStartStudy,
+  onAddCard,
+  onDeleteDeck,
+  onManageCards,
+  onEditDeck,
+  onImportCards,
+  onPublishDeck,
+  index,
+}: FlashcardDeckProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), Math.min(index * 35, 300));
+    const timer = setTimeout(() => setMounted(true), Math.min(index * 25, 200));
     return () => clearTimeout(timer);
   }, [index]);
 
   return (
     <div
       className={cn(
-        "relative group cursor-pointer transition-all duration-300",
-        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        "relative group cursor-pointer transition-all duration-200 h-full flex flex-col",
+        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
       )}
       onClick={() => onManageCards(deck)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Main card */}
-      <div className={cn(
-        "relative bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6 transition-all duration-300 overflow-hidden",
-        isHovered && "shadow-[6px_6px_0_0_hsl(var(--foreground))] -translate-y-1 bg-secondary"
-      )}>
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className={cn(
-            "w-14 h-14 rounded-xl bg-[#1475e5] border-[3px] border-foreground shadow-[2px_2px_0_0_#000] flex items-center justify-center transition-all duration-300 relative",
-            isHovered && "-translate-y-1 shadow-[4px_4px_0_0_#000]"
-          )}>
-            <Layers className="w-7 h-7 text-white relative z-10" />
-            {isHovered && (
-              <Sparkles className="absolute -top-2 -right-2 w-5 h-5 text-[#ffd21c] animate-pulse" />
-            )}
+      {/* Tarjeta refinada estilo Notion / ChatGPT */}
+      <div className="relative bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700/90 rounded-xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-[border-color,box-shadow,transform] duration-150 flex flex-col justify-between flex-1">
+        <div>
+          {/* Cabecera de la tarjeta */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 transition-colors shadow-2xs">
+              <Layers className="w-4 h-4" />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {deck.subject?.año ? (
+                <span className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 text-[11px] font-mono px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 font-medium">
+                  {deck.subject.año}° Año
+                </span>
+              ) : (
+                <span className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800/80 dark:text-zinc-400 text-[11px] px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 font-medium">
+                  General
+                </span>
+              )}
+
+              {/* Menú contextual de opciones */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Opciones del mazo"
+                    className="p-1 rounded-md text-zinc-400 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-1 shadow-lg w-52 text-xs"
+                >
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onManageCards(deck);
+                    }}
+                    className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <Layers className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                    Gestionar tarjetas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddCard(deck);
+                    }}
+                    className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                    Nueva tarjeta
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditDeck(deck);
+                    }}
+                    className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                    Editar materia
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onImportCards(deck);
+                    }}
+                    className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                    Importar tarjetas
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPublishDeck(deck);
+                    }}
+                    className="cursor-pointer font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5 mr-2" />
+                    Publicar en la Comunidad
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteDeck(deck);
+                    }}
+                    className="cursor-pointer font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    Eliminar mazo
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] px-3 py-1.5 bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl font-black uppercase tracking-widest text-foreground">
-              {deck.subject?.año ? `Año ${deck.subject.año}` : "General"}
-            </span>
+
+          {/* Información principal */}
+          <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 tracking-tight line-clamp-1 mb-0.5" title={deck.nombre}>
+            {deck.nombre}
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mb-3.5" title={deck.subject?.nombre || "Sin materia vinculada"}>
+            {deck.subject?.nombre || "Sin materia vinculada"}
+          </p>
+        </div>
+
+        <div>
+          {/* Contador y mini visualizador de tarjetas apiladas */}
+          <div className="flex items-center justify-between gap-2 mb-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-1 items-center">
+                {[...Array(Math.min(deck.total_cards, 3))].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-3 h-4 rounded-[2px] bg-zinc-200 dark:bg-zinc-700 border border-white dark:border-zinc-800 shadow-2xs"
+                    style={{ transform: `rotate(${(i - 1) * 6}deg)` }}
+                  />
+                ))}
+                {deck.total_cards === 0 && (
+                  <div className="w-3 h-4 rounded-[2px] border border-dashed border-zinc-300 dark:border-zinc-700 bg-transparent" />
+                )}
+              </div>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                {deck.total_cards} {deck.total_cards === 1 ? "tarjeta" : "tarjetas"}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onManageCards(deck);
+              }}
+              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors flex items-center gap-1 font-medium"
+              title="Abrir editor de tarjetas"
+            >
+              <Edit3 className="w-3 h-3" />
+              Editar
+            </button>
+          </div>
+
+          {/* Botones de acción inferiores */}
+          <div className="flex items-center gap-1.5">
+            {/* Botón de estudiar con selector de modo */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  type="button"
+                  disabled={deck.total_cards === 0}
                   onClick={(e) => e.stopPropagation()}
-                  className="p-2 bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-y-0.5 rounded-xl transition-all"
+                  className={cn(
+                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer",
+                    deck.total_cards > 0
+                      ? "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                      : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800/50 dark:text-zinc-600 cursor-not-allowed border border-zinc-200/50 dark:border-zinc-800/50 shadow-none"
+                  )}
                 >
-                  <MoreVertical className="w-4 h-4 text-foreground" />
+                  <Play className="w-3 h-3 fill-current" />
+                  Estudiar
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-1">
+              <DropdownMenuContent
+                align="start"
+                className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-1 shadow-lg w-52 text-xs"
+              >
                 <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onManageCards(deck); }}
-                  className="cursor-pointer font-bold uppercase tracking-wider text-xs focus:bg-background focus:text-foreground rounded-lg p-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartStudy(deck, "all");
+                  }}
+                  className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors flex items-center justify-between"
                 >
-                  <Layers className="w-4 h-4 mr-2" />
-                  Gestionar tarjetas
+                  <span className="flex items-center gap-2">
+                    <Play className="w-3 h-3 text-zinc-500 fill-current" />
+                    Todas las tarjetas
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-400">{deck.total_cards}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onEditDeck(deck); }}
-                  className="cursor-pointer font-bold uppercase tracking-wider text-xs focus:bg-background focus:text-foreground rounded-lg p-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartStudy(deck, "unknown");
+                  }}
+                  className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors flex items-center justify-between"
                 >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Editar materia
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                    No sabidas
+                  </span>
+                  <X className="w-3 h-3 text-rose-500" />
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onImportCards(deck); }}
-                  className="cursor-pointer font-bold uppercase tracking-wider text-xs focus:bg-background focus:text-foreground rounded-lg p-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartStudy(deck, "partial");
+                  }}
+                  className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors flex items-center justify-between"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Importar cartas
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    A medias
+                  </span>
+                  <Zap className="w-3 h-3 text-amber-500" />
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onPublishDeck(deck); }}
-                  className="cursor-pointer font-bold uppercase tracking-wider text-xs text-[#00ffcc] focus:bg-background focus:text-[#00ffcc] rounded-lg p-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartStudy(deck, "known");
+                  }}
+                  className="cursor-pointer font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg px-2.5 py-1.5 transition-colors flex items-center justify-between"
                 >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Publicar en la Comunidad
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onDeleteDeck(deck); }}
-                  className="cursor-pointer font-bold uppercase tracking-wider text-xs text-[#ef4444] focus:bg-background focus:text-[#ef4444] rounded-lg p-3"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar mazo
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Sabidas
+                  </span>
+                  <Check className="w-3 h-3 text-emerald-500" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Botón rápido para agregar tarjeta */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddCard(deck);
+              }}
+              title="Añadir tarjeta"
+              className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+
+            {/* Botón de publicar en comunidad */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPublishDeck(deck);
+              }}
+              title="Publicar en la Comunidad"
+              className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4" />
+            </button>
           </div>
-        </div>
-
-        {/* Content */}
-        <h3 className="font-display font-black uppercase text-xl mb-1 line-clamp-1 truncate">{deck.nombre}</h3>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 line-clamp-1">{deck.subject?.nombre || "Materia general"}</p>
-
-        {/* Card count visualization */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex -space-x-2">
-            {[...Array(Math.min(deck.total_cards, 5))].map((_, i) => (
-              <div
-                key={i}
-                className="w-6 h-8 rounded-md bg-background border-[2px] border-foreground shadow-[1px_1px_0_0_#000]"
-                style={{ transform: `rotate(${(i - 2) * 5}deg)` }}
-              />
-            ))}
-            {deck.total_cards === 0 && (
-              <div className="w-6 h-8 rounded-md bg-secondary border-[2px] border-dashed border-foreground" />
-            )}
-          </div>
-          <span className={cn(
-            "text-xs font-black uppercase tracking-widest transition-colors",
-            isHovered ? "text-foreground" : "text-muted-foreground"
-          )}>
-            {deck.total_cards} {deck.total_cards === 1 ? "tarjeta" : "tarjetas"}
-          </span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                disabled={deck.total_cards === 0}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-[3px] border-foreground font-black uppercase tracking-widest text-[10px] transition-all",
-                  deck.total_cards > 0
-                    ? "bg-[#00ffcc] text-black shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-y-1"
-                    : "bg-secondary text-muted-foreground cursor-not-allowed border-muted-foreground shadow-none"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Play className="w-4 h-4" />
-                ESTUDIAR
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl p-1 w-56">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'all'); }} className="cursor-pointer font-bold uppercase tracking-wider text-xs p-3">
-                <Play className="w-4 h-4 mr-2" /> Normal
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'unknown'); }} className="cursor-pointer font-bold uppercase tracking-wider text-xs p-3 text-[#ef4444] focus:text-[#ef4444]">
-                <X className="w-4 h-4 mr-2" /> No sabidas
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'partial'); }} className="cursor-pointer font-bold uppercase tracking-wider text-xs p-3 text-[#ffd21c] focus:text-[#ffd21c]">
-                <Zap className="w-4 h-4 mr-2" /> A medias
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartStudy(deck, 'known'); }} className="cursor-pointer font-bold uppercase tracking-wider text-xs p-3 text-[#25d06c] focus:text-[#25d06c]">
-                <Check className="w-4 h-4 mr-2" /> Sabidas
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <button
-            onClick={(e) => { e.stopPropagation(); onPublishDeck(deck); }}
-            className="px-3 py-3 bg-[#00ffcc] text-black rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-y-1 transition-all"
-            title="Publicar en la Comunidad"
-          >
-            <ShoppingBag className="w-5 h-5" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onAddCard(deck); }}
-            className="px-3 py-3 bg-background text-foreground rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-y-1 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>

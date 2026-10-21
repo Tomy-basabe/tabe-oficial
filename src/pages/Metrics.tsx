@@ -18,7 +18,6 @@ import { SleepStats } from "@/components/metrics/SleepStats";
 import { CareerAnalytics } from "@/components/metrics/CareerAnalytics";
 import { ManualStudyDialog } from "@/components/metrics/ManualStudyDialog";
 import { DeleteStudyTimeDialog } from "@/components/metrics/DeleteStudyTimeDialog";
-import { Button } from "@/components/ui/button";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
 import { Moon } from "lucide-react";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
@@ -144,7 +143,7 @@ export default function Metrics() {
     };
   }, [fetchData]);
 
-  // Listen to realtime study sessions updates (e.g. from exit-saves during navigation)
+  // Listen to realtime study sessions updates
   useRealtimeSubscription({
     table: "study_sessions",
     filter: user ? `user_id=eq.${user.id}` : undefined,
@@ -161,22 +160,18 @@ export default function Metrics() {
     let newTo = to;
 
     if (label === "Esta semana" || (daysDiff >= 6 && daysDiff <= 8)) {
-      // Navigate by weeks
       const offset = direction === "prev" ? -7 : 7;
       newFrom = addDays(from, offset);
       newTo = addDays(to, offset);
     } else if (label === "Este mes" || label === "Mes anterior" || (daysDiff >= 27 && daysDiff <= 31)) {
-      // Navigate by months
       const offset = direction === "prev" ? -1 : 1;
       newFrom = startOfMonth(addMonths(from, offset));
       newTo = endOfMonth(newFrom);
     } else if (label === "Este año" || daysDiff > 360) {
-      // Navigate by years
       const offset = direction === "prev" ? -1 : 1;
       newFrom = subYears(from, -offset);
       newTo = addYears(to, offset);
     } else {
-      // Default: Shift by the current range duration
       const offset = direction === "prev" ? -daysDiff : daysDiff;
       newFrom = addDays(from, offset);
       newTo = addDays(to, offset);
@@ -197,10 +192,6 @@ export default function Metrics() {
     // Daily view
     if (totalDays <= 7) {
       const allDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
-      
-      // If it's a natural week (Mon-Sun), ensure we show all 7 days even if empty
-      // but only if it's "This Week" or similar
-      const isNaturalWeek = totalDays === 7 && dateRange.from.getDay() === 1;
 
       return allDays.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
@@ -219,7 +210,7 @@ export default function Metrics() {
         };
       });
     } else if (totalDays <= 90) {
-      // Weekly view - aggregate by week
+      // Weekly view
       const weeks: { [key: string]: { hours: number; pomodoros: number; flashcards: number; startDate: Date } } = {};
 
       sessions.forEach(session => {
@@ -320,135 +311,123 @@ export default function Metrics() {
     return "Horas de Estudio por Mes";
   };
 
-  const getSessionTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      pomodoro: "Pomodoro",
-      flashcard: "Flashcards",
-      estudio: "Estudio Libre",
-      apuntes: "Apuntes",
-      biblioteca: "Biblioteca",
-      manual: "Manual",
-    };
-    return labels[type] || type;
-  };
-
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="font-black text-2xl sm:text-3xl lg:text-4xl uppercase tracking-widest text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               Métricas y Rendimiento
             </h1>
-            <p className="text-muted-foreground font-bold mt-1 sm:mt-2 uppercase text-xs sm:text-sm">
-              Analiza tu progreso y optimiza tu estudio
+            <p className="text-zinc-500 dark:text-zinc-400 font-normal text-xs sm:text-sm mt-0.5">
+              Analiza tu progreso y optimiza tus sesiones de estudio
             </p>
           </div>
 
           {/* Date Range Filter & Navigation */}
-          <div className="flex items-center gap-1.5 sm:gap-2 max-w-full overflow-x-auto">
+          <div className="flex items-center gap-1 bg-zinc-100/80 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 w-fit">
             <button
               onClick={() => handleNavigate("prev")}
-              className="bg-card text-foreground border-2 sm:border-4 border-foreground hover:translate-y-[-2px] shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center transition-all rounded-xl shrink-0"
+              className="h-8 w-8 flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-700/70 rounded-lg transition-colors cursor-pointer"
+              title="Período anterior"
             >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <div className="border-2 sm:border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl bg-card font-black uppercase text-foreground flex items-center justify-center min-w-[160px] sm:min-w-[200px]">
-              <DateRangeFilter value={dateRange} onChange={setDateRange} />
-            </div>
+            <DateRangeFilter value={dateRange} onChange={setDateRange} />
 
             <button
               onClick={() => handleNavigate("next")}
-              className="bg-card text-foreground border-2 sm:border-4 border-foreground hover:translate-y-[-2px] shadow-[2px_2px_0_0_hsl(var(--foreground))] sm:shadow-[4px_4px_0_0_hsl(var(--foreground))] h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center transition-all rounded-xl shrink-0"
+              className="h-8 w-8 flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-700/70 rounded-lg transition-colors cursor-pointer"
+              title="Período siguiente"
             >
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex bg-muted border-2 sm:border-4 border-foreground rounded-xl p-1.5 sm:p-2 gap-1.5 sm:gap-2 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-[inset_0_4px_0_0_rgba(0,0,0,0.1)]">
+        {/* Tab Selector Notion / ChatGPT Style */}
+        <div className="flex bg-zinc-100/80 dark:bg-zinc-850 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 gap-1 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-2xs">
           <button
             onClick={() => setActiveTab("general")}
             className={cn(
-              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
               activeTab === "general"
-                ? "bg-[#BFFF00] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
             )}
           >
-            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-zinc-500 dark:text-zinc-400" />
             General
           </button>
           <button
             onClick={() => setActiveTab("carrera")}
             className={cn(
-              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
               activeTab === "carrera"
-                ? "bg-[#FFD700] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
             )}
           >
-            <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            <GraduationCap className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
             Carrera & Predicción
           </button>
           <button
             onClick={() => setActiveTab("flashcards")}
             className={cn(
-              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
               activeTab === "flashcards"
-                ? "bg-[#FF9B71] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
             )}
           >
-            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            <Layers className="w-3.5 h-3.5 mr-1.5 text-sky-500" />
             Flashcards
           </button>
           <button
             onClick={() => setActiveTab("rutinas")}
             className={cn(
-              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
               activeTab === "rutinas"
-                ? "bg-[#00E5FF] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
             )}
           >
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            <Calendar className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
             Rutinas
           </button>
           <button
             onClick={() => setActiveTab("sueno")}
             className={cn(
-              "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-black uppercase transition-all whitespace-nowrap flex items-center shrink-0",
+              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
               activeTab === "sueno"
-                ? "bg-[#C688EB] text-black border-2 sm:border-4 border-foreground shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.1)] scale-[0.98]"
-                : "bg-card text-muted-foreground border-2 border-transparent hover:text-foreground hover:bg-card/80"
+                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
             )}
           >
-            <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-            Sueño
+            <Moon className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+            Descanso
           </button>
         </div>
       </div>
 
       {activeTab === "general" ? (
         <>
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center justify-end gap-2 -mt-2 mb-2">
+          {/* Action Buttons Clean Style */}
+          <div className="flex flex-wrap items-center justify-end gap-2 -mt-2">
             <button
               onClick={() => setActiveTab("carrera")}
-              className="bg-[#FFD700] text-black font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
+              className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-zinc-700/80 font-medium text-xs px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
-              <GraduationCap className="w-4 h-4" strokeWidth={2.5} />
-              Predictor de Graduación 🎓
+              <GraduationCap className="w-4 h-4 text-amber-500" />
+              Predictor de Graduación
             </button>
             <button
               onClick={() => setShowManualDialog(true)}
-              className="bg-[#BFFF00] text-black font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-xs px-3.5 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4" strokeWidth={3} />
+              <Plus className="w-3.5 h-3.5" />
               Cargar Tiempo Manual
             </button>
             <button
@@ -457,110 +436,143 @@ export default function Metrics() {
                 setSelectedDeleteSubjectId("all");
                 setShowDeleteDialog(true);
               }}
-              className="bg-red-500 text-white font-black uppercase text-xs px-4 py-2 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2 active:translate-x-[2px] active:translate-y-[2px]"
+              className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 border border-zinc-200/80 dark:border-zinc-800 hover:border-red-200 dark:hover:border-red-900/40 font-medium text-xs px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" strokeWidth={2.5} />
-              Eliminar Tiempo
+              <Trash2 className="w-3.5 h-3.5" />
+              Ajustar Tiempo
             </button>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats Bento Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 tour-metrics-overview">
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#00E5FF] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform">
-                  <Clock className="w-5 h-5 text-black" strokeWidth={2.5} />
+            <div className="neo-bento-card p-5 group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Horas totales</span>
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  <Clock className="w-4 h-4 text-sky-500" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-foreground tracking-tighter">{formatHours(totalHours)}</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Horas totales</p>
+              <p className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {formatHours(totalHours)}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-1 font-normal">En el período seleccionado</p>
             </div>
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#FFD700] border-2 border-foreground rounded-lg flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform">
-                  <Timer className="w-5 h-5 text-black" strokeWidth={2.5} />
+
+            <div className="neo-bento-card p-5 group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Pomodoros</span>
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  <Timer className="w-4 h-4 text-amber-500" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-foreground tracking-tighter">{totalPomodoros}</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Pomodoros</p>
+              <p className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {totalPomodoros}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-1 font-normal">Bloques enfocados</p>
             </div>
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#BFFF00] border-2 border-foreground rounded-lg flex items-center justify-center -rotate-6 group-hover:rotate-0 transition-transform">
-                  <BookOpen className="w-5 h-5 text-black" strokeWidth={2.5} />
+
+            <div className="neo-bento-card p-5 group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Materias</span>
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  <BookOpen className="w-4 h-4 text-emerald-500" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-foreground tracking-tighter">{studiedSubjects}</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Materias</p>
+              <p className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {studiedSubjects}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-1 font-normal">Con actividad registrada</p>
             </div>
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#FF9B71] border-2 border-foreground rounded-lg flex items-center justify-center rotate-6 group-hover:rotate-0 transition-transform">
-                  <Layers className="w-5 h-5 text-black" strokeWidth={2.5} />
+
+            <div className="neo-bento-card p-5 group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Flashcards</span>
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                  <Layers className="w-4 h-4 text-orange-500" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-foreground tracking-tighter">{totalFlashcardSessions}</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">Flashcards</p>
+              <p className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {totalFlashcardSessions}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-1 font-normal">Sesiones de repaso</p>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Weekly Chart */}
-            <div className="lg:col-span-2 bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-black text-xl uppercase tracking-wider text-foreground">{getChartTitle()}</h2>
-                <div className="w-8 h-8 bg-[#00E5FF] border-2 border-foreground rounded-lg flex items-center justify-center rotate-3">
-                  <BarChart3 className="w-4 h-4 text-black" strokeWidth={3} />
+            <div className="lg:col-span-2 neo-bento-card p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {getChartTitle()}
+                    </h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Haz clic en cualquier barra para ajustar o editar ese día
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-200/60 dark:border-zinc-700/60">
+                    <BarChart3 className="w-4 h-4" />
+                  </div>
                 </div>
+
+                {loading && sessions.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-zinc-900 dark:border-zinc-100 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="flex items-end justify-between gap-2 h-52 pt-6 overflow-x-auto pb-2 px-2 border-b border-zinc-200/80 dark:border-zinc-800">
+                    {chartData.map((item, idx) => (
+                      <div
+                        key={`${item.date}-${idx}`}
+                        onClick={() => {
+                          setSelectedDeleteDate(item.date);
+                          setSelectedDeleteSubjectId("all");
+                          setShowDeleteDialog(true);
+                        }}
+                        className="flex-1 min-w-[32px] max-w-[56px] flex flex-col items-center justify-end gap-2 h-full cursor-pointer group/col"
+                        title="Click para ajustar o eliminar tiempo de este día"
+                      >
+                        <div
+                          className={cn(
+                            "w-full transition-all duration-200 relative rounded-t-md group-hover/col:opacity-95 active:scale-95",
+                            item.hours > 0 
+                              ? "bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white" 
+                              : "bg-zinc-100 dark:bg-zinc-800/60 hover:bg-zinc-200 dark:hover:bg-zinc-700/60"
+                          )}
+                          style={{
+                            height: `${Math.max((item.hours / maxHours) * 78, item.hours > 0 ? 10 : 4)}%`,
+                          }}
+                        >
+                          {item.hours > 0 && (
+                            <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover/col:opacity-100 transition-all duration-150 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap z-30 pointer-events-none shadow-lg border border-white/10 dark:border-zinc-300 flex flex-col items-center gap-0.5">
+                              <span className="font-semibold text-xs">{formatHours(item.hours)}</span>
+                              {(item.pomodoros > 0 || item.flashcards > 0) && (
+                                <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-normal">
+                                  {item.pomodoros > 0 ? `${item.pomodoros} pom` : ""}
+                                  {item.pomodoros > 0 && item.flashcards > 0 ? " · " : ""}
+                                  {item.flashcards > 0 ? `${item.flashcards} flash` : ""}
+                                </span>
+                              )}
+                              <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-normal">Clic para ajustar</span>
+                              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 dark:bg-zinc-100 rotate-45"></div>
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover/col:text-zinc-900 dark:group-hover/col:text-zinc-100 transition-colors">
+                          {item.label}
+                        </span>
+                        <span className="text-[10px] text-zinc-400">{item.sublabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {loading && sessions.length === 0 ? (
-                <div className="h-48 flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-foreground border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : (
-                <div className="flex items-end justify-between gap-2 h-52 pt-8 overflow-x-auto pb-2 px-2 border-b-4 border-foreground">
-                  {chartData.map((item, idx) => (
-                    <div
-                      key={`${item.date}-${idx}`}
-                      onClick={() => {
-                        setSelectedDeleteDate(item.date);
-                        setSelectedDeleteSubjectId("all");
-                        setShowDeleteDialog(true);
-                      }}
-                      className="flex-1 min-w-[32px] max-w-[60px] flex flex-col items-center justify-end gap-2 h-full cursor-pointer group/col"
-                      title="Click para ajustar o eliminar tiempo de este día"
-                    >
-                      <div
-                        className={cn(
-                          "w-full transition-all duration-300 relative rounded-t-sm group-hover/col:scale-105 active:scale-95",
-                          item.hours > 0 
-                            ? "bg-[#BFFF00] hover:bg-[#a6e600] border-2 border-foreground border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" 
-                            : "bg-muted border-2 border-transparent hover:border-foreground/30"
-                        )}
-                        style={{
-                          height: `${Math.max((item.hours / maxHours) * 72, item.hours > 0 ? 8 : 4)}%`,
-                        }}
-                      >
-                        {item.hours > 0 && (
-                          <div className="absolute -top-11 left-1/2 -translate-x-1/2 opacity-0 group-hover/col:opacity-100 transition-all duration-150 bg-foreground text-background px-2.5 py-1 rounded-lg text-xs font-black whitespace-nowrap z-30 pointer-events-none shadow-[2px_2px_0_0_rgba(0,0,0,0.4)] border border-background/20 flex flex-col items-center">
-                            <span>{formatHours(item.hours)}</span>
-                            <span className="text-[9px] font-bold text-red-400">Click p/ editar</span>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45"></div>
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-foreground group-hover/col:text-[#BFFF00] transition-colors">{item.label}</span>
-                      <span className="text-[10px] font-bold text-muted-foreground">{item.sublabel}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-6 pt-6 border-t-4 border-foreground flex items-center justify-between">
+              <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Promedio diario</p>
-                  <p className="text-4xl font-black text-foreground">
+                  <p className="text-xs text-zinc-500 font-medium">Promedio diario</p>
+                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                     {formatHours(totalHours / totalDays)}
                   </p>
                 </div>
@@ -571,7 +583,7 @@ export default function Metrics() {
                     setSelectedDeleteSubjectId("all");
                     setShowDeleteDialog(true);
                   }}
-                  className="text-xs font-black uppercase text-muted-foreground hover:text-red-500 border border-border hover:border-red-500 px-3 py-1.5 transition-all flex items-center gap-1.5"
+                  className="text-xs font-medium text-zinc-500 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700/80 hover:border-red-200 dark:hover:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Ajustar horas
@@ -580,88 +592,101 @@ export default function Metrics() {
             </div>
 
             {/* Subject Progress */}
-            <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-black uppercase text-lg text-foreground">Por Materia</h3>
-                <span className="text-[10px] font-black uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
-                  Click p/ eliminar
-                </span>
-              </div>
-
-              {loading && subjects.length === 0 ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-muted border-2 border-foreground rounded w-3/4 mb-2" />
-                      <div className="h-4 bg-muted border-2 border-foreground rounded-full" />
-                    </div>
-                  ))}
+            <div className="neo-bento-card p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
+                    Por Materia
+                  </h3>
+                  <span className="text-[10px] font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
+                    Clic p/ ajustar
+                  </span>
                 </div>
-              ) : subjectProgress.length === 0 ? (
-                <p className="text-muted-foreground font-bold uppercase text-sm text-center py-8">
-                  No hay datos de estudio aún
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {subjectProgress.map((subject, i) => {
-                    const maxSeconds = subjectProgress[0]?.total_seconds || 1;
-                    const progress = (subject.total_seconds / maxSeconds) * 100;
-                    const colors = ["#00E5FF", "#BFFF00", "#C688EB", "#FFD700", "#FF5C5C"];
-                    const color = colors[i % colors.length];
 
-                    return (
-                      <div
-                        key={subject.subject_id}
-                        onClick={() => {
-                          setSelectedDeleteDate(toLocalDateStr(new Date()));
-                          setSelectedDeleteSubjectId(subject.subject_id === "unassigned" ? "none" : subject.subject_id);
-                          setShowDeleteDialog(true);
-                        }}
-                        className="p-2 -mx-2 rounded-lg hover:bg-muted/80 border border-transparent hover:border-foreground/20 transition-all cursor-pointer group/sub"
-                        title={`Click para eliminar tiempo de ${subject.nombre}`}
-                      >
-                        <div className="flex items-center justify-between text-sm mb-1.5">
-                          <span className="font-bold text-foreground truncate flex items-center gap-1.5">
-                            <span>{subject.nombre}</span>
-                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/sub:opacity-100 hover:text-red-500 transition-opacity" />
-                          </span>
-                          <span className="font-black text-foreground">
-                            {formatHours(subject.total_seconds / 3600)}
-                          </span>
-                        </div>
-                        <div className="h-3.5 border-2 border-foreground bg-muted rounded-full overflow-hidden shadow-[inset_2px_2px_0_0_rgba(0,0,0,0.1)]">
-                          <div
-                            className="h-full border-r-2 border-foreground transition-all duration-500"
-                            style={{
-                              width: `${progress}%`,
-                              background: color,
-                            }}
-                          />
-                        </div>
+                {loading && subjects.length === 0 ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4 mb-2" />
+                        <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full" />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : subjectProgress.length === 0 ? (
+                  <p className="text-zinc-400 font-normal text-xs text-center py-10">
+                    No hay sesiones registradas en este período
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {subjectProgress.map((subject, i) => {
+                      const maxSeconds = subjectProgress[0]?.total_seconds || 1;
+                      const progress = (subject.total_seconds / maxSeconds) * 100;
+                      const barColors = [
+                        "bg-zinc-900 dark:bg-zinc-100",
+                        "bg-sky-500",
+                        "bg-amber-500",
+                        "bg-emerald-500",
+                        "bg-indigo-500"
+                      ];
+                      const colorClass = barColors[i % barColors.length];
+
+                      return (
+                        <div
+                          key={subject.subject_id}
+                          onClick={() => {
+                            setSelectedDeleteDate(toLocalDateStr(new Date()));
+                            setSelectedDeleteSubjectId(subject.subject_id === "unassigned" ? "none" : subject.subject_id);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="p-2 -mx-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/60 border border-transparent hover:border-zinc-200/60 dark:hover:border-zinc-700/60 transition-colors cursor-pointer group/sub"
+                          title={`Click para eliminar tiempo de ${subject.nombre}`}
+                        >
+                          <div className="flex items-center justify-between text-xs mb-1.5">
+                            <span className="font-medium text-zinc-800 dark:text-zinc-200 truncate flex items-center gap-1.5">
+                              <span>{subject.nombre}</span>
+                              <Trash2 className="w-3 h-3 text-zinc-400 opacity-0 group-hover/sub:opacity-100 hover:text-red-500 transition-opacity" />
+                            </span>
+                            <div className="flex items-center gap-2 ml-2 shrink-0">
+                              <span className="text-[10px] text-zinc-400">
+                                {subject.sessions_count} {subject.sessions_count === 1 ? "sesión" : "sesiones"}
+                              </span>
+                              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                {formatHours(subject.total_seconds / 3600)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full transition-all duration-500", colorClass)}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Session Type Breakdown */}
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-            <h3 className="font-black uppercase text-xl mb-4 text-foreground">Tipos de Sesión</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="neo-bento-card p-6">
+            <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100 mb-4">
+              Tipos de Sesión
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {(() => {
-                const knownTypes: Record<string, { label: string; icon: any; color: string }> = {
-                  pomodoro: { label: "Pomodoro", icon: Timer, color: "#FFD700" },
-                  flashcard: { label: "Flashcards", icon: Layers, color: "#00E5FF" },
-                  cuestionario: { label: "Cuestionarios & Quizzes", icon: BookOpen, color: "#FF5C5C" },
-                  apuntes: { label: "Apuntes & Documentos", icon: BookOpen, color: "#BFFF00" },
-                  biblioteca: { label: "Biblioteca", icon: Library, color: "#3B82F6" },
-                  manual: { label: "Tiempo Manual", icon: Clock, color: "#00E5FF" },
-                  estudio: { label: "Estudio Libre & Focus", icon: BookOpen, color: "#FF9B71" },
+                const knownTypes: Record<string, { label: string; icon: any; iconColor: string }> = {
+                  pomodoro: { label: "Pomodoro", icon: Timer, iconColor: "text-amber-500" },
+                  flashcard: { label: "Flashcards", icon: Layers, iconColor: "text-sky-500" },
+                  cuestionario: { label: "Cuestionarios & Quizzes", icon: BookOpen, iconColor: "text-rose-500" },
+                  apuntes: { label: "Apuntes & Docs", icon: BookOpen, iconColor: "text-emerald-500" },
+                  biblioteca: { label: "Biblioteca", icon: Library, iconColor: "text-blue-500" },
+                  manual: { label: "Tiempo Manual", icon: Clock, iconColor: "text-zinc-500" },
+                  estudio: { label: "Estudio Libre", icon: BookOpen, iconColor: "text-orange-500" },
                 };
 
-                // Normalización de tipos equivalentes
                 const canonicalType = (t: string) => {
                   const normalized = (t || "").toLowerCase().trim();
                   if (normalized === "quiz") return "cuestionario";
@@ -680,7 +705,6 @@ export default function Metrics() {
                   typeCounts[key].seconds += s.duracion_segundos;
                 });
 
-                // Renderizar los tipos conocidos que tengan actividad + los predeterminados
                 const renderedKeys = Array.from(new Set([...Object.keys(knownTypes), ...Object.keys(typeCounts)]))
                   .filter(k => k !== "videocall");
 
@@ -688,27 +712,33 @@ export default function Metrics() {
                   const meta = knownTypes[key] || {
                     label: key.charAt(0).toUpperCase() + key.slice(1),
                     icon: Clock,
-                    color: "#00E5FF",
+                    iconColor: "text-zinc-400",
                   };
                   const data = typeCounts[key] || { count: 0, seconds: 0 };
                   const Icon = meta.icon;
 
                   return (
-                    <div key={key} className="p-4 rounded-xl bg-card border-4 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all group">
-                      <div className="w-10 h-10 border-2 border-foreground rounded-lg flex items-center justify-center mb-3 rotate-3 group-hover:rotate-0 transition-transform" style={{ backgroundColor: meta.color }}>
-                        <Icon className="w-5 h-5 text-black" strokeWidth={2.5} />
+                    <div
+                      key={key}
+                      className="p-4 rounded-xl bg-zinc-50/70 dark:bg-zinc-850/40 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+                          <Icon className={cn("w-4 h-4", meta.iconColor)} />
+                        </div>
+                        <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md">
+                          {formatHours(data.seconds / 3600)}
+                        </span>
                       </div>
-                      <p className="text-2xl font-black text-foreground">{data.count}</p>
-                      <p className="text-xs font-bold text-muted-foreground uppercase truncate">{meta.label}</p>
-                      <p className="text-xs font-bold text-foreground mt-1 bg-muted border-2 border-foreground px-2 py-0.5 rounded-full inline-block">
-                        {formatHours(data.seconds / 3600)} total
-                      </p>
+                      <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">{data.count}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">{meta.label}</p>
                     </div>
                   );
                 });
               })()}
             </div>
           </div>
+
           <ManualStudyDialog
             open={showManualDialog}
             onOpenChange={setShowManualDialog}

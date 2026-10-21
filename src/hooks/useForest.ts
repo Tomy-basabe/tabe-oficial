@@ -484,7 +484,7 @@ export function useForest() {
           .eq("id", plant.id);
 
         if (!error) {
-          toast.error("¡Tu planta ha muerto! 😢 No estudiaste durante una semana.");
+          toast.error("Tu planta se ha marchitado debido a 7 días de inactividad.");
           setCurrentPlant(null);
           setPlants(prev => prev.map(p => p.id === plant.id ? { ...p, is_alive: false, died_at: diedAt } : p));
         }
@@ -543,9 +543,9 @@ export function useForest() {
           if (!updateError) {
             lastLocalUpdateRef.current = Date.now();
             if (isCompleted) {
-              toast.success("🎉 ¡Tu árbol ha crecido completamente! Puedes plantar uno nuevo.");
+              toast.success("Tu árbol ha alcanzado el 100% de crecimiento. Puedes plantar uno nuevo.");
             } else if (delta >= 1) {
-              toast.success(`🌱 ¡Tu planta creció ${delta}% (al ${newGrowthPercentage}%) con tu tiempo de estudio!`);
+              toast.success(`Tu planta creció +${delta}% (al ${newGrowthPercentage}%) con tu tiempo de estudio.`);
             }
             const updatedPlant = { ...plant, ...updateData } as Plant;
             setCurrentPlant(isCompleted ? null : updatedPlant);
@@ -612,7 +612,7 @@ export function useForest() {
         _cachedCurrentPlant = newPlant;
         setPlants(updated);
         setCurrentPlant(newPlant);
-        toast.success("🌱 ¡Nueva semilla plantada! Estudia para hacerla crecer.");
+        toast.success("Nueva semilla plantada en la isla. Comienza a estudiar para hacerla florecer.");
         return;
       }
 
@@ -631,7 +631,7 @@ export function useForest() {
 
       if (error) throw error;
 
-      toast.success("🌱 ¡Nueva semilla plantada! Estudia para hacerla crecer.");
+      toast.success("Nueva semilla plantada en la isla. Comienza a estudiar para hacerla florecer.");
       fetchPlants();
     } catch (error) {
       console.error("Error planting tree:", error);
@@ -697,7 +697,7 @@ export function useForest() {
         setCurrentPlant(deadCurrent);
       }
       setPlants(updated);
-      toast.error("Has abandonado la planta. Se ha marchitado en tu jardín 🥀");
+      toast.error("Has abandonado la planta. Ha sido enviada al registro de inactividad.");
       return;
     }
 
@@ -718,7 +718,7 @@ export function useForest() {
         _cachedCurrentPlant = deadCurrent;
         setCurrentPlant(deadCurrent);
       }
-      toast.error("Has abandonado la planta. Se ha marchitado en tu jardín 🥀");
+      toast.error("Has abandonado la planta. Ha sido enviada al registro de inactividad.");
       fetchPlants();
     } catch (error) {
       console.error("Error abandoning plant:", error);
@@ -769,10 +769,10 @@ export function useForest() {
           daysSinceLastStudy: 0,
         }));
         if (isCompleted) {
-          toast.success(`🎉 ¡Tu ${plantTypeInfo.name} ha alcanzado su máximo esplendor! Se ha sumado a tu Bosque.`);
+          toast.success(`Tu ${plantTypeInfo.name} ha alcanzado su crecimiento máximo y floreció en tu bosque.`);
         } else {
           toast.success(
-            `🌱 +${growthToAdd}% (${plantTypeInfo.difficultyLabel}) con ${safeMinutes} min de estudio${hasFertilizer ? " (¡Bonus x2 Fertilizante!)" : ""}`
+            `+${growthToAdd}% (${plantTypeInfo.difficultyLabel}) con ${safeMinutes} min de estudio${hasFertilizer ? " (Bonus x2 de Fertilizante activo)" : ""}`
           );
         }
         return;
@@ -833,10 +833,10 @@ export function useForest() {
       setPlants(prev => prev.map(p => p.id === currentPlant.id ? updated : p));
 
       if (isCompleted) {
-        toast.success(`🎉 ¡Tu ${plantTypeInfo.name} ha crecido completamente y se sumó a tu bosque!`);
+        toast.success(`Tu ${plantTypeInfo.name} ha alcanzado su crecimiento máximo y floreció en tu bosque.`);
       } else {
         toast.success(
-          `🌱 +${growthToAdd}% (${plantTypeInfo.difficultyLabel}) con ${safeMinutes} min de estudio${hasFertilizer ? " (¡Bonus x2 Fertilizante!)" : ""}`
+          `+${growthToAdd}% (${plantTypeInfo.difficultyLabel}) con ${safeMinutes} min de estudio${hasFertilizer ? " (Bonus x2 de Fertilizante activo)" : ""}`
         );
       }
 

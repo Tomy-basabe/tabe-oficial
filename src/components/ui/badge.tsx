@@ -4,14 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-sm border-[3px] border-foreground px-2.5 py-0.5 text-xs font-black uppercase tracking-wider transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-1 select-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80 shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/80 shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
-        outline: "text-foreground bg-background shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
+        default: "border-transparent bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs",
+        secondary: "border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+        destructive: "border-transparent bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+        outline: "border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 bg-transparent",
       },
     },
     defaultVariants: {

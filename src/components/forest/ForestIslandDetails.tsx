@@ -49,7 +49,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
         <div className="relative w-full h-full flex items-start justify-between px-2 sm:px-6">
           {/* Gota de queso izquierda grande */}
           <div className="relative anim-cheese-drip-1 -mt-1">
-            <svg width="60" height="65" viewBox="0 0 60 65" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="60" height="65" viewBox="0 0 60 65" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M6 0 C6 22 14 34 26 34 C38 34 42 50 32 58 C22 66 16 54 16 42 C16 30 8 18 6 0 Z"
                 fill="#FBBF24"
@@ -68,7 +68,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Salsa de tomate y queso derretido en el primer tercio */}
           <div className="relative anim-cheese-drip-2 -mt-1 hidden xs:block">
-            <svg width="50" height="52" viewBox="0 0 50 52" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="50" height="52" viewBox="0 0 50 52" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M4 0 C4 18 12 26 22 26 C32 26 38 38 32 46 C26 52 20 42 20 30 C20 16 10 10 4 0 Z"
                 fill="#EF4444"
@@ -87,7 +87,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Estalactita central masiva de mozzarella elástica */}
           <div className="relative anim-cheese-drip-3 -mt-1">
-            <svg width="78" height="74" viewBox="0 0 78 74" fill="none" className="overflow-visible drop-shadow-[4px_4px_0_#000]">
+            <svg width="78" height="74" viewBox="0 0 78 74" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M6 0 C8 28 22 38 38 38 C54 38 60 56 50 66 C40 75 30 64 30 48 C30 32 16 22 6 0 Z"
                 fill="#F59E0B"
@@ -109,7 +109,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Rodaja de Pepperoni asomando doblada en el borde */}
           <div className="relative -mt-3 -rotate-12 select-none">
-            <div className="w-10 h-10 rounded-full bg-[#B91C1C] border-3 border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center relative overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-[#B91C1C] border-2 border-stone-800 shadow-sm flex items-center justify-center relative overflow-hidden">
               <div className="w-2 h-2 rounded-full bg-[#FCA5A5] absolute top-2 left-2 border border-black/40" />
               <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] absolute bottom-2 right-2 border border-black/40" />
               <div className="w-2 h-2 rounded-full bg-[#7F1D1D] absolute top-4 right-2" />
@@ -119,7 +119,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Gota de queso derecha con queso estirado */}
           <div className="relative anim-cheese-drip-1 -mt-1">
-            <svg width="55" height="60" viewBox="0 0 55 60" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="55" height="60" viewBox="0 0 55 60" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M44 0 C44 18 36 28 26 28 C16 28 12 42 20 50 C26 56 34 50 34 36 C34 22 42 14 44 0 Z"
                 fill="#FBBF24"
@@ -138,7 +138,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
         <div className="relative w-full h-full flex items-start justify-between px-3 sm:px-10">
           {/* Raíz leñosa izquierda */}
           <div className="relative anim-vine-sway-1 -mt-1">
-            <svg width="60" height="65" viewBox="0 0 60 65" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="60" height="65" viewBox="0 0 60 65" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M10 0 C14 18 24 24 24 38 C24 50 36 56 34 62 C28 60 20 48 20 36 C20 24 8 16 10 0 Z"
                 fill="#78350F"
@@ -153,7 +153,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Liana verde con hojitas */}
           <div className="relative anim-vine-sway-2 -mt-1 hidden xs:block">
-            <svg width="48" height="66" viewBox="0 0 48 66" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="48" height="66" viewBox="0 0 48 66" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M14 0 C18 18 10 30 20 44 C26 54 22 62 22 66"
                 stroke="#4D7C0F"
@@ -169,7 +169,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Peñasco de tierra suspendido flotante */}
           <div className="relative anim-cosmic-crystal mt-3">
-            <div className="w-9 h-7 rounded-md bg-[#78350F] border-2 border-black shadow-[3px_3px_0_0_#000] flex flex-col items-center">
+            <div className="w-9 h-7 rounded-md bg-[#78350F] border-2 border-black shadow-sm flex flex-col items-center">
               <div className="w-full h-2.5 bg-[#65A30D] rounded-t-sm border-b-2 border-black" />
               <div className="w-3 h-1.5 bg-black/40 mt-0.5 rounded-full" />
             </div>
@@ -177,7 +177,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Raíz grande derecha */}
           <div className="relative anim-vine-sway-1 -mt-1">
-            <svg width="65" height="68" viewBox="0 0 65 68" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="65" height="68" viewBox="0 0 65 68" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M48 0 C44 20 32 30 32 44 C32 56 22 62 24 68 C30 64 40 52 40 38 C40 26 50 18 48 0 Z"
                 fill="#78350F"
@@ -216,7 +216,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Bloque de píxel retro flotante (Cubo de gema) */}
           <div className="relative anim-cosmic-crystal mt-3 hidden xs:flex flex-col items-center">
-            <div className="w-7 h-7 bg-[#A855F7] border-3 border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center">
+            <div className="w-7 h-7 bg-[#A855F7] border-2 border-stone-800 shadow-sm flex items-center justify-center">
               <div className="w-3 h-3 bg-[#00E5FF] border border-black" />
             </div>
           </div>
@@ -242,7 +242,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Cubo amarillo retro 16-bit flotante */}
           <div className="relative anim-cosmic-crystal mt-4 select-none">
-            <div className="w-6 h-6 bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center font-black text-xs text-black">
+            <div className="w-6 h-6 bg-[#FFE600] border-2 border-black shadow-sm flex items-center justify-center font-black text-xs text-black">
               ?
             </div>
           </div>
@@ -254,7 +254,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
         <div className="relative w-full h-full flex items-start justify-between px-4 sm:px-12">
           {/* Cinta marcapáginas de terciopelo carmesí larga */}
           <div className="relative anim-vine-sway-1 -mt-1">
-            <div className="w-6 h-14 bg-[#991B1B] border-2 border-black shadow-[3px_3px_0_0_#000] flex flex-col justify-between items-center relative">
+            <div className="w-6 h-14 bg-[#991B1B] border-2 border-black shadow-sm flex flex-col justify-between items-center relative">
               <div className="w-full h-1.5 bg-[#F59E0B] border-b border-black" />
               {/* Terminación en V recortada */}
               <div className="absolute -bottom-3 inset-x-0 h-3 flex justify-center">
@@ -265,7 +265,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Pergamino enrollado colgando */}
           <div className="relative anim-vine-sway-2 -mt-1 hidden xs:block">
-            <svg width="48" height="55" viewBox="0 0 48 55" fill="none" className="overflow-visible drop-shadow-[3px_3px_0_#000]">
+            <svg width="48" height="55" viewBox="0 0 48 55" fill="none" className="overflow-visible drop-shadow-sm">
               <path
                 d="M8 0 C8 18 16 32 22 38 C28 44 36 46 36 52 C30 52 24 46 18 42 C12 34 6 18 6 0 Z"
                 fill="#FEF3C7"
@@ -280,7 +280,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Hoja de apunte suspendida con un 10 */}
           <div className="relative anim-cosmic-crystal mt-3 select-none">
-            <div className="w-8 h-9 bg-white border-2 border-black rounded-sm shadow-[3px_3px_0_0_#000] flex flex-col items-center justify-center p-1 -rotate-6">
+            <div className="w-8 h-9 bg-white border-2 border-black rounded-sm shadow-sm flex flex-col items-center justify-center p-1 -rotate-6">
               <span className="text-[9px] font-black text-rose-600 leading-none">10</span>
               <div className="w-4.5 h-0.5 bg-slate-300 mt-1.5" />
               <div className="w-3 h-0.5 bg-slate-300 mt-1" />
@@ -289,7 +289,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Cinta dorada de biblioteca */}
           <div className="relative anim-vine-sway-1 -mt-1">
-            <div className="w-5 h-12 bg-[#F59E0B] border-2 border-black shadow-[2px_2px_0_0_#000] flex flex-col justify-end items-center relative">
+            <div className="w-5 h-12 bg-[#F59E0B] border-2 border-black shadow-sm flex flex-col justify-end items-center relative">
               <div className="w-3 h-3 rounded-full bg-[#B45309] border border-black mb-1.5" />
             </div>
           </div>
@@ -301,7 +301,7 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
         <div className="relative w-full h-full flex items-start justify-between px-4 sm:px-12">
           {/* Meteorito izquierdo con cráteres */}
           <div className="relative anim-cosmic-crystal mt-1">
-            <div className="w-10 h-8 rounded-lg bg-[#334155] border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center relative rotate-12">
+            <div className="w-10 h-8 rounded-lg bg-[#334155] border-2 border-black shadow-sm flex items-center justify-center relative rotate-12">
               <div className="w-2.5 h-2.5 rounded-full bg-black/40 absolute top-1.5 left-1.5" />
               <div className="w-2 h-2 rounded-full bg-black/40 absolute bottom-1.5 right-2.5" />
             </div>
@@ -316,14 +316,14 @@ export const IslandUnderhang: React.FC<IslandDetailsProps> = ({
 
           {/* Fragmento lunar con cristal cian */}
           <div className="relative anim-cosmic-crystal mt-1">
-            <div className="w-8 h-8 rounded-md bg-[#1E293B] border-2 border-black shadow-[3px_3px_0_0_#000] flex items-center justify-center relative -rotate-6">
+            <div className="w-8 h-8 rounded-md bg-[#1E293B] border-2 border-black shadow-sm flex items-center justify-center relative -rotate-6">
               <div className="w-3 h-3 bg-[#38BDF8] border border-black rotate-45 shadow-[0_0_8px_#38BDF8]" />
             </div>
           </div>
 
           {/* Polvo estelar / Asteroide derecho */}
           <div className="relative anim-cosmic-crystal mt-4 select-none">
-            <div className="w-5 h-5 rounded-full bg-[#64748B] border-2 border-black shadow-[2px_2px_0_0_#000]" />
+            <div className="w-5 h-5 rounded-full bg-[#64748B] border-2 border-black shadow-sm" />
           </div>
         </div>
       )}
@@ -344,20 +344,20 @@ export const IslandSurfaceDetails: React.FC<IslandDetailsProps> = ({
       {islandId === "pizza" && (
         <>
           {/* Pepperoni 1 (Arriba izquierda) */}
-          <div className="absolute top-5 left-12 w-9 h-9 rounded-full bg-[#B91C1C] border-2 border-black shadow-[2px_2px_0_0_#000] rotate-6 hidden sm:flex items-center justify-center">
+          <div className="absolute top-5 left-12 w-9 h-9 rounded-full bg-[#B91C1C] border-2 border-black shadow-sm rotate-6 hidden sm:flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-[#FCA5A5] absolute top-2 left-2 border border-black/30" />
             <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] absolute bottom-2 right-2 border border-black/30" />
             <div className="w-6 h-2 rounded-full border-t border-white/50 absolute top-1" />
           </div>
 
           {/* Pepperoni 2 (Abajo derecha) */}
-          <div className="absolute bottom-6 right-16 w-8 h-8 rounded-full bg-[#B91C1C] border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-12 hidden md:flex items-center justify-center">
+          <div className="absolute bottom-6 right-16 w-8 h-8 rounded-full bg-[#B91C1C] border-2 border-black shadow-sm -rotate-12 hidden md:flex items-center justify-center">
             <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] absolute top-1.5 left-2 border border-black/30" />
             <div className="w-1 h-1 rounded-full bg-[#7F1D1D] absolute bottom-2 right-2" />
           </div>
 
           {/* Pepperoni 3 (Arriba derecha) */}
-          <div className="absolute top-7 right-28 w-7 h-7 rounded-full bg-[#991B1B] border-2 border-black shadow-[2px_2px_0_0_#000] rotate-45 hidden lg:flex items-center justify-center">
+          <div className="absolute top-7 right-28 w-7 h-7 rounded-full bg-[#991B1B] border-2 border-black shadow-sm rotate-45 hidden lg:flex items-center justify-center">
             <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] absolute top-1 left-2 border border-black/30" />
           </div>
 

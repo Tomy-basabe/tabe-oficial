@@ -8,7 +8,7 @@ import {
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
   GraduationCap, ChevronRight, Share2, Play, Pause,
-  Layers, HelpCircle, Brain, Zap
+  Layers, HelpCircle, Brain, Zap, FlaskConical
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -144,61 +144,64 @@ const GalleryCard = ({
   return (
     <div 
       onClick={() => onClick(doc)}
-      className="group flex flex-col bg-card border-4 border-foreground rounded-none overflow-hidden transition-all duration-300 cursor-pointer shadow-[8px_8px_0_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-x-[4px] hover:translate-y-[4px] h-[300px]"
+      className="group flex flex-col bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm h-[300px]"
     >
       {/* Top Area: Cover Image or Clean Tabe Logo */}
-      <div className={cn("h-40 w-full relative border-b-4 border-foreground bg-muted/30 overflow-hidden", !hasCover && "p-5")}>
+      <div className={cn("h-40 w-full relative border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/40 overflow-hidden", !hasCover && "p-5")}>
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
           <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <button
-                   className="p-1.5 bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] text-foreground transition-all"
+                   className="p-1.5 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-xs hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-all"
                    onClick={(e) => e.stopPropagation()}
                  >
                     <MoreHorizontal className="w-4 h-4" />
                  </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5 min-w-[160px]">
                  <DropdownMenuItem
-                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
+                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                     onClick={(e) => {
                        e.stopPropagation();
                        onShare && onShare(doc);
                     }}
                  >
-                    <Share2 className="w-4 h-4 mr-2" />
+                    <Share2 className="w-4 h-4 mr-2 text-zinc-500" />
                     Compartir
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
+                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                  <DropdownMenuItem
-                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
+                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                     onClick={(e) => {
                        e.stopPropagation();
                        onRename(doc);
                     }}
                  >
+                    <FileText className="w-4 h-4 mr-2 text-zinc-500" />
                     Renombrar
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
+                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                  <DropdownMenuItem
-                    className="font-bold cursor-pointer focus:bg-accent focus:text-foreground"
+                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                     onClick={(e) => {
                        e.stopPropagation();
                        onChangeSubject(doc);
                     }}
                  >
+                    <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
                     Cambiar Materia
                  </DropdownMenuItem>
-                 <DropdownMenuSeparator className="bg-foreground/20 h-0.5" />
+                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                  <DropdownMenuItem
-                    className="text-red-500 focus:bg-red-500/10 focus:text-red-600 font-black cursor-pointer"
+                    className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium text-xs cursor-pointer rounded-lg"
                     onClick={(e) => {
                        e.stopPropagation();
                        onDelete(doc);
                     }}
                  >
+                    <Trash2 className="w-4 h-4 mr-2 text-red-500" />
                     Eliminar
                  </DropdownMenuItem>
               </DropdownMenuContent>
@@ -210,7 +213,7 @@ const GalleryCard = ({
         {!isOwner && onImportFriendDoc && (
           <div className="absolute top-2 right-2 z-10 opacity-90 group-hover:opacity-100 transition-opacity">
             <button
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] font-black text-xs uppercase transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg shadow-2xs font-medium text-xs transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200"
               onClick={(e) => {
                 e.stopPropagation();
                 onImportFriendDoc(doc);
@@ -233,12 +236,12 @@ const GalleryCard = ({
       </div>
       
       {/* Info Area */}
-      <div className="p-4 flex flex-col flex-1 bg-card">
+      <div className="p-4 flex flex-col flex-1 bg-transparent">
         <div className="flex items-center gap-3 mb-2">
-           <div className="flex items-center justify-center w-10 h-10 border-4 border-foreground bg-[#FFD700] group-hover:bg-[#FF9B71] group-hover:-rotate-6 transition-all duration-300 text-black shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+           <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shrink-0 transition-transform group-hover:scale-105">
               {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={22} /> : <FileText className="w-5 h-5" />}
            </div>
-           <h3 className="font-black text-[16px] text-foreground truncate tracking-tight flex-1" title={doc.titulo}>
+           <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate tracking-tight flex-1" title={doc.titulo}>
               {doc.titulo || "Sin título"}
            </h3>
         </div>
@@ -247,25 +250,25 @@ const GalleryCard = ({
         <div className="flex mt-auto pt-2 gap-2 flex-wrap items-center">
           {resolvedSubject ? (
             <>
-              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider" title={resolvedSubject.nombre}>
+              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded border border-zinc-200/60 dark:border-zinc-700/60" title={resolvedSubject.nombre}>
                 {resolvedSubject.codigo || resolvedSubject.nombre}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400 rounded border border-zinc-200/60 dark:border-zinc-700/60">
                 Año {resolvedSubject.año}
               </span>
               {resolvedSubject.isLinkedToMyPlan && !isOwner && (
-                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black bg-[#FFD700] text-black border-2 border-foreground uppercase tracking-tight" title="Esta materia coincide con tu plan de estudio importado">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 rounded border border-amber-200/60 dark:border-amber-800/60" title="Esta materia coincide con tu plan de estudio importado">
                   Plan común
                 </span>
               )}
             </>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-muted text-foreground border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase tracking-wider">
+            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400 rounded border border-zinc-200/60 dark:border-zinc-700/60">
               Sin materia
             </span>
           )}
           {doc.is_shared && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-black bg-[#BFFF00] text-black border-2 border-foreground uppercase tracking-tight shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 rounded border border-emerald-200/60 dark:border-emerald-800/60">
               <Users className="w-3 h-3" /> Cooperativo
             </span>
           )}
@@ -274,15 +277,15 @@ const GalleryCard = ({
         {/* Owner indicator for friend docs */}
         {!isOwner && (
           <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 px-2 py-1 bg-muted border-2 border-foreground min-w-0">
+            <div className="flex items-center gap-2 px-2 py-1 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg min-w-0">
                {effectiveOwner?.avatar_url ? (
-                 <img src={effectiveOwner.avatar_url} className="w-5 h-5 rounded-full border border-black shrink-0" alt="" />
+                 <img src={effectiveOwner.avatar_url} className="w-5 h-5 rounded-full border border-zinc-300 dark:border-zinc-600 shrink-0" alt="" />
                ) : (
-                 <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                 <div className="w-5 h-5 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center text-[10px] font-medium shrink-0">
                     {(effectiveOwner?.nombre || effectiveOwner?.username || "A").charAt(0)}
                  </div>
                )}
-               <span className="text-[11px] text-foreground font-black uppercase truncate">
+               <span className="text-[11px] text-zinc-700 dark:text-zinc-300 font-medium truncate">
                   De: {effectiveOwner?.nombre || effectiveOwner?.username || "Amigo"}
                </span>
             </div>
@@ -292,7 +295,7 @@ const GalleryCard = ({
                   e.stopPropagation();
                   onImportFriendDoc({ ...doc, owner: effectiveOwner });
                 }}
-                className="px-2 py-1 bg-[#BFFF00] text-black border-2 border-foreground font-black text-[10px] uppercase shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all shrink-0 flex items-center gap-1"
+                className="px-2 py-1 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded font-medium text-[10px] uppercase shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shrink-0 flex items-center gap-1"
                 title="Importar a mis apuntes"
               >
                 <Copy className="w-3 h-3" />
@@ -1747,9 +1750,10 @@ export default function Notion() {
       }
 
       const templateContent = selectedTemplate.content;
+      const defaultDocTitle = selectedTemplate.id === 'blank' ? "Sin título" : selectedTemplate.name;
       const title =
         newDocCustomTitle.trim() ||
-        selectedTemplate.name;
+        defaultDocTitle;
 
       const newDoc = await createDocument(targetSubjectId, title);
       if (newDoc) {
@@ -2036,8 +2040,10 @@ export default function Notion() {
   const docIdSet = useMemo(() => new Set(documents.map((d) => d.id)), [documents]);
 
   const filteredAndSortedDocuments = useMemo(() => {
-    // Show root documents and any orphan subpages whose parent was deleted
-    let result = documents.filter((doc) => !doc.parent_id || !docIdSet.has(doc.parent_id));
+    // Si hay búsqueda por texto, buscar en todos los apuntes sin excluir subpáginas; de lo contrario mostrar raíces
+    let result = searchQuery.trim() !== ""
+      ? [...documents]
+      : documents.filter((doc) => !doc.parent_id || !docIdSet.has(doc.parent_id));
 
     // Filter by year
     if (filterYear !== "all") {
@@ -2063,12 +2069,12 @@ export default function Notion() {
     }
 
     // Filter by owner
-    if (filterOwner === "mine" && user) {
-      result = result.filter(doc => doc.user_id === user.id);
-    } else if (filterOwner === "collaborative" && user) {
-      result = result.filter(doc => doc.user_id !== user.id && (doc.is_shared || doc.is_collaborator));
-    } else if (filterOwner === "friends" && user) {
-      result = result.filter(doc => doc.user_id !== user.id && !doc.is_shared && !doc.is_collaborator);
+    if (filterOwner === "mine") {
+      result = result.filter(doc => user?.id ? doc.user_id === user.id : (doc.user_id === "guest" || !doc.user_id));
+    } else if (filterOwner === "collaborative") {
+      result = result.filter(doc => doc.user_id !== user?.id && (doc.is_shared || doc.is_collaborator));
+    } else if (filterOwner === "friends") {
+      result = result.filter(doc => doc.user_id !== user?.id && !doc.is_shared && !doc.is_collaborator);
     }
 
     // Filter by search query (accent-insensitive)
@@ -2165,11 +2171,11 @@ export default function Notion() {
                   } catch {}
                   closeDocument();
                 }}
-                className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1 cursor-pointer"
+                className="flex items-center justify-center md:gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shrink-0 group mr-1 cursor-pointer shadow-2xs"
                 title="Volver a la selección de apuntes"
                 aria-label="Volver a la selección de apuntes"
               >
-                <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
                 <span className="hidden md:inline">Apuntes</span>
               </button>
             ) : (
@@ -2180,11 +2186,11 @@ export default function Notion() {
                     ComicAudio.playPop();
                   } catch {}
                 }}
-                className="flex items-center justify-center md:gap-1.5 w-8 h-8 md:w-auto md:px-2.5 md:py-1 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all shrink-0 group mr-1"
+                className="flex items-center justify-center md:gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shrink-0 group mr-1 shadow-2xs"
                 title="Volver al Dashboard"
                 aria-label="Volver al Dashboard"
               >
-                <ArrowLeft className="w-4 h-4 md:w-3.5 md:h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
                 <span className="hidden md:inline">Volver</span>
               </Link>
             )}
@@ -2196,10 +2202,10 @@ export default function Notion() {
                   <button
                     type="button"
                     onClick={closeDocument}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold border border-border/80 bg-secondary/80 hover:bg-secondary text-foreground transition-colors shrink-0 max-w-[130px] truncate"
+                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100/70 dark:bg-zinc-800/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-800 dark:text-zinc-200 transition-colors shrink-0 max-w-[140px] truncate"
                     title={`Materia: ${activeDocument.subject.nombre || activeDocument.subject.codigo} (clic para ver todos los apuntes)`}
                   >
-                    <GraduationCap className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <GraduationCap className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
                     <span className="truncate">{activeDocument.subject.codigo}</span>
                   </button>
                 )}
@@ -2246,10 +2252,10 @@ export default function Notion() {
                       <div
                         key={tab.id}
                         className={cn(
-                          "group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-all shrink-0 max-w-[180px]",
+                          "group relative flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs cursor-pointer transition-colors shrink-0 max-w-[180px]",
                           isActive
-                            ? "bg-card text-foreground font-bold border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/70 border border-transparent font-medium"
+                            ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium border border-zinc-200/80 dark:border-zinc-700 shadow-2xs"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border border-transparent font-normal"
                         )}
                         onClick={() => handleTabClick(tab.id)}
                         title={tab.title}
@@ -2281,16 +2287,13 @@ export default function Notion() {
                 </div>
               </>
             ) : (
-              <span className="font-black text-sm md:text-base uppercase tracking-wider text-foreground flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-[#FFE600] text-black border border-black shadow-[1px_1px_0_0_#000] flex items-center justify-center text-xs">
-                  📝
-                </span>
+              <span className="font-semibold text-sm md:text-base text-foreground">
                 Apuntes
               </span>
             )}
           </div>
 
-          <div className="notion-topbar-right flex items-center gap-1 shrink-0">
+          <div className="notion-topbar-right flex items-center gap-1.5 shrink-0">
             {activeDocument ? (
               <>
                 {/* Save indicator on error */}
@@ -2314,10 +2317,10 @@ export default function Notion() {
                     }
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-medium border select-none",
-                    isStudyTimerActive && !isStudyTimerPaused && "bg-neon-green/10 text-neon-green border-neon-green/30 shadow-[0_0_12px_rgba(34,197,94,0.15)]",
-                    isStudyTimerPaused && "bg-amber-500/10 text-amber-500 border-amber-500/30",
-                    !isStudyTimerActive && "bg-secondary text-muted-foreground border-border hover:bg-muted"
+                    "flex items-center gap-1.5 h-8 px-2.5 rounded-lg transition-colors text-xs font-medium border select-none shadow-2xs",
+                    isStudyTimerActive && !isStudyTimerPaused && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+                    isStudyTimerPaused && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+                    !isStudyTimerActive && "bg-white dark:bg-zinc-900/80 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
                   )}
                   title={
                     isStudyTimerActive && !isStudyTimerPaused
@@ -2328,11 +2331,11 @@ export default function Notion() {
                   }
                 >
                   {isStudyTimerActive && !isStudyTimerPaused ? (
-                    <Pause className="w-3.5 h-3.5 shrink-0 fill-current animate-pulse text-neon-green" />
+                    <Pause className="w-3.5 h-3.5 shrink-0 fill-current animate-pulse text-emerald-500" />
                   ) : isStudyTimerPaused ? (
                     <Play className="w-3.5 h-3.5 shrink-0 fill-current text-amber-500" />
                   ) : (
-                    <Clock className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    <Clock className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                   )}
                   <span className="font-mono tabular-nums font-semibold">
                     {formatStudyTime(studyTimerSeconds)}
@@ -2343,7 +2346,7 @@ export default function Notion() {
                 <button
                   type="button"
                   className={cn(
-                    "h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                    "h-8 w-8 inline-flex items-center justify-center rounded-lg border border-transparent hover:border-zinc-200/80 dark:hover:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors",
                     activeDocument.is_favorite && "text-amber-500 hover:text-amber-600"
                   )}
                   onClick={() => handleToggleFavorite(activeDocument)}
@@ -2363,14 +2366,14 @@ export default function Notion() {
                 <button
                   type="button"
                   className={cn(
-                    "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-all duration-200",
+                    "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-colors border shadow-2xs",
                     audioBook.isPlaying
-                      ? "text-black bg-[#BFFF00] border border-black shadow-[1px_1px_0_0_#000] animate-pulse"
+                      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
                       : audioBook.isPaused
-                      ? "text-black bg-[#FFD700] border border-black"
+                      ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30"
                       : showAudioBookPlayer
-                      ? "text-primary bg-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-white dark:bg-zinc-900/80 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   )}
                   onClick={() => {
                     if (!showAudioBookPlayer) {
@@ -2406,12 +2409,12 @@ export default function Notion() {
                 {/* AI Generation */}
                 <button
                   type="button"
-                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-cyan-500/15 hover:from-purple-500/25 hover:via-pink-500/25 hover:to-cyan-500/25 text-purple-400 hover:text-purple-300 border border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_12px_rgba(168,85,247,0.15)] hover:shadow-[0_0_18px_rgba(168,85,247,0.3)] transition-all font-bold text-xs"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs shadow-2xs transition-colors"
                   onClick={() => setShowAIModal(true)}
                   title="Generar Flashcards o Cuestionarios con IA a partir de este apunte"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-                  <span className="hidden sm:inline font-black tracking-wide">Magia AI</span>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400 dark:text-purple-600" />
+                  <span className="hidden sm:inline font-medium">Tabe AI</span>
                 </button>
 
                 {/* PDF Export */}
@@ -2435,7 +2438,7 @@ export default function Notion() {
                         <div
                           key={collab.user_id}
                           className={cn(
-                            "w-7 h-7 rounded-full border-2 text-white font-black text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0 transition-all",
+                            "w-7 h-7 rounded-full border-2 text-white font-semibold text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0 transition-all",
                             !isCurrentPage ? "opacity-60 grayscale-[30%]" : "ring-2 ring-background"
                           )}
                           style={{
@@ -2453,7 +2456,7 @@ export default function Notion() {
                       );
                     })}
                     {activeCollaborators.length > 4 && (
-                      <div className="w-7 h-7 rounded-full border-2 border-foreground bg-muted text-foreground font-black text-[10px] flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-[10px] flex items-center justify-center shrink-0">
                         +{activeCollaborators.length - 4}
                       </div>
                     )}
@@ -2463,7 +2466,7 @@ export default function Notion() {
                 {/* Badge persistente de EDICIÓN COLABORATIVA visible en ambos clientes */}
                 {isCollabActive && (
                   <div
-                    className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase shadow-[2px_2px_0_0_#10B981] select-none shrink-0 animate-in fade-in duration-300"
+                    className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium text-xs select-none shrink-0 animate-in fade-in duration-300"
                     title={
                       activeCollaborators.length > 1
                         ? `Edición colaborativa en vivo (${activeCollaborators.length} usuarios conectados)`
@@ -2485,7 +2488,7 @@ export default function Notion() {
                     setDocToShare(activeDocument);
                     setShowShareModal(true);
                   }}
-                  className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border-2 border-foreground bg-[#FFD700] hover:bg-[#FFC000] text-black font-black text-xs uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all active:translate-x-[1px] active:translate-y-[1px]"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shadow-2xs"
                   title="Compartir apunte cooperativo"
                 >
                   <Share2 className="w-3.5 h-3.5" />
@@ -2500,33 +2503,38 @@ export default function Notion() {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-2xs"
                       title="Más opciones"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
                     {activeDocument.user_id === user?.id && (
                       <DropdownMenuItem
+                        className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                         onClick={() => {
                           setDocToChangeSubject(activeDocument);
                           setModalYear(null);
                           setShowChangeSubjectModal(true);
                         }}
                       >
-                        <ArrowUpDown className="w-4 h-4 mr-2" />
+                        <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
                         Cambiar materia
                       </DropdownMenuItem>
                     )}
 
-                    <DropdownMenuItem onClick={() => setShowImportModal(true)}>
-                      <FileUp className="w-4 h-4 mr-2" />
+                    <DropdownMenuItem 
+                      className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
+                      onClick={() => setShowImportModal(true)}
+                    >
+                      <FileUp className="w-4 h-4 mr-2 text-zinc-500" />
                       Importar documento
                     </DropdownMenuItem>
 
                     {activeDocument.user_id !== user?.id && (
                       <DropdownMenuItem
+                        className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                         onClick={() => {
                           setPreselectedFriendNote({
                             id: activeDocument.id,
@@ -2541,13 +2549,14 @@ export default function Notion() {
                           setShowImportFriendModal(true);
                         }}
                       >
-                        <Copy className="w-4 h-4 mr-2 text-primary" />
+                        <Copy className="w-4 h-4 mr-2 text-zinc-500" />
                         Importar copia a mis apuntes
                       </DropdownMenuItem>
                     )}
 
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                     <DropdownMenuItem
+                      className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                       onClick={() => {
                         setTrashItems(getTrashItems());
                         setShowTrashModal(true);
@@ -2560,13 +2569,13 @@ export default function Notion() {
                     {activeDocument.user_id === user?.id && (
                       <>
                         <DropdownMenuItem
-                          className="text-destructive focus:bg-destructive/10 focus:text-destructive font-medium"
+                          className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium text-xs cursor-pointer rounded-lg"
                           onClick={() => {
                             setDocToDelete(activeDocument);
                             setShowDeleteModal(true);
                           }}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4 mr-2 text-red-500" />
                           Eliminar apunte
                         </DropdownMenuItem>
                       </>
@@ -2578,28 +2587,28 @@ export default function Notion() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted/80 text-xs font-black uppercase tracking-wider text-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none relative cursor-pointer"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors shadow-2xs relative cursor-pointer"
                   onClick={() => {
                     setTrashItems(getTrashItems());
                     setShowTrashModal(true);
                   }}
                   title="Papelera (30 min para recuperar)"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <Trash2 className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                   <span className="hidden sm:inline">Papelera</span>
                   {trashItems.length > 0 && (
-                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-black text-[10px] font-black border border-foreground leading-none">
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-[10px] font-medium leading-none">
                       {trashItems.length}
                     </span>
                   )}
                 </button>
                 <button
                   type="button"
-                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-[#00E5FF]/20 text-xs font-black uppercase tracking-wider text-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none cursor-pointer"
+                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors shadow-2xs cursor-pointer"
                   onClick={() => setShowImportModal(true)}
                   title="Importar documento"
                 >
-                  <FileUp className="w-3.5 h-3.5 text-[#00E5FF] shrink-0" />
+                  <FileUp className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400 shrink-0" />
                   <span className="hidden sm:inline">Importar</span>
                 </button>
               </div>
@@ -2673,27 +2682,27 @@ export default function Notion() {
                       {/* Author / Collaboration indicator in editor (visible en ambos clientes) */}
                       {(isCollabActive || activeDocument.user_id !== user?.id || activeDocument.is_shared || activeDocument.is_collaborator) && (
                         <div className="notion-author-badge flex flex-wrap items-center justify-between gap-3 px-8 md:px-14 mb-4 animate-in fade-in slide-in-from-left-2 duration-500">
-                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300">
                             {activeDocument.user_id === user?.id ? (
-                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-300">
+                              <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-800/60 flex items-center justify-center text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                                 ★
                               </div>
                             ) : activeDocOwner?.avatar_url ? (
                               <img src={activeDocOwner.avatar_url} className="w-5 h-5 rounded-full" alt="" />
                             ) : (
-                              <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold">
+                              <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-800/60 flex items-center justify-center text-[10px] font-semibold">
                                 {(activeDocOwner?.nombre || activeDocOwner?.username || "C").charAt(0)}
                               </div>
                             )}
-                            <span className="text-xs font-black tracking-tight text-foreground">
+                            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                               {activeDocument.user_id === user?.id
                                 ? "Tu apunte cooperativo"
                                 : activeDocument.is_collaborator || activeDocument.is_shared
                                 ? `Apunte colaborativo${activeDocOwner?.nombre ? ` de ${activeDocOwner.nombre}` : ""}`
                                 : `Apunte de ${activeDocOwner?.nombre || activeDocOwner?.username || "un amigo"}`}
                             </span>
-                            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full ml-1 bg-emerald-500 text-black flex items-center gap-1 shadow-xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full ml-1 bg-emerald-600 text-white flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                               {(activeDocument.user_id === user?.id || activeDocument.share_permission === "edit" || activeDocument.user_permission === "edit")
                                 ? "Edición colaborativa"
                                 : "Solo lectura"}
@@ -2715,7 +2724,7 @@ export default function Notion() {
                                 });
                                 setShowImportFriendModal(true);
                               }}
-                              className="flex items-center gap-2 px-4 py-1.5 bg-[#BFFF00] text-black font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] transition-all rounded-lg"
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg font-medium text-xs shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               Importar copia a mis apuntes
@@ -2888,9 +2897,9 @@ export default function Notion() {
             /* Empty state / Gallery View */
             <div className="flex flex-col h-full bg-background text-foreground">
               {/* Header and Tabs */}
-              <div className="flex flex-col gap-6 px-8 md:px-12 py-8 border-b-4 border-foreground bg-card text-foreground">
+              <div className="flex flex-col gap-5 px-6 md:px-10 py-6 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#171717] text-foreground">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <h1 className="text-4xl font-black tracking-tight uppercase">Tus Apuntes</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Tus Apuntes</h1>
                   
                   <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     {/* Search */}
@@ -2901,7 +2910,7 @@ export default function Notion() {
                         placeholder="Buscar apunte..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-4 py-2 font-bold bg-background text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:translate-x-[2px] focus:translate-y-[2px] transition-all outline-none w-full sm:w-56 rounded-none placeholder:text-muted-foreground"
+                        className="pl-9 pr-4 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 focus:border-zinc-400 dark:focus:border-zinc-600 transition-all outline-none w-full sm:w-56 rounded-lg placeholder:text-zinc-400"
                       />
                     </div>
 
@@ -2910,7 +2919,7 @@ export default function Notion() {
                         setPreselectedFriendNote(null);
                         setShowImportFriendModal(true);
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2 bg-[#BFFF00] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-none"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 rounded-lg shadow-2xs transition-colors"
                       title="Importar apuntes compartidos por tus amigos"
                     >
                       <Users className="w-5 h-5" />
@@ -2919,7 +2928,7 @@ export default function Notion() {
 
                     <button
                       onClick={() => setShowNewDocModal(true)}
-                      className="inline-flex items-center gap-2 px-6 py-2 bg-[#00E5FF] text-black font-black uppercase border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ml-auto sm:ml-0 rounded-none tour-notion-create"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg shadow-2xs transition-colors ml-auto sm:ml-0 tour-notion-create"
                     >
                       + Nueva Página
                     </button>
@@ -2940,10 +2949,10 @@ export default function Notion() {
                         key={tab.id}
                         onClick={() => setFilterOwner(tab.id as any)}
                         className={cn(
-                          "px-4 py-2 font-black uppercase border-4 border-foreground transition-all rounded-none",
+                          "px-3 py-1.5 font-medium text-xs rounded-lg transition-colors",
                           filterOwner === tab.id 
-                            ? "bg-[#FFD700] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-x-[2px] translate-y-[2px]" 
-                            : "bg-card text-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:bg-muted hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]"
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs" 
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                         )}
                       >
                         {tab.label}
@@ -2954,44 +2963,44 @@ export default function Notion() {
                   <div className="flex items-center gap-3">
                     {/* Filter by Year */}
                     <Select value={filterYear} onValueChange={(val) => { setFilterYear(val); setFilterSubject("all"); }}>
-                      <SelectTrigger className="w-[140px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
-                        <Filter className="w-4 h-4 mr-2" />
+                      <SelectTrigger className="w-[140px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
+                        <Filter className="w-4 h-4 mr-2 text-zinc-500" />
                         <SelectValue placeholder="Año" />
                       </SelectTrigger>
-                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
-                        <SelectItem value="all" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Todos los años</SelectItem>
+                      <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
+                        <SelectItem value="all" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Todos los años</SelectItem>
                         {uniqueYears.map(year => (
-                          <SelectItem key={year} value={year.toString()} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Año {year}</SelectItem>
+                          <SelectItem key={year} value={year.toString()} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Año {year}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
                     {/* Filter by Subject */}
                     <Select value={filterSubject} onValueChange={setFilterSubject}>
-                      <SelectTrigger className="w-[160px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
-                        <Filter className="w-4 h-4 mr-2" />
+                      <SelectTrigger className="w-[160px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
+                        <Filter className="w-4 h-4 mr-2 text-zinc-500" />
                         <SelectValue placeholder="Materias" />
                       </SelectTrigger>
-                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
-                        <SelectItem value="all" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Todas las materias</SelectItem>
+                      <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
+                        <SelectItem value="all" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Todas las materias</SelectItem>
                         {filterSubjectOptions
                           .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
                           .map(sub => (
-                          <SelectItem key={sub.id} value={sub.id} className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">{sub.name}</SelectItem>
+                          <SelectItem key={sub.id} value={sub.id} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">{sub.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
                     {/* Sort */}
                     <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                      <SelectTrigger className="w-[160px] bg-card text-foreground border-4 border-foreground font-bold shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-none focus:ring-0">
-                        <ArrowUpDown className="w-4 h-4 mr-2" />
+                      <SelectTrigger className="w-[160px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
+                        <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
                         <SelectValue placeholder="Ordenar" />
                       </SelectTrigger>
-                      <SelectContent className="bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))]">
-                        <SelectItem value="updated" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Recientes</SelectItem>
-                        <SelectItem value="alpha_asc" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">A - Z</SelectItem>
-                        <SelectItem value="alpha_desc" className="font-bold cursor-pointer focus:bg-accent focus:text-foreground">Z - A</SelectItem>
+                      <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
+                        <SelectItem value="updated" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Recientes</SelectItem>
+                        <SelectItem value="alpha_asc" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">A - Z</SelectItem>
+                        <SelectItem value="alpha_desc" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Z - A</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -3005,8 +3014,22 @@ export default function Notion() {
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
                   </div>
                 ) : filteredAndSortedDocuments.length === 0 ? (
-                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                    <p>No hay apuntes que coincidan con la búsqueda.</p>
+                   <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
+                    <p className="text-sm">No hay apuntes que coincidan con la búsqueda o filtros seleccionados.</p>
+                    {(filterYear !== "all" || filterSubject !== "all" || filterOwner !== "all" || searchQuery.trim() !== "") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setFilterYear("all");
+                          setFilterSubject("all");
+                          setFilterOwner("all");
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/80 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        Restablecer filtros
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
@@ -3064,10 +3087,10 @@ export default function Notion() {
 
       {/* Rename Document Modal */}
       <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
-        <DialogContent className="max-w-md bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
+        <DialogContent className="max-w-md bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="font-display font-black text-xl uppercase tracking-tight text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" /> Renombrar Apunte
+            <DialogTitle className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-zinc-700 dark:text-zinc-300" /> Renombrar Apunte
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-3">
@@ -3080,20 +3103,20 @@ export default function Notion() {
                   onKeyDown={(e) => {
                      if (e.key === "Enter") handleRenameSubmit();
                   }}
-                  className="w-full px-4 py-2.5 bg-background text-foreground rounded-xl border-[3px] border-foreground font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] transition-all placeholder:text-muted-foreground"
+                  className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200/80 dark:border-zinc-800 font-normal text-sm focus:border-zinc-400 dark:focus:border-zinc-600 transition-all outline-none placeholder:text-zinc-400"
                 />
              </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-3">
              <button
                onClick={() => setShowRenameModal(false)}
-               className="flex-1 px-4 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs bg-card text-foreground hover:bg-muted transition-all"
+               className="flex-1 px-4 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
              >
                Cancelar
              </button>
              <button
                onClick={handleRenameSubmit}
-               className="flex-1 px-4 py-2.5 rounded-xl border-2 border-foreground font-black uppercase text-xs bg-[#00E5FF] text-black shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all"
+               className="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium text-xs shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
              >
                Guardar cambios
              </button>
@@ -3108,18 +3131,18 @@ export default function Notion() {
           setNewDocCustomTitle("");
         }
       }}>
-        <DialogContent className="max-w-2xl bg-card text-foreground border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b-4 border-foreground">
+          <div className="flex items-start justify-between gap-4 pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-[#00E5FF] border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center justify-center -rotate-3 shrink-0">
-                <FileText className="w-6 h-6 text-black" />
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 text-zinc-800 dark:text-zinc-200" />
               </div>
               <div>
-                <DialogTitle className="font-display font-black text-2xl uppercase tracking-tight text-foreground">
+                <DialogTitle className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
                   Nuevo Apunte
                 </DialogTitle>
-                <p className="text-xs sm:text-sm font-bold text-muted-foreground mt-0.5">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   Elegí una materia, personalizá el título y comenzá con una plantilla.
                 </p>
               </div>
@@ -3130,8 +3153,8 @@ export default function Notion() {
             {/* Paso 1: Materia */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">1</span>
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-[10px] font-semibold">1</span>
                   Materia *
                 </label>
                 {selectedDocSubject && (
@@ -3147,9 +3170,9 @@ export default function Notion() {
 
               {selectedDocSubject ? (
                 /* Materia seleccionada (card de confirmación) */
-                <div className="bg-muted/40 border-[3px] border-foreground rounded-xl p-3.5 flex items-center justify-between shadow-[3px_3px_0_0_hsl(var(--foreground))]">
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="px-2.5 py-1 text-xs font-black bg-[#00E5FF] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] uppercase shrink-0">
+                    <span className="px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200 rounded border border-zinc-200/60 dark:border-zinc-600/60 shrink-0">
                       {selectedDocSubject.codigo || `Año ${selectedDocSubject.año}`}
                     </span>
                     <div className="min-w-0">
@@ -3164,14 +3187,14 @@ export default function Notion() {
                   <button
                     type="button"
                     onClick={() => setNewDocSubjectId(null)}
-                    className="px-3 py-1.5 rounded-lg bg-card text-foreground font-black text-xs uppercase border-2 border-foreground hover:bg-[#FF5C5C] hover:text-black hover:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all shrink-0 ml-3"
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors shrink-0 ml-3"
                   >
                     Cambiar
                   </button>
                 </div>
               ) : (
                 /* Selector de Año y Materia */
-                <div className="space-y-3 bg-muted/20 border-2 border-foreground/30 rounded-xl p-3.5">
+                <div className="space-y-3 bg-zinc-50/60 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5">
                   <div>
                     <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1.5">Filtrar por año:</span>
                     <div className="flex gap-1.5 flex-wrap">
@@ -3179,10 +3202,10 @@ export default function Notion() {
                         type="button"
                         onClick={() => setModalYear(null)}
                         className={cn(
-                          "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                          "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
                           modalYear === null
-                            ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
-                            : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                            : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
                         )}
                       >
                         Todos
@@ -3193,10 +3216,10 @@ export default function Notion() {
                           type="button"
                           onClick={() => setModalYear(year)}
                           className={cn(
-                            "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                            "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
                             modalYear === year
-                              ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
-                              : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
+                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                              : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
                           )}
                         >
                           {year}° Año
@@ -3217,22 +3240,20 @@ export default function Notion() {
                             type="button"
                             onClick={() => setNewDocSubjectId(subject.id)}
                             className={cn(
-                              "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group relative",
+                              "p-2.5 rounded-lg border text-left transition-all group relative",
                               isSelected
-                                ? "bg-[#FACC15] border-2 border-black shadow-[4px_4px_0px_#000]"
-                                : isApproved
-                                ? "bg-white border-2 border-emerald-500/60 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
-                                : "bg-white border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
+                                ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                                : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
                             )}
                           >
                             <div className="flex items-center justify-between gap-1 mb-1">
                               <span className={cn(
-                                "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded shrink-0",
+                                "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
                                 isApproved
-                                  ? "bg-emerald-500 text-black border-black"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
                                   : isSelected
-                                  ? "bg-black text-[#FACC15] border-black font-black"
-                                  : "bg-[#00E5FF] text-black border-black"
+                                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                               )}>
                                 {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
                               </span>
@@ -3246,10 +3267,10 @@ export default function Notion() {
                               </span>
                             </div>
                             <p className={cn(
-                              "text-xs truncate transition-colors",
+                              "text-xs truncate transition-colors font-medium mt-1",
                               isSelected
-                                ? "!text-black font-bold"
-                                : "text-zinc-950 font-bold group-hover:text-black"
+                                ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                                : "text-zinc-900 dark:text-zinc-100"
                             )}>
                               {subject.nombre}
                             </p>
@@ -3269,23 +3290,23 @@ export default function Notion() {
 
             {/* Paso 2: Título (Opcional) */}
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">2</span>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-[10px] font-semibold">2</span>
                 Título de la Página (opcional)
               </label>
               <input
                 type="text"
                 value={newDocCustomTitle}
                 onChange={(e) => setNewDocCustomTitle(e.target.value)}
-                placeholder={`Ej: ${selectedTemplate.name} - Unidad 1`}
-                className="w-full px-4 py-2.5 bg-background text-foreground rounded-xl border-[3px] border-foreground font-bold text-sm shadow-[3px_3px_0_0_hsl(var(--foreground))] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] transition-all placeholder:text-muted-foreground placeholder:font-medium"
+                placeholder={selectedTemplate.id === "blank" ? "Ej: Apuntes de Clase - Unidad 1" : `Ej: ${selectedTemplate.name} - Unidad 1`}
+                className="w-full px-3.5 py-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200/80 dark:border-zinc-800 font-normal text-sm focus:border-zinc-400 dark:focus:border-zinc-600 transition-all outline-none placeholder:text-zinc-400"
               />
             </div>
 
             {/* Paso 3: Plantilla */}
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-black">3</span>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-[10px] font-semibold">3</span>
                 Elegí una Plantilla de Inicio
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -3297,28 +3318,35 @@ export default function Notion() {
                       type="button"
                       onClick={() => setSelectedTemplate(template)}
                       className={cn(
-                        "p-3 rounded-xl text-left transition-all border-[3px] flex items-start gap-3 relative",
+                        "p-3 rounded-xl text-left transition-all border flex items-start gap-3 relative group",
                         isSelected
-                          ? "bg-[#BFFF00]/15 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
-                          : "bg-card text-foreground border-foreground/40 hover:border-foreground hover:bg-muted/40 hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                          ? "bg-zinc-50 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                          : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-600"
                       )}
                     >
                       <div className={cn(
-                        "w-10 h-10 rounded-lg border-2 border-foreground flex items-center justify-center text-xl shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                        isSelected ? "bg-[#BFFF00] text-black" : "bg-muted"
+                        "w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-colors",
+                        isSelected
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-sm"
+                          : "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200/80 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white"
                       )}>
-                        {template.emoji}
+                        {template.id === "blank" && <FileText className="w-4 h-4" />}
+                        {template.id === "class-summary" && <BookOpen className="w-4 h-4" />}
+                        {template.id === "exam-prep" && <GraduationCap className="w-4 h-4" />}
+                        {template.id === "lab-notes" && <FlaskConical className="w-4 h-4" />}
+                        {template.id === "cornell" && <Layers className="w-4 h-4" />}
+                        {!["blank", "class-summary", "exam-prep", "lab-notes", "cornell"].includes(template.id) && <FileText className="w-4 h-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <p className="font-black text-sm text-foreground truncate">{template.name}</p>
+                          <p className="font-semibold text-sm text-foreground truncate">{template.name}</p>
                           {isSelected && (
-                            <span className="text-[9px] font-black uppercase tracking-wider bg-[#BFFF00] text-black border border-foreground rounded px-1.5 py-0.5 shrink-0 flex items-center gap-0.5">
+                            <span className="text-[9px] font-medium uppercase tracking-wider bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-0.5">
                               <Check className="w-2.5 h-2.5" /> Activa
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] font-medium text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
+                        <p className="text-[11px] font-normal text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
                           {template.description}
                         </p>
                       </div>
@@ -3329,11 +3357,11 @@ export default function Notion() {
             </div>
 
             {/* Footer con acciones */}
-            <div className="flex items-center gap-3 pt-3 border-t-2 border-foreground/20">
+            <div className="flex items-center gap-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80">
               <button
                 type="button"
                 onClick={() => setShowNewDocModal(false)}
-                className="px-5 py-3 rounded-xl border-[3px] border-foreground font-black uppercase tracking-wider bg-card text-foreground hover:bg-muted transition-all text-xs"
+                className="px-4 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 Cancelar
               </button>
@@ -3341,7 +3369,7 @@ export default function Notion() {
                 type="button"
                 onClick={() => handleCreateDocument()}
                 disabled={!newDocSubjectId}
-                className="flex-1 px-6 py-3.5 rounded-xl border-[3px] border-foreground font-black uppercase tracking-wider bg-[#00E5FF] text-black shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center gap-2 text-xs sm:text-sm"
+                className="flex-1 px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs sm:text-sm shadow-2xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 {`Crear con "${selectedTemplate.name}"`}
@@ -3353,25 +3381,25 @@ export default function Notion() {
 
       {/* Change Subject Modal */}
       <Dialog open={showChangeSubjectModal} onOpenChange={setShowChangeSubjectModal}>
-        <DialogContent className="max-w-lg bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6">
+        <DialogContent className="max-w-lg bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="font-display font-black text-xl uppercase tracking-tight text-foreground flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" /> Cambiar Materia
+            <DialogTitle className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-zinc-700 dark:text-zinc-300" /> Cambiar Materia
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
             <div>
-              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground mb-2 block">Filtrar por año</label>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">Filtrar por año</label>
               <div className="flex gap-1.5 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setModalYear(null)}
                   className={cn(
-                    "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
                     modalYear === null
-                      ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
-                      : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                      : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
                   )}
                 >
                   Todos
@@ -3382,10 +3410,10 @@ export default function Notion() {
                     type="button"
                     onClick={() => setModalYear(year)}
                     className={cn(
-                      "px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all border-2",
+                      "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
                       modalYear === year
-                        ? "bg-[#FACC15] text-black border-2 border-black shadow-[2px_2px_0px_#000]"
-                        : "bg-white text-zinc-950 border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                        : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
                     )}
                   >
                     {year}° Año
@@ -3395,7 +3423,7 @@ export default function Notion() {
             </div>
 
             <div>
-              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground mb-2 block">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
                 Materia Destino
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
@@ -3408,39 +3436,37 @@ export default function Notion() {
                       type="button"
                       onClick={() => handleChangeSubjectSubmit(subject.id)}
                       className={cn(
-                        "p-2.5 rounded-xl border-2 text-left transition-all hover:translate-y-[-1px] group relative",
+                        "p-2.5 rounded-lg border text-left transition-all group relative",
                         isSelected
-                          ? "bg-[#FACC15] border-2 border-black shadow-[4px_4px_0px_#000]"
-                          : isApproved
-                          ? "bg-white border-2 border-emerald-500/60 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
-                          : "bg-white border-2 border-zinc-300 hover:border-black hover:bg-yellow-100/70 hover:shadow-[3px_3px_0px_#000]"
+                          ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                          : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
                       )}
                     >
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className={cn(
-                          "text-[9px] font-black uppercase px-1.5 py-0.5 border rounded shrink-0",
+                          "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
                           isApproved
-                            ? "bg-emerald-500 text-black border-black"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
                             : isSelected
-                            ? "bg-black text-[#FACC15] border-black font-black"
-                            : "bg-[#00E5FF] text-black border-black"
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                            : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                         )}>
                           {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
                         </span>
                         <span className={cn(
                           "text-[10px] transition-colors",
                           isSelected
-                            ? "text-zinc-900 font-semibold"
-                            : "text-zinc-500 group-hover:text-zinc-900 font-semibold"
+                            ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                            : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-semibold"
                         )}>
                           Año {subject.año}
                         </span>
                       </div>
                       <p className={cn(
-                        "text-xs truncate transition-colors",
+                        "text-xs truncate transition-colors font-medium mt-1",
                         isSelected
-                          ? "!text-black font-bold"
-                          : "text-zinc-950 font-bold group-hover:text-black"
+                          ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                          : "text-zinc-800 dark:text-zinc-200"
                       )}>
                         {subject.nombre}
                       </p>
@@ -3448,7 +3474,7 @@ export default function Notion() {
                   );
                 })}
                 {modalSubjects.length === 0 && (
-                  <div className="col-span-full text-center text-xs font-bold text-muted-foreground py-4">
+                  <div className="col-span-full text-center text-xs font-medium text-muted-foreground py-4">
                     No hay materias en este año.
                   </div>
                 )}
@@ -3460,39 +3486,40 @@ export default function Notion() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="sm:max-w-[380px] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-none p-0 overflow-hidden">
-          {/* Header rojo */}
-          <div className="bg-red-500 px-6 pt-6 pb-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-none border-2 border-white/80 bg-red-600 flex items-center justify-center shrink-0 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)]">
-              <Trash2 className="w-6 h-6 text-white" />
+        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6">
+          <DialogHeader className="space-y-2 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  ¿Mover a papelera?
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Esta acción es reversible por 30 min</p>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-white text-lg font-black tracking-tight leading-tight">
-                ¿Mover a papelera?
-              </DialogTitle>
-              <p className="text-red-100 text-xs font-medium mt-0.5">Esta acción es reversible por 30 min</p>
-            </div>
-          </div>
+          </DialogHeader>
 
-          <div className="px-6 py-4 space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="py-2 space-y-4">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
               Moverás{" "}
-              <span className="font-black text-foreground">"{docToDelete?.titulo || "Sin título"}"</span>{" "}
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">"{docToDelete?.titulo || "Sin título"}"</span>{" "}
               a la papelera. Tendrás{" "}
-              <span className="text-amber-500 font-black">30 minutos</span>{" "}
+              <span className="text-amber-600 dark:text-amber-400 font-medium">30 minutos</span>{" "}
               para recuperarla antes de que se elimine definitivamente.
             </p>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-2.5 border-2 border-foreground font-bold text-sm transition-all hover:bg-secondary shadow-[3px_3px_0_0_hsl(var(--foreground))] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
+                className="flex-1 py-2 px-4 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteDocument}
-                className="flex-1 py-2.5 bg-red-500 text-white border-2 border-foreground font-black text-sm transition-all hover:bg-red-600 shadow-[3px_3px_0_0_hsl(var(--foreground))] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
+                className="flex-1 py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-xs transition-colors shadow-2xs"
               >
                 Mover a papelera
               </button>
@@ -3503,21 +3530,21 @@ export default function Notion() {
 
       {/* Trash Modal (30 min recovery grace period) */}
       <Dialog open={showTrashModal} onOpenChange={setShowTrashModal}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-md bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-amber-500" />
+            <DialogTitle className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               Papelera (30 min para recuperar)
             </DialogTitle>
           </DialogHeader>
 
-          <p className="text-xs text-muted-foreground">
-            Los apuntes eliminados o cortados se conservan durante 30 minutos antes de eliminarse automáticamente de la base de datos.
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Los apuntes eliminados se conservan durante 30 minutos antes de eliminarse definitivamente.
           </p>
 
           <div className="flex-1 overflow-y-auto space-y-2 my-3 max-h-[50vh] pr-1">
             {trashItems.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
+              <div className="text-center py-8 text-sm text-zinc-500 dark:text-zinc-400">
                 La papelera está vacía
               </div>
             ) : (
@@ -3526,13 +3553,13 @@ export default function Notion() {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-secondary/30 hover:bg-secondary/50 transition-colors gap-2"
+                    className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/40 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors gap-2"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span className="text-lg shrink-0">{item.emoji || "📝"}</span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{item.title}</p>
-                        <p className="text-xs text-amber-500/90 flex items-center gap-1 font-mono">
+                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{item.title}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-mono">
                           <Clock className="w-3 h-3 inline" />
                           Expira en {minutesLeft} min
                         </p>
@@ -3545,7 +3572,7 @@ export default function Notion() {
                           await restoreDocument(item.id);
                           setTrashItems(getTrashItems());
                         }}
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-xs"
+                        className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center gap-1 shadow-2xs"
                         title="Restaurar apunte"
                       >
                         <RotateCcw className="w-3 h-3" />
@@ -3556,7 +3583,7 @@ export default function Notion() {
                           await permanentlyDeleteDocument(item.id);
                           setTrashItems(getTrashItems());
                         }}
-                        className="p-1.5 text-xs rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="p-1.5 text-xs rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-500/10 transition-colors"
                         title="Eliminar definitivamente ahora"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -3581,23 +3608,18 @@ export default function Notion() {
       )}
       {/* AI Material Generation Modal */}
       <Dialog open={showAIModal} onOpenChange={(val) => !isGeneratingAI && setShowAIModal(val)}>
-        <DialogContent className="sm:max-w-[500px] border border-purple-500/30 bg-card backdrop-blur-xl shadow-[0_0_50px_rgba(168,85,247,0.15)] rounded-2xl p-6 overflow-hidden">
-          <DialogHeader className="space-y-1.5 pb-2">
+        <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 overflow-hidden">
+          <DialogHeader className="space-y-1.5 pb-2 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 p-0.5 shadow-[0_0_15px_rgba(168,85,247,0.4)] shrink-0">
-                <div className="w-full h-full bg-card rounded-[10px] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
-                </div>
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-purple-500" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-display font-black tracking-tight text-foreground flex items-center gap-2">
-                  <span>Magia de Tabe AI</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-500 border border-purple-500/30">
-                    Estudio Inteligente
-                  </span>
+                <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <span>Tabe AI - Estudio Inteligente</span>
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground truncate max-w-[340px]">
-                  Genera material interactivo desde: <span className="text-foreground font-semibold">{localTitle || activeDocument?.titulo || "Este apunte"}</span>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[340px]">
+                  Genera material interactivo desde: <span className="text-zinc-900 dark:text-zinc-100 font-medium">{localTitle || activeDocument?.titulo || "Este apunte"}</span>
                 </p>
               </div>
             </div>
@@ -3605,28 +3627,27 @@ export default function Notion() {
 
           {isGeneratingAI ? (
             <div className="py-10 space-y-6 text-center">
-              <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-cyan-400 animate-spin blur-md opacity-60" />
-                <div className="relative z-10 w-16 h-16 rounded-full bg-card border border-purple-400/40 flex items-center justify-center shadow-inner">
-                  <Brain className="w-8 h-8 text-purple-500 animate-pulse" />
+              <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
+                  <Brain className="w-7 h-7 text-purple-500 animate-pulse" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <h4 className="text-base font-black text-foreground tracking-wide">Tabe AI está procesando tu apunte...</h4>
-                <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tabe AI está procesando tu apunte...</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
                   Extrayendo conceptos clave y estructurando {aiGenType === 'flashcards' ? 'tus flashcards de repaso' : 'tu cuestionario tipo examen'}.
                 </p>
               </div>
-              <div className="w-full bg-purple-500/20 rounded-full h-2 overflow-hidden border border-purple-500/30 max-w-xs mx-auto">
-                <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 h-full w-full animate-pulse" />
+              <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden max-w-xs mx-auto">
+                <div className="bg-zinc-900 dark:bg-white h-full w-full animate-pulse" />
               </div>
             </div>
           ) : (
             <div className="py-4 space-y-5">
               {/* Type selection */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-purple-500" />
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-zinc-500" />
                   ¿Qué deseas generar?
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -3634,28 +3655,28 @@ export default function Notion() {
                     type="button"
                     onClick={() => setAiGenType('flashcards')}
                     className={cn(
-                      "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
+                      "p-3.5 rounded-xl border text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
                       aiGenType === 'flashcards'
-                        ? "bg-purple-500/15 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)] text-foreground"
-                        : "bg-secondary/20 border-border/70 hover:border-purple-500/40 text-muted-foreground hover:bg-secondary/40"
+                        ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                        : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80"
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                        aiGenType === 'flashcards' ? "bg-purple-500 text-white" : "bg-muted text-muted-foreground group-hover:text-purple-400"
+                        aiGenType === 'flashcards' ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                       )}>
                         <Layers className="w-4 h-4" />
                       </div>
                       {aiGenType === 'flashcards' && (
-                        <span className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs">
-                          <Check className="w-3 h-3 stroke-[3]" />
+                        <span className="w-4 h-4 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center text-[10px]">
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                         </span>
                       )}
                     </div>
                     <div>
-                      <div className="font-black text-sm text-foreground">Mazo Flashcards</div>
-                      <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                      <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Mazo Flashcards</div>
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
                         Preguntas y respuestas para repetición espaciada.
                       </div>
                     </div>
@@ -3665,28 +3686,28 @@ export default function Notion() {
                     type="button"
                     onClick={() => setAiGenType('quiz')}
                     className={cn(
-                      "p-3.5 rounded-xl border-2 text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
+                      "p-3.5 rounded-xl border text-left transition-all relative overflow-hidden group flex flex-col justify-between h-32",
                       aiGenType === 'quiz'
-                        ? "bg-cyan-500/15 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)] text-foreground"
-                        : "bg-secondary/20 border-border/70 hover:border-cyan-500/40 text-muted-foreground hover:bg-secondary/40"
+                        ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                        : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80"
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                        aiGenType === 'quiz' ? "bg-cyan-500 text-black font-bold" : "bg-muted text-muted-foreground group-hover:text-cyan-400"
+                        aiGenType === 'quiz' ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                       )}>
                         <HelpCircle className="w-4 h-4" />
                       </div>
                       {aiGenType === 'quiz' && (
-                        <span className="w-5 h-5 rounded-full bg-cyan-500 text-black font-bold flex items-center justify-center text-xs">
-                          <Check className="w-3 h-3 stroke-[3]" />
+                        <span className="w-4 h-4 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center text-[10px]">
+                          <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                         </span>
                       )}
                     </div>
                     <div>
-                      <div className="font-black text-sm text-foreground">Cuestionario Test</div>
-                      <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                      <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Cuestionario Test</div>
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug mt-0.5">
                         Preguntas tipo examen con justificación.
                       </div>
                     </div>
@@ -3697,10 +3718,10 @@ export default function Notion() {
               {/* Count selection */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     Cantidad de elementos
                   </label>
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200/60 dark:border-zinc-700/60">
                     {aiGenCount} {aiGenType === 'flashcards' ? 'tarjetas' : 'preguntas'}
                   </span>
                 </div>
@@ -3713,10 +3734,10 @@ export default function Notion() {
                       type="button"
                       onClick={() => setAiGenCount(count)}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                        "flex-1 py-1 rounded-md text-xs font-medium transition-colors border",
                         aiGenCount === count
-                          ? "bg-purple-500 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                          : "bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                          : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
                       )}
                     >
                       {count}
@@ -3731,34 +3752,35 @@ export default function Notion() {
                   step="5"
                   value={aiGenCount}
                   onChange={(e) => setAiGenCount(parseInt(e.target.value))}
-                  className="w-full accent-purple-500 bg-secondary/70 h-2 rounded-full appearance-none cursor-pointer"
+                  className="w-full accent-zinc-900 dark:accent-zinc-100 bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full appearance-none cursor-pointer"
                 />
               </div>
 
               {/* Informative box */}
-              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-2.5">
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-2.5">
                 <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Tabe AI procesará el texto de este apunte y creará el material en tu sección de{" "}
-                  <span className="text-foreground font-semibold">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia para estudiar cuando quieras.
+                  <span className="text-zinc-900 dark:text-zinc-100 font-medium">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia.
                 </p>
               </div>
             </div>
           )}
 
-          <DialogFooter className="pt-2 flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
+          <DialogFooter className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-2">
+            <button
+              type="button"
               onClick={() => setShowAIModal(false)}
               disabled={isGeneratingAI}
-              className="font-bold tracking-tight text-xs uppercase text-muted-foreground hover:text-foreground"
+              className="px-4 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               onClick={handleGenerateAI}
               disabled={isGeneratingAI}
-              className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white font-black tracking-wider text-xs uppercase px-6 py-2.5 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition-all active:scale-95 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs shadow-2xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isGeneratingAI ? (
                 <>
@@ -3767,11 +3789,11 @@ export default function Notion() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-1 text-purple-400 dark:text-purple-600" />
                   Hacer Magia
                 </>
               )}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

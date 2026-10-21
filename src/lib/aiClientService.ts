@@ -6,6 +6,7 @@ import {
   GEMINI_API_KEY,
   AIModelOption,
   PowerEffort,
+  NVIDIA_MODELS_PRIORITY,
 } from "@/config/aiModels";
 
 export interface StreamResult {
@@ -155,6 +156,9 @@ export async function buildStudentContext(
   let routinesSection = "Sin rutinas activas registradas.";
   let sessionsSection = "Sin sesiones de estudio recientes.";
   let achievementsSection = "Sin logros desbloqueados.";
+  let professorsSection = "Sin profesores ni horarios de consulta registrados aún.";
+  let discordSection = "Sin mensajes ni grupos de estudio registrados aún.";
+  let friendsSection = "Sin compañeros ni amigos registrados aún.";
 
   if (userId && userId !== "guest") {
     try {
@@ -255,6 +259,35 @@ export async function buildStudentContext(
           .select("achievement_id, unlocked_at, achievements(nombre, descripcion)")
           .eq("user_id", userId)
           .limit(30),
+
+        // 12. Professors
+        (supabase as any)
+          .from("professors")
+          .select("id, nombre, rol, descripcion, subject_id")
+          .eq("user_id", userId)
+          .limit(30),
+
+        // 13. Professor Office Hours (Consultas)
+        (supabase as any)
+          .from("professor_office_hours")
+          .select("id, professor_id, dia, hora_inicio, hora_fin")
+          .eq("user_id", userId)
+          .limit(40),
+
+        // 14. Friendships (Amistades aceptadas)
+        (supabase as any)
+          .from("friendships")
+          .select("requester_id, addressee_id, status")
+          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+          .eq("status", "accepted")
+          .limit(20),
+
+        // 15. Discord Servers membership (Grupos de estudio y foros)
+        (supabase as any)
+          .from("discord_server_members")
+          .select("server_id, role, discord_servers(id, name)")
+          .eq("user_id", userId)
+          .limit(10),
       ]);
 
       const results = (await Promise.race([fetchPromise, timeoutPromise])) as any[];
@@ -273,6 +306,10 @@ export async function buildStudentContext(
           routinesRes,
           sessionsRes,
           achieveRes,
+          profsListRes,
+          hoursListRes,
+          friendsListRes,
+          discordListRes,
         ] = results;
 
         // 0. Profile
@@ -375,7 +412,7 @@ export async function buildStudentContext(
 
         summarySection = `- Materias totales en el plan: ${mergedSubjects.length}
 - Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
-- Promedio general actual (materias aprobadas): ${promedio} (${notasAprobadasDetalle.length} materias con nota computadas, suma acumulada de notas = ${sumaNotas.toFixed(2)})
+- Promedio general actual: ${promedio} (${notasAprobadasDetalle.length} materias con nota computadas, suma acumulada de notas = ${sumaNotas.toFixed(2)})
 - Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre} (${n.año}° año): ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
 - Aprobadas: ${aprobadas.length}
 - Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
@@ -505,6 +542,93 @@ export async function buildStudentContext(
             .map((a) => `- ${a.achievements?.nombre || a.achievement_id}: ${a.achievements?.descripcion || "Desbloqueado"}`)
             .join("\n");
         }
+
+        // 12. Professors & Consultas
+        const professorsList: any[] = profsListRes?.status === "fulfilled" && Array.isArray(profsListRes.value?.data) ? profsListRes.value.data : [];
+        const officeHoursList: any[] = hoursListRes?.status === "fulfilled" && Array.isArray(hoursListRes.value?.data) ? hoursListRes.value.data : [];
+        if (professorsList.length > 0) {
+          professorsSection = professorsList.map((p) => {
+            const subjectName = p.subject_id && subjectNameById[p.subject_id] ? ` [Materia: ${subjectNameById[p.subject_id]}]` : "";
+            const hours = officeHoursList.filter((h) => h.professor_id === p.id);
+            const hoursStr = hours.length > 0
+              ? hours.map((h) => `${h.dia} de ${h.hora_inicio} a ${h.hora_fin}`).join(", ")
+              : "Sin horarios de consulta especificados";
+            const desc = p.descripcion ? ` (Notas: ${p.descripcion})` : "";
+            return `- ${p.nombre} (${p.rol || "Docente"})${subjectName}: Consultas ${hoursStr}${desc}`;
+          }).join("\n");
+        }
+
+        // 13. Friends / Compañeros de estudio
+        const friendshipsList: any[] = friendsListRes?.status === "fulfilled" && Array.isArray(friendsListRes.value?.data) ? friendsListRes.value.data : [];
+        if (friendshipsList.length > 0) {
+          const friendUserIds = friendshipsList.map(f => f.requester_id === userId ? f.addressee_id : f.requester_id).filter(Boolean);
+          if (friendUserIds.length > 0) {
+            try {
+              const { data: friendProfiles } = await (supabase as any)
+                .from("public_profiles")
+                .select("user_id, nombre, username, carrera")
+                .in("user_id", friendUserIds.slice(0, 15));
+              if (friendProfiles && friendProfiles.length > 0) {
+                friendsSection = friendProfiles.map((fp: any) => {
+                  const c = fp.carrera ? ` - ${fp.carrera}` : "";
+                  return `- ${fp.nombre || fp.username || "Compañero"} (@${fp.username || "usuario"}${c}): Amigo y compañero de estudio en TABE`;
+                }).join("\n");
+              } else {
+                friendsSection = `- ${friendUserIds.length} amigos y compañeros de estudio agregados en TABE.`;
+              }
+            } catch {
+              friendsSection = `- ${friendUserIds.length} amigos agregados en la app.`;
+            }
+          }
+        }
+
+        // 14. Discord Servers, Foros y Mensajes de Grupos
+        const discordMembersList: any[] = discordListRes?.status === "fulfilled" && Array.isArray(discordListRes.value?.data) ? discordListRes.value.data : [];
+        if (discordMembersList.length > 0) {
+          const serverIds = discordMembersList.map(m => m.server_id).filter(Boolean);
+          try {
+            const { data: channels } = await (supabase as any)
+              .from("discord_channels")
+              .select("id, server_id, name, type")
+              .in("server_id", serverIds.slice(0, 6))
+              .eq("type", "text")
+              .limit(15);
+            
+            if (channels && channels.length > 0) {
+              const channelIds = channels.map((c: any) => c.id);
+              const { data: recentMsgs } = await (supabase as any)
+                .from("discord_messages")
+                .select("id, channel_id, user_id, content, created_at")
+                .in("channel_id", channelIds)
+                .order("created_at", { ascending: false })
+                .limit(25);
+
+              if (recentMsgs && recentMsgs.length > 0) {
+                const authorIds = [...new Set(recentMsgs.map((m: any) => m.user_id))];
+                const { data: authorProfiles } = await (supabase as any)
+                  .from("public_profiles")
+                  .select("user_id, nombre, username")
+                  .in("user_id", authorIds);
+                const authorMap = new Map((authorProfiles || []).map((a: any) => [a.user_id, a.nombre || a.username || "Compañero"]));
+                const channelMap = new Map(channels.map((c: any) => [c.id, c.name]));
+
+                const msgLines = recentMsgs.map((m: any) => {
+                  const chName = channelMap.get(m.channel_id) || "general";
+                  const author = authorMap.get(m.user_id) || (m.user_id === userId ? "Tú" : "Compañero");
+                  const dateStr = m.created_at ? m.created_at.split("T")[0] : "";
+                  return `  • [#${chName}] ${author} (${dateStr}): "${m.content.slice(0, 180)}"`;
+                });
+                discordSection = `Mensajes y conversaciones recientes en grupos de estudio / foros:\n${msgLines.join("\n")}`;
+              } else {
+                discordSection = `Perteneces a ${serverIds.length} grupos de estudio con canales: ${channels.map((c: any) => '#' + c.name).join(", ")}. Aún sin mensajes recientes.`;
+              }
+            } else {
+              discordSection = `Perteneces a ${serverIds.length} servidores/grupos de estudio universitarios.`;
+            }
+          } catch {
+            discordSection = `Grupos de estudio activos en la plataforma.`;
+          }
+        }
       }
     } catch {
       // Graceful fallback
@@ -560,32 +684,60 @@ ${sessionsSection}
 [11. LOGROS DESBLOQUEADOS]
 ${achievementsSection}
 
-DIRECTIVAS CRÍTICAS DE RESPUESTA:
+[12. PROFESORES Y HORARIOS DE CONSULTA]
+${professorsSection}
+
+[13. GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES (CHATS / CANALES)]
+${discordSection}
+
+[14. COMPAÑEROS DE ESTUDIO Y AMIGOS]
+${friendsSection}
+
+DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 1. NUNCA digas que no tenés acceso a los datos del estudiante: tenés el 100% de su información universitaria arriba. Responde siempre con precisión utilizando estos datos reales.
 2. Da DIRECTAMENTE la respuesta final al estudiante en español rioplatense (argentino), con calidez, cercanía y motivación (che, genial, dale, impecable).
-3. NUNCA expongas tu proceso de razonamiento en inglés ("The user asks...", "Let's produce..."). Empezá de inmediato con la respuesta al usuario.
-4. ${powerLevel === "bajo" ? "Responde con máxima concisión y al grano." : "Explica detalladamente cuando te lo pidan."} Podés usar KaTeX para fórmulas matemáticas ($x^2$, $\\frac{a}{b}$) y bloques de código con resaltado.
-5. Si el usuario te pide expresamente agendar un examen o evento, dale una confirmación amigable e incluí al final el bloque:
+3. ORDEN Y FORMATO ESTRUCTURADO OBLIGATORIO:
+   - Responde SIEMPRE con formato Markdown prolijo, limpio y ordenado.
+   - NUNCA amontones listas, materias ni viñetas en un solo párrafo continuo ni en una sola línea separada por comas.
+   - Para datos académicos (promedio, progreso, materias, notas, exámenes):
+     * Usá SIEMPRE viñetas de Markdown ("- ") en líneas separadas e independientes.
+     * Dejá siempre un salto de línea doble entre párrafos, títulos y listas.
+     * Agrupá las materias por año (ej: 1° Año, 2° Año) con sub-viñetas y resaltá siempre las notas numéricas en negrita (ej: "- Análisis Matemático I: **8.00**").
+4. NUNCA expongas tu proceso de razonamiento en inglés ("The user asks...", "Let's produce..."). Empezá de inmediato con la respuesta al usuario.
+5. ${powerLevel === "bajo" ? "Responde con máxima concisión y al grano." : "Explica detalladamente cuando te lo pidan."} Podés usar KaTeX para fórmulas matemáticas ($x^2$, $\\frac{a}{b}$) y bloques de código con resaltado.
+6. Si el usuario te pide expresamente agendar un examen o evento, dale una confirmación amigable e incluí al final el bloque:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-6. Si el usuario te pide crear flashcards para estudiar un tema o a partir de un archivo (PDF, texto, imagen), genera EXACTAMENTE la cantidad solicitada (ej: 10, 15, 20, 25, 30 tarjetas) analizando a fondo todo el material adjunto e incluí al final el bloque:
+7. Si el usuario te pide crear flashcards para estudiar un tema o a partir de un archivo (PDF, texto, imagen), genera EXACTAMENTE la cantidad solicitada (ej: 10, 15, 20, 25, 30 tarjetas) analizando a fondo todo el material adjunto e incluí al final el bloque:
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-7. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto), genera EXACTAMENTE la cantidad de preguntas solicitada (si pide 10, hacé 10; si pide 15, hacé 15; si no especifica cantidad, genera al menos 10 preguntas pedagógicas con 4-5 opciones múltiples) y guardá el mazo en su cuenta incluyendo al final:
+8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto), genera EXACTAMENTE la cantidad de preguntas solicitada (si pide 10, hacé 10; si pide 15, hacé 15; si no especifica cantidad, genera al menos 10 preguntas pedagógicas con 4-5 opciones múltiples) y guardá el mazo en su cuenta incluyendo al final:
 \`\`\`tabe-action:quiz
 {"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
-8. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas'), indicale de forma clara y directa su promedio general exacto (formato con dos decimales como 7.85) según los datos del [2. RESUMEN ACADÉMICO GENERAL] y detallale las materias aprobadas con sus notas. Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
-9. GENERACIÓN DE IMÁGENES O ILUSTRACIONES (MODELO FLUX): Si el usuario solicita generar, dibujar, ilustrar o crear una imagen/diagrama (o si el mensaje inicia con [Modo Imagen / Generación Visual]):
+9. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas', 'situación académica'):
+   - Presentalo de manera estructurada, limpia y visualmente ordenada con viñetas Markdown:
+     * 📊 **Tu situación académica actual:**
+     * - **Promedio general actual:** **[promedio]** ([X] materias computadas)
+     * - **Progreso de carrera:** [X]/[Total] materias aprobadas ([pct]%)
+     * - **Materias aprobadas con nota:** listadas ordenadamente con sub-viñetas ("  - Nombre (X° año): **Nota**").
+   - Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
+10. GENERACIÓN DE IMÁGENES O ILUSTRACIONES (MODELO FLUX): Si el usuario solicita generar, dibujar, ilustrar o crear una imagen/diagrama (o si el mensaje inicia con [Modo Imagen / Generación Visual]):
 - Traduce y enriquece el prompt a inglés cinematográfico/profesional de alta calidad (ej: "photorealistic, 8k, highly detailed, dramatic lighting, clean sharp focus" o "modern minimalist vector graphic, clean lines, high resolution").
 - Usa EXCLUSIVAMENTE el motor Flux sin marca de agua (\`model=flux&nologo=true&enhance=true\`):
 \`![Descripción en español](https://image.pollinations.ai/prompt/{prompt_en_ingles_detallado}?model=flux&width=1024&height=1024&seed={numero_aleatorio}&nologo=true&enhance=true)\`
 - Donde {prompt_en_ingles_detallado} esté completamente codificado con \`%20\` sin espacios y {numero_aleatorio} sea un entero entre 1000 y 999999.
 - Acompaña SIEMPRE la imagen con un texto breve explicativo o académico en español.
-10. RESÚMENES DE CLASES Y AUDIOS: Si el estudiante te comparte un audio, grabación o transcripción de clase para resumir, genera un resumen estructurado didáctico con: Puntos Clave, Conceptos y Definiciones Importantes, y Fechas/Entregas/Exámenes Mencionados (destacados con ⚠️).
-11. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción innecesarios.`;
+11. RESÚMENES DE CLASES Y AUDIOS: Si el estudiante te comparte un audio, grabación o transcripción de clase para resumir, genera un resumen estructurado didáctico con: Puntos Clave, Conceptos y Definiciones Importantes, y Fechas/Entregas/Exámenes Mencionados (destacados con ⚠️).
+12. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción innecesarios.
+13. ACCESO A INTERACCIONES, PROFESORES Y GRUPOS DE ESTUDIO (FOROS Y CHATS):
+    Tenes acceso total a los profesores del estudiante, sus horarios de consulta/atención, a sus amigos/compañeros y a los mensajes o foros de sus grupos de estudio (canales de Discord/chat) detallados arriba en las secciones [12], [13] y [14].
+    - Si el estudiante te consulta sobre sus profesores ("cuándo atiende el profe", "a qué hora es la consulta de...", "qué horario tiene el profesor X", "qué rol tiene el profe"): responde con los datos reales de [12. PROFESORES Y HORARIOS DE CONSULTA].
+    - Si te consulta sobre mensajes, chats, foros o preguntas de sus compañeros ("qué preguntaron en el grupo", "qué hablaron en el chat de Álgebra", "recordame mensajes importantes de profes/ayudantes", "qué dudas tienen mis compañeros", "respondeme las dudas frecuentes que dejaron en el foro"): responde basándote en los mensajes reales de [13. GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES], sintetizando dudas, respondiéndolas o destacando avisos clave.
+    - Si te pide ayuda para organizar grupos de estudio ("ayudame a armar un grupo de estudio", "con quién puedo estudiar", "quién cursa conmigo"): apóyate en sus compañeros de [14. COMPAÑEROS DE ESTUDIO Y AMIGOS] y los canales existentes para sugerir temas, coordinar sesiones en común y aprovechar las consultas de los profesores.
+    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
@@ -787,20 +939,60 @@ export async function streamAIChat(params: {
     return false;
   };
 
-  // Tier 1: Supabase Edge Function (ai-assistant-stream with Groq Llama/Qwen & Gemini)
-  success = await runTier((delta) =>
-    streamFromLocal({
-      messages,
-      systemPrompt,
-      onDelta: delta,
-      requestedModelId: "tabe-ai",
-      requestedProvider: "local",
-      powerLevel,
-      image,
-    })
-  );
+  // Para voz en vivo y respuestas de ultra baja latencia (powerLevel === "bajo"), priorizar NVIDIA proxy directo
+  if (powerLevel === "bajo" && !image) {
+    const candidateModels = NVIDIA_MODELS_PRIORITY.bajo;
+    for (const nvModel of candidateModels) {
+      success = await runTier((delta) =>
+        streamFromNvidiaProxy({
+          modelId: nvModel,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: delta,
+        })
+      );
+      if (success) {
+        break;
+      }
+    }
+  }
 
-  // Tier 2: Google Gemini (if client key available)
+  // Tier 1: Supabase Edge Function (ai-assistant-stream with Groq Llama/Qwen & Gemini)
+  if (!success) {
+    success = await runTier((delta) =>
+      streamFromLocal({
+        messages,
+        systemPrompt,
+        onDelta: delta,
+        requestedModelId: "tabe-ai",
+        requestedProvider: "local",
+        powerLevel,
+        image,
+      })
+    );
+  }
+
+  // Tier 2: Clúster NVIDIA NIM (si no se ejecutó previamente)
+  if (!success && !image && powerLevel !== "bajo") {
+    const candidateModels = NVIDIA_MODELS_PRIORITY[powerLevel] || NVIDIA_MODELS_PRIORITY.medio;
+    for (const nvModel of candidateModels) {
+      success = await runTier((delta) =>
+        streamFromNvidiaProxy({
+          modelId: nvModel,
+          systemPrompt,
+          messages,
+          powerLevel,
+          onDelta: delta,
+        })
+      );
+      if (success) {
+        break;
+      }
+    }
+  }
+
+  // Tier 3: Google Gemini (if client key available)
   if (!success && GEMINI_API_KEY) {
     for (const gModel of ["gemini-2.5-flash", "gemini-1.5-flash"]) {
       success = await runTier((delta) =>
@@ -862,6 +1054,93 @@ export async function streamAIChat(params: {
     });
   } catch {
     onComplete({ content: finalContent });
+  }
+}
+
+/**
+ * Streaming directo a través del clúster NVIDIA NIM (/api/nvidia-ai)
+ * Accede a los más de 80 modelos con conmutación por error y velocidad optimizada.
+ */
+async function streamFromNvidiaProxy(opts: {
+  modelId: string;
+  systemPrompt?: string;
+  messages: Array<{ role: string; content: string }>;
+  powerLevel: PowerEffort;
+  onDelta: (text: string) => void;
+}): Promise<boolean> {
+  const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const bearer = session?.access_token ? `Bearer ${session.access_token}` : "";
+    if (!bearer) return false;
+
+    const formattedMessages = [
+      ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+      ...messages,
+    ];
+
+    const temperature = powerLevel === "bajo" ? 0.2 : powerLevel === "alto" ? 0.35 : 0.25;
+    const maxTokens = powerLevel === "bajo" ? 180 : 4096;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), powerLevel === "bajo" ? 6000 : 12000);
+
+    const response = await fetch("/api/nvidia-ai", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: formattedMessages,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+      }),
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok || !response.body) {
+      return false;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let receivedContent = false;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(payload);
+          const chunk = parsed.choices?.[0]?.delta?.content || "";
+          if (chunk) {
+            receivedContent = true;
+            onDelta(chunk);
+          }
+        } catch {
+          // ignore non-json keepalives
+        }
+      }
+    }
+    return receivedContent;
+  } catch (err) {
+    console.warn(`[NVIDIA NIM Proxy] Error al contactar con ${modelId}:`, err);
+    return false;
   }
 }
 
@@ -1088,7 +1367,8 @@ async function streamFromOfflineLocal(opts: {
     return m ? m[1].trim() : null;
   };
 
-  const promedioActual = extractFromPrompt("Promedio general actual") || extractFromPrompt("Promedio general") || extractFromPrompt("Promedio General");
+  const rawPromedio = extractFromPrompt("Promedio general actual") || extractFromPrompt("Promedio general") || extractFromPrompt("Promedio General");
+  const promedioActual = rawPromedio ? rawPromedio.replace(/^\(materias aprobadas\):?\s*/i, "").trim() : null;
   const detalleNotas = extractFromPrompt("Detalle de notas aprobadas") || extractFromPrompt("Detalle de materias aprobadas y notas");
   const materiasAprobadasCount = extractFromPrompt("Aprobadas");
   const progresoCarrera = extractFromPrompt("Progreso de carrera") || extractFromPrompt("Progreso");
@@ -1111,18 +1391,30 @@ async function streamFromOfflineLocal(opts: {
 
     if (promedioActual) {
       content = `📊 **Tu situación académica actual:**\n\n`;
-      content += `• **Promedio general actual:** **${promedioActual}**\n`;
-      if (progresoCarrera) content += `• **Progreso de carrera:** ${progresoCarrera}\n`;
+      content += `- **Promedio general actual:** **${promedioActual}**\n`;
+      if (progresoCarrera) content += `- **Progreso de carrera:** ${progresoCarrera}\n`;
       if (detalleNotas && !detalleNotas.toLowerCase().includes("ninguna")) {
-        content += `• **Materias aprobadas con nota:** ${detalleNotas}\n\n`;
+        const materias = detalleNotas
+          .split(/,\s*(?=[A-ZÁÉÍÓÚÑa-záéíóúñ\d\s\-/+]+(?:\([^)]+\))?:\s*\d)/)
+          .map((m) => m.trim())
+          .filter(Boolean);
+
+        if (materias.length > 0) {
+          content += `- **Materias aprobadas con nota:**\n`;
+          materias.forEach((m) => {
+            const formatted = m.replace(/:\s*(\d+(?:[.,]\d+)?)/, ": **$1**");
+            content += `  - ${formatted}\n`;
+          });
+          content += `\n`;
+        }
       }
 
       if (targetAvg && targetAvg >= 4 && targetAvg <= 10) {
-        content += `🎯 **Para alcanzar un promedio de ${targetAvg.toFixed(2)}:**\n`;
+        content += `🎯 **Para alcanzar un promedio de ${targetAvg.toFixed(2)}:**\n\n`;
         if (pendientesDesglose) {
-          content += `• **Materias pendientes por cursar/aprobar:** ${pendientesDesglose}\n`;
+          content += `- **Materias pendientes por cursar/aprobar:** ${pendientesDesglose}\n`;
         }
-        content += `• Si mantenés un rendimiento superior a **${targetAvg.toFixed(2)}** en las próximas materias (promediando entre **${Math.min(10, Math.max(targetAvg, 8)).toFixed(1)}** y **${Math.min(10, targetAvg + 0.5).toFixed(1)}**), tu promedio subirá de forma sostenida.\n\n`;
+        content += `- Si mantenés un rendimiento superior a **${targetAvg.toFixed(2)}** en las próximas materias (promediando entre **${Math.min(10, Math.max(targetAvg, 8)).toFixed(1)}** y **${Math.min(10, targetAvg + 0.5).toFixed(1)}**), tu promedio subirá de forma sostenida.\n\n`;
       }
       content += `¡Vas con buen ritmo! Si querés que analicemos una materia o final en específico, decime y lo vemos juntos.`;
     } else {

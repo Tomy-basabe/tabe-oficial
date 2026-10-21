@@ -22,7 +22,7 @@ import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
 import { ModelSelector } from "@/components/ai/ModelSelector";
 import { ModelLogo } from "@/components/icons/ModelLogos";
 import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
-import { AVAILABLE_AI_MODELS, AITask } from "@/config/aiModels";
+import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AIPromptBar } from "@/components/ai/AIPromptBar";
@@ -30,6 +30,9 @@ import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import { ChatMessageContent } from "@/components/ai/ChatMessage";
 import { HoldButton } from "@/components/ui/HoldButton";
+import { ParticleTitle } from "@/components/ui/particle-title";
+import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -217,150 +220,33 @@ export default function AIAssistant() {
   const isWelcomeScreen =
     messages.length === 0 ||
     (messages.length === 1 && Boolean(messages[0]?.id?.startsWith("init")));
-  const showAvatarVideo = showLiveVoice || isWelcomeScreen;
+  const isTurnLockedRef = useRef(false);
+  const postSpeechCooldownTimerRef = useRef<any>(null);
 
-  // ── 3D Avatar Video Controller (Intro, Rebobinado t->0, Loop y Cierre continuo) ──
-  const avatarIntroRef = useRef<HTMLVideoElement>(null);
-  const avatarIntroRevRef = useRef<HTMLVideoElement>(null);
-  const avatarLoopRef = useRef<HTMLVideoElement>(null);
-  const avatarOutroRef = useRef<HTMLVideoElement>(null);
-  const [avatarStage, setAvatarStage] = useState<"idle" | "intro" | "intro-reversing" | "loop" | "closing-from-loop">("idle");
+  const [welcomeIntroVisible, setWelcomeIntroVisible] = useState(true);
+  const [welcomeContentReady, setWelcomeContentReady] = useState(false);
 
-  // Precalentamiento de decodificadores de hardware
   useEffect(() => {
-    [avatarIntroRef, avatarIntroRevRef, avatarLoopRef, avatarOutroRef].forEach((ref) => {
-      if (ref.current) {
-        ref.current.load();
-      }
-    });
+    // Al entrar en la app aparece únicamente "¿Qué quieres aprender hoy?" centrado.
+    // Tras 2.4s se disuelve suavemente y revela fluidamente el resto de la interfaz.
+    const t1 = setTimeout(() => {
+      setWelcomeIntroVisible(false);
+    }, 2400);
+
+    const t2 = setTimeout(() => {
+      setWelcomeContentReady(true);
+    }, 2900);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
-  // Pausar reproducción cuando el avatar no esté visible para ahorrar GPU/recursos
-  useEffect(() => {
-    if (!showAvatarVideo) {
-      [avatarIntroRef, avatarIntroRevRef, avatarLoopRef, avatarOutroRef].forEach((ref) => {
-        if (ref.current && !ref.current.paused) {
-          ref.current.pause();
-        }
-      });
-    }
-  }, [showAvatarVideo]);
-
-  useEffect(() => {
-    const intro = avatarIntroRef.current;
-    const introRev = avatarIntroRevRef.current;
-    const loop = avatarLoopRef.current;
-    const outro = avatarOutroRef.current;
-
-    if (showLiveVoice) {
-      // Activar voz en vivo: arranca la intro hacia adelante desde 0s
-      if (introRev) introRev.pause();
-      if (loop) loop.pause();
-      if (outro) outro.pause();
-      if (intro) {
-        intro.currentTime = 0;
-        intro.play().then(() => {
-          setAvatarStage("intro");
-        }).catch(() => {
-          setAvatarStage("intro");
-        });
-      }
-    } else {
-      // Cancelar / Finalizar voz en vivo
-      if (avatarStage === "intro") {
-        // CASO 1: Cancelado antes de llegar al bucle (ej: seg 3 -> vuelve de 3 a 0)
-        const t = intro ? intro.currentTime : 0;
-        if (intro) intro.pause();
-        if (t > 0.15 && introRev) {
-          // intro-rev dura 4.04s. Al segundo t le corresponde (4.04 - t)
-          const revStart = Math.min(3.95, Math.max(0, 4.04 - t));
-          introRev.currentTime = revStart;
-          // Esperar a que el fotograma esté pintado (seeked) antes de conmutar para cero saltos
-          const onSeeked = () => {
-            introRev.play().catch(() => {});
-            setAvatarStage("intro-reversing");
-          };
-          introRev.addEventListener("seeked", onSeeked, { once: true });
-        } else {
-          setAvatarStage("idle");
-          if (intro) intro.currentTime = 0;
-        }
-      } else if (avatarStage === "loop") {
-        // CASO 2: Cancelado en el bucle -> continúa desde ese segundo cancelado hasta el final (10s)
-        const loopTime = loop ? loop.currentTime : 0;
-        if (loop) loop.pause();
-        // tabe-voice-pingpong dura ~3.54s: 0 a 1.77s (ida 4.0 a 5.75), 1.77 a 3.54s (vuelta 5.75 a 4.0)
-        let equivTime = 4.0;
-        if (loopTime <= 1.77) {
-          equivTime = 4.0 + loopTime;
-        } else {
-          equivTime = 5.75 - (loopTime - 1.77);
-        }
-        equivTime = Math.min(5.75, Math.max(4.0, equivTime));
-
-        if (outro) {
-          outro.currentTime = equivTime;
-          // Esperar a que el decodificador de GPU tenga el fotograma listo
-          const onSeeked = () => {
-            outro.play().catch(() => {});
-            setAvatarStage("closing-from-loop");
-          };
-          outro.addEventListener("seeked", onSeeked, { once: true });
-        } else {
-          setAvatarStage("idle");
-        }
-      } else if (avatarStage === "intro-reversing" || avatarStage === "closing-from-loop") {
-        // Ya está en animación de salida fluida, dejar que termine
-      } else {
-        setAvatarStage("idle");
-        if (intro) { intro.pause(); intro.currentTime = 0; }
-        if (introRev) introRev.pause();
-        if (loop) loop.pause();
-        if (outro) outro.pause();
-      }
-    }
-  }, [showLiveVoice]);
-
-  const handleIntroEnded = () => {
-    if (showLiveVoice) {
-      const loop = avatarLoopRef.current;
-      if (loop) {
-        loop.currentTime = 0;
-        loop.play().then(() => {
-          setAvatarStage("loop");
-        }).catch(() => {
-          setAvatarStage("loop");
-        });
-      } else {
-        setAvatarStage("loop");
-      }
-    } else {
-      setAvatarStage("idle");
-    }
-  };
-
-  const handleIntroRevEnded = () => {
-    // Al terminar el rebobinado suave de t a 0, queda en reposo
-    setAvatarStage("idle");
-    const intro = avatarIntroRef.current;
-    if (intro) {
-      intro.currentTime = 0;
-      intro.pause();
-    }
-  };
-
-  const handleOutroEnded = () => {
-    // Al terminar de reproducirse hasta el segundo 10 final, queda en reposo
-    setAvatarStage("idle");
-    const intro = avatarIntroRef.current;
-    if (intro) {
-      intro.currentTime = 0;
-      intro.pause();
-    }
-  };
-
-
-
+  const dismissWelcomeIntro = useCallback(() => {
+    setWelcomeIntroVisible(false);
+    setWelcomeContentReady(true);
+  }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -1196,109 +1082,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
   }
 
   return (
-    <div
-      className="flex h-[100dvh] w-full overflow-hidden relative bg-white"
-      style={{
-        backgroundColor: "#FFFFFF",
-      }}
-    >
-      {/* ── 3D AVATAR BACKGROUND VIDEO CON FONDO BLANCO Y ENCUADRE NÍTIDO ──────────────────────── */}
-      <div
-        className={cn(
-          "fixed inset-0 w-full h-full pointer-events-none z-0 flex items-center justify-center overflow-hidden bg-white transition-opacity duration-300",
-          showAvatarVideo ? "opacity-100" : "opacity-0 invisible pointer-events-none"
-        )}
-        style={{
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <div className="relative w-full max-w-4xl aspect-video flex items-center justify-center">
-          {/* 1. Intro Video (0s a 4.00s) / Reposo en frame 0 */}
-          <video
-            ref={avatarIntroRef}
-            src="/videos/tabe-voice-intro.mp4"
-            muted
-            playsInline
-            preload="auto"
-            controls={false}
-            onEnded={handleIntroEnded}
-            style={{
-              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-            }}
-            className={cn(
-              "absolute inset-0 w-full h-full object-contain",
-              avatarStage === "intro" || avatarStage === "idle"
-                ? "opacity-100 z-10"
-                : "opacity-0 pointer-events-none z-0"
-            )}
-          />
-
-          {/* 2. Intro Reverse Video (Rebobinado fluido de t a 0s si cancela en intro) */}
-          <video
-            ref={avatarIntroRevRef}
-            src="/videos/tabe-voice-intro-rev.mp4"
-            muted
-            playsInline
-            preload="auto"
-            controls={false}
-            onEnded={handleIntroRevEnded}
-            style={{
-              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-            }}
-            className={cn(
-              "absolute inset-0 w-full h-full object-contain",
-              avatarStage === "intro-reversing"
-                ? "opacity-100 z-10"
-                : "opacity-0 pointer-events-none z-0"
-            )}
-          />
-
-          {/* 3. Bucle Ping-Pong continuo por GPU (00.04 a 00.05 18f simétrico) */}
-          <video
-            ref={avatarLoopRef}
-            src="/videos/tabe-voice-pingpong.mp4"
-            muted
-            playsInline
-            loop
-            preload="auto"
-            controls={false}
-            style={{
-              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-            }}
-            className={cn(
-              "absolute inset-0 w-full h-full object-contain",
-              avatarStage === "loop"
-                ? "opacity-100 z-10"
-                : "opacity-0 pointer-events-none z-0"
-            )}
-          />
-
-          {/* 4. Video Completo Outro (continúa desde el frame exacto cancelado en el bucle hasta el final) */}
-          <video
-            ref={avatarOutroRef}
-            src="/videos/tabe-voice-avatar.mp4"
-            muted
-            playsInline
-            preload="auto"
-            controls={false}
-            onEnded={handleOutroEnded}
-            style={{
-              maskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-              WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 50%, black 45%, transparent 92%)",
-            }}
-            className={cn(
-              "absolute inset-0 w-full h-full object-contain",
-              avatarStage === "closing-from-loop"
-                ? "opacity-100 z-10"
-                : "opacity-0 pointer-events-none z-0"
-            )}
-          />
-        </div>
-      </div>
-
+    <div className="flex h-[100dvh] w-full overflow-hidden relative bg-background text-foreground">
       <PersonaSidebar
         personas={personas}
         activePersona={activePersona}
@@ -1349,18 +1133,28 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
         onClick={() => setIsSidebarOpen(false)}
       />
 
+      {/* Input de archivo persistente en el DOM (disponible tanto en inicio como en chat) */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        className="hidden"
+        accept=".pdf,.txt,.md,image/*,audio/*"
+      />
+
       <div className="flex-1 flex flex-col h-full min-w-0 relative z-10">
 
-        {/* ── HEADER ASTRA AI STYLE ──────────────────────── */}
-        <header className="shrink-0 px-3 py-2 md:px-6 md:py-2.5 border-b-2 border-foreground bg-card/95 backdrop-blur-md flex items-center justify-between gap-2 z-20">
+        {/* ── HEADER NOTION/GPT STYLE ──────────────────────── */}
+        <header className="shrink-0 px-3 py-2 md:px-6 md:py-2.5 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between gap-2 z-20">
           {/* Left: Back + TABE AI Brand */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
             <Link
               to="/dashboard"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-foreground flex items-center justify-center shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-transform active:scale-95"
+              className="group inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-2xs hover:shadow-xs select-none"
               title="Volver al Dashboard"
             >
-              <ArrowLeft className="w-4 h-4 md:w-4.5 md:h-4.5" />
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-muted-foreground group-hover:text-foreground" />
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
 
             <button
@@ -1368,7 +1162,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
               className="flex items-center gap-1.5 cursor-pointer text-left group"
               title="Nuevo chat"
             >
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-card border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-card border border-border flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
                 {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
                   <span className="leading-none text-base">{activePersona.avatar_emoji}</span>
                 ) : (
@@ -1376,10 +1170,10 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <span className="font-black text-sm md:text-base tracking-tight uppercase text-foreground">
+                <span className="font-semibold text-sm md:text-base tracking-tight text-foreground">
                   TABE
                 </span>
-                <span className="text-[10px] font-black uppercase bg-[#FFE600] text-black px-1.5 py-0.5 rounded-md border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+                <span className="text-[10px] uppercase bg-foreground/10 text-foreground px-1.5 py-0.5 rounded-md font-semibold border border-foreground/15">
                   AI
                 </span>
               </div>
@@ -1387,38 +1181,31 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
           </div>
 
           {/* Center: Segmented Navigation Pill (PREGUNTAR | EXÁMENES | APPS) */}
-          <nav className="flex items-center bg-background border-2 border-foreground rounded-full p-1 shadow-[2px_2px_0_0_hsl(var(--foreground))] text-xs font-black uppercase">
-            {/* Tab: Preguntar */}
+          <nav className="flex items-center bg-muted/60 border border-border/50 rounded-full p-0.5 text-xs font-medium">
             <button
-              onClick={() => {
-                if (messages.length > 1) {
-                  // Ya estamos en preguntar
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-foreground text-background shadow-xs transition-all cursor-pointer"
+              onClick={() => {}}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background text-foreground shadow-2xs font-semibold transition-all cursor-pointer"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="text-[11px] md:text-xs tracking-wider">Preguntar</span>
+              <MessageSquare className="w-3 h-3" />
+              <span>Chat</span>
             </button>
 
-            {/* Tab: Exámenes -> redirects to /tabe-ai/examenes */}
             <Link
               to="/tabe-ai/examenes"
-              className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-foreground hover:bg-muted transition-all cursor-pointer group"
-              title="Ir a Rutas de Estudio Gamificadas por Niveles"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="Rutas de estudio y exámenes"
             >
-              <Target className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] md:text-xs tracking-wider">Exámenes</span>
+              <Target className="w-3 h-3" />
+              <span>Exámenes</span>
             </Link>
 
-            {/* Tab: Apps / Historial */}
             <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-foreground hover:bg-muted transition-all cursor-pointer"
-              title="Personalidades y Chats Anteriores"
+              onClick={startLiveVoiceSession}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="Voz en vivo"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline text-[11px] md:text-xs tracking-wider">Apps</span>
+              <Mic className="w-3 h-3 text-primary" />
+              <span className="hidden xs:inline">Voz</span>
             </button>
           </nav>
 
@@ -1427,7 +1214,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
             {/* Apuntes Online Pill */}
             <Link
               to="/apuntes"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFE600] hover:bg-[#ffe100] text-black border-2 border-foreground text-[10px] md:text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 hover:bg-muted text-foreground border border-border text-[11px] font-medium transition-all"
               title="Ir a Apuntes Online"
             >
               <BookOpen className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1436,7 +1223,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
 
             {/* Racha de estudio */}
             <div
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-card border-2 border-foreground text-[10px] md:text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted/60 border border-border text-[11px] font-semibold text-foreground"
               title={`Racha de estudio: ${userStats?.racha_actual || 0} días`}
             >
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -1457,7 +1244,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                 doneIcon={<Check className="w-3.5 h-3.5 text-white" />}
                 doneLabel=""
                 onHold={() => handleDeleteSession(currentSessionId)}
-                className="border-2 border-foreground rounded-xl shrink-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                className="border border-border/60 rounded-xl shrink-0 hover:bg-muted/60 transition-colors"
                 title="Mantené presionado para borrar este chat"
               />
             )}
@@ -1465,7 +1252,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
             {/* User Avatar */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="w-8 h-8 rounded-full border-2 border-foreground bg-[#FFE600] text-black font-black flex items-center justify-center text-xs shadow-[2px_2px_0_0_hsl(var(--foreground))] cursor-pointer overflow-hidden hover:scale-105 transition-transform"
+              className="w-8 h-8 rounded-full border border-border bg-muted text-foreground font-semibold flex items-center justify-center text-xs cursor-pointer overflow-hidden hover:scale-105 transition-transform"
               title="Abrir menú y perfil"
             >
               {user?.user_metadata?.avatar_url ? (
@@ -1487,57 +1274,168 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
           )}
         >
           {showLiveVoice ? (
-            /* Modo Voz en Vivo: Video limpio de TABE + Controles flotantes en la parte inferior */
-            <div className="absolute inset-0 flex flex-col justify-end items-center z-20 px-4 pb-8 sm:pb-10 pointer-events-none">
-              {/* Subtítulo dinámico / estado de voz discreto flotante en la parte inferior */}
-              <div className="mb-4 text-center max-w-md px-4 pointer-events-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {isAiSpeaking ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-md backdrop-blur-md animate-pulse">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>TABE AI está hablando...</span>
-                  </div>
-                ) : isAiThinking ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 border-2 border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-black shadow-md backdrop-blur-md animate-pulse">
-                    <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
-                    <span>Pensando respuesta...</span>
-                  </div>
-                ) : liveTranscript ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/80 text-white text-xs sm:text-sm font-bold shadow-lg backdrop-blur-md max-w-sm text-center border-2 border-white/20">
-                    <span>"{liveTranscript}"</span>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 border-2 border-foreground/30 text-foreground text-xs sm:text-sm font-bold shadow-md backdrop-blur-md">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span>Te escucho, habla cuando quieras</span>
-                  </div>
-                )}
+            /* Modo Voz en Vivo: VoicePoweredOrb WebGL + Controles flotantes Apple/ChatGPT */
+            <div className="absolute inset-0 flex flex-col justify-between items-center z-20 px-4 py-8 bg-background/95 backdrop-blur-2xl animate-in fade-in duration-300">
+              {/* Header de sesión de voz */}
+              <div className="w-full max-w-md flex items-center justify-between px-3 pt-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-semibold tracking-tight text-foreground uppercase">
+                    TABE AI · Voz en vivo
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-full border border-border/40">
+                  Audio Interactivo
+                </span>
               </div>
 
-              {/* Botón CUADRADO para finalizar la conversación */}
-              <div className="pointer-events-auto flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              {/* Centro: Orbe visualizador 3D reactivo a la voz */}
+              <div className="flex-1 w-full flex flex-col items-center justify-center relative my-2">
+                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center">
+                  <VoicePoweredOrb
+                    className="w-full h-full"
+                    hue={isAiSpeaking ? 160 : isAiThinking ? 45 : 210}
+                    enableVoiceControl={true}
+                    voiceSensitivity={1.3}
+                    maxRotationSpeed={isAiSpeaking ? 1.5 : 0.8}
+                    maxHoverIntensity={isAiSpeaking ? 0.9 : 0.5}
+                  />
+                </div>
+
+                {/* Subtítulo dinámico / estado de voz */}
+                <div className="mt-4 text-center max-w-md px-4 min-h-[44px] flex items-center justify-center">
+                  {isAiSpeaking ? (
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-medium animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <span>TABE AI está hablando...</span>
+                    </div>
+                  ) : isAiThinking ? (
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Pensando respuesta...</span>
+                    </div>
+                  ) : liveTranscript ? (
+                    <div className="inline-flex items-center px-4 py-1.5 rounded-2xl bg-zinc-900/90 dark:bg-white/90 text-white dark:text-zinc-900 text-xs sm:text-sm font-medium shadow-md max-w-sm text-center">
+                      <span>"{liveTranscript}"</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-muted/60 border border-border/50 text-muted-foreground text-xs font-medium">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span>Te escucho, habla cuando quieras</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Controles de llamada inferiores estilo Apple/ChatGPT */}
+              <div className="flex items-center justify-center gap-4 pt-2">
+                {/* Botón Silenciar Micrófono */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (speechRecognitionRef.current) {
+                      try { speechRecognitionRef.current.stop(); } catch (_) {}
+                      toast.info("Micrófono pausado");
+                    }
+                  }}
+                  className="w-12 h-12 rounded-full border border-border/80 bg-muted/50 hover:bg-muted text-foreground flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Pausar escucha"
+                >
+                  <Mic className="w-5 h-5 text-muted-foreground" />
+                </button>
+
+                {/* Botón Finalizar llamada (Circular rojo estilo Siri/ChatGPT) */}
                 <button
                   type="button"
                   onClick={closeLiveVoiceSession}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FF4747] hover:bg-red-600 active:scale-95 text-white flex flex-col items-center justify-center gap-1 shadow-[3px_3px_0_0_#000] border-2 border-black transition-all cursor-pointer hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]"
+                  className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg hover:shadow-red-500/25 active:scale-95"
                   title="Finalizar conversación de voz"
                 >
-                  <Square className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
-                  <span className="text-[10px] font-black uppercase tracking-wider">FIN</span>
+                  <X className="w-6 h-6 stroke-[2.4]" />
                 </button>
-                <span className="text-[11px] font-black text-black uppercase tracking-wider select-none bg-white/70 px-2 py-0.5 rounded-md backdrop-blur-xs">
-                  Finalizar
-                </span>
               </div>
             </div>
           ) : isWelcomeScreen ? (
-            /* Saludo situado bien arriba para despejar completamente el avatar 3D central */
-            <div className="absolute top-3 sm:top-4 md:top-5 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 w-full max-w-xl px-4 pointer-events-none z-20">
-              <h1 className="text-base sm:text-lg md:text-xl font-black text-zinc-900 tracking-tight select-none backdrop-blur-xs bg-white/50 dark:bg-zinc-900/50 px-4 py-1.5 rounded-xl border border-white/70 dark:border-zinc-800/70 shadow-xs">
-                ¡Hola {userName}, bienvenido! 👋
-              </h1>
+            /* Pantalla Inicial Estilo Apple / Notion / ChatGPT */
+            <div
+              className="flex-1 flex flex-col items-center justify-center w-full min-h-[75vh] max-w-2xl mx-auto px-4 text-center z-10 select-none"
+            >
+              {!welcomeContentReady ? (
+                /* Fase 1: Únicamente el texto centrado que se disuelve */
+                <div
+                  onClick={dismissWelcomeIntro}
+                  className={cn(
+                    "w-full flex items-center justify-center transition-all duration-700 ease-out cursor-pointer",
+                    welcomeIntroVisible
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-95 blur-xs pointer-events-none"
+                  )}
+                >
+                  <ParticleTitle
+                    text="¿Qué quieres aprender hoy?"
+                    className="h-[220px] sm:h-[280px] w-full"
+                  />
+                </div>
+              ) : (
+                /* Fase 2: Interfaz Limpia Estilo ChatGPT con Logo de TABE */
+                <div className="w-full flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out select-none py-6">
+                  {/* Logo TABE (reemplaza la estrella) */}
+                  <div className="mb-4">
+                    <TabeLogo
+                      size={54}
+                      variant="ai"
+                      className="drop-shadow-sm select-none transition-transform hover:scale-105 duration-300"
+                    />
+                  </div>
+
+                  {/* Título sobrio estilo ChatGPT */}
+                  <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground mb-6">
+                    ¿Por dónde empezamos?
+                  </h1>
+
+                  {/* Barra de Entrada Centralizada en Pantalla de Bienvenida */}
+                  <div className="w-full max-w-2xl text-left">
+                    <AIPromptBar
+                      value={inputValue}
+                      onChange={setInputValue}
+                      onSend={(msg, files) => {
+                        if (files && files.length > 0) {
+                          handlePromptBoxSend(msg, files);
+                        } else {
+                          executeSendMessage(
+                            msg,
+                            attachedImage
+                              ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
+                              : undefined,
+                            attachedImage?.preview
+                          );
+                        }
+                      }}
+                      isLoading={isStreaming || isUploading}
+                      placeholder="Pregúntale a TABE AI..."
+                      attachedImage={attachedImage}
+                      onRemoveImage={() => setAttachedImage(null)}
+                      onAttachClick={() => fileInputRef.current?.click()}
+                      selectedModel={selectedModel}
+                      powerLevel={powerLevel}
+                      onSelectPowerLevel={setPowerLevel}
+                      onSelectModel={setSelectedModel}
+                      selectedSubject={selectedSubject}
+                      subjects={subjects}
+                      onSelectSubject={setSelectedSubject}
+                      onOpenLiveVoice={startLiveVoiceSession}
+                      isLiveVoiceActive={showLiveVoice}
+                      isRecordingVoice={isRecording}
+                      recordingSeconds={recordingSeconds}
+                      onStartVoiceRecording={startVoiceRecording}
+                      onStopVoiceRecording={stopVoiceRecording}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-                <div className="max-w-3xl mx-auto px-3 py-3 md:px-6 md:py-5 space-y-3.5 md:space-y-4">
+                <div className="max-w-3xl mx-auto px-3 py-4 md:px-6 md:py-6 space-y-4 md:space-y-6">
                   {messages
                     .filter((m) => !m.id?.startsWith("init"))
                     .map((message) => {
@@ -1546,48 +1444,48 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                         <div
                           key={message.id}
                           className={cn(
-                            "flex gap-2.5 md:gap-3 group items-start",
+                            "flex gap-3 group items-start",
                             message.role === "user" ? "flex-row-reverse" : "flex-row"
                           )}
                         >
-                          {/* Avatar */}
-                          <div className="shrink-0 mt-0.5">
+                          {/* Avatar estilo Notion / ChatGPT */}
+                          <div className="shrink-0 mt-0.5 select-none">
                             {message.role === "assistant" ? (
                               activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-card border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center text-sm">
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-card border border-border/70 flex items-center justify-center text-sm shadow-2xs">
                                   {activePersona.avatar_emoji}
                                 </div>
                               ) : (
-                                <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center">
-                                  <TabeAIIcon size={28} animate={isThinking} withGlow={isThinking} />
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-card border border-border/70 flex items-center justify-center shadow-2xs p-1">
+                                  <TabeAIIcon size={20} animate={isThinking} withGlow={isThinking} />
                                 </div>
                               )
                             ) : (
-                              <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-[#FFE600] text-black border-2 border-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))] flex items-center justify-center font-black">
-                                <User className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-border/50 flex items-center justify-center shadow-2xs">
+                                <User className="w-3.5 h-3.5" strokeWidth={2} />
                               </div>
                             )}
                           </div>
 
-                          {/* Bubble / Text Stream */}
+                          {/* Bubble / Text Stream estilo Apple / Notion / GPT */}
                           <div
                             className={cn(
                               "transition-all",
                               message.role === "user"
-                                ? "max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs px-4 py-2.5 bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-xs md:text-sm overflow-hidden"
+                                ? "max-w-[85%] sm:max-w-[76%] rounded-3xl rounded-tr-md px-4.5 py-3 bg-zinc-100 dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 border border-zinc-200/70 dark:border-white/5 font-normal text-sm sm:text-[15px] leading-relaxed shadow-2xs overflow-hidden"
                                 : isThinking
                                   ? "flex-1 min-w-0 py-1 bg-transparent border-none shadow-none flex items-center"
-                                  : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm md:text-base font-normal leading-relaxed"
+                                  : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm sm:text-[15px] font-normal leading-relaxed"
                             )}
                           >
                             {/* Model badge for assistant */}
                             {message.role === "assistant" && message.id !== "init" && message.content && (
-                              <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
-                                <span className="text-foreground/90 font-black truncate">
+                              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-medium text-muted-foreground/80 select-none">
+                                <span className="text-foreground/90 font-semibold truncate">
                                   {message.modelName || selectedModel.shortName}
                                 </span>
                                 <span className="text-muted-foreground/40">•</span>
-                                <span className="text-[9px] text-muted-foreground/60 shrink-0">
+                                <span className="text-[10px] text-muted-foreground/60 shrink-0">
                                   {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                 </span>
                               </div>
@@ -1598,17 +1496,35 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                                 <img
                                   src={message.imageUrl}
                                   alt="Imagen adjunta"
-                                  className="max-h-60 max-w-full rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] object-contain bg-black/10"
+                                  className="max-h-72 max-w-full rounded-2xl border border-border/60 shadow-xs object-contain bg-black/5 dark:bg-white/5"
                                 />
                               </div>
                             )}
 
-                            <div className="leading-relaxed break-words">
+                            <div className="leading-relaxed break-words font-normal">
                               {renderContent(message.content, message.role)}
                             </div>
 
+                            {/* Acciones al pie de la respuesta del asistente (copiar) */}
+                            {message.role === "assistant" && message.content && (
+                              <div className="flex items-center gap-2 mt-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity select-none">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(message.content);
+                                    toast.success("Copiado al portapapeles");
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors cursor-pointer"
+                                  title="Copiar texto"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Copiar</span>
+                                </button>
+                              </div>
+                            )}
+
                             {message.role === "user" && (
-                              <div className="flex items-center justify-end gap-1 mt-1 text-[9px] font-black uppercase !text-black/60">
+                              <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-muted-foreground/70 select-none">
                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </div>
                             )}
@@ -1622,17 +1538,9 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
             </div>
 
         {/* ── UNIFIED ALL-IN-ONE PROMPT BAR (se oculta completamente en modo voz en vivo) ────────────────── */}
-        {!showLiveVoice && (
-          <div className="shrink-0 px-3 py-2.5 md:px-6 md:py-3.5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 z-20">
+        {!showLiveVoice && !isWelcomeScreen && (
+          <div className="shrink-0 px-3 py-2.5 md:px-6 md:py-3.5 bg-background/80 backdrop-blur-md border-t border-border/60 z-20 animate-in fade-in duration-300">
             <div className="max-w-3xl mx-auto">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".pdf,.txt,.md,image/*,audio/*"
-              />
-
               <AIPromptBar
                 value={inputValue}
                 onChange={setInputValue}
@@ -1664,14 +1572,8 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                 onAttachClick={() => fileInputRef.current?.click()}
                 selectedModel={selectedModel}
                 powerLevel={powerLevel}
-                onSelectPowerLevel={(level) => {
-                  setPowerLevel(level);
-                  toast.success(`Modo: ${level.toUpperCase()}`);
-                }}
-                onSelectModel={(m) => {
-                  setSelectedModel(m);
-                  toast.success(`${m.shortName || m.name}`);
-                }}
+                onSelectPowerLevel={setPowerLevel}
+                onSelectModel={setSelectedModel}
                 selectedSubject={selectedSubject}
                 subjects={subjects}
                 onSelectSubject={(sub) => setSelectedSubject(sub)}

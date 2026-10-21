@@ -1,17 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
-import { format, addDays, isToday, isFuture, isPast, parseISO } from "date-fns";
+import { format, addDays, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
-    CheckCircle, XCircle, CalendarDays, Flame,
+    CheckCircle2, XCircle, CalendarDays, Flame,
     TrendingUp, RotateCcw, Clock, StopCircle, BookOpen,
-    Filter, Check, Percent
+    Filter, Check, Percent, LayoutGrid, Calendar, List,
+    Sparkles, AlertTriangle, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { useSubjects, type Subject } from "@/hooks/useSubjects";
 import { SubjectSelect } from "@/components/subjects/SubjectSelect";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 import HoldButton from "@/components/ui/HoldButton";
 import {
     useRoutines,
@@ -28,7 +29,6 @@ import {
     CATEGORIES,
     COLOR_OPTIONS,
     DAY_LABELS,
-    TIME_BLOCKS,
 } from "@/hooks/useRoutines";
 
 // ─────────────────────────────── Time Helpers ────────────────────────────────
@@ -48,24 +48,23 @@ function getPositionStyles(start: string, end: string, minHour: number = 8) {
     const startMin = timeToMinutes(start);
     const endMin = timeToMinutes(end);
     const gridStartMin = minHour * 60;
-    
-    // Each hour is 64px (h-16 in tailwind)
-    const top = ((startMin - gridStartMin) / 60) * 64;
-    const height = ((endMin - startMin) / 60) * 64;
-    
+
+    // Each hour is 60px
+    const top = ((startMin - gridStartMin) / 60) * 60;
+    const height = Math.max(((endMin - startMin) / 60) * 60, 26);
+
     return {
         top: `${top}px`,
         height: `${height}px`,
-        minHeight: '24px'
+        minHeight: "26px",
     };
 }
 
-// Helper to determine overlap and widths
 function calculateOverlaps(routines: ResolvedRoutine[]) {
     const sorted = [...routines].sort((a, b) => a.start_time.localeCompare(b.start_time));
     const groups: ResolvedRoutine[][] = [];
-    
-    sorted.forEach(r => {
+
+    sorted.forEach((r) => {
         let placed = false;
         for (const group of groups) {
             const lastInGroup = group[group.length - 1];
@@ -78,13 +77,13 @@ function calculateOverlaps(routines: ResolvedRoutine[]) {
         if (!placed) groups.push([r]);
     });
 
-    const results = new Map<string, { width: string, left: string }>();
-    groups.forEach(group => {
+    const results = new Map<string, { width: string; left: string }>();
+    groups.forEach((group) => {
         const width = 100 / group.length;
         group.forEach((r, i) => {
             results.set(r.id, {
                 width: `${width}%`,
-                left: `${width * i}%`
+                left: `${width * i}%`,
             });
         });
     });
@@ -105,7 +104,7 @@ interface FormDialogProps {
     onSave: (data: any) => void;
 }
 
-function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDialogProps) {
+function RoutineFormDialog({ open, initial, onClose, onSave }: FormDialogProps) {
     const defaultStart = format(new Date(), "yyyy-MM-dd");
     const defaultEnd = format(addDays(new Date(), 120), "yyyy-MM-dd");
 
@@ -113,14 +112,13 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
     const [desc, setDesc] = useState(initial?.description ?? "");
     const [category, setCategory] = useState(initial?.category ?? "general");
     const [subjectId, setSubjectId] = useState<string>(initial?.subject_id ?? "none");
-    const [color, setColor] = useState(initial?.color ?? "#00FFAA");
+    const [color, setColor] = useState(initial?.color ?? "#10B981");
     const [startTime, setStartTime] = useState(initial?.start_time?.slice(0, 5) ?? "08:00");
     const [endTime, setEndTime] = useState(initial?.end_time?.slice(0, 5) ?? "10:00");
     const [days, setDays] = useState<number[]>(initial?.days_of_week ?? []);
     const [startDate, setStartDate] = useState(initial?.start_date ?? defaultStart);
     const [endDate, setEndDate] = useState(initial?.end_date ?? defaultEnd);
 
-    // Sync state when 'initial' changes or dialog opens
     useEffect(() => {
         if (open) {
             const start = initial?.start_date ?? format(new Date(), "yyyy-MM-dd");
@@ -129,17 +127,17 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
             setDesc(initial?.description ?? "");
             setCategory(initial?.category ?? "general");
             setSubjectId(initial?.subject_id ?? "none");
-            setColor(initial?.color ?? "#00FFAA");
+            setColor(initial?.color ?? "#10B981");
             setStartTime(initial?.start_time?.slice(0, 5) ?? "08:00");
             setEndTime(initial?.end_time?.slice(0, 5) ?? "10:00");
-            setDays(initial?.days_of_week ?? []);
+            setDays(initial?.days_of_week ?? [1, 2, 3, 4, 5]);
             setStartDate(start);
             setEndDate(end);
         }
     }, [initial, open]);
 
     const toggleDay = (d: number) =>
-        setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
+        setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
 
     const handleSave = () => {
         if (!name.trim()) {
@@ -178,57 +176,81 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
         onClose();
     };
 
-    // Group subjects by año
-    const subjectsByYear = useMemo(() => {
-        const map: Record<number, Subject[]> = {};
-        subjects.forEach(s => {
-            if (!map[s.año]) map[s.año] = [];
-            map[s.año].push(s);
-        });
-        return map;
-    }, [subjects]);
-
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6 text-foreground">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-black uppercase text-foreground">{initial ? "Editar Rutina" : "Nueva Rutina"}</DialogTitle>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 text-zinc-900 dark:text-zinc-100">
+                <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-800 dark:text-zinc-200">
+                            {initial ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        </div>
+                        <div>
+                            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                                {initial ? "Editar Rutina" : "Nueva Rutina"}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                Define los horarios, días y categoría para organizar tus actividades.
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-3">
                     {/* Name */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Nombre *</Label>
-                        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Estudiar Análisis" className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" />
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            Nombre de la rutina <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Ej: Repaso de Álgebra, Gimnasio, Cursada..."
+                            className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2 text-sm focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-colors"
+                        />
                     </div>
 
                     {/* Description */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Descripción (opcional)</Label>
-                        <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Notas..." className="mt-1 h-16 resize-none bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" />
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            Descripción / Notas <span className="text-zinc-400 text-[11px] font-normal">(opcional)</span>
+                        </Label>
+                        <Textarea
+                            value={desc}
+                            onChange={(e) => setDesc(e.target.value)}
+                            placeholder="Detalles, objetivos o aula correspondiente..."
+                            className="h-16 resize-none bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2 text-sm focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-colors"
+                        />
                     </div>
 
                     {/* Time range */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Hora inicio *</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Hora inicio *</Label>
                             <Select value={startTime} onValueChange={setStartTime}>
-                                <SelectTrigger className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0 focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground">
+                                <SelectTrigger className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-normal">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] max-h-48 text-foreground">
-                                    {TIME_OPTIONS.map(t => <SelectItem key={t} value={t} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">{t}</SelectItem>)}
+                                <SelectContent className="bg-white dark:bg-[#1f1f1f] border border-zinc-200 dark:border-zinc-800 max-h-48 rounded-xl">
+                                    {TIME_OPTIONS.map((t) => (
+                                        <SelectItem key={t} value={t} className="text-xs cursor-pointer">
+                                            {t}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Hora fin *</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Hora fin *</Label>
                             <Select value={endTime} onValueChange={setEndTime}>
-                                <SelectTrigger className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:ring-0 focus:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground">
+                                <SelectTrigger className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-normal">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] max-h-48 text-foreground">
-                                    {TIME_OPTIONS.filter(t => t > startTime).map(t => <SelectItem key={t} value={t} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">{t}</SelectItem>)}
+                                <SelectContent className="bg-white dark:bg-[#1f1f1f] border border-zinc-200 dark:border-zinc-800 max-h-48 rounded-xl">
+                                    {TIME_OPTIONS.filter((t) => t > startTime).map((t) => (
+                                        <SelectItem key={t} value={t} className="text-xs cursor-pointer">
+                                            {t}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -238,95 +260,142 @@ function RoutineFormDialog({ open, initial, subjects, onClose, onSave }: FormDia
                     <SubjectSelect
                         value={subjectId === "none" ? "" : subjectId}
                         onChange={(val) => setSubjectId(val || "none")}
-                        label="Materia (opcional)"
+                        label="Materia asociada"
                         placeholder="General (sin materia)"
                         allowNone
-                        noneLabel="General (sin materia)"
+                        noneLabel={
+                            <span className="flex items-center gap-2">
+                                <TabeLogo size={14} className="shrink-0 object-contain" />
+                                <span>General (hábito o sin materia)</span>
+                            </span>
+                        }
                         showYearFilter
                     />
 
                     {/* Category */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Categoría</Label>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                            {CATEGORIES.map(c => (
-                                <button key={c.id} onClick={() => setCategory(c.id)}
-                                    className={cn("px-3 py-1.5 rounded-lg text-xs font-black border-[3px] border-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-105",
-                                        category === c.id ? "bg-[#BFFF00] text-black" : "bg-card text-foreground hover:bg-muted"
-                                    )}>
-                                    {c.emoji} {c.label}
-                                </button>
-                            ))}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                            {CATEGORIES.map((c) => {
+                                const isSelected = category === c.id;
+                                return (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => setCategory(c.id)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer border",
+                                            isSelected
+                                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                                                : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                                        )}
+                                    >
+                                        <span>{c.emoji}</span>
+                                        <span>{c.label}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
                     {/* Color */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Color</Label>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                            {COLOR_OPTIONS.map(c => (
-                                <button key={c} onClick={() => setColor(c)}
-                                    className={cn("w-8 h-8 rounded-lg border-[3px] border-foreground transition-transform shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                                        color === c ? "scale-110 shadow-[4px_4px_0_0_hsl(var(--foreground))]" : "hover:scale-110"
-                                    )} style={{ backgroundColor: c }} />
-                            ))}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Color distintivo</Label>
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            {COLOR_OPTIONS.map((c) => {
+                                const isSelected = color.toLowerCase() === c.toLowerCase();
+                                return (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setColor(c)}
+                                        style={{ backgroundColor: c }}
+                                        className={cn(
+                                            "w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center relative",
+                                            isSelected
+                                                ? "ring-2 ring-offset-2 ring-zinc-900 dark:ring-white scale-110 shadow-xs"
+                                                : "hover:scale-105 opacity-85 hover:opacity-100"
+                                        )}
+                                    >
+                                        {isSelected && <Check className="w-3.5 h-3.5 text-zinc-900 drop-shadow-xs" strokeWidth={3} />}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
                     {/* Days */}
-                    <div>
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Días de la semana *</Label>
-                        <div className="mt-2 flex gap-1 sm:gap-2">
-                            {DAY_LABELS.map((label, i) => (
-                                <button key={i} onClick={() => toggleDay(i)}
-                                    className={cn("flex-1 py-2 rounded-lg text-xs sm:text-sm font-black border-[3px] border-foreground transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-105",
-                                        days.includes(i) ? "bg-[#00E5FF] text-black" : "bg-card text-foreground hover:bg-muted"
-                                    )}>
-                                    {label}
-                                </button>
-                            ))}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            Días de la semana <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="grid grid-cols-7 gap-1.5 pt-0.5">
+                            {DAY_LABELS.map((label, i) => {
+                                const isDaySelected = days.includes(i);
+                                return (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => toggleDay(i)}
+                                        className={cn(
+                                            "py-2 rounded-xl text-xs font-medium transition-all text-center cursor-pointer border",
+                                            isDaySelected
+                                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs font-semibold"
+                                                : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                                        )}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
                     {/* Dates */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Fecha de inicio *</Label>
-                            <Input 
-                                type="date" 
-                                value={startDate} 
-                                onChange={e => {
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Fecha de inicio *</Label>
+                            <Input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => {
                                     const val = e.target.value;
                                     setStartDate(val);
                                     if (endDate && val && endDate < val) {
                                         setEndDate(val);
                                     }
-                                }} 
-                                className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" 
+                                }}
+                                className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-colors"
                             />
                         </div>
-                        <div>
-                            <Label className="font-bold text-foreground uppercase tracking-wider text-xs">
-                                Fecha fin *
-                            </Label>
-                            <Input 
-                                type="date" 
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Fecha fin *</Label>
+                            <Input
+                                type="date"
                                 min={startDate}
-                                value={endDate} 
-                                onChange={e => setEndDate(e.target.value)} 
-                                className="mt-1 bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" 
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-colors"
                             />
                         </div>
                     </div>
                 </div>
 
-                <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button onClick={onClose} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase bg-card text-foreground hover:bg-muted transition-colors w-full sm:w-auto">
+                <DialogFooter className="mt-6 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
                         Cancelar
                     </button>
-                    <button onClick={handleSave} disabled={!name.trim() || days.length === 0 || !startDate || !endDate}
-                        className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all bg-[#00E5FF] text-black disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] w-full sm:w-auto">
-                        {initial ? "Guardar" : "Crear"}
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={!name.trim() || days.length === 0 || !startDate || !endDate}
+                        className="px-5 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-xs font-medium transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        {initial ? "Guardar Cambios" : "Crear Rutina"}
                     </button>
                 </DialogFooter>
             </DialogContent>
@@ -368,94 +437,170 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog,
 
     if (!routine) return null;
 
-    const cat = CATEGORIES.find(c => c.id === routine.category);
+    const cat = CATEGORIES.find((c) => c.id === routine.category);
 
     const handleSubmit = () => {
         onLog(routine.id, dateStr, {
             completed: mode === "check" ? completed : pct >= 50,
             completion_percentage: mode === "check" ? (completed ? 100 : 0) : pct,
-            notes: notes.trim() || undefined
+            notes: notes.trim() || undefined,
         });
         onClose();
     };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-sm bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6 text-foreground">
-                <DialogHeader>
+            <DialogContent className="max-w-md bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 text-zinc-900 dark:text-zinc-100">
+                <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
                     <div className="flex items-center justify-between">
-                        <DialogTitle className="flex items-center gap-2 text-xl font-black uppercase text-foreground">
-                            <span className="w-4 h-4 rounded-full flex-shrink-0 border-2 border-foreground" style={{ backgroundColor: routine.color }} />
-                            {routine.name}
+                        <DialogTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                            <span
+                                className="w-3.5 h-3.5 rounded-full flex-shrink-0 ring-2 ring-white dark:ring-zinc-900"
+                                style={{ backgroundColor: routine.color }}
+                            />
+                            <span className="truncate">{routine.name}</span>
                         </DialogTitle>
-                        <button className="h-8 w-8 flex items-center justify-center border-2 border-transparent hover:border-foreground rounded-lg transition-all text-foreground hover:bg-muted" 
-                            onClick={() => { onEdit(routine); onClose(); }}>
-                            <Pencil className="w-4 h-4" />
+                        <button
+                            type="button"
+                            title="Editar rutina"
+                            className="h-8 w-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                            onClick={() => {
+                                onEdit(routine);
+                                onClose();
+                            }}
+                        >
+                            <Pencil className="w-3.5 h-3.5" />
                         </button>
                     </div>
-                    <p className="text-sm font-bold text-muted-foreground flex items-center gap-1 mt-1">
-                        {cat?.emoji} {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)} · {format(parseISO(dateStr), "EEEE d MMM", { locale: es })}
-                    </p>
+                    <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-1">
+                        <span>{cat?.emoji}</span>
+                        <span>{timeLabel(routine.start_time)}–{timeLabel(routine.end_time)}</span>
+                        <span>·</span>
+                        <span className="capitalize">{format(parseISO(dateStr), "EEEE d 'de' MMMM", { locale: es })}</span>
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 pt-2">
-                    {/* Mode tabs */}
-                    <div className="flex gap-2">
-                        <button onClick={() => setMode("check")}
-                            className={cn("flex-1 py-2 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-2 border-[3px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))]",
-                                mode === "check" ? "bg-[#BFFF00] text-black" : "bg-card text-foreground hover:bg-muted")}>
-                            <Check className="w-4 h-4" /> Sí/No
+                <div className="space-y-4 pt-3">
+                    {/* Mode segmented control */}
+                    <div className="flex p-1 bg-zinc-100 dark:bg-zinc-900/80 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+                        <button
+                            type="button"
+                            onClick={() => setMode("check")}
+                            className={cn(
+                                "flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                                mode === "check"
+                                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            <Check className="w-3.5 h-3.5" /> Estado (Sí / No)
                         </button>
-                        <button onClick={() => setMode("percentage")}
-                            className={cn("flex-1 py-2 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-2 border-[3px] border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))]",
-                                mode === "percentage" ? "bg-[#00E5FF] text-black" : "bg-card text-foreground hover:bg-muted")}>
-                            <Percent className="w-4 h-4" /> Porc.
+                        <button
+                            type="button"
+                            onClick={() => setMode("percentage")}
+                            className={cn(
+                                "flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                                mode === "percentage"
+                                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            <Percent className="w-3.5 h-3.5" /> Porcentaje de avance
                         </button>
                     </div>
 
                     {mode === "check" ? (
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                            <button onClick={() => setCompleted(true)}
-                                className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-4 border-foreground transition-all hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]",
-                                    completed ? "bg-[#BFFF00] text-black shadow-[6px_6px_0_0_hsl(var(--foreground))]" : "bg-card text-foreground hover:bg-muted")}>
-                                <CheckCircle className="w-8 h-8" />
-                                <span className="text-sm font-black uppercase tracking-wider">Cumplida</span>
+                        <div className="grid grid-cols-2 gap-3 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setCompleted(true)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer",
+                                    completed
+                                        ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-xs ring-1 ring-emerald-500"
+                                        : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                                )}
+                            >
+                                <CheckCircle2 className={cn("w-6 h-6", completed ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400")} />
+                                <span className="text-xs font-semibold">Cumplida</span>
                             </button>
-                            <button onClick={() => setCompleted(false)}
-                                className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-4 border-foreground transition-all hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]",
-                                    !completed ? "bg-[#FF5C5C] text-black shadow-[6px_6px_0_0_hsl(var(--foreground))]" : "bg-card text-foreground hover:bg-muted")}>
-                                <XCircle className="w-8 h-8" />
-                                <span className="text-sm font-black uppercase tracking-wider">No cumpl.</span>
+                            <button
+                                type="button"
+                                onClick={() => setCompleted(false)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer",
+                                    !completed
+                                        ? "bg-rose-50/70 dark:bg-rose-950/30 border-rose-500 text-rose-900 dark:text-rose-200 shadow-xs ring-1 ring-rose-500"
+                                        : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                                )}
+                            >
+                                <XCircle className={cn("w-6 h-6", !completed ? "text-rose-600 dark:text-rose-400" : "text-zinc-400")} />
+                                <span className="text-xs font-semibold">No realizada</span>
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-card p-4 rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] mt-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <Label className="font-black uppercase tracking-wider text-foreground">Cumplimiento</Label>
-                                <span className={cn("text-3xl font-black",
-                                    pct >= 80 ? "text-green-500" : pct >= 50 ? "text-yellow-500" : "text-red-500"
-                                )}>{pct}%</span>
+                        <div className="bg-zinc-50/70 dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Nivel de cumplimiento</Label>
+                                <span
+                                    className={cn(
+                                        "text-xl font-bold font-mono",
+                                        pct >= 80 ? "text-emerald-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-500" : "text-rose-500"
+                                    )}
+                                >
+                                    {pct}%
+                                </span>
                             </div>
                             <Slider value={[pct]} onValueChange={([v]) => setPct(v)} min={0} max={100} step={5} className="mt-2" />
-                            <div className="flex justify-between mt-2 text-xs font-bold text-muted-foreground">
-                                <span>0%</span><span>50%</span><span>100%</span>
+                            {/* Preset pills */}
+                            <div className="flex items-center justify-between gap-1.5 pt-1">
+                                {[0, 25, 50, 75, 100].map((preset) => (
+                                    <button
+                                        key={preset}
+                                        type="button"
+                                        onClick={() => setPct(preset)}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer border",
+                                            pct === preset
+                                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white"
+                                                : "bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700 hover:bg-zinc-100"
+                                        )}
+                                    >
+                                        {preset}%
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     )}
 
                     {/* Notes */}
-                    <div className="mt-4">
-                        <Label className="font-bold text-foreground uppercase tracking-wider text-xs">Notas (opcional)</Label>
-                        <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="¿Algo a destacar?" className="mt-1 h-20 resize-none bg-background border-[3px] border-foreground rounded-lg shadow-[4px_4px_0_0_hsl(var(--foreground))] focus-visible:ring-0 focus-visible:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-bold text-foreground" />
+                    <div className="space-y-1.5 pt-1">
+                        <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            Notas de la sesión <span className="text-zinc-400 text-[11px] font-normal">(opcional)</span>
+                        </Label>
+                        <Textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="¿Qué lograste? ¿Hubo algún imprevisto?"
+                            className="h-20 resize-none bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2 text-sm focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-colors"
+                        />
                     </div>
                 </div>
 
-                <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button onClick={onClose} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase bg-card text-foreground hover:bg-muted transition-colors w-full sm:w-auto">
+                <DialogFooter className="mt-6 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
                         Cancelar
                     </button>
-                    <button onClick={handleSubmit} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all bg-[#BFFF00] text-black w-full sm:w-auto">
-                        Guardar
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="px-5 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-xs font-medium transition-all shadow-xs cursor-pointer"
+                    >
+                        Guardar Registro
                     </button>
                 </DialogFooter>
             </DialogContent>
@@ -465,41 +610,64 @@ function RoutineLogDialog({ open, routine, dateStr, existingLog, onClose, onLog,
 
 // ───────────────────────────── Routine Block ─────────────────────────────────
 
-function RoutineBlock({ 
-    routine, 
-    log, 
+function RoutineBlock({
+    routine,
+    log,
     onClick,
-    style 
-}: { 
-    routine: ResolvedRoutine; 
-    log?: RoutineLog; 
+    style,
+    subjectName,
+}: {
+    routine: ResolvedRoutine;
+    log?: RoutineLog;
     onClick: () => void;
     style?: React.CSSProperties;
+    subjectName?: string;
 }) {
     const isDone = log?.completed;
     const hasPct = log && !log.completed && log.completion_percentage > 0;
 
     return (
-        <button onClick={onClick}
-            style={{ ...style, backgroundColor: routine.color }}
+        <button
+            type="button"
+            onClick={onClick}
+            style={{
+                ...style,
+                borderLeftColor: routine.color,
+            }}
             className={cn(
-                "absolute rounded-md px-2 py-1 border-[3px] border-foreground transition-all",
-                "hover:z-20 hover:scale-[1.03] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] shadow-[2px_2px_0_0_hsl(var(--foreground))]",
-                "group overflow-hidden flex flex-col items-start justify-start text-left",
-                isDone && "after:absolute after:inset-0 after:bg-black/25 dark:after:bg-black/40",
-                hasPct && "after:absolute after:inset-0 after:bg-black/15"
-            )}>
-            
-            <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-hidden">
-                <p className="text-[11px] sm:text-xs font-black truncate leading-tight !text-black dark:!text-black drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)]">
+                "absolute rounded-lg px-2 py-1 text-left transition-all duration-150 cursor-pointer",
+                "border border-zinc-200/90 dark:border-zinc-700/80 border-l-[3.5px]",
+                "bg-white/95 dark:bg-[#1e1e21]/95 shadow-2xs hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600",
+                "hover:z-30 hover:scale-[1.01] group overflow-hidden flex flex-col justify-start"
+            )}
+        >
+            <div className="w-full flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-primary transition-colors">
                     {routine.name}
-                </p>
-                <p className="text-[9px] sm:text-[10px] !text-black/85 dark:!text-black/85 font-black font-mono mt-0.5">
-                    {timeLabel(routine.start_time)}–{timeLabel(routine.end_time)}
-                </p>
-                {isDone && <CheckCircle className="w-3.5 h-3.5 !text-black dark:!text-black absolute bottom-1 right-1" strokeWidth={3} />}
-                {hasPct && <span className="text-[10px] !text-black dark:!text-black font-black absolute bottom-1 right-1">{log!.completion_percentage}%</span>}
+                </span>
+                {isDone && (
+                    <span className="shrink-0 flex items-center text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                    </span>
+                )}
+                {hasPct && (
+                    <span className="shrink-0 text-[10px] font-mono font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 rounded">
+                        {log!.completion_percentage}%
+                    </span>
+                )}
             </div>
+
+            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5 truncate">
+                <Clock className="w-2.5 h-2.5 shrink-0 opacity-70" />
+                <span>{timeLabel(routine.start_time)}–{timeLabel(routine.end_time)}</span>
+            </div>
+
+            {subjectName && (
+                <div className="flex items-center gap-1 text-[9px] text-zinc-600 dark:text-zinc-300 truncate mt-0.5">
+                    <BookOpen className="w-2.5 h-2.5 shrink-0 opacity-70" />
+                    <span className="truncate">{subjectName}</span>
+                </div>
+            )}
         </button>
     );
 }
@@ -508,10 +676,21 @@ function RoutineBlock({
 
 export default function Routines() {
     const {
-        routines, logs, loading, currentWeekStart,
-        createRoutine, updateRoutine, deleteRoutine, stopRoutine, logRoutine,
-        getRoutinesForDate, getLogForRoutineAndDate, weekStats, getRoutineStreak,
-        goToPrevWeek, goToNextWeek, goToCurrentWeek,
+        routines,
+        loading,
+        currentWeekStart,
+        createRoutine,
+        updateRoutine,
+        deleteRoutine,
+        stopRoutine,
+        logRoutine,
+        getRoutinesForDate,
+        getLogForRoutineAndDate,
+        weekStats,
+        getRoutineStreak,
+        goToPrevWeek,
+        goToNextWeek,
+        goToCurrentWeek,
     } = useRoutines();
     const { subjects } = useSubjects();
 
@@ -520,6 +699,9 @@ export default function Routines() {
     const [logTarget, setLogTarget] = useState<{ routine: ResolvedRoutine; dateStr: string } | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [confirmStop, setConfirmStop] = useState<Routine | null>(null);
+
+    // View mode: "grid" | "list" | "both"
+    const [viewMode, setViewMode] = useState<"grid" | "list" | "both">("both");
 
     // Filter state
     const [filterYear, setFilterYear] = useState<string>("all");
@@ -530,7 +712,7 @@ export default function Routines() {
         if (filterSubject !== "all") return r.subject_id === filterSubject;
         if (filterYear !== "all") {
             if (!r.subject_id) return false;
-            const sub = subjects.find(s => s.id === r.subject_id);
+            const sub = subjects.find((s) => s.id === r.subject_id);
             return sub?.año === Number(filterYear);
         }
         return true;
@@ -546,288 +728,533 @@ export default function Routines() {
         setFormOpen(false);
     };
 
-    const weekDays = useMemo(() =>
-        Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
+    const weekDays = useMemo(
+        () => Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
         [currentWeekStart]
     );
 
     const stats = weekStats();
 
+    // Subject map for fast lookup
+    const subjectMap = useMemo(() => {
+        const map = new Map<string, Subject>();
+        subjects.forEach((s) => map.set(s.id, s));
+        return map;
+    }, [subjects]);
+
     // Build year options from subjects
     const yearOptions = useMemo(() => {
-        const years = new Set(subjects.map(s => s.año));
-        return Array.from(years).sort();
+        const years = new Set(subjects.map((s) => s.año));
+        return Array.from(years).sort((a, b) => a - b);
     }, [subjects]);
 
     // Filtered subjects by year
     const filteredSubjects = useMemo(() => {
         if (filterYear === "all") return subjects;
-        return subjects.filter(s => s.año === Number(filterYear));
+        return subjects.filter((s) => s.año === Number(filterYear));
     }, [subjects, filterYear]);
+
     // Hourly blocks for the grid: 08:00 to 24:00
-    const gridHours = Array.from({ length: 17 }, (_, i) => 8 + i); // 8 to 24
+    const gridHours = Array.from({ length: 17 }, (_, i) => 8 + i);
 
     return (
-        <div className="p-4 lg:p-8 space-y-6">
-      {/* Header Banner */}
-      <div className="bg-[#8B5CF6] rounded-2xl p-6 lg:p-8 border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        {/* Decorative badge */}
-        <div className="absolute top-4 right-4 bg-[#FFE66D] text-black font-black text-xs px-3 py-1 uppercase border-2 border-foreground rotate-[5deg] shadow-[2px_2px_0_0_hsl(var(--foreground))] hidden md:block">
-          ¡A meterle garra!
-        </div>
-        
-        <div className="relative z-10 flex items-center gap-6">
-          <div className="w-16 h-16 bg-card border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] flex items-center justify-center rotate-[-6deg] flex-shrink-0">
-            <CalendarDays className="w-8 h-8 text-foreground" />
-          </div>
-          <div>
-            <h1 className="font-display text-3xl lg:text-4xl font-black uppercase tracking-wider text-black" style={{ textShadow: '2px 2px 0 #fff, 4px 4px 0 #000' }}>
-              Mis Rutinas
-            </h1>
-            <p className="font-bold text-foreground mt-1 text-sm sm:text-base bg-card/90 px-2.5 py-1 inline-block rounded-md border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              Organiza tu semana y registra tu cumplimiento
-            </p>
-          </div>
-        </div>
-        
-        <button
-          onClick={() => { setEditRoutine(null); setFormOpen(true); }}
-          className="relative z-10 flex items-center gap-2 px-6 py-3 rounded-xl bg-card text-foreground border-4 border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] hover:bg-[#00E5FF] hover:!text-black dark:hover:!text-black transition-all w-full md:w-auto justify-center"
-        >
-          <Plus className="w-6 h-6" />
-          Nueva Rutina
-        </button>
-      </div>
+        <div className="tabe-page max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 space-y-6 pb-28 lg:pb-14">
+            {/* Header Section (Notion / ChatGPT Style) */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xs">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 text-zinc-800 dark:text-zinc-200 shadow-2xs">
+                        <CalendarDays className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                                Mis Rutinas & Horarios
+                            </h1>
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                                {routines.length} activas
+                            </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            Planifica tu semana, organiza bloques de estudio o hábitos y registra tu progreso diario.
+                        </p>
+                    </div>
+                </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <Filter className="w-5 h-5 text-foreground" />
-        <div className="w-[140px]">
-          <Select value={filterYear} onValueChange={v => { setFilterYear(v); setFilterSubject("all"); }}>
-            <SelectTrigger className="w-full h-auto px-4 py-2 bg-card text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold text-left truncate">
-              <SelectValue placeholder="Año" />
-            </SelectTrigger>
-            <SelectContent className="bg-card text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl">
-              <SelectItem value="all" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">Todos los años</SelectItem>
-              {yearOptions.map(y => <SelectItem key={y} value={String(y)} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">{y}° año</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-[180px]">
-          <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="w-full h-auto px-4 py-2 bg-card text-foreground rounded-lg border-[3px] border-foreground focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all font-bold text-left truncate">
-              <SelectValue placeholder="Materia" />
-            </SelectTrigger>
-            <SelectContent className="bg-card text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl max-h-[200px]">
-              <SelectItem value="all" className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">Todas las materias</SelectItem>
-              {filteredSubjects.map(s => <SelectItem key={s.id} value={s.id} className="font-bold text-foreground focus:bg-secondary focus:text-foreground cursor-pointer">{s.nombre}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        {(filterYear !== "all" || filterSubject !== "all") && (
-          <button onClick={() => { setFilterYear("all"); setFilterSubject("all"); }}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg border-[3px] border-foreground font-black uppercase text-xs bg-[#FF5C5C] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 transition-all">
-            <RotateCcw className="w-4 h-4" /> Limpiar
-          </button>
-        )}
-      </div>
+                <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
+                    {/* View Switcher Tabs */}
+                    <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode("both")}
+                            className={cn(
+                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                                viewMode === "both"
+                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Vista Completa</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode("grid")}
+                            className={cn(
+                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                                viewMode === "grid"
+                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Grilla</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode("list")}
+                            className={cn(
+                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                                viewMode === "list"
+                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            <List className="w-3.5 h-3.5" />
+                            <span>Lista</span>
+                        </button>
+                    </div>
 
-      {/* Week navigation */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card rounded-xl p-4 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-            <button onClick={goToPrevWeek} className="p-2 rounded-lg border-[3px] border-foreground bg-[#FFE66D] shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 transition-all text-black">
-            <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3">
-            <CalendarDays className="w-6 h-6 text-foreground hidden sm:block" />
-            <span className="font-black text-sm lg:text-base tracking-wider uppercase text-foreground">
-                {format(currentWeekStart, "d MMM", { locale: es })} — {format(addDays(currentWeekStart, 6), "d MMM yyyy", { locale: es })}
-            </span>
+                    {/* New Routine CTA */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setEditRoutine(null);
+                            setFormOpen(true);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-xs sm:text-sm font-medium transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Nueva Rutina</span>
+                    </button>
+                </div>
             </div>
-            <button onClick={goToNextWeek} className="p-2 rounded-lg border-[3px] border-foreground bg-[#FFE66D] shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 transition-all text-black">
-            <ChevronRight className="w-5 h-5" />
-            </button>
-        </div>
-        <button onClick={goToCurrentWeek} className="w-full sm:w-auto px-4 py-2 rounded-lg border-[3px] border-foreground bg-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 transition-all text-black font-black uppercase text-xs">
-          Hoy
-        </button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Cumplimiento", val: `${stats.pct}%`, color: stats.pct >= 70 ? "bg-[#BFFF00]" : stats.pct >= 40 ? "bg-[#FFE66D]" : "bg-[#FF5C5C]" },
-          { label: "Programadas", val: stats.scheduled, color: "bg-[#00E5FF]" },
-          { label: "Completadas", val: stats.done, color: "bg-[#FF9B71]" }
-        ].map((s, i) => (
-          <div key={i} className={cn("rounded-xl p-4 text-center border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col items-center justify-center transition-transform hover:scale-[1.02]", s.color)}>
-            <p className="text-3xl lg:text-4xl font-black text-black leading-none drop-shadow-[2px_2px_0_#fff]">{s.val}</p>
-            <p className="text-[10px] lg:text-xs font-black uppercase tracking-widest text-foreground mt-2 bg-card/80 px-2 py-0.5 rounded border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-            {loading && routines.length === 0 ? (
-                <LoadingScreen message="Cargando Rutinas..." submessage="Organizando tus bloques semanales..." />
-            ) : (
-                <>
-                    {/* Weekly Calendar Grid */}
-                    <div className="bg-card rounded-xl border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] overflow-hidden">
-                        <div className="grid grid-cols-[60px_repeat(7,1fr)]">
-                            {/* Sticky corner */}
-                            <div className="h-12 border-b-4 border-r-4 border-foreground bg-[#FFE66D]" />
-                            
-                            {/* Day headers */}
-                            {weekDays.map((day, i) => (
-                                <div key={i} className={cn(
-                                    "h-12 flex flex-col items-center justify-center border-b-4 border-r-4 last:border-r-0 border-foreground",
-                                    isToday(day) ? "bg-[#00E5FF]" : "bg-[#FFE66D]"
-                                )}>
-                                    <span className="text-[10px] text-black uppercase font-black tracking-tighter">
-                                        {DAY_LABELS[day.getDay()]}
-                                    </span>
-                                    <span className={cn("text-lg font-display font-black leading-none text-black")}>{format(day, "d")}</span>
-                                </div>
-                            ))}
-
-                            {/* Time sidebar */}
-                            <div className="relative border-r-4 border-foreground bg-card">
-                                {gridHours.map(h => (
-                                    <div key={h} className="h-16 flex items-start justify-end pr-2 pt-1 border-b-2 border-border last:border-b-0">
-                                        <span className="text-[10px] text-muted-foreground font-black font-mono">
-                                            {String(h).padStart(2, "0")}:00
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Grid Content */}
-                            {weekDays.map((day, dayIdx) => {
-                                const dateStr = format(day, "yyyy-MM-dd");
-                                const dayRoutines = getRoutinesForDate(day).filter(filterRoutine);
-                                const overlapStyles = calculateOverlaps(dayRoutines);
-
-                                return (
-                                    <div key={dayIdx} className={cn(
-                                        "relative border-r-4 last:border-r-0 border-foreground",
-                                        isToday(day) ? "bg-[#00E5FF]/10" : "bg-card"
-                                    )}>
-                                        {/* Background horizontal lines */}
-                                        {gridHours.map(h => (
-                                            <div key={h} className="h-16 border-b-2 border-border last:border-b-0" />
-                                        ))}
-                                        
-                                        {/* Routine Blocks */}
-                                        {dayRoutines.map(r => {
-                                            const pos = getPositionStyles(r.start_time, r.end_time);
-                                            const overlap = overlapStyles.get(r.id);
-                                            
-                                            return (
-                                                <RoutineBlock
-                                                    key={r.id}
-                                                    routine={r}
-                                                    log={getLogForRoutineAndDate(r.id, dateStr)}
-                                                    onClick={() => setLogTarget({ routine: r, dateStr })}
-                                                    style={{
-                                                        ...pos,
-                                                        width: overlap?.width,
-                                                        left: overlap?.left
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
+            {/* Quick Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                {/* Metric 1 */}
+                <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                            Cumplimiento Semanal
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+                                {stats.pct}%
+                            </span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {stats.pct >= 70 ? "¡Excelente ritmo!" : stats.pct >= 40 ? "En buen camino" : "Por comenzar"}
+                            </span>
                         </div>
                     </div>
-                    {/* Routine List */}
-                    {routines.length > 0 ? (
-                        <div>
-                            <h2 className="text-2xl font-display font-black uppercase tracking-widest mb-6 flex items-center gap-3 text-foreground">
-                                <TrendingUp className="w-8 h-8 text-foreground" /> Mis Rutinas
-                            </h2>
-                            <div className="space-y-4">
-                                {routines.map(r => {
-                                    const streak = getRoutineStreak(r.id);
-                                    const cat = CATEGORIES.find(c => c.id === r.category);
-                                    const dayNames = r.days_of_week.map(d => DAY_LABELS[d]).join(", ");
-                                    const sub = r.subject_id ? subjects.find(s => s.id === r.subject_id) : null;
+                    <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                        stats.pct >= 70
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : stats.pct >= 40
+                            ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500"
+                    )}>
+                        <TrendingUp className="w-5 h-5" />
+                    </div>
+                </div>
 
-                                    return (
-                                        <div key={r.id} className="bg-card rounded-xl p-4 sm:p-5 border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col sm:flex-row sm:items-center gap-4 transition-transform hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))]">
-                                            <div className="w-4 h-full min-h-[48px] rounded-full flex-shrink-0 border-2 border-foreground hidden sm:block" style={{ backgroundColor: r.color }} />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="font-black text-lg sm:text-xl truncate text-foreground">{r.name}</h3>
-                                                    <span className="text-sm bg-muted px-2 py-0.5 rounded-md border-2 border-foreground">{cat?.emoji}</span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 text-xs font-bold text-muted-foreground">
-                                                    {sub && (
-                                                        <span className="flex items-center gap-1 bg-[#00E5FF]/20 text-foreground px-2 py-0.5 rounded border-2 border-foreground/20">
-                                                            <BookOpen className="w-3 h-3" /> {sub.nombre}
-                                                        </span>
+                {/* Metric 2 */}
+                <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                            Bloques Programados
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+                                {stats.scheduled}
+                            </span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                esta semana
+                            </span>
+                        </div>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5" />
+                    </div>
+                </div>
+
+                {/* Metric 3 */}
+                <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                            Bloques Completados
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+                                {stats.done}
+                            </span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                de {stats.scheduled}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Navigation & Filters Bar */}
+            <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                {/* Week Navigation */}
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={goToPrevWeek}
+                        title="Semana anterior"
+                        className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <CalendarDays className="w-4 h-4 text-zinc-400 shrink-0 hidden sm:block" />
+                        <span className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-200 capitalize">
+                            {format(currentWeekStart, "d 'de' MMM", { locale: es })} — {format(addDays(currentWeekStart, 6), "d 'de' MMM yyyy", { locale: es })}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={goToNextWeek}
+                        title="Semana siguiente"
+                        className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={goToCurrentWeek}
+                        className="px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                    >
+                        Hoy
+                    </button>
+                </div>
+
+                {/* Filter selects */}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        <Filter className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Filtrar:</span>
+                    </div>
+
+                    {/* Year filter */}
+                    <div className="w-[130px]">
+                        <Select
+                            value={filterYear}
+                            onValueChange={(v) => {
+                                setFilterYear(v);
+                                setFilterSubject("all");
+                            }}
+                        >
+                            <SelectTrigger className="h-9 px-3 bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200/80 dark:border-zinc-800 text-xs font-normal rounded-xl">
+                                <SelectValue placeholder="Año" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#1f1f1f] border-zinc-200 dark:border-zinc-800 rounded-xl">
+                                <SelectItem value="all" className="text-xs cursor-pointer">
+                                    Todos los años
+                                </SelectItem>
+                                {yearOptions.map((y) => (
+                                    <SelectItem key={y} value={String(y)} className="text-xs cursor-pointer">
+                                        {y}° año
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Subject filter */}
+                    <div className="w-[180px]">
+                        <Select value={filterSubject} onValueChange={setFilterSubject}>
+                            <SelectTrigger className="h-9 px-3 bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200/80 dark:border-zinc-800 text-xs font-normal rounded-xl truncate">
+                                <SelectValue placeholder="Materia" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#1f1f1f] border-zinc-200 dark:border-zinc-800 rounded-xl max-h-56">
+                                <SelectItem value="all" className="text-xs cursor-pointer">
+                                    Todas las materias
+                                </SelectItem>
+                                {filteredSubjects.map((s) => (
+                                    <SelectItem key={s.id} value={s.id} className="text-xs cursor-pointer">
+                                        {s.nombre}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {(filterYear !== "all" || filterSubject !== "all") && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFilterYear("all");
+                                setFilterSubject("all");
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Limpiar</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {loading && routines.length === 0 ? (
+                <LoadingScreen message="Cargando Rutinas..." submessage="Organizando tus horarios y bloques de estudio..." />
+            ) : (
+                <>
+                    {/* Weekly Calendar Grid View */}
+                    {(viewMode === "grid" || viewMode === "both") && (
+                        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <div className="min-w-[760px] grid grid-cols-[64px_repeat(7,1fr)]">
+                                    {/* Corner Header */}
+                                    <div className="h-12 border-b border-r border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-center">
+                                        <Clock className="w-4 h-4 text-zinc-400" />
+                                    </div>
+
+                                    {/* Day Headers */}
+                                    {weekDays.map((day, i) => {
+                                        const today = isToday(day);
+                                        return (
+                                            <div
+                                                key={i}
+                                                className={cn(
+                                                    "h-12 flex flex-col items-center justify-center border-b border-r last:border-r-0 border-zinc-200/80 dark:border-zinc-800 px-1",
+                                                    today
+                                                        ? "bg-zinc-100/80 dark:bg-zinc-800/60"
+                                                        : "bg-zinc-50/60 dark:bg-zinc-900/60"
+                                                )}
+                                            >
+                                                <span className="text-[10px] uppercase font-semibold tracking-wider text-zinc-500 dark:text-zinc-400">
+                                                    {DAY_LABELS[day.getDay()]}
+                                                </span>
+                                                <div
+                                                    className={cn(
+                                                        "text-xs font-semibold mt-0.5 w-6 h-6 rounded-full flex items-center justify-center leading-none",
+                                                        today
+                                                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                                                            : "text-zinc-800 dark:text-zinc-200"
                                                     )}
-                                                    <span className="flex items-center gap-1 bg-[#FFE66D]/40 text-foreground px-2 py-0.5 rounded border-2 border-foreground/20">
-                                                        <Clock className="w-3 h-3" />
-                                                        {timeLabel(r.start_time)}–{timeLabel(r.end_time)} · {dayNames}
-                                                    </span>
-                                                    {r.end_date && (
-                                                        <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded border-2 border-foreground/20 text-foreground">
-                                                            hasta {format(parseISO(r.end_date), "d MMM yyyy", { locale: es })}
-                                                        </span>
-                                                    )}
+                                                >
+                                                    {format(day, "d")}
                                                 </div>
                                             </div>
+                                        );
+                                    })}
 
-                                            <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0">
-                                                {/* Streak */}
-                                                <div className="text-center bg-[#FF9B71]/20 px-3 py-1 rounded-lg border-2 border-foreground">
-                                                    <p className="text-sm font-black flex items-center justify-center gap-1 text-foreground">
-                                                        <Flame className={cn("w-4 h-4", streak > 0 ? "text-[#FF5C5C] fill-[#FF5C5C]" : "text-foreground")} />
-                                                        {streak}
-                                                    </p>
-                                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Racha</p>
-                                                </div>
-
-                                                {/* Actions */}
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <button onClick={() => { setEditRoutine(r); setFormOpen(true); }}
-                                                        title="Editar rutina"
-                                                        className="p-2 bg-[#FFE66D] border-[3px] border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 active:translate-y-0 transition-all text-black">
-                                                        <Pencil className="w-4 h-4 text-black" />
-                                                    </button>
-                                                    <button onClick={() => setConfirmStop(r)} title="Cortar rutina"
-                                                        className="p-2 bg-[#FF9B71] border-[3px] border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 active:translate-y-0 transition-all text-black">
-                                                        <StopCircle className="w-4 h-4 text-black" />
-                                                    </button>
-                                                    <button onClick={() => setConfirmDelete(r.id)} title="Eliminar rutina"
-                                                        className="p-2 bg-[#FF5C5C] border-[3px] border-foreground rounded-lg shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:brightness-110 active:translate-y-0 transition-all text-black">
-                                                        <Trash2 className="w-4 h-4 text-black" />
-                                                    </button>
-                                                </div>
+                                    {/* Time Column */}
+                                    <div className="relative border-r border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-900/30 select-none">
+                                        {gridHours.map((h) => (
+                                            <div
+                                                key={h}
+                                                className="h-[60px] flex items-start justify-end pr-2.5 pt-1 border-b border-zinc-100 dark:border-zinc-800/40 last:border-b-0"
+                                            >
+                                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-medium">
+                                                    {String(h).padStart(2, "0")}:00
+                                                </span>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        ))}
+                                    </div>
+
+                                    {/* Day Columns */}
+                                    {weekDays.map((day, dayIdx) => {
+                                        const dateStr = format(day, "yyyy-MM-dd");
+                                        const dayRoutines = getRoutinesForDate(day).filter(filterRoutine);
+                                        const overlapStyles = calculateOverlaps(dayRoutines);
+                                        const today = isToday(day);
+
+                                        return (
+                                            <div
+                                                key={dayIdx}
+                                                className={cn(
+                                                    "relative border-r last:border-r-0 border-zinc-200/80 dark:border-zinc-800",
+                                                    today ? "bg-zinc-50/40 dark:bg-zinc-900/20" : "bg-transparent"
+                                                )}
+                                            >
+                                                {/* Hour grid guidelines */}
+                                                {gridHours.map((h) => (
+                                                    <div
+                                                        key={h}
+                                                        className="h-[60px] border-b border-zinc-100 dark:border-zinc-800/40 last:border-b-0"
+                                                    />
+                                                ))}
+
+                                                {/* Routine Blocks inside this day */}
+                                                {dayRoutines.map((r) => {
+                                                    const pos = getPositionStyles(r.start_time, r.end_time);
+                                                    const overlap = overlapStyles.get(r.id);
+                                                    const sub = r.subject_id ? subjectMap.get(r.subject_id) : undefined;
+
+                                                    return (
+                                                        <RoutineBlock
+                                                            key={r.id}
+                                                            routine={r}
+                                                            log={getLogForRoutineAndDate(r.id, dateStr)}
+                                                            onClick={() => setLogTarget({ routine: r, dateStr })}
+                                                            subjectName={sub?.nombre}
+                                                            style={{
+                                                                ...pos,
+                                                                width: overlap?.width,
+                                                                left: overlap?.left,
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
-                    ) : (
-                        <div className="bg-card rounded-2xl border-4 border-foreground p-8 text-center shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col items-center justify-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-[#FFE66D] border-4 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center justify-center rotate-[-4deg]">
-                                <CalendarDays className="w-8 h-8 text-black" />
+                    )}
+
+                    {/* Routine Cards Directory / List View */}
+                    {(viewMode === "list" || viewMode === "both") && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                    <Layers className="w-5 h-5 text-zinc-500" />
+                                    <span>Directorio de Rutinas</span>
+                                </h2>
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {routines.length} configuradas
+                                </span>
                             </div>
-                            <h3 className="text-xl sm:text-2xl font-black uppercase text-foreground">¡Tu semana está lista para organizar!</h3>
-                            <p className="text-muted-foreground text-sm max-w-md font-bold">
-                                No tienes rutinas activas todavía. Agrega tus horarios de cursada, estudio o hábitos personales para visualizarlos en tu grilla.
-                            </p>
-                            <button
-                                onClick={() => { setEditRoutine(null); setFormOpen(true); }}
-                                className="px-6 py-3 rounded-xl bg-[#00FFAA] text-black border-4 border-foreground font-black uppercase tracking-wider shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all flex items-center gap-2"
-                            >
-                                <Plus className="w-5 h-5" />
-                                Crear mi primera rutina
-                            </button>
+
+                            {routines.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                    {routines.map((r) => {
+                                        const streak = getRoutineStreak(r.id);
+                                        const cat = CATEGORIES.find((c) => c.id === r.category);
+                                        const dayNames = r.days_of_week.map((d) => DAY_LABELS[d]).join(", ");
+                                        const sub = r.subject_id ? subjectMap.get(r.subject_id) : null;
+
+                                        return (
+                                            <div
+                                                key={r.id}
+                                                className="bg-white dark:bg-[#18181b] rounded-2xl p-4 sm:p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between gap-3 group"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div
+                                                        className="w-2.5 h-10 rounded-full shrink-0 mt-0.5"
+                                                        style={{ backgroundColor: r.color }}
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
+                                                                {r.name}
+                                                            </h3>
+                                                            <span className="text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded-md flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/60">
+                                                                <span>{cat?.emoji}</span>
+                                                                <span>{cat?.label}</span>
+                                                            </span>
+                                                        </div>
+
+                                                        {r.description && (
+                                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
+                                                                {r.description}
+                                                            </p>
+                                                        )}
+
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                                                            {sub && (
+                                                                <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 px-2 py-0.5 rounded-lg">
+                                                                    <BookOpen className="w-3 h-3" />
+                                                                    <span className="truncate max-w-[150px]">{sub.nombre}</span>
+                                                                </span>
+                                                            )}
+                                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-lg">
+                                                                <Clock className="w-3 h-3" />
+                                                                <span>{timeLabel(r.start_time)}–{timeLabel(r.end_time)}</span>
+                                                                <span>·</span>
+                                                                <span>{dayNames}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80">
+                                                    {/* Streak */}
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                                                        <Flame className={cn("w-3.5 h-3.5", streak > 0 ? "fill-current" : "")} />
+                                                        <span>{streak} {streak === 1 ? "día de racha" : "días de racha"}</span>
+                                                    </div>
+
+                                                    {/* Action buttons */}
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditRoutine(r);
+                                                                setFormOpen(true);
+                                                            }}
+                                                            title="Editar rutina"
+                                                            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfirmStop(r)}
+                                                            title="Finalizar hoy"
+                                                            className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer"
+                                                        >
+                                                            <StopCircle className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfirmDelete(r.id)}
+                                                            title="Eliminar rutina"
+                                                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                        <CalendarDays className="w-6 h-6" />
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                        Sin rutinas programadas
+                                    </h3>
+                                    <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-sm">
+                                        Define tus bloques de estudio, cursadas presenciales o hábitos diarios para visualizarlos de forma organizada.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditRoutine(null);
+                                            setFormOpen(true);
+                                        }}
+                                        className="mt-2 px-4 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-xs sm:text-sm font-medium transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Crear mi primera rutina</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
@@ -838,7 +1265,10 @@ export default function Routines() {
                 open={formOpen}
                 initial={editRoutine}
                 subjects={subjects}
-                onClose={() => { setFormOpen(false); setEditRoutine(null); }}
+                onClose={() => {
+                    setFormOpen(false);
+                    setEditRoutine(null);
+                }}
                 onSave={handleSave}
             />
 
@@ -850,26 +1280,53 @@ export default function Routines() {
                 existingLog={logTarget ? getLogForRoutineAndDate(logTarget.routine.id, logTarget.dateStr) : undefined}
                 onClose={() => setLogTarget(null)}
                 onLog={logRoutine}
-                onEdit={(r) => { setEditRoutine(r); setFormOpen(true); }}
+                onEdit={(r) => {
+                    setEditRoutine(r);
+                    setFormOpen(true);
+                }}
             />
 
             {/* Stop Confirm Dialog */}
             <Dialog open={!!confirmStop} onOpenChange={() => setConfirmStop(null)}>
-                <DialogContent className="max-w-sm bg-[#FF9B71] border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-black uppercase text-black">
-                            <StopCircle className="w-6 h-6 text-black" /> Cortar rutina
-                        </DialogTitle>
+                <DialogContent className="max-w-md bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 text-zinc-900 dark:text-zinc-100">
+                    <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                <StopCircle className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                                    Finalizar rutina a partir de hoy
+                                </DialogTitle>
+                                <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                    Esta rutina dejará de aparecer en fechas futuras.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <p className="font-bold text-black text-sm mt-2">
-                        La rutina <strong>"{confirmStop?.name}"</strong> quedará finalizada hoy. Se mantienen todos los registros pasados.
-                    </p>
-                    <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-3">
-                        <button onClick={() => setConfirmStop(null)} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase bg-card text-foreground hover:bg-muted transition-colors w-full sm:w-auto">
+
+                    <div className="py-3 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                        La rutina <strong className="text-zinc-900 dark:text-zinc-100 font-semibold">"{confirmStop?.name}"</strong> quedará finalizada hoy. Todos los registros y estadísticas pasadas se mantendrán intactos.
+                    </div>
+
+                    <DialogFooter className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setConfirmStop(null)}
+                            className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        >
                             Cancelar
                         </button>
-                        <button onClick={() => { if (confirmStop) stopRoutine(confirmStop.id); setConfirmStop(null); }} className="px-6 py-3 rounded-xl border-4 border-foreground font-black uppercase shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all bg-black text-white w-full sm:w-auto flex justify-center items-center gap-2">
-                            <StopCircle className="w-5 h-5" /> Cortar
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (confirmStop) stopRoutine(confirmStop.id);
+                                setConfirmStop(null);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                            <StopCircle className="w-4 h-4" />
+                            <span>Finalizar hoy</span>
                         </button>
                     </DialogFooter>
                 </DialogContent>
@@ -877,53 +1334,54 @@ export default function Routines() {
 
             {/* Delete Confirm Dialog */}
             <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
-                <DialogContent className="sm:max-w-lg w-[95vw] bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6 overflow-hidden">
-                    <DialogHeader className="space-y-3 pb-2">
+                <DialogContent className="max-w-md bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 text-zinc-900 dark:text-zinc-100">
+                    <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border-[2px] border-rose-500 flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
-                                <Trash2 className="w-6 h-6 text-rose-500" />
+                            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                <Trash2 className="w-5 h-5" />
                             </div>
                             <div>
-                                <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground">
-                                    ¿Eliminar rutina?
+                                <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                                    ¿Eliminar rutina definitivamente?
                                 </DialogTitle>
-                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
-                                    Confirmación requerida
-                                </p>
+                                <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                    Esta acción no se puede deshacer.
+                                </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
 
-                    {/* Warning Notice Box */}
-                    <div className="my-2 p-4 rounded-xl bg-rose-500/10 border-[2px] border-rose-500/40 flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                        <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-relaxed">
-                            Se eliminará la rutina y todos sus registros de progreso acumulados. Esta acción es <strong className="font-black underline">permanente</strong> y no se puede deshacer.
+                    <div className="my-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed font-normal">
+                            Se eliminará la rutina y todos sus registros de progreso acumulados. Si solo deseas que no continúe en el futuro, utiliza la opción <strong>"Finalizar hoy"</strong>.
                         </p>
                     </div>
 
-                    <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row gap-3">
-                        <button 
-                            onClick={() => setConfirmDelete(null)} 
-                            className="flex-1 py-3 px-4 rounded-xl border-[3px] border-foreground font-black uppercase bg-card text-foreground hover:bg-muted shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all text-xs"
+                    <DialogFooter className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setConfirmDelete(null)}
+                            className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                         >
                             Cancelar
                         </button>
                         <HoldButton
-                            size="md"
+                            size="sm"
+                            radius={12}
                             holdTime={1400}
-                            backgroundColor="#ff4e4e"
-                            fillColor="#b91c1c"
+                            backgroundColor="#e11d48"
+                            fillColor="#9f1239"
                             textColor="#ffffff"
                             fillTextColor="#ffffff"
-                            icon={<Trash2 className="w-4 h-4 shrink-0 text-white" />}
-                            doneIcon={<Check className="w-4 h-4 shrink-0 text-white" />}
+                            icon={<Trash2 className="w-3.5 h-3.5 shrink-0 text-white mr-1.5" />}
+                            doneIcon={<Check className="w-3.5 h-3.5 shrink-0 text-white mr-1.5" />}
                             doneLabel="Eliminada"
                             onHold={() => {
                                 if (confirmDelete) deleteRoutine(confirmDelete);
                                 setConfirmDelete(null);
                             }}
-                            className="flex-1 py-3 px-4 rounded-xl border-[3px] border-foreground font-black uppercase shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all text-xs"
+                            className="px-4 py-2 text-xs font-medium cursor-pointer"
                         >
                             Mantener para Eliminar
                         </HoldButton>

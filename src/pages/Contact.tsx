@@ -1,131 +1,282 @@
-import { Mail, MessageSquare, MapPin, Send, ChevronRight, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Mail,
+  MessageSquare,
+  MapPin,
+  Send,
+  CheckCircle2,
+  HelpCircle,
+  ArrowRight,
+  ExternalLink,
+} from "lucide-react";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { toast } from "sonner";
+
+const CONTACT_CHANNELS = [
+  {
+    icon: Mail,
+    title: "Correo Electrónico",
+    value: "soporte.tabe@gmail.com",
+    href: "mailto:soporte.tabe@gmail.com",
+    caption: "Respuesta en < 24hs hábiles",
+    external: false,
+  },
+  {
+    icon: MessageSquare,
+    title: "WhatsApp Oficial",
+    value: "+54 9 261 773-7367",
+    href: "https://wa.me/5492617737367",
+    caption: "Atención directa de soporte",
+    external: true,
+  },
+  {
+    icon: MapPin,
+    title: "Sede de Desarrollo",
+    value: "Mendoza, Argentina",
+    href: null,
+    caption: "Comunidad académica de Latam",
+    external: false,
+  },
+];
 
 export default function Contact() {
-    return (
-        <div className="min-h-screen bg-background">
-            <LandingNavbar />
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [motivo, setMotivo] = useState("Consulta general");
+  const [mensaje, setMensaje] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-            <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden bg-secondary/40">
-                <div className="container mx-auto px-4 md:px-6">
-                    <div className="max-w-3xl mx-auto text-center">
-                        <span className="inline-block px-4 py-2 rounded-lg bg-[#ff9415]/10 border-2 border-[#ff9415]/20 text-sm font-extrabold text-[#ff9415] mb-5">
-                            📬 Contacto
-                        </span>
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-black leading-[1.05] tracking-tight mb-6">
-                            Hablemos. <span className="text-[#ff9415]">Estamos acá</span> para ayudarte.
-                        </h1>
-                        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                            ¿Tenés dudas, consultas, sugerencias o querés sumar tu carrera? Respondemos a la brevedad.
-                        </p>
-                    </div>
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre || !email || !mensaje) {
+      toast.error("Por favor completá todos los campos requeridos.");
+      return;
+    }
+
+    const subject = `[Contacto TABE] ${motivo} - ${nombre}`;
+    const body = `Nombre: ${nombre}\nEmail: ${email}\nMotivo: ${motivo}\n\nMensaje:\n${mensaje}`;
+    const mailtoUrl = `mailto:soporte.tabe@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    setSubmitted(true);
+    toast.success("Abriendo tu cliente de correo...");
+    window.location.href = mailtoUrl;
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-foreground">
+      <LandingNavbar />
+
+      <main className="flex-1">
+        {/* Header Hero */}
+        <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden border-b border-border/50">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-primary/8 dark:bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+
+          <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-4xl text-center space-y-4">
+
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
+              Hablemos. Estamos para ayudarte.
+            </h1>
+
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto font-normal">
+              ¿Tenés dudas, consultas, sugerencias o querés que sumemos la malla de tu carrera? Escribinos y nuestro equipo te responderá a la brevedad.
+            </p>
+          </div>
+        </section>
+
+        {/* Content Section */}
+        <section className="py-16 md:py-24 border-b border-border/50">
+          <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+            <div className="grid lg:grid-cols-12 gap-12 lg:gap-14 items-start">
+              {/* Canales y Métodos */}
+              <div className="lg:col-span-5 space-y-6">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
+                    Vías de atención rápida
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mt-2 font-normal">
+                    Podes escribirnos por correo o WhatsApp. Ambos canales son atendidos directamente por el equipo de TABE.
+                  </p>
                 </div>
-            </section>
 
-            <section className="py-20 md:py-28">
-                <div className="container mx-auto px-4 md:px-6">
-                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 max-w-6xl mx-auto">
-                        <div>
-                            <span className="inline-block px-4 py-2 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/20 text-sm font-extrabold text-[#1475e5] mb-5">
-                                Canales oficiales
-                            </span>
-                            <h2 className="text-3xl md:text-5xl font-black mb-4">
-                                Escribinos por <span className="text-[#1475e5]">donde prefieras</span>
-                            </h2>
-                            <p className="text-muted-foreground leading-relaxed mb-8 text-lg">
-                                Contactate con nuestro equipo de soporte técnico y administración a través de nuestros canales oficiales. Respondemos en menos de 24hs hábiles.
-                            </p>
-
-                            <div className="space-y-4">
-                                {[
-                                    { icon: Mail, title: "Email", value: "soporte.tabe@gmail.com", href: "mailto:soporte.tabe@gmail.com", color: "#1475e5", desc: "Respuesta en < 24hs" },
-                                    { icon: MessageSquare, title: "WhatsApp", value: "+54 9 261 773-7367", href: "https://wa.me/5492617737367", color: "#48bd22", desc: "Chat directo", external: true },
-                                    { icon: MapPin, title: "Ubicación", value: "Mendoza, Argentina", href: null, color: "#ff9415", desc: "Equipo remoto" },
-                                ].map((item, i) => (
-                                    <a key={i} href={item.href} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined} className={`group flex items-center gap-4 p-4 bg-card rounded-xl border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-1 hover:border-${item.color.replace('#', '')} hover:shadow-[6px_6px_0_0_${item.color.replace('#', '')}]`}>
-                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3" style={{ borderColor: item.color, backgroundColor: item.color + "15" }}>
-                                            <item.icon className="w-6 h-6" style={{ color: item.color }} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-extrabold text-base truncate">{item.title}</h3>
-                                            <p className="text-sm font-bold truncate" style={{ color: item.color }}>{item.value}</p>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground font-bold whitespace-nowrap">{item.desc}</div>
-                                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" style={{ color: item.color }} />
-                                    </a>
-                                ))}
+                <div className="space-y-3.5 pt-2">
+                  {CONTACT_CHANNELS.map((ch) => {
+                    const Icon = ch.icon;
+                    const isLink = Boolean(ch.href);
+                    const Content = (
+                      <div className="group flex items-center justify-between p-4 rounded-2xl bg-card border border-border/80 shadow-sm hover:border-primary/30 transition-all">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground font-medium">
+                              {ch.title}
                             </div>
-
-                            <div className="mt-8 pt-6 border-t-2 border-border">
-                                <h3 className="font-extrabold mb-4">Redes sociales</h3>
-                                <div className="flex gap-3">
-                                    <a href="https://www.instagram.com/tabe_oficial/" target="_blank" rel="noopener noreferrer" className="p-3 rounded-xl bg-card border-2 border-border hover:border-[#ff9415] hover:bg-[#ff9415]/10 transition-all">
-                                        <MessageSquare className="w-5 h-5 text-[#ff9415]" />
-                                    </a>
-                                </div>
+                            <div className="text-sm font-semibold text-foreground mt-0.5">
+                              {ch.value}
                             </div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              {ch.caption}
+                            </div>
+                          </div>
                         </div>
+                        {isLink && (
+                          <div className="text-muted-foreground group-hover:text-primary transition-colors p-1">
+                            <ExternalLink className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                    );
 
-                        <div className="bg-card rounded-xl p-6 md:p-8 border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))]">
-                            <h2 className="text-2xl md:text-3xl font-black mb-6">Envíanos un mensaje</h2>
-                            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); window.location.href = "mailto:soporte.tabe@gmail.com?subject=" + encodeURIComponent("Contacto desde web") + "&body=" + encodeURIComponent("Nombre: " + (e.target.elements.nombre?.value || "") + "\nEmail: " + (e.target.elements.email?.value || "") + "\n\nMensaje:\n" + (e.target.elements.mensaje?.value || "")); }}>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">Nombre</label>
-                                    <input name="nombre" type="text" className="w-full bg-background border-2 border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1475e5]/50 focus:border-[#1475e5] transition-all" placeholder="Tu nombre" required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">Email</label>
-                                    <input name="email" type="email" className="w-full bg-background border-2 border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1475e5]/50 focus:border-[#1475e5] transition-all" placeholder="tu@email.com" required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">Mensaje</label>
-                                    <textarea name="mensaje" className="w-full bg-background border-2 border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1475e5]/50 focus:border-[#1475e5] transition-all min-h-[120px] resize-none" placeholder="¿En qué te podemos ayudar?" required></textarea>
-                                </div>
-                                <button className="w-full py-4 rounded-xl bg-foreground text-background font-extrabold border-2 border-foreground shadow-[4px_4px_0_0_#ff9415] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415] transition-all flex items-center justify-center gap-2">
-                                    Enviar mensaje <Send className="w-5 h-5" />
-                                </button>
-                                <p className="text-xs text-muted-foreground text-center">Se abrirá tu cliente de email con el mensaje pre-cargado.</p>
-                            </form>
-                        </div>
-                    </div>
+                    return isLink ? (
+                      <a
+                        key={ch.title}
+                        href={ch.href!}
+                        target={ch.external ? "_blank" : undefined}
+                        rel={ch.external ? "noopener noreferrer" : undefined}
+                        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
+                      >
+                        {Content}
+                      </a>
+                    ) : (
+                      <div key={ch.title}>{Content}</div>
+                    );
+                  })}
                 </div>
-            </section>
 
-            <section className="py-20 md:py-28 bg-secondary/40">
-                <div className="container mx-auto px-4 md:px-6">
-                    <div className="max-w-3xl mx-auto text-center p-8 md:p-16 rounded-[2.5rem] bg-card border-2 border-border/50 relative overflow-hidden group">
-                        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#ff9415]/20 rounded-full blur-[120px] group-hover:bg-[#ff9415]/30 transition-colors duration-700" />
-                        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#48bd22]/20 rounded-full blur-[120px] group-hover:bg-[#48bd22]/30 transition-colors duration-700" />
-
-                        <div className="relative z-10">
-                            <span className="inline-block px-4 py-2 rounded-lg bg-[#48bd22]/10 border-2 border-[#48bd22]/20 text-sm font-extrabold text-[#48bd22] mb-5">
-                                Preguntas frecuentes
-                            </span>
-                            <h2 className="text-3xl md:text-5xl font-black mb-6 leading-tight">
-                                ¿Dudas <span className="text-[#48bd22] italic">rápidas?</span>
-                            </h2>
-                            <p className="text-muted-foreground mb-10 text-lg leading-relaxed max-w-xl mx-auto">
-                                Revisá nuestro FAQ o escribimos directamente. Nos encanta escuchar a la comunidad.
-                            </p>
-                            <div className="flex flex-wrap justify-center gap-4">
-                                <a href="/#faq"
-                                    className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-foreground text-background rounded-xl font-extrabold text-lg border-2 border-foreground shadow-[4px_4px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415]">
-                                    Ver FAQ
-                                    <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                                </a>
-                                <a href="mailto:soporte.tabe@gmail.com"
-                                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-card text-foreground rounded-xl font-extrabold text-lg border-2 border-border shadow-[4px_4px_0_0_hsl(var(--border))] transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--border))] active:translate-y-0.5 active:shadow-none">
-                                    <Mail className="w-5 h-5 text-[#1475e5]" />
-                                    Escribirnos
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                {/* Compromiso de Respuesta */}
+                <div className="p-4 rounded-2xl bg-secondary/50 border border-border/60 flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div className="text-xs text-muted-foreground leading-relaxed">
+                    <strong className="text-foreground font-semibold block mb-0.5">
+                      Garantía de respuesta
+                    </strong>
+                    Revisamos cada mensaje recibido. Las sugerencias de nuevas universidades o planes de estudio se procesan y catalogan periódicamente.
+                  </div>
                 </div>
-            </section>
+              </div>
 
-            <LandingFooter />
-        </div>
-    );
+              {/* Formulario de Mensaje */}
+              <div className="lg:col-span-7">
+                <div className="bg-card/95 backdrop-blur-xl border border-border/80 rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+                  <div className="space-y-1 mb-6">
+                    <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                      Envianos tu mensaje
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Completá el formulario para pre-cargar tu consulta directamente hacia nuestro buzón de soporte.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-foreground">
+                          Nombre completo
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={nombre}
+                          onChange={(e) => setNombre(e.target.value)}
+                          placeholder="Tu nombre o apodo"
+                          className="w-full h-11 px-3.5 rounded-xl bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-foreground">
+                          Correo electrónico
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="nombre@universidad.edu.ar"
+                          className="w-full h-11 px-3.5 rounded-xl bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground">
+                        Motivo de contacto
+                      </label>
+                      <select
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
+                        className="w-full h-11 px-3.5 rounded-xl bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all cursor-pointer"
+                      >
+                        <option value="Consulta general">Consulta general</option>
+                        <option value="Sumar mi carrera o plan de estudio">Sumar mi carrera o plan de estudio</option>
+                        <option value="Soporte técnico o error en la app">Soporte técnico o error en la app</option>
+                        <option value="Sugerencia de nueva función">Sugerencia de nueva función</option>
+                        <option value="Privacidad o datos">Privacidad o datos personales</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground">
+                        Mensaje
+                      </label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={mensaje}
+                        onChange={(e) => setMensaje(e.target.value)}
+                        placeholder="Contanos en detalle qué necesitás o qué carrera te gustaría que incorporemos..."
+                        className="w-full p-3.5 rounded-xl bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-muted-foreground/60 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>Enviar mensaje</span>
+                      <Send className="w-4 h-4" />
+                    </button>
+
+                    <p className="text-[11px] text-muted-foreground text-center pt-1 font-normal">
+                      Se preparará el correo con los datos ingresados para que lo envíes con un solo clic.
+                    </p>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Sección de FAQ Rápido */}
+        <section className="py-16 md:py-24">
+          <div className="container mx-auto px-4 sm:px-6 max-w-4xl text-center">
+            <div className="bg-card border border-border/80 rounded-3xl p-8 sm:p-12 shadow-xl ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/15 text-primary flex items-center justify-center mx-auto">
+                <HelpCircle className="w-5 h-5" />
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                ¿Tenés una duda rápida?
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                Consultá nuestras preguntas frecuentes con respuestas inmediatas sobre sincronización, carreras y uso sin conexión.
+              </p>
+              <div className="pt-2">
+                <Link
+                  to="/#faq"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition-colors"
+                >
+                  <span>Revisar Preguntas Frecuentes</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <LandingFooter />
+    </div>
+  );
 }

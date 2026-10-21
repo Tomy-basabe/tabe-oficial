@@ -7,13 +7,14 @@ import {
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
   CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2,
-  ShieldCheck, Check
+  ShieldCheck, Check, Search, LayoutGrid, List, MoreHorizontal, Sparkles,
+  UploadCloud, Layers, BookOpen, Copy, Download
 } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
 import { useMarketplace } from "@/hooks/useMarketplace";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { markdownToTiptap } from "@/lib/markdownToTiptap";
 import JSZip from "jszip";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
@@ -74,19 +87,20 @@ const fileTypeIcons = {
 };
 
 const fileTypeColors = {
-  pdf: "text-destructive bg-destructive/20",
-  imagen: "text-neon-green bg-neon-green/20",
-  link: "text-neon-cyan bg-neon-cyan/20",
-  video: "text-neon-purple bg-neon-purple/20",
-  otro: "text-muted-foreground bg-secondary",
+  pdf: "text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40",
+  imagen: "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40",
+  link: "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40",
+  video: "text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-950/40 border border-violet-200/60 dark:border-violet-800/40",
+  otro: "text-zinc-600 bg-zinc-100 dark:text-zinc-400 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60",
 };
 
 const folderColors = [
-  { name: "Cyan", value: "#00d9ff" },
-  { name: "Purple", value: "#a855f7" },
-  { name: "Green", value: "#22c55e" },
-  { name: "Gold", value: "#fbbf24" },
-  { name: "Red", value: "#ef4444" },
+  { name: "Azul", value: "#3b82f6" },
+  { name: "Púrpura", value: "#8b5cf6" },
+  { name: "Esmeralda", value: "#10b981" },
+  { name: "Ámbar", value: "#f59e0b" },
+  { name: "Rosa", value: "#ec4899" },
+  { name: "Gris", value: "#64748b" },
 ];
 
 let libraryFoldersCache: LibraryFolder[] | null = null;
@@ -124,6 +138,27 @@ export default function Library() {
       setSelectedYear(null);
     }
   }, [activeYears, selectedYear]);
+
+  // Notion / ChatGPT Style Controls
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fileTypeFilter, setFileTypeFilter] = useState<"all" | "pdf" | "imagen" | "link" | "otro">("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    try {
+      return (localStorage.getItem("tabe-library-view") as "grid" | "list") || "grid";
+    } catch {
+      return "grid";
+    }
+  });
+  const [uploadModalTab, setUploadModalTab] = useState<"dropzone" | "folder" | "minigame">("dropzone");
+  const [isDropzoneHover, setIsDropzoneHover] = useState(false);
+  const quickCategories = ["Resumen", "Modelos de Examen", "Apuntes Teóricos", "Guía de TP", "Fórmulas"];
+
+  const toggleViewMode = (mode: "grid" | "list") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("tabe-library-view", mode);
+    } catch {}
+  };
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -164,6 +199,7 @@ export default function Library() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [uploadBasketballMode, setUploadBasketballMode] = useState<"file" | "folder">("file");
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [isDraggingExternal, setIsDraggingExternal] = useState(false);
@@ -421,6 +457,55 @@ export default function Library() {
         window.removeEventListener('pagehide', handleBeforeUnload);
       };
     }, [user?.id]);
+
+  // Atajos de teclado estilo Notion / ChatGPT
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape
+      if (e.key === "Escape") {
+        if (fullScreenFileRef.current) {
+          closeFullScreenViewer();
+          return;
+        }
+        if (selectedIds.size > 0) {
+          setSelectedIds(new Set());
+          return;
+        }
+        if (searchQuery) {
+          setSearchQuery("");
+          return;
+        }
+      }
+
+      // Atajo '/' para enfocar búsqueda
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      // Zoom en pantalla completa
+      if (fullScreenFileRef.current) {
+        if (e.key === "+" || e.key === "=") {
+          e.preventDefault();
+          setViewerZoom(z => Math.min(300, z + 25));
+        } else if (e.key === "-") {
+          e.preventDefault();
+          setViewerZoom(z => Math.max(25, z - 25));
+        } else if (e.key === "0") {
+          e.preventDefault();
+          setViewerZoom(100);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchQuery, selectedIds.size]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -1763,12 +1848,54 @@ export default function Library() {
   const currentFolders = getFilteredFolders();
   const currentFiles = getFilteredFiles(currentFolders);
 
+  const displayedFolders = useMemo(() => {
+    if (!searchQuery.trim()) return currentFolders;
+    const q = searchQuery.toLowerCase().trim();
+    return currentFolders.filter(folder => folder.nombre.toLowerCase().includes(q));
+  }, [currentFolders, searchQuery]);
+
+  const displayedFiles = useMemo(() => {
+    let list = currentFiles;
+    if (fileTypeFilter !== "all") {
+      list = list.filter(file => file.tipo === fileTypeFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(file =>
+        file.nombre.toLowerCase().includes(q) ||
+        (file.subject?.nombre && file.subject.nombre.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [currentFiles, fileTypeFilter, searchQuery]);
+
   // Stats
   const totalFilesInFilter = selectedSubjectId
     ? files.filter(f => f.subject_id === selectedSubjectId).length
     : selectedYear
       ? files.filter(f => Number(f.subject?.año) === Number(selectedYear) || (f.subject_id && subjects.some(s => s.id === f.subject_id && Number(s.año) === Number(selectedYear)))).length
       : files.length;
+
+  const currentFolderName = useMemo(() => {
+    if (!currentFolderId) return null;
+    const current = folders.find(f => f.id === currentFolderId);
+    return current ? current.nombre : null;
+  }, [currentFolderId, folders]);
+
+  const totalLibraryBytes = useMemo(() => {
+    return files.reduce((acc, f) => acc + (f.tamaño_bytes || 0), 0);
+  }, [files]);
+
+  const selectAllCurrent = () => {
+    const all = new Set<string>();
+    displayedFolders.forEach(f => all.add(f.id));
+    displayedFiles.forEach(f => all.add(f.id));
+    setSelectedIds(all);
+  };
+
+  const isAllSelected = (displayedFolders.length > 0 || displayedFiles.length > 0) &&
+    displayedFolders.every(f => selectedIds.has(f.id)) &&
+    displayedFiles.every(f => selectedIds.has(f.id));
 
   // Time tracking for preview
   useEffect(() => {
@@ -1804,78 +1931,258 @@ export default function Library() {
   }, [showPreviewModal, previewFile, user]);
 
   return (
-    <div className="tabe-page p-4 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground">
-            Biblioteca
-          </h1>
-          <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
-            Organiza tus recursos de estudio por año y materia
-          </p>
-        </div>
-        <div className="flex gap-3 flex-wrap items-center mt-2 lg:mt-0 tour-library-upload">
-          {(folders.length > 0 || files.length > 0) && (
-            <button
-              onClick={deleteAllLibrary}
-              title="Borrar toda la biblioteca de la base de datos"
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#ef4444] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest text-xs shadow-[3px_3px_0_0_#000] hover:translate-y-0.5 hover:shadow-none transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>BORRAR TODO</span>
-            </button>
-          )}
-          <div className="flex gap-1.5 bg-background border-[3px] border-foreground p-1.5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-            <button
-              onClick={openFolderModal}
-              title="Nueva Carpeta"
-              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs"
-            >
-              <FolderPlus className="w-4 h-4" />
-              <span className="hidden lg:inline">Nueva Carpeta</span>
-            </button>
-            <div className="w-[3px] bg-foreground/20 rounded-full" />
-            <button
-              onClick={openLinkModal}
-              title="Agregar Link"
-              className="flex items-center gap-2 px-3 py-1.5 font-bold uppercase tracking-widest text-foreground hover:bg-foreground/10 rounded-lg transition-all text-xs"
-            >
-              <LinkIcon className="w-4 h-4" />
-              <span className="hidden lg:inline">Agregar Link</span>
-            </button>
+    <div className="tabe-page max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-fade-in">
+      {/* ─── Notion / ChatGPT Style Header & Toolbar ──────────────────────── */}
+      <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-5 transition-all">
+        {/* Top Row: Title, Subtitle & Primary Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Biblioteca
+              </h1>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Badge variant="secondary" className="font-normal text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-0">
+                  {files.length} {files.length === 1 ? "archivo" : "archivos"}
+                </Badge>
+                {folders.length > 0 && (
+                  <Badge variant="secondary" className="font-normal text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-0 hidden sm:inline-flex">
+                    {folders.length} {folders.length === 1 ? "carpeta" : "carpetas"}
+                  </Badge>
+                )}
+                {totalLibraryBytes > 0 && (
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono hidden md:inline">
+                    · {formatFileSize(totalLibraryBytes)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              Tus documentos, lecturas y recursos organizados con herramientas de IA
+            </p>
           </div>
-          <button
-            onClick={() => {
-              if (isGuest) {
-                toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir carpetas.");
-                return;
-              }
-              setUploadBasketballMode("folder");
-              openUploadModal();
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#00d9ff] text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
-            title="Subir una carpeta completa de tu computadora"
-          >
-            <FolderUp className="w-5 h-5" />
-            <span>Subir Carpeta</span>
-          </button>
-          <button
-            onClick={() => {
-              if (isGuest) {
-                toast.error("El modo demo es de solo lectura. Inicia sesión o regístrate para subir archivos.");
-                return;
-              }
-              setUploadBasketballMode("file");
-              openUploadModal();
-            }}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
-          >
-            <Upload className="w-5 h-5" />
-            <span>Subir Archivo</span>
-          </button>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Switcher (Grid / List) */}
+            <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/70 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+              <button
+                type="button"
+                onClick={() => toggleViewMode("grid")}
+                title="Vista Cuadrícula"
+                className={cn(
+                  "p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
+                  viewMode === "grid"
+                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleViewMode("list")}
+                title="Vista Lista estilo Notion"
+                className={cn(
+                  "p-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
+                  viewMode === "list"
+                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                )}
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* "+ Nuevo" Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs transition-all active:scale-[0.98]"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nuevo</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 p-1.5 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl">
+                <DropdownMenuLabel className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider px-2 py-1">
+                  Agregar a Biblioteca
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setUploadModalTab("dropzone");
+                    openUploadModal();
+                  }}
+                  className="flex items-center gap-2 px-2.5 py-2 text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Upload className="w-4 h-4 text-zinc-500" />
+                  <span>Subir Archivos</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setUploadModalTab("folder");
+                    openUploadModal();
+                  }}
+                  className="flex items-center gap-2 px-2.5 py-2 text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  <FolderUp className="w-4 h-4 text-zinc-500" />
+                  <span>Subir Carpeta</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={openFolderModal}
+                  className="flex items-center gap-2 px-2.5 py-2 text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  <FolderPlus className="w-4 h-4 text-zinc-500" />
+                  <span>Nueva Carpeta</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={openLinkModal}
+                  className="flex items-center gap-2 px-2.5 py-2 text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  <LinkIcon className="w-4 h-4 text-zinc-500" />
+                  <span>Agregar Enlace</span>
+                </DropdownMenuItem>
+                {(folders.length > 0 || files.length > 0) && (
+                  <>
+                    <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                    <DropdownMenuItem
+                      onClick={deleteAllLibrary}
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Borrar toda la biblioteca</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        {/* Hidden folder input */}
+
+        {/* Filter and Search Bar Notion-style */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+          {/* Realtime Search Input with Keyboard Shortcut */}
+          <div className="relative flex-1 max-w-full lg:max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre o materia..."
+              className="w-full pl-9 pr-14 py-2 bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 focus:bg-white dark:focus:bg-zinc-900 transition-all"
+            />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-md transition-colors"
+                  title="Limpiar búsqueda (Esc)"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 rounded select-none pointer-events-none">
+                  /
+                </kbd>
+              )}
+            </div>
+          </div>
+
+          {/* Filters: Year, Subject, Format */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Year Select */}
+            <Select
+              value={selectedYear !== null ? selectedYear.toString() : "all"}
+              onValueChange={(val) => setSelectedYear(val === "all" ? null : parseInt(val))}
+            >
+              <SelectTrigger className="h-8 px-3 text-xs bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors w-auto gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5 text-zinc-500" />
+                <SelectValue placeholder="Año" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-lg">
+                <SelectItem value="all" className="text-xs">Todos los años</SelectItem>
+                {selectableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()} className="text-xs">
+                    {year}° Año
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Subject Select */}
+            {selectedYear && (
+              <Select
+                value={selectedSubjectId || "all"}
+                onValueChange={(val) => setSelectedSubjectId(val === "all" ? null : val)}
+              >
+                <SelectTrigger className="h-8 px-3 text-xs bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors w-auto gap-1.5 max-w-[200px]">
+                  <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
+                  <SelectValue placeholder="Materia" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-lg max-h-60">
+                  <SelectItem value="all" className="text-xs">Todas las materias</SelectItem>
+                  {filteredSubjects.map(sub => (
+                    <SelectItem key={sub.id} value={sub.id} className="text-xs">
+                      {sub.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Format Pills */}
+            <div className="hidden sm:flex items-center gap-1 bg-zinc-100/70 dark:bg-zinc-800/50 p-1 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50">
+              {(["all", "pdf", "imagen", "link"] as const).map(fmt => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => setFileTypeFilter(fmt)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all capitalize",
+                    fileTypeFilter === fmt
+                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                      : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  )}
+                >
+                  {fmt === "all" ? "Todos" : fmt === "imagen" ? "Imágenes" : fmt === "link" ? "Enlaces" : fmt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Clear Filters Button if any active */}
+            {(selectedYear !== null || selectedSubjectId !== null || searchQuery !== "" || fileTypeFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear(null);
+                  setSelectedSubjectId(null);
+                  setSearchQuery("");
+                  setFileTypeFilter("all");
+                }}
+                className="text-xs text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 px-2 py-1 transition-colors"
+                title="Limpiar todos los filtros"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Hidden inputs for folder and files upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileUpload}
+          multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,image/*"
+        />
         <input
           ref={folderInputRef}
           type="file"
@@ -1886,837 +2193,893 @@ export default function Library() {
         />
       </div>
 
-      {/* Year and Subject Filters */}
-      <div className="bg-card border-[3px] border-foreground rounded-xl p-5 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4 text-primary" />
-          <span className="font-medium text-sm">Filtrar por</span>
+      {/* ─── Notion Breadcrumb & Navigation Bar ────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 text-xs bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 px-4 py-2.5 rounded-xl shadow-2xs">
+        <div className="flex items-center gap-1.5 flex-wrap font-medium">
+          <button
+            type="button"
+            onClick={() => navigateToFolder(null)}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors",
+              currentFolderId === null
+                ? "text-zinc-900 dark:text-zinc-100 font-semibold bg-zinc-100 dark:bg-zinc-800/80"
+                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+            )}
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Biblioteca</span>
+          </button>
+
+          {folderPath.map((folder, index) => (
+            <div key={folder.id} className="flex items-center gap-1.5">
+              <span className="text-zinc-400 dark:text-zinc-600">/</span>
+              <button
+                type="button"
+                onClick={() => navigateToFolder(folder.id)}
+                className={cn(
+                  "px-2 py-1 rounded-lg transition-colors truncate max-w-[150px] sm:max-w-[200px]",
+                  index === folderPath.length - 1
+                    ? "text-zinc-900 dark:text-zinc-100 font-semibold bg-zinc-100 dark:bg-zinc-800/80"
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                )}
+                title={folder.nombre}
+              >
+                {folder.nombre}
+              </button>
+            </div>
+          ))}
         </div>
 
-        <div className="flex flex-wrap gap-4">
-          {/* Year Filter */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">AÑO</label>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setSelectedYear(null)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all border-[3px] border-foreground",
-                  selectedYear === null
-                    ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000] -translate-y-1"
-                    : "bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_#000]"
-                )}
-              >
-                TODOS
-              </button>
-              {activeYears.map(year => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all border-[3px] border-foreground",
-                    selectedYear === year
-                      ? "bg-[#ffd21c] text-black shadow-[4px_4px_0_0_#000] -translate-y-1"
-                      : "bg-background text-foreground hover:bg-muted shadow-[2px_2px_0_0_#000]"
-                  )}
-                >
-                  {year}° AÑO
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          {/* Back button when in subfolder */}
+          {currentFolderId && (
+            <button
+              type="button"
+              onClick={() => {
+                const parentId = folderPath.length > 1 ? folderPath[folderPath.length - 2].id : null;
+                navigateToFolder(parentId);
+              }}
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-1 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Volver</span>
+            </button>
+          )}
 
-          {/* Subject Filter - Only shown when year is selected */}
-          {selectedYear && (
-            <div className="flex-1 min-w-[250px]">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">MATERIA</label>
-              <Select
-                value={selectedSubjectId || "all"}
-                onValueChange={(val) => setSelectedSubjectId(val === "all" ? null : val)}
-              >
-                <SelectTrigger className="bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest h-auto py-2 px-4 focus:shadow-none focus:translate-y-1 transition-all">
-                  <SelectValue placeholder="TODAS LAS MATERIAS" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                  <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODAS LAS MATERIAS</SelectItem>
-                  {filteredSubjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
-                      {subject.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Select All Toggle */}
+          {(displayedFolders.length > 0 || displayedFiles.length > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isAllSelected) clearSelection();
+                else selectAllCurrent();
+              }}
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title={isAllSelected ? "Deseleccionar todos" : "Seleccionar todos"}
+            >
+              {isAllSelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{isAllSelected ? "Deseleccionar" : "Seleccionar"}</span>
+            </button>
           )}
         </div>
+      </div>
 
-        {/* Current filter info */}
-        {(selectedYear || selectedSubjectId) && (
-          <div className="mt-6 pt-4 border-t-[3px] border-foreground/20 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-              <GraduationCap className="w-4 h-4 text-foreground" />
-              <span className="text-muted-foreground">
-                {selectedSubject
-                  ? `${selectedSubject.nombre} (${selectedSubject.año}° AÑO)`
-                  : selectedYear
-                    ? `TODAS LAS MATERIAS DE ${selectedYear}° AÑO`
-                    : "TODOS LOS ARCHIVOS"
-                }
-              </span>
-              <span className="px-2 py-0.5 bg-[#1475e5] text-white rounded-md shadow-[2px_2px_0_0_#000] border-2 border-foreground">
-                {totalFilesInFilter} ARCHIVOS
-              </span>
+      {/* ─── Main Content Area with Drag & Drop ────────────────────────────── */}
+      <div
+        className={cn(
+          "min-h-[400px] rounded-2xl transition-all relative",
+          isDraggingExternal && "ring-2 ring-primary ring-dashed bg-primary/5 p-4"
+        )}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("Files")) {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingExternal(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsDraggingExternal(false);
+          }
+        }}
+        onDrop={async (e) => {
+          setIsDraggingExternal(false);
+          if (!e.dataTransfer.types.includes("Files") || e.dataTransfer.getData("fileId") || e.dataTransfer.getData("folderId")) return;
+          e.preventDefault();
+          const droppedFiles = e.dataTransfer.files;
+          if (!droppedFiles.length || !user) return;
+          await uploadFilesList(Array.from(droppedFiles));
+        }}
+      >
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-32 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 p-4 rounded-2xl space-y-3 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800" />
+                <div className="w-3/4 h-4 rounded-md bg-zinc-100 dark:bg-zinc-800" />
+                <div className="w-1/2 h-3 rounded-md bg-zinc-100 dark:bg-zinc-800" />
+              </div>
+            ))}
+          </div>
+        ) : displayedFolders.length === 0 && displayedFiles.length === 0 ? (
+          /* Empty State Notion-style */
+          <div className="text-center py-20 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-8 shadow-xs max-w-lg mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4 text-zinc-400">
+              <FolderOpen className="w-7 h-7" />
             </div>
-            <button
-              onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
-              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-[#ef4444] hover:underline"
-            >
-              LIMPIAR FILTROS
-            </button>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+              {searchQuery || selectedYear || selectedSubjectId || fileTypeFilter !== "all"
+                ? "No se encontraron elementos"
+                : currentFolderId
+                  ? "Esta carpeta está vacía"
+                  : "Tu biblioteca está lista para tus apuntes"}
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 font-normal max-w-sm mx-auto">
+              {searchQuery || selectedYear || selectedSubjectId
+                ? "Prueba modificando los filtros o el término de búsqueda."
+                : "Organiza tus materias creando carpetas o arrastra archivos directamente aquí."}
+            </p>
+            <div className="flex gap-2.5 justify-center flex-wrap">
+              <button
+                type="button"
+                onClick={openFolderModal}
+                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl font-medium text-xs transition-colors"
+              >
+                Nueva Carpeta
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadModalTab("dropzone");
+                  openUploadModal();
+                }}
+                className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl font-medium text-xs shadow-2xs transition-colors"
+              >
+                Subir Archivo
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* ─── Folders Section ────────────────────────────────────────── */}
+            {displayedFolders.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400 px-1">
+                  <span>Carpetas ({displayedFolders.length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                  {displayedFolders.map(folder => {
+                    const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
+                    const folderSubject = subjects.find(s => s.id === folder.subject_id);
+
+                    return (
+                      <div
+                        key={folder.id}
+                        onClick={() => navigateToFolder(folder.id)}
+                        className={cn(
+                          "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl cursor-pointer hover:shadow-xs transition-all group relative select-none",
+                          dragOverFolderId === folder.id && "ring-2 ring-zinc-900 dark:ring-white bg-zinc-50 dark:bg-zinc-800/40",
+                          selectedIds.has(folder.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragOverFolderId(folder.id);
+                        }}
+                        onDragLeave={() => setDragOverFolderId(null)}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragOverFolderId(null);
+                          setIsDraggingExternal(false);
+
+                          const fileId = e.dataTransfer.getData("fileId");
+                          const folderId = e.dataTransfer.getData("folderId");
+
+                          if (fileId) {
+                            const { error } = await supabase
+                              .from("library_files")
+                              .update({ folder_id: folder.id })
+                              .eq("id", fileId);
+                            if (!error) {
+                              toast.success("Archivo movido a " + folder.nombre);
+                              fetchFiles();
+                            } else {
+                              toast.error("Error al mover archivo");
+                            }
+                          } else if (folderId && folderId !== folder.id) {
+                            const { error } = await supabase
+                              .from("library_folders")
+                              .update({ parent_folder_id: folder.id })
+                              .eq("id", folderId);
+                            if (!error) {
+                              toast.success("Carpeta movida");
+                              fetchFolders();
+                            } else {
+                              toast.error("Error al mover carpeta");
+                            }
+                          } else if (e.dataTransfer.types.includes("Files")) {
+                            const droppedFiles = e.dataTransfer.files;
+                            if (!droppedFiles.length || !user) return;
+                            setUploading(true);
+                            const toastId = toast.loading(`Subiendo a ${folder.nombre}...`);
+                            let uploaded = 0;
+
+                            for (let i = 0; i < droppedFiles.length; i++) {
+                              const file = droppedFiles[i];
+                              if (file.name.startsWith(".")) continue;
+                              let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
+                              if (file.type === "application/pdf") tipo = "pdf";
+                              else if (file.type.startsWith("image/")) tipo = "imagen";
+                              else if (file.type.startsWith("video/")) tipo = "video";
+                              const fileExt = file.name.split(".").pop();
+                              const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                              const filePath = `${user.id}/${fileName}`;
+                              const { error: uploadError } = await supabase.storage.from("library-files").upload(filePath, file, { cacheControl: '31536000', upsert: false });
+                              if (uploadError) { console.error(uploadError); continue; }
+                              const signedUrl = await getSignedUrl(filePath);
+                              if (!signedUrl) continue;
+                              await supabase.from("library_files").insert({
+                                user_id: user.id, subject_id: folder.subject_id || selectedSubjectId || null,
+                                folder_id: folder.id, nombre: file.name, tipo,
+                                url: signedUrl, storage_path: filePath, tamaño_bytes: file.size,
+                              });
+                              uploaded++;
+                            }
+                            toast.success(`¡${uploaded} archivo(s) subido(s) a ${folder.nombre}!`, { id: toastId });
+                            setUploading(false);
+                            fetchFiles();
+                          }
+                        }}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("folderId", folder.id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                      >
+                        {/* Selection Checkbox */}
+                        <div
+                          className={cn(
+                            "absolute top-3 left-3 z-10 transition-opacity",
+                            selectedIds.has(folder.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(folder.id); }}
+                        >
+                          {selectedIds.has(folder.id) ? (
+                            <CheckSquare className="w-4 h-4 text-zinc-900 dark:text-white" />
+                          ) : (
+                            <Square className="w-4 h-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" />
+                          )}
+                        </div>
+
+                        {/* Top Context Actions (DropdownMenu) */}
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded-lg bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44 p-1 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToFolder(folder.id);
+                                }}
+                                className="text-xs flex items-center gap-2 cursor-pointer"
+                              >
+                                <FolderOpen className="w-3.5 h-3.5 text-zinc-500" />
+                                <span>Abrir</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditFolder(folder);
+                                }}
+                                className="text-xs flex items-center gap-2 cursor-pointer"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-zinc-500" />
+                                <span>Editar</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
+                                  setShowPublishModal(true);
+                                }}
+                                className="text-xs flex items-center gap-2 cursor-pointer"
+                              >
+                                <ShoppingBag className="w-3.5 h-3.5 text-zinc-500" />
+                                <span>Publicar en Comunidad</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTarget({
+                                    type: "folder",
+                                    id: folder.id,
+                                    folderId: folder.id,
+                                    nombre: folder.nombre,
+                                  });
+                                }}
+                                className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Eliminar</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* Folder Body */}
+                        <div className="flex items-center gap-3.5 pt-3">
+                          <div className="shrink-0 w-12" onClick={(e) => e.stopPropagation()}>
+                            <FolderFloat
+                              items={(() => {
+                                const childFolders = folders.filter(f => f.parent_folder_id === folder.id).map(f => ({ label: f.nombre, value: `folder:${f.id}` }));
+                                const childFiles = files.filter(f => f.folder_id === folder.id).map(f => ({ label: f.nombre, value: `file:${f.id}` }));
+                                return [...childFolders, ...childFiles].slice(0, 4).map((item) => ({
+                                  label: item.label.length > 18 ? item.label.slice(0, 17) + "…" : item.label,
+                                  value: item.value,
+                                }));
+                              })()}
+                              label=""
+                              sublabel=" "
+                              align="left"
+                              layoutMode="horizontal"
+                              closeOnSelect={false}
+                              folderColor={folder.color || "#3b82f6"}
+                              frontColor={folder.color || "#3b82f6"}
+                              itemTextColor="#000"
+                              width={48}
+                              height={34}
+                              radius={6}
+                              spread={110}
+                              lift={18}
+                              tilt={4}
+                              drift={0.15}
+                              onSelect={(val) => {
+                                if (typeof val === 'string' && val.startsWith('folder:')) {
+                                  navigateToFolder(val.replace('folder:', ''));
+                                } else if (typeof val === 'string' && val.startsWith('file:')) {
+                                  const targetFile = files.find(f => f.id === val.replace('file:', ''));
+                                  if (targetFile) openPreview(targetFile);
+                                } else {
+                                  navigateToFolder(folder.id);
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 pr-6">
+                            <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                              {folder.nombre}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                              <span>{folderFilesCount} {folderFilesCount === 1 ? 'archivo' : 'archivos'}</span>
+                              {folderSubject && (
+                                <>
+                                  <span>•</span>
+                                  <span className="truncate max-w-[100px]">{folderSubject.codigo}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ─── Files Section (Grid or List View) ────────────────────── */}
+            {displayedFiles.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400 px-1">
+                  <span>Archivos ({displayedFiles.length})</span>
+                </div>
+
+                {viewMode === "grid" ? (
+                  /* ─── GRID VIEW ─────────────────────────────────────────── */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid">
+                    {displayedFiles.map(file => {
+                      const Icon = fileTypeIcons[file.tipo] || FileText;
+                      const colors = fileTypeColors[file.tipo] || fileTypeColors.otro;
+                      const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
+
+                      return (
+                        <div
+                          key={file.id}
+                          className={cn(
+                            "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl group relative cursor-grab active:cursor-grabbing hover:shadow-xs transition-all flex flex-col justify-between",
+                            selectedIds.has(file.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
+                          )}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("fileId", file.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                        >
+                          {/* Selection Checkbox */}
+                          <div
+                            className={cn(
+                              "absolute top-3 left-3 z-10 transition-opacity",
+                              selectedIds.has(file.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            )}
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(file.id); }}
+                          >
+                            {selectedIds.has(file.id) ? (
+                              <CheckSquare className="w-4 h-4 text-zinc-900 dark:text-white" />
+                            ) : (
+                              <Square className="w-4 h-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" />
+                            )}
+                          </div>
+
+                          {/* Quick Actions (Floating Right) */}
+                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-10">
+                            {canPreview && (
+                              <button
+                                type="button"
+                                onClick={() => openFullScreenViewer(file)}
+                                className="p-1 rounded-lg bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
+                                title="Vista previa / Pantalla completa"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {/* Dropdown Options */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1 rounded-lg bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
+                                >
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48 p-1 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl">
+                                {canPreview && (
+                                  <DropdownMenuItem
+                                    onClick={() => openFullScreenViewer(file)}
+                                    className="text-xs flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-zinc-500" />
+                                    <span>Ver a pantalla completa</span>
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    if (file.storage_path) {
+                                      const url = await getSignedUrl(file.storage_path);
+                                      if (url) window.open(url, '_blank');
+                                      else toast.error("Error al obtener el link");
+                                    } else {
+                                      window.open(file.url, '_blank');
+                                    }
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Abrir en nueva pestaña</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    let copyUrl = file.url;
+                                    if (file.storage_path) {
+                                      const signed = await getSignedUrl(file.storage_path);
+                                      if (signed) copyUrl = signed;
+                                    }
+                                    navigator.clipboard.writeText(copyUrl);
+                                    toast.success("Enlace copiado al portapapeles");
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Copiar enlace</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    const a = document.createElement('a');
+                                    a.href = file.url;
+                                    a.download = file.nombre;
+                                    a.target = '_blank';
+                                    a.rel = 'noopener noreferrer';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Descargar</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                                <DropdownMenuLabel className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider px-2 py-0.5">
+                                  Herramientas IA
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => handleGenerateContent(file, 'summary')}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Resumir con IA</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setPreviewFile(file);
+                                    setShowGenOptions('flashcards');
+                                    setShowPreviewModal(true);
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Layers className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Generar Flashcards</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setPreviewFile(file);
+                                    setShowGenOptions('quiz');
+                                    setShowPreviewModal(true);
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Generar Cuestionario</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    if (file.tipo === 'pdf') extractAndSpeakPDF(file.url);
+                                    else speak(file.nombre);
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Leer en voz alta</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
+                                    setShowPublishModal(true);
+                                  }}
+                                  className="text-xs flex items-center gap-2 cursor-pointer"
+                                >
+                                  <ShoppingBag className="w-3.5 h-3.5 text-zinc-500" />
+                                  <span>Publicar en Comunidad</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTarget({
+                                      type: "file",
+                                      id: file.id,
+                                      file,
+                                      nombre: file.nombre,
+                                    });
+                                  }}
+                                  className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Eliminar archivo</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          {/* Image Thumbnail */}
+                          {file.tipo === "imagen" && (
+                            <div
+                              className="w-full h-32 rounded-xl mb-3 bg-cover bg-center cursor-pointer hover:opacity-90 transition-opacity border border-zinc-200/60 dark:border-zinc-800/60 overflow-hidden"
+                              style={{ backgroundImage: `url(${file.url})` }}
+                              onClick={() => openFullScreenViewer(file)}
+                            />
+                          )}
+
+                          {/* Non-Image File Header */}
+                          {file.tipo !== "imagen" && (
+                            <div className="flex items-start gap-3 mb-3 pt-2">
+                              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", colors)}>
+                                <Icon className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0 pr-6">
+                                <h3
+                                  onClick={() => canPreview ? openFullScreenViewer(file) : window.open(file.url, '_blank')}
+                                  className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate cursor-pointer hover:underline"
+                                  title={file.nombre}
+                                >
+                                  {file.nombre}
+                                </h3>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                                  {file.subject?.nombre || "Sin materia"}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {file.tipo === "imagen" && (
+                            <h3
+                              onClick={() => openFullScreenViewer(file)}
+                              className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate mb-2 cursor-pointer hover:underline"
+                              title={file.nombre}
+                            >
+                              {file.nombre}
+                            </h3>
+                          )}
+
+                          {/* File Footer Stats */}
+                          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                            <span className="truncate max-w-[120px]">{file.subject?.codigo || file.subject?.nombre || "General"}</span>
+                            <span className="whitespace-nowrap text-[11px] font-mono">{formatFileSize(file.tamaño_bytes)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* ─── LIST VIEW (Notion Database Table Style) ─────────────── */
+                  <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl overflow-hidden shadow-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 bg-zinc-50/50 dark:bg-zinc-900/50 select-none">
+                            <th className="py-2.5 px-4 w-10">
+                              <span className="sr-only">Seleccionar</span>
+                            </th>
+                            <th className="py-2.5 px-4 font-medium">Nombre</th>
+                            <th className="py-2.5 px-4 font-medium hidden md:table-cell">Materia</th>
+                            <th className="py-2.5 px-4 font-medium hidden sm:table-cell">Tipo</th>
+                            <th className="py-2.5 px-4 font-medium">Tamaño</th>
+                            <th className="py-2.5 px-4 text-right font-medium">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                          {displayedFiles.map(file => {
+                            const Icon = fileTypeIcons[file.tipo] || FileText;
+                            const colors = fileTypeColors[file.tipo] || fileTypeColors.otro;
+                            const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
+
+                            return (
+                              <tr
+                                key={file.id}
+                                className={cn(
+                                  "hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors group cursor-pointer",
+                                  selectedIds.has(file.id) && "bg-zinc-50/60 dark:bg-zinc-800/20"
+                                )}
+                                onClick={() => canPreview ? openFullScreenViewer(file) : window.open(file.url, '_blank')}
+                              >
+                                <td className="py-3 px-4" onClick={(e) => { e.stopPropagation(); toggleSelect(file.id); }}>
+                                  {selectedIds.has(file.id) ? (
+                                    <CheckSquare className="w-4 h-4 text-zinc-900 dark:text-white" />
+                                  ) : (
+                                    <Square className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200" />
+                                  )}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", colors)}>
+                                      <Icon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate max-w-xs sm:max-w-md">
+                                      {file.nombre}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 hidden md:table-cell text-zinc-600 dark:text-zinc-400">
+                                  {file.subject ? (
+                                    <Badge variant="outline" className="text-[11px] font-normal border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60">
+                                      {file.subject.nombre}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-zinc-400 text-xs">—</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-4 hidden sm:table-cell text-zinc-500 uppercase text-[10px] tracking-wider font-mono">
+                                  {file.tipo}
+                                </td>
+                                <td className="py-3 px-4 text-zinc-500 text-xs font-mono">
+                                  {formatFileSize(file.tamaño_bytes)}
+                                </td>
+                                <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center justify-end gap-1">
+                                    {canPreview && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openFullScreenViewer(file)}
+                                        className="p-1 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                        title="Vista previa"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGenerateContent(file, 'summary')}
+                                      className="p-1 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                      title="Resumir con IA"
+                                    >
+                                      <Sparkles className="w-4 h-4" />
+                                    </button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="p-1 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                        >
+                                          <MoreHorizontal className="w-4 h-4" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-48 p-1 bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl">
+                                        <DropdownMenuItem
+                                          onClick={async () => {
+                                            if (file.storage_path) {
+                                              const url = await getSignedUrl(file.storage_path);
+                                              if (url) window.open(url, '_blank');
+                                              else toast.error("Error al obtener el link");
+                                            } else {
+                                              window.open(file.url, '_blank');
+                                            }
+                                          }}
+                                          className="text-xs flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                                          <span>Abrir en nueva pestaña</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={async () => {
+                                            let copyUrl = file.url;
+                                            if (file.storage_path) {
+                                              const signed = await getSignedUrl(file.storage_path);
+                                              if (signed) copyUrl = signed;
+                                            }
+                                            navigator.clipboard.writeText(copyUrl);
+                                            toast.success("Enlace copiado al portapapeles");
+                                          }}
+                                          className="text-xs flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <Copy className="w-3.5 h-3.5 text-zinc-500" />
+                                          <span>Copiar enlace</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            const a = document.createElement('a');
+                                            a.href = file.url;
+                                            a.download = file.nombre;
+                                            a.target = '_blank';
+                                            a.rel = 'noopener noreferrer';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                          }}
+                                          className="text-xs flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <Download className="w-3.5 h-3.5 text-zinc-500" />
+                                          <span>Descargar</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
+                                            setShowPublishModal(true);
+                                          }}
+                                          className="text-xs flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <ShoppingBag className="w-3.5 h-3.5 text-zinc-500" />
+                                          <span>Publicar en Comunidad</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setDeleteTarget({
+                                              type: "file",
+                                              id: file.id,
+                                              file,
+                                              nombre: file.nombre,
+                                            });
+                                          }}
+                                          className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                          <span>Eliminar</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-3 rounded-xl w-fit">
-        <button
-          onClick={() => navigateToFolder(null)}
-          className={cn(
-            "flex items-center gap-1 hover:text-[#1475e5] transition-colors",
-            currentFolderId === null ? "text-[#1475e5] font-black" : "text-foreground"
-          )}
-        >
-          <FolderOpen className="w-4 h-4" />
-          BIBLIOTECA
-        </button>
-        {folderPath.map((folder, index) => (
-          <div key={folder.id} className="flex items-center gap-2">
-            <ChevronRight className="w-4 h-4 text-foreground" />
-            <button
-              onClick={() => navigateToFolder(folder.id)}
-              className={cn(
-                "hover:text-[#1475e5] transition-colors",
-                index === folderPath.length - 1 ? "text-[#1475e5] font-black" : "text-foreground"
-              )}
-            >
-              {folder.nombre}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Back button when in subfolder */}
-      {currentFolderId && (
-        <button
-          onClick={() => {
-            const parentId = folderPath.length > 1 ? folderPath[folderPath.length - 2].id : null;
-            navigateToFolder(parentId);
-          }}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground hover:text-[#1475e5] transition-colors w-fit px-3 py-2 bg-background border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg mt-2 hover:translate-y-0.5 hover:shadow-none"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          VOLVER
-        </button>
-      )}
-
-      {/* Content Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="h-32 bg-card border-[3px] border-foreground/20 shadow-[4px_4px_0_0_rgba(0,0,0,0.06)] p-4 rounded-xl space-y-3">
-              <div className="w-10 h-10 rounded-lg bg-muted/80" />
-              <div className="w-3/4 h-5 rounded bg-muted/60" />
-              <div className="w-1/2 h-3 rounded bg-muted/40" />
+      {/* ─── Bulk Actions Floating Bar (Linear / Notion Style) ─────────────── */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 backdrop-blur-xl border border-zinc-800 dark:border-zinc-200 shadow-2xl rounded-full py-2 px-4 flex items-center gap-3.5">
+            <div className="flex items-center gap-2 pr-3 border-r border-zinc-700/80 dark:border-zinc-300/80">
+              <span className="w-5 h-5 rounded-full bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white flex items-center justify-center text-[11px] font-bold">
+                {selectedIds.size}
+              </span>
+              <span className="text-xs font-medium">Seleccionados</span>
             </div>
-          ))}
-        </div>
-      ) : currentFolders.length === 0 && currentFiles.length === 0 ? (
-        <div className="text-center py-16 bg-card border-[3px] border-foreground rounded-xl shadow-[4px_4px_0_0_#000]">
-          <FolderOpen className="w-16 h-16 mx-auto mb-4 text-foreground" />
-          <p className="text-foreground font-black uppercase tracking-widest text-sm mb-6">
-            {selectedYear || selectedSubjectId
-              ? "NO HAY ARCHIVOS PARA ESTE FILTRO"
-              : currentFolderId
-                ? "ESTA CARPETA ESTÁ VACÍA"
-                : "NO HAY ARCHIVOS EN TU BIBLIOTECA"
-            }
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <button
-              onClick={() => openFolderModal()}
-              className="px-6 py-3 bg-background border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-1 hover:shadow-none transition-all"
-            >
-              CREAR CARPETA
-            </button>
-            <button
-              onClick={openUploadModal}
-              className="px-6 py-3 bg-[#805ad5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-y-1 hover:shadow-none transition-all"
-            >
-              SUBIR PRIMER ARCHIVO
-            </button>
+
+            <div className="flex items-center gap-2">
+              <HoldButton
+                size="sm"
+                holdTime={1400}
+                backgroundColor="#ef4444"
+                fillColor="#b91c1c"
+                textColor="#ffffff"
+                fillTextColor="#ffffff"
+                icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
+                doneLabel="Eliminados"
+                onHold={deleteSelected}
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium transition-all shadow-xs"
+              >
+                Mantener para eliminar ({selectedIds.size})
+              </HoldButton>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="px-2.5 py-1.5 rounded-full text-xs text-zinc-300 dark:text-zinc-600 hover:text-white dark:hover:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center gap-1"
+                title="Deseleccionar todo (Esc)"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancelar</span>
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid relative rounded-xl transition-all",
-            isDraggingExternal && "ring-2 ring-primary ring-dashed bg-primary/5 p-4"
-          )}
-          onDragOver={(e) => {
-            // Accept external file drops on the grid area
-            if (e.dataTransfer.types.includes("Files")) {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDraggingExternal(true);
-            }
-          }}
-          onDragLeave={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-              setIsDraggingExternal(false);
-            }
-          }}
-          onDrop={async (e) => {
-            setIsDraggingExternal(false);
-            // Only handle external files (not internal drags)
-            if (!e.dataTransfer.types.includes("Files") || e.dataTransfer.getData("fileId") || e.dataTransfer.getData("folderId")) return;
-            e.preventDefault();
-            const droppedFiles = e.dataTransfer.files;
-            if (!droppedFiles.length || !user) return;
-
-            await uploadFilesList(Array.from(droppedFiles));
-          }}
-        >
-          {/* Folders */}
-          {currentFolders.map(folder => {
-            const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
-            const folderSubject = subjects.find(s => s.id === folder.subject_id);
-
-            return (
-              <div
-                key={folder.id}
-                onClick={() => navigateToFolder(folder.id)}
-                className={cn(
-                  "bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:shadow-none hover:z-30 transition-all group relative",
-                  dragOverFolderId === folder.id && "ring-[4px] ring-[#1475e5] bg-[#1475e5]/10 scale-[1.02]"
-                )}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOverFolderId(folder.id);
-                }}
-                onDragLeave={() => setDragOverFolderId(null)}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOverFolderId(null);
-                  setIsDraggingExternal(false);
-
-                  const fileId = e.dataTransfer.getData("fileId");
-                  const folderId = e.dataTransfer.getData("folderId");
-
-                  if (fileId) {
-                    // Move file into this folder
-                    const { error } = await supabase
-                      .from("library_files")
-                      .update({ folder_id: folder.id })
-                      .eq("id", fileId);
-                    if (!error) {
-                      toast.success("Archivo movido");
-                      fetchFiles();
-                    } else {
-                      toast.error("Error al mover archivo");
-                    }
-                  } else if (folderId && folderId !== folder.id) {
-                    // Move folder into this folder (avoid self-nesting)
-                    const { error } = await supabase
-                      .from("library_folders")
-                      .update({ parent_folder_id: folder.id })
-                      .eq("id", folderId);
-                    if (!error) {
-                      toast.success("Carpeta movida");
-                      fetchFolders();
-                    } else {
-                      toast.error("Error al mover carpeta");
-                    }
-                  } else if (e.dataTransfer.types.includes("Files")) {
-                    // External files dropped onto a folder — upload into it
-                    const droppedFiles = e.dataTransfer.files;
-                    if (!droppedFiles.length || !user) return;
-                    setUploading(true);
-                    const toastId = toast.loading(`Subiendo a ${folder.nombre}...`);
-                    let uploaded = 0;
-
-                    for (let i = 0; i < droppedFiles.length; i++) {
-                      const file = droppedFiles[i];
-                      if (file.name.startsWith(".")) continue;
-                      let tipo: "pdf" | "imagen" | "video" | "otro" = "otro";
-                      if (file.type === "application/pdf") tipo = "pdf";
-                      else if (file.type.startsWith("image/")) tipo = "imagen";
-                      else if (file.type.startsWith("video/")) tipo = "video";
-                      const fileExt = file.name.split(".").pop();
-                      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-                      const filePath = `${user.id}/${fileName}`;
-                      const { error: uploadError } = await supabase.storage.from("library-files").upload(filePath, file, { cacheControl: '31536000', upsert: false });
-                      if (uploadError) { console.error(uploadError); continue; }
-                      const signedUrl = await getSignedUrl(filePath);
-                      if (!signedUrl) continue;
-                      await supabase.from("library_files").insert({
-                        user_id: user.id, subject_id: folder.subject_id || selectedSubjectId || null,
-                        folder_id: folder.id, nombre: file.name, tipo,
-                        url: signedUrl, storage_path: filePath, tamaño_bytes: file.size,
-                      });
-                      uploaded++;
-                    }
-                    toast.success(`¡${uploaded} archivo(s) subido(s) a ${folder.nombre}!`, { id: toastId });
-                    setUploading(false);
-                    fetchFiles();
-                  }
-                }}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("folderId", folder.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-              >
-                <div
-                  className={cn(
-                    "absolute top-2 left-2 z-10 transition-opacity",
-                    selectedIds.has(folder.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  )}
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(folder.id); }}
-                >
-                  {selectedIds.has(folder.id) ? (
-                    <CheckSquare className="w-5 h-5 text-neon-cyan fill-neon-cyan/20" />
-                  ) : (
-                    <Square className="w-5 h-5 text-muted-foreground hover:text-neon-cyan" />
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="shrink-0 w-14" onClick={(e) => e.stopPropagation()}>
-                    <FolderFloat
-                      items={(() => {
-                        const childFolders = folders.filter(f => f.parent_folder_id === folder.id).map(f => ({ label: f.nombre, value: `folder:${f.id}` }));
-                        const childFiles = files.filter(f => f.folder_id === folder.id).map(f => ({ label: f.nombre, value: `file:${f.id}` }));
-                        return [...childFolders, ...childFiles].slice(0, 4).map((item) => ({
-                          label: item.label.length > 18 ? item.label.slice(0, 17) + "…" : item.label,
-                          value: item.value,
-                        }));
-                      })()}
-                      label=""
-                      sublabel=" "
-                      align="left"
-                      layoutMode="horizontal"
-                      closeOnSelect={false}
-                      folderColor={folder.color}
-                      frontColor={folder.color}
-                      itemTextColor="#000"
-                      width={56}
-                      height={40}
-                      radius={8}
-                      spread={130}
-                      lift={22}
-                      tilt={5}
-                      drift={0.2}
-                      onSelect={(val) => {
-                        if (typeof val === 'string' && val.startsWith('folder:')) {
-                          navigateToFolder(val.replace('folder:', ''));
-                        } else if (typeof val === 'string' && val.startsWith('file:')) {
-                          const targetFile = files.find(f => f.id === val.replace('file:', ''));
-                          if (targetFile) openPreview(targetFile);
-                        } else {
-                          navigateToFolder(folder.id);
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-black uppercase tracking-widest text-sm truncate">{folder.nombre}</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">
-                      {folderFilesCount} ARCHIVOS
-                      {folderSubject && ` • ${folderSubject.codigo}`}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditFolder(folder);
-                    }}
-                    className="p-1.5 bg-background border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Editar carpeta"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-foreground" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
-                      setShowPublishModal(true);
-                    }}
-                    className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Publicar en la Comunidad"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTarget({
-                        type: "folder",
-                        id: folder.id,
-                        folderId: folder.id,
-                        nombre: folder.nombre,
-                      });
-                    }}
-                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Eliminar carpeta"
-                    aria-label="Eliminar carpeta"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Files */}
-          {currentFiles.map(file => {
-            const Icon = fileTypeIcons[file.tipo];
-            const colors = fileTypeColors[file.tipo];
-            const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
-
-            return (
-              <div
-                key={file.id}
-                className="bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] p-4 rounded-xl group relative cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:shadow-none transition-all"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("fileId", file.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-              >
-                <div
-                  className={cn(
-                    "absolute top-2 left-2 z-10 transition-opacity",
-                    selectedIds.has(file.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  )}
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(file.id); }}
-                >
-                  {selectedIds.has(file.id) ? (
-                    <CheckSquare className="w-5 h-5 text-neon-cyan fill-neon-cyan/20" />
-                  ) : (
-                    <Square className="w-5 h-5 text-muted-foreground hover:text-neon-cyan" />
-                  )}
-                </div>
-
-                {/* Preview thumbnail for images */}
-                {file.tipo === "imagen" && (
-                  <div
-                    className="w-full h-32 rounded-lg mb-3 bg-cover bg-center cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ backgroundImage: `url(${file.url})` }}
-                    onClick={() => openFullScreenViewer(file)}
-                  />
-                )}
-
-                {/* PDF icon or other files */}
-                {file.tipo !== "imagen" && (
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border-2 border-foreground shadow-[2px_2px_0_0_#000]", colors)}>
-                      <Icon className="w-5 h-5 text-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-black uppercase tracking-widest text-sm truncate">{file.nombre}</h3>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground truncate mt-1">
-                        {file.subject?.nombre || "SIN MATERIA"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {file.tipo === "imagen" && (
-                  <h3 className="font-black uppercase tracking-widest text-sm truncate mb-2 mt-2">{file.nombre}</h3>
-                )}
-
-                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2 pt-2 border-t-2 border-foreground/10">
-                  <span className="truncate">{file.subject?.nombre || "SIN MATERIA"}</span>
-                  <span className="whitespace-nowrap ml-2">{formatFileSize(file.tamaño_bytes)}</span>
-                </div>
-
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                  <button
-                    onClick={() => {
-                      setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
-                      setShowPublishModal(true);
-                    }}
-                    className="p-1.5 bg-[#1475e5] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Publicar en la Comunidad"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                  </button>
-                  {canPreview && (
-                    <button
-                      onClick={() => openFullScreenViewer(file)}
-                      className="p-1.5 bg-background border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                      title="Vista previa"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-foreground" />
-                    </button>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (file.storage_path) {
-                        const url = await getSignedUrl(file.storage_path);
-                        if (url) window.open(url, '_blank');
-                        else toast.error("Error al obtener el link");
-                      } else {
-                        window.open(file.url, '_blank');
-                      }
-                    }}
-                    className="p-1.5 bg-[#ffd21c] text-black border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Abrir en nueva pestaña"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTarget({
-                        type: "file",
-                        id: file.id,
-                        file,
-                        nombre: file.nombre,
-                      });
-                    }}
-                    className="p-1.5 bg-[#ef4444] text-white border-2 border-foreground shadow-[2px_2px_0_0_#000] rounded-lg hover:translate-y-0.5 hover:shadow-none transition-all"
-                    title="Eliminar archivo"
-                    aria-label="Eliminar archivo"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
 
-      {/* Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-4xl h-[85vh] p-0 overflow-hidden bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-4 border-b-[3px] border-foreground bg-muted/50">
-              <h3 className="font-black uppercase tracking-widest text-sm truncate">{previewFile?.nombre}</h3>
-              <div className="flex items-center gap-2">
-                <a
-                  href={previewFile?.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 bg-[#ffd21c] text-black border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl hover:-translate-y-1 hover:shadow-none transition-all"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-                <button
-                  onClick={() => setShowPreviewModal(false)}
-                  className="p-1.5 bg-[#ef4444] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl hover:-translate-y-1 hover:shadow-none transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* AI Actions Toolbar */}
-            <div className="bg-background border-b-[3px] border-foreground p-4 flex flex-col gap-4">
-              <div className="flex gap-3 justify-center flex-wrap">
-                <button
-                  onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
-                  disabled={generating !== null}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none",
-                    showGenOptions === 'flashcards' ? "bg-[#00ffcc] text-black" : "bg-background text-foreground"
-                  )}
-                >
-                  {generating === 'flashcards' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    <span className="text-lg">✨</span>
-                  )}
-                  {generating === 'flashcards' ? "GENERANDO..." : "FLASHCARDS"}
-                </button>
-                <button
-                  onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
-                  disabled={generating !== null}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none",
-                    showGenOptions === 'quiz' ? "bg-[#ffd21c] text-black" : "bg-background text-foreground"
-                  )}
-                >
-                  {generating === 'quiz' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    <span className="text-lg">📋</span>
-                  )}
-                  {generating === 'quiz' ? "GENERANDO..." : "CUESTIONARIO"}
-                </button>
-                <button
-                  onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
-                  disabled={generating !== null}
-                  className="flex items-center gap-2 px-4 py-2 bg-background text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 hover:-translate-y-1 hover:shadow-none"
-                >
-                  {generating === 'summary' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    <span className="text-lg">📝</span>
-                  )}
-                  {generating === 'summary' ? "RESUMIENDO..." : "RESUMIR"}
-                </button>
-              </div>
-
-              {/* Quantity selector for flashcards/quiz */}
-              {showGenOptions && (
-                <div className="flex items-center gap-4 justify-center bg-muted/30 border-[3px] border-foreground rounded-xl p-3 shadow-[4px_4px_0_0_#000]">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    {showGenOptions === 'flashcards' ? 'CANTIDAD:' : 'PREGUNTAS:'}
-                  </span>
-                  <div className="flex gap-2">
-                    {[5, 10, 15, 20, 30].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setGenCount(n)}
-                        className={cn(
-                          "px-2 py-1 border-2 border-foreground rounded font-black text-xs transition-all",
-                          genCount === n
-                            ? "bg-foreground text-background shadow-none translate-y-0.5"
-                            : "bg-background text-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5 hover:shadow-none"
-                        )}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => previewFile && handleGenerateContent(previewFile, showGenOptions, genCount)}
-                    disabled={generating !== null}
-                    className="px-4 py-2 bg-[#805ad5] text-white border-[3px] border-foreground shadow-[2px_2px_0_0_#000] rounded-xl text-[10px] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
-                  >
-                    GENERAR {genCount}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-auto p-4">
-              {previewFile?.tipo === "imagen" && (
-                <img
-                  src={previewFile.url}
-                  alt={previewFile.nombre}
-                  className="max-w-full h-auto mx-auto rounded-lg"
-                />
-              )}
-              {previewFile?.tipo === "pdf" && (
-                <iframe
-                  src={`${previewFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                  className="w-full rounded-lg border-0"
-                  style={{ minHeight: "calc(85vh - 100px)", height: "100%" }}
-                  title={previewFile.nombre}
-                />
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* New Folder Modal */}
-      <Dialog open={showFolderModal} onOpenChange={(open) => {
-        setShowFolderModal(open);
-        if (open) setNewFolderYear(selectedYear);
-      }}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <FolderPlus className="w-6 h-6" />
-              NUEVA CARPETA
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE</label>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="NOMBRE DE LA CARPETA"
-                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
-                <Select
-                  value={newFolderYear ? newFolderYear.toString() : "all"}
-                  onValueChange={(val) => {
-                    const year = val === "all" ? null : parseInt(val);
-                    setNewFolderYear(year);
-                    setNewFolderSubject("");
-                  }}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="TODOS" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {selectableYears.map(y => (
-                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MATERIA (OPCIONAL)</label>
-                <Select
-                  value={newFolderSubject || "none"}
-                  onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="SIN MATERIA ASIGNADA" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
-                    {subjects
-                      .filter(s => !newFolderYear || s.año === newFolderYear)
-                      .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
-                          {subject.nombre} ({subject.año}° AÑO)
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">COLOR</label>
-              <div className="flex gap-3 mt-2">
-                {folderColors.map(color => (
-                  <button
-                    key={color.value}
-                    onClick={() => setNewFolderColor(color.value)}
-                    className={cn(
-                      "w-10 h-10 rounded-xl border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 transition-all",
-                      newFolderColor === color.value && "ring-[4px] ring-foreground ring-offset-2 ring-offset-background scale-110"
-                    )}
-                    style={{ backgroundColor: color.value }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={createFolder}
-              disabled={!newFolderName.trim()}
-              className="w-full py-3 mt-4 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest disabled:opacity-50 hover:-translate-y-1 hover:shadow-none transition-all"
-            >
-              CREAR CARPETA
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Modal */}
+      {/* ─── Modal: Subir Archivos / Carpeta (Notion / ChatGPT Style) ────────── */}
       <Dialog open={showUploadModal} onOpenChange={(open) => {
         setShowUploadModal(open);
-        if (open) {
-          setUploadYear(selectedYear); // Default to current filter
-        }
-      }}>
-        <DialogContent className="sm:max-w-xl md:max-w-2xl bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Upload className="w-6 h-6" />
-              {uploadBasketballMode === "folder" ? "SUBIR CARPETA" : "SUBIR ARCHIVOS"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
-                <Select
-                  value={uploadYear ? uploadYear.toString() : "all"}
-                  onValueChange={(val) => {
-                    const year = val === "all" ? null : parseInt(val);
-                    setUploadYear(year);
-                    setUploadSubject(""); // Reset subject when year changes
-                  }}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="TODOS" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {selectableYears.map(y => (
-                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  MATERIA
-                </label>
-                <Select
-                  value={uploadSubject || "none"}
-                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="SIN MATERIA" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
-                    {subjects
-                      .filter(s => !uploadYear || s.año === uploadYear)
-                      .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
-                          {subject.nombre} ({subject.año}°)
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <BasketballFileUploader
-              disabled={uploading || isGuest}
-              initialMode={uploadBasketballMode}
-              onFile={(file) => uploadFilesList([file])}
-              onFiles={(files) => uploadFilesList(files)}
-              onFolderFiles={(files) => uploadFolderFilesList(files)}
-            />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">
-              PDF, IMÁGENES O CARPETAS COMPLETAS (MÁX 20MB POR ARCHIVO)
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Link Modal */}
-      <Dialog open={showLinkModal} onOpenChange={(open) => {
-        setShowLinkModal(open);
         if (open) setUploadYear(selectedYear);
       }}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <LinkIcon className="w-6 h-6" />
-              AGREGAR LINK
+        <DialogContent className="sm:max-w-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-zinc-500" />
+              Subir Recursos
             </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Arrastra o selecciona tus apuntes, guías y documentos para agregarlos a la biblioteca
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+
+          <div className="space-y-4 py-2">
+            {/* Ubicación de Destino Notion-style */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Folder className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="truncate">Guardando en: <strong className="text-zinc-800 dark:text-zinc-200">{currentFolderName ? currentFolderName : "Raíz de la biblioteca"}</strong></span>
+              </div>
+              {currentFolderName && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium shrink-0">
+                  Subcarpeta activa
+                </span>
+              )}
+            </div>
+
+            {/* Year & Subject Filters for Upload */}
+            <div className="grid grid-cols-2 gap-3 bg-zinc-50/70 dark:bg-zinc-900/50 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO</label>
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block mb-1">AÑO</label>
                 <Select
                   value={uploadYear ? uploadYear.toString() : "all"}
                   onValueChange={(val) => {
@@ -2725,164 +3088,587 @@ export default function Library() {
                     setUploadSubject("");
                   }}
                 >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="TODOS" />
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <SelectValue placeholder="Todos" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
                     {selectableYears.map(y => (
-                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
+                      <SelectItem key={y} value={y.toString()} className="text-xs">{y}° Año</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  MATERIA
-                </label>
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block mb-1">MATERIA</label>
                 <Select
                   value={uploadSubject || "none"}
                   onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="SIN MATERIA" />
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <SelectValue placeholder="Sin asignar" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="none" className="text-xs">Sin asignar</SelectItem>
                     {subjects
                       .filter(s => !uploadYear || s.año === uploadYear)
-                      .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
-                          {subject.nombre} ({subject.año}°)
-                        </SelectItem>
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs">{s.nombre}</SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE DEL RECURSO</label>
-              <input
-                type="text"
-                value={linkName}
-                onChange={(e) => setLinkName(e.target.value)}
-                placeholder="EJ: VIDEO EXPLICATIVO - TEMA 1"
-                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
-              />
-            </div>
+            {/* Mode Tabs: Native Dropzone vs Minijuego Aro */}
+            <Tabs value={uploadModalTab} onValueChange={(val) => setUploadModalTab(val as any)} className="w-full">
+              <TabsList className="grid grid-cols-3 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl h-auto">
+                <TabsTrigger value="dropzone" className="text-xs py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700">
+                  Subir Archivo
+                </TabsTrigger>
+                <TabsTrigger value="folder" className="text-xs py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700">
+                  Subir Carpeta
+                </TabsTrigger>
+                <TabsTrigger value="minigame" className="text-xs py-1.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700">
+                  Modo Aro 🏀
+                </TabsTrigger>
+              </TabsList>
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">URL</label>
-              <input
-                type="url"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="HTTPS://..."
-                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
-              />
-            </div>
+              <TabsContent value="dropzone" className="mt-3">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDropzoneHover(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDropzoneHover(false);
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDropzoneHover(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      await uploadFilesList(Array.from(e.dataTransfer.files));
+                    }
+                  }}
+                  className={cn(
+                    "border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 group select-none",
+                    isDropzoneHover
+                      ? "border-zinc-900 dark:border-white bg-zinc-100/80 dark:bg-zinc-800/60 scale-[1.01]"
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 bg-zinc-50/50 dark:bg-zinc-900/30"
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                      Haz clic para explorar o arrastra archivos aquí
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      PDF, imágenes, Word, PowerPoint o ZIP (hasta 20MB por archivo)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center pt-1">
+                    {["PDF", "DOCX", "PPTX", "XLSX", "JPG / PNG", "ZIP"].map(tag => (
+                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="mt-1 px-4 py-1.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs hover:opacity-90 transition-opacity"
+                  >
+                    Examinar archivos
+                  </button>
+                </div>
+              </TabsContent>
 
-            <button
-              onClick={addLink}
-              disabled={!linkUrl.trim() || !linkName.trim()}
-              className="w-full py-3 mt-4 bg-[#805ad5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest disabled:opacity-50 hover:-translate-y-1 hover:shadow-none transition-all"
-            >
-              AGREGAR LINK
-            </button>
+              <TabsContent value="folder" className="mt-3">
+                <div
+                  onClick={() => folderInputRef.current?.click()}
+                  className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-2xl p-8 text-center cursor-pointer transition-all bg-zinc-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center gap-3 group select-none"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+                    <FolderUp className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                      Selecciona una carpeta completa de tu computadora
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      Se preservará la jerarquía completa de subcarpetas y archivos
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      folderInputRef.current?.click();
+                    }}
+                    className="mt-1 px-4 py-1.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs hover:opacity-90 transition-opacity"
+                  >
+                    Examinar carpeta local
+                  </button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="minigame" className="mt-3">
+                <BasketballFileUploader
+                  disabled={uploading || isGuest}
+                  initialMode={uploadBasketballMode}
+                  onFile={(file) => uploadFilesList([file])}
+                  onFiles={(files) => uploadFilesList(files)}
+                  onFolderFiles={(files) => uploadFolderFilesList(files)}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Actions Floating Bar */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-4 flex items-center gap-6 min-w-[300px]">
-            <div className="flex items-center gap-3 pr-6 border-r-[3px] border-foreground">
-              <div className="w-8 h-8 rounded-xl bg-foreground text-background flex items-center justify-center font-black">
-                {selectedIds.size}
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest">SELECCIONADOS</span>
+      {/* ─── Modal: Nueva Carpeta (Notion Style) ───────────────────────────── */}
+      <Dialog open={showFolderModal} onOpenChange={(open) => {
+        setShowFolderModal(open);
+        if (open) setNewFolderYear(selectedYear);
+      }}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <FolderPlus className="w-5 h-5 text-zinc-500" />
+              Nueva Carpeta
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Crea una carpeta para ordenar apuntes por tema o materia
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            {/* Ubicación dentro de la jerarquía Notion-style */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <Folder className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span>Creando dentro de: <strong className="text-zinc-800 dark:text-zinc-200">{currentFolderName ? currentFolderName : "Raíz de la biblioteca"}</strong></span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <HoldButton
-                size="sm"
-                holdTime={1400}
-                backgroundColor="#ef4444"
-                fillColor="#991b1b"
-                textColor="#ffffff"
-                fillTextColor="#ffffff"
-                icon={<Trash2 className="w-3.5 h-3.5 shrink-0" />}
-                doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
-                doneLabel="ELIMINADOS"
-                onHold={deleteSelected}
-                className="px-4 py-2 border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 hover:shadow-none rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-              >
-                MANTENER PARA ELIMINAR
-              </HoldButton>
-              <button
-                onClick={clearSelection}
-                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-              >
-                CANCELAR
-              </button>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Nombre de la carpeta</label>
+              <Input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newFolderName.trim()) {
+                    e.preventDefault();
+                    createFolder();
+                  }
+                }}
+                placeholder="Ej: Trabajos Prácticos, Teóricos..."
+                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Año (opcional)</label>
+                <Select
+                  value={newFolderYear ? newFolderYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setNewFolderYear(year);
+                    setNewFolderSubject("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                    {selectableYears.map(y => (
+                      <SelectItem key={y} value={y.toString()} className="text-xs">{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Materia (opcional)</label>
+                <Select
+                  value={newFolderSubject || "none"}
+                  onValueChange={(val) => setNewFolderSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Sin asignar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="none" className="text-xs">Sin asignar</SelectItem>
+                    {subjects
+                      .filter(s => !newFolderYear || s.año === newFolderYear)
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs">{s.nombre}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Color de etiqueta</label>
+              <div className="flex gap-2.5">
+                {folderColors.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setNewFolderColor(c.value)}
+                    className={cn(
+                      "w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 transition-all flex items-center justify-center",
+                      newFolderColor === c.value ? "ring-2 ring-zinc-900 dark:ring-white scale-110 shadow-xs" : "hover:scale-105 opacity-80 hover:opacity-100"
+                    )}
+                    style={{ backgroundColor: c.value }}
+                    title={c.name}
+                  >
+                    {newFolderColor === c.value && (
+                      <Check className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Delete Confirmation Modal con Mantener Presionado */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-lg md:max-w-xl bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-6 md:p-8">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl md:text-2xl font-black uppercase tracking-widest text-destructive flex items-center gap-2">
-              <Trash2 className="w-6 h-6 stroke-[2.5]" />
-              {deleteTarget?.type === "folder" ? "ELIMINAR CARPETA" : "ELIMINAR ARCHIVO"}
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setShowFolderModal(false)}
+              className="px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={createFolder}
+              disabled={!newFolderName.trim()}
+              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs transition-colors disabled:opacity-50"
+            >
+              Crear Carpeta
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Modal: Editar Carpeta (Notion Style) ──────────────────────────── */}
+      <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-zinc-500" />
+              Editar Carpeta
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <p className="text-sm font-black uppercase tracking-wide text-foreground">
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Nombre de la carpeta</label>
+              <Input
+                type="text"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && editFolderName.trim()) {
+                    e.preventDefault();
+                    updateFolder();
+                  }
+                }}
+                placeholder="Nombre de la carpeta"
+                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Año (opcional)</label>
+                <Select
+                  value={editFolderYear ? editFolderYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setEditFolderYear(year);
+                    setEditFolderSubject("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                    {selectableYears.map(y => (
+                      <SelectItem key={y} value={y.toString()} className="text-xs">{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Materia (opcional)</label>
+                <Select
+                  value={editFolderSubject || "none"}
+                  onValueChange={(val) => setEditFolderSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Sin asignar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="none" className="text-xs">Sin asignar</SelectItem>
+                    {subjects
+                      .filter(s => !editFolderYear || s.año === editFolderYear)
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs">{s.nombre}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Color de etiqueta</label>
+              <div className="flex gap-2.5">
+                {folderColors.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setEditFolderColor(c.value)}
+                    className={cn(
+                      "w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 transition-all flex items-center justify-center",
+                      editFolderColor === c.value ? "ring-2 ring-zinc-900 dark:ring-white scale-110 shadow-xs" : "hover:scale-105 opacity-80 hover:opacity-100"
+                    )}
+                    style={{ backgroundColor: c.value }}
+                    title={c.name}
+                  >
+                    {editFolderColor === c.value && (
+                      <Check className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setShowEditFolderModal(false)}
+              className="px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={updateFolder}
+              disabled={!editFolderName.trim()}
+              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs transition-colors disabled:opacity-50"
+            >
+              Guardar Cambios
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Modal: Agregar Link (Notion Style) ────────────────────────────── */}
+      <Dialog open={showLinkModal} onOpenChange={(open) => {
+        setShowLinkModal(open);
+        if (open) setUploadYear(selectedYear);
+      }}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <LinkIcon className="w-5 h-5 text-zinc-500" />
+              Agregar Enlace Web
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Guarda un enlace a videos de YouTube, Drive, Notion o bibliografía externa
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-3">
+            {/* Ubicación de guardado Notion-style */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <Folder className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span>Guardando en: <strong className="text-zinc-800 dark:text-zinc-200">{currentFolderName ? currentFolderName : "Raíz de la biblioteca"}</strong></span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Nombre del recurso</label>
+              <Input
+                type="text"
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && linkName.trim() && linkUrl.trim()) {
+                    e.preventDefault();
+                    addLink();
+                  }
+                }}
+                placeholder="Ej: Video Explicativo - Clase 1"
+                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">URL del enlace</label>
+              <Input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && linkName.trim() && linkUrl.trim()) {
+                    e.preventDefault();
+                    addLink();
+                  }
+                }}
+                placeholder="https://..."
+                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
+              />
+              {linkUrl.trim() && (
+                <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 px-1 pt-0.5">
+                  <span>Plataforma:</span>
+                  <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                    {linkUrl.includes("youtube.com") || linkUrl.includes("youtu.be")
+                      ? "🔴 YouTube"
+                      : linkUrl.includes("drive.google.com")
+                      ? "📁 Google Drive"
+                      : linkUrl.includes("notion.site") || linkUrl.includes("notion.so")
+                      ? "📝 Notion"
+                      : linkUrl.includes("github.com")
+                      ? "🐙 GitHub"
+                      : linkUrl.includes("wikipedia.org")
+                      ? "📖 Wikipedia"
+                      : "🌐 Enlace Web"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Año</label>
+                <Select
+                  value={uploadYear ? uploadYear.toString() : "all"}
+                  onValueChange={(val) => {
+                    const year = val === "all" ? null : parseInt(val);
+                    setUploadYear(year);
+                    setUploadSubject("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                    {selectableYears.map(y => (
+                      <SelectItem key={y} value={y.toString()} className="text-xs">{y}° Año</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Materia</label>
+                <Select
+                  value={uploadSubject || "none"}
+                  onValueChange={(val) => setUploadSubject(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                    <SelectValue placeholder="Sin asignar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#18181b] border-zinc-200 dark:border-zinc-800">
+                    <SelectItem value="none" className="text-xs">Sin asignar</SelectItem>
+                    {subjects
+                      .filter(s => !uploadYear || s.año === uploadYear)
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs">{s.nombre}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setShowLinkModal(false)}
+              className="px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={addLink}
+              disabled={!linkUrl.trim() || !linkName.trim()}
+              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs transition-colors disabled:opacity-50"
+            >
+              Agregar Enlace
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Modal: Confirmación de Borrado con HoldButton ──────────────────── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              {deleteTarget?.type === "folder" ? "Eliminar Carpeta" : "Eliminar Archivo"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2">
+            <p className="text-xs text-zinc-700 dark:text-zinc-300">
               ¿Estás seguro de que deseas eliminar {deleteTarget?.type === "folder" ? "la carpeta" : "el archivo"}{" "}
-              <span className="text-destructive underline decoration-2">{deleteTarget?.nombre}</span>?
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">"{deleteTarget?.nombre}"</span>?
             </p>
 
             {deleteTarget?.type === "folder" && (
-              <div className="bg-destructive/10 border-2 border-destructive/40 p-3 rounded-xl text-xs font-bold text-destructive space-y-1">
-                <p>⚠️ ADVERTENCIA:</p>
-                <p className="text-muted-foreground font-semibold">
-                  Se eliminarán permanentemente todas las subcarpetas y archivos contenidos dentro de esta carpeta tanto de la biblioteca como del almacenamiento.
+              <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40 p-3 rounded-xl text-xs text-rose-700 dark:text-rose-300 space-y-1">
+                <p className="font-semibold">Advertencia:</p>
+                <p className="text-zinc-600 dark:text-zinc-400 font-normal">
+                  Se eliminarán permanentemente todas las subcarpetas y archivos contenidos tanto de la biblioteca como del almacenamiento.
                 </p>
               </div>
             )}
 
-            <div className="bg-muted/60 border-2 border-foreground/20 p-3 rounded-xl">
-              <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground text-center">
-                Para confirmar la eliminación, mantén presionado el botón rojo hasta que se complete la barra.
-              </p>
-            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 text-center">
+              Para confirmar, mantén presionado el botón hasta que se complete la barra.
+            </p>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-3">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
             <button
               type="button"
               onClick={() => setDeleteTarget(null)}
-              className="w-full sm:w-auto px-5 py-2.5 bg-muted text-foreground border-2 border-foreground rounded-xl font-black uppercase tracking-wider hover:bg-muted/80 transition-all text-xs"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancelar
             </button>
-
             <HoldButton
               size="md"
               holdTime={1400}
               backgroundColor="#ef4444"
-              fillColor="#991b1b"
+              fillColor="#b91c1c"
               textColor="#ffffff"
               fillTextColor="#ffffff"
               icon={<Trash2 className="w-4 h-4 mr-2" />}
               doneIcon={<Check className="w-4 h-4 mr-2" />}
-              doneLabel="¡ELIMINADO!"
+              doneLabel="¡Eliminado!"
               onHold={async () => {
                 if (!deleteTarget) return;
                 const target = deleteTarget;
@@ -2893,299 +3679,388 @@ export default function Library() {
                   await deleteFile(target.file);
                 }
               }}
-              className="w-full sm:flex-1 border-2 border-foreground shadow-[3px_3px_0_0_#000] rounded-xl font-black uppercase tracking-wider text-xs py-3 justify-center"
+              className="w-full sm:flex-1 rounded-xl text-xs font-medium py-2 justify-center shadow-2xs"
             >
-              MANTÉN PRESIONADO PARA BORRAR
+              Mantener para borrar
             </HoldButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Folder Modal */}
-      <Dialog open={showEditFolderModal} onOpenChange={setShowEditFolderModal}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground">EDITAR CARPETA</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NOMBRE DE LA CARPETA</label>
-              <input
-                type="text"
-                value={editFolderName}
-                onChange={(e) => setEditFolderName(e.target.value)}
-                placeholder="NOMBRE DE LA CARPETA"
-                className="w-full p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">COLOR</label>
-              <div className="flex gap-3 mt-2">
-                {folderColors.map((color) => (
-                  <button
-                    key={color.value}
-                    onClick={() => setEditFolderColor(color.value)}
-                    className={cn(
-                      "w-10 h-10 rounded-xl border-[3px] border-foreground shadow-[2px_2px_0_0_#000] hover:-translate-y-1 transition-all",
-                      editFolderColor === color.value && "ring-[4px] ring-foreground ring-offset-2 ring-offset-background scale-110"
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AÑO (OPCIONAL)</label>
-                <Select
-                  value={editFolderYear ? editFolderYear.toString() : "all"}
-                  onValueChange={(val) => {
-                    const year = val === "all" ? null : parseInt(val);
-                    setEditFolderYear(year);
-                    setEditFolderSubject("");
-                  }}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="TODOS" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="all" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">TODOS</SelectItem>
-                    {selectableYears.map(y => (
-                      <SelectItem key={y} value={y.toString()} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">{y}° AÑO</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MATERIA (OPCIONAL)</label>
-                <Select
-                  value={editFolderSubject || "none"}
-                  onValueChange={(val) => setEditFolderSubject(val === "none" ? "" : val)}
-                >
-                  <SelectTrigger className="mt-2 bg-background border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest py-3 h-auto focus:shadow-none focus:translate-y-1 transition-all">
-                    <SelectValue placeholder="SIN MATERIA" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl font-black uppercase tracking-widest">
-                    <SelectItem value="none" className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">SIN MATERIA ASIGNADA</SelectItem>
-                    {subjects
-                      .filter(s => !editFolderYear || s.año === editFolderYear)
-                      .map(subject => (
-                        <SelectItem key={subject.id} value={subject.id} className="font-black uppercase tracking-widest cursor-pointer hover:bg-muted focus:bg-muted">
-                          {subject.nombre} ({subject.año}°)
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <button
-              onClick={() => setShowEditFolderModal(false)}
-              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-            >
-              CANCELAR
-            </button>
-            <button
-              onClick={updateFolder}
-              disabled={!editFolderName.trim()}
-              className="px-6 py-3 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all active:scale-95 disabled:opacity-50"
-            >
-              GUARDAR CAMBIOS
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Marketplace Publish Modal */}
+      {/* ─── Modal: Publicar en Comunidad Marketplace ──────────────────────── */}
       <Dialog open={showPublishModal} onOpenChange={(open) => {
         setShowPublishModal(open);
         if (!open) setPubIsAnonymous(false);
       }}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <ShoppingBag className="w-6 h-6 text-[#1475e5]" />
-              PUBLICAR EN LA COMUNIDAD
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-blue-500" />
+              Publicar en la Comunidad
             </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Comparte este material para ayudar a otros estudiantes de la carrera
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-[#1475e5]/10 border-[3px] border-[#1475e5] rounded-xl shadow-[4px_4px_0_0_#1475e5] mb-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#1475e5] mb-1">RECURSO A PUBLICAR</p>
-              <p className="font-black uppercase tracking-widest text-sm">{publishingResource?.nombre}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
-                {publishingResource?.type === "folder" ? "TODA LA ESTRUCTURA Y ARCHIVOS INTERNOS SE HARÁN PÚBLICOS" : "ESTE ARCHIVO INDIVIDUAL SE HARÁ PÚBLICO"}
-              </p>
+
+          <div className="space-y-3.5 py-3">
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl">
+              <p className="text-[11px] font-medium text-zinc-400">Recurso seleccionado</p>
+              <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 mt-0.5 truncate">{publishingResource?.nombre}</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DESCRIPCIÓN</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Descripción</label>
               <textarea
                 value={pubDescription}
                 onChange={(e) => setPubDescription(e.target.value)}
-                placeholder="EXPLICA QUÉ CONTIENE ESTE RECURSO..."
-                className="w-full h-24 p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50 resize-none"
+                placeholder="Explica qué contiene este recurso, cátedra o año..."
+                className="w-full h-20 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors resize-none"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">CATEGORÍA</label>
-              <input
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
+              <Input
                 type="text"
                 value={pubCategory}
                 onChange={(e) => setPubCategory(e.target.value)}
-                placeholder="EJ: RESÚMENES, APUNTE, MODELOS DE EXAMEN..."
-                className="w-full p-3 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-sm focus:outline-none focus:translate-y-1 focus:shadow-none transition-all placeholder:text-muted-foreground/50"
+                placeholder="Ej: Resumen, Parcial resuelto, Guía TP..."
+                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
               />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {quickCategories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPubCategory(cat)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors",
+                      pubCategory === cat
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div 
+            <div
               onClick={() => setPubIsAnonymous(!pubIsAnonymous)}
               className={cn(
-                "p-3 rounded-xl border-[3px] border-foreground cursor-pointer transition-all flex items-center justify-between shadow-[4px_4px_0_0_#000] select-none",
-                pubIsAnonymous 
-                  ? "bg-[#1475e5]/15" 
-                  : "bg-background hover:bg-muted/40"
+                "p-3 rounded-xl border cursor-pointer transition-colors flex items-center justify-between select-none",
+                pubIsAnonymous
+                  ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100"
+                  : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
               )}
             >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-8 h-8 rounded-lg border-2 border-foreground flex items-center justify-center font-bold flex-shrink-0 shadow-[1px_1px_0_0_#000]",
-                  pubIsAnonymous ? "bg-foreground text-background" : "bg-muted text-foreground"
-                )}>
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
                 <div>
-                  <p className="font-black uppercase text-xs tracking-wider text-foreground">PUBLICAR COMO ANÓNIMO</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                    TU IDENTIDAD Y CARRERA PERMANECERÁN OCULTAS
-                  </p>
+                  <p className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Publicar de forma anónima</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Tu nombre no aparecerá en el recurso</p>
                 </div>
               </div>
               <div className={cn(
-                "w-5 h-5 rounded-md border-2 border-foreground flex items-center justify-center font-black transition-colors flex-shrink-0 shadow-[1px_1px_0_0_#000]",
-                pubIsAnonymous ? "bg-[#1475e5] text-white" : "bg-background"
+                "w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                pubIsAnonymous ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent" : "border-zinc-300 dark:border-zinc-700"
               )}>
-                {pubIsAnonymous && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                {pubIsAnonymous && <Check className="w-3 h-3" />}
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-zinc-100 dark:border-zinc-800">
             <button
+              type="button"
               onClick={() => setShowPublishModal(false)}
-              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+              className="px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
-              CANCELAR
+              Cancelar
             </button>
             <button
+              type="button"
               onClick={handlePublish}
-              className="px-6 py-3 bg-[#1475e5] text-white rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-none transition-all active:scale-95"
+              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium shadow-2xs transition-colors"
             >
-              PUBLICAR AHORA
+              Publicar Ahora
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ─── Full-Screen File Viewer ─────────────────────────────────── */}
+      {/* ─── Modal: Preview & AI Generation ───────────────────────────────── */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-4xl h-[85vh] p-0 overflow-hidden bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl">
+          <div className="flex flex-col h-full">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-900/70 backdrop-blur-md shrink-0">
+              <div className="min-w-0 pr-4">
+                <h3 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                  {previewFile?.nombre}
+                </h3>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                  {previewFile?.subject?.nombre || "Sin materia"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a
+                  href={previewFile?.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                  title="Abrir en nueva pestaña"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-1.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* AI Generation Toolbar */}
+            <div className="bg-white dark:bg-[#18181b] border-b border-zinc-200/80 dark:border-zinc-800/80 p-3 space-y-2 shrink-0">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
+                  disabled={generating !== null}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50",
+                    showGenOptions === 'flashcards'
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  )}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{generating === 'flashcards' ? "Generando..." : "Flashcards"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
+                  disabled={generating !== null}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50",
+                    showGenOptions === 'quiz'
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  )}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                  <span>{generating === 'quiz' ? "Generando..." : "Cuestionario"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => previewFile && handleGenerateContent(previewFile, 'summary')}
+                  disabled={generating !== null}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>{generating === 'summary' ? "Resumiendo..." : "Resumir con IA"}</span>
+                </button>
+              </div>
+
+              {/* Quantity selector */}
+              {showGenOptions && (
+                <div className="flex items-center gap-2.5 justify-center bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-2 animate-in fade-in duration-150">
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                    {showGenOptions === 'flashcards' ? 'Cantidad de tarjetas:' : 'Cantidad de preguntas:'}
+                  </span>
+                  <div className="flex gap-1">
+                    {[5, 10, 15, 20, 30].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setGenCount(n)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-[11px] font-medium transition-colors",
+                          genCount === n
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            : "bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => previewFile && handleGenerateContent(previewFile, showGenOptions, genCount)}
+                    disabled={generating !== null}
+                    className="px-3 py-1 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-lg text-xs font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-2xs disabled:opacity-50"
+                  >
+                    Generar {genCount}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Content Preview Area */}
+            <div className="flex-1 overflow-auto p-4 bg-zinc-50/50 dark:bg-zinc-900/30">
+              {previewFile?.tipo === "imagen" && (
+                <img
+                  src={previewFile.url}
+                  alt={previewFile.nombre}
+                  className="max-w-full h-auto mx-auto rounded-xl shadow-md border border-zinc-200/60 dark:border-zinc-800/60"
+                />
+              )}
+              {previewFile?.tipo === "pdf" && (
+                <iframe
+                  src={`${previewFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                  className="w-full rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-md"
+                  style={{ minHeight: "calc(85vh - 130px)", height: "100%" }}
+                  title={previewFile.nombre}
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Full-Screen File Viewer (ChatGPT Canvas / Notion Reader Style) ──── */}
       {fullScreenFile && (
-        <div className="fixed inset-0 z-[100] bg-background flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-white dark:bg-[#121212] flex flex-col animate-in fade-in duration-200">
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-4 py-2 bg-card/80 backdrop-blur-xl border-b border-border shadow-lg shrink-0">
-            {/* Left: File info */}
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-white/90 dark:bg-[#18181b]/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 shrink-0">
+            {/* Left: Close and File Info */}
+            <div className="flex items-center gap-3 min-w-0 pr-4">
               <button
+                type="button"
                 onClick={closeFullScreenViewer}
-                className="p-2 bg-secondary rounded-lg hover:bg-secondary/80 transition-colors"
-                title="Cerrar y guardar tiempo"
+                className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
+                title="Cerrar visor"
               >
                 <X className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h3 className="font-display font-semibold text-sm truncate">{fullScreenFile.nombre}</h3>
-                <p className="text-xs text-muted-foreground truncate">
+                <h3 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                  {fullScreenFile.nombre}
+                </h3>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                   {fullScreenFile.subject?.nombre || "Sin materia"}
                 </p>
               </div>
             </div>
 
-            {/* Center: Timer */}
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
-              <Clock className="w-4 h-4 text-primary animate-pulse" />
-              <span className="font-mono font-bold text-primary text-sm tracking-wider">
-                {formatTime(viewerTimer)}
-              </span>
+            {/* Center: Study Timer Pill */}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 rounded-full text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <Clock className="w-3.5 h-3.5 text-zinc-500" />
+              <span>{formatTime(viewerTimer)}</span>
             </div>
 
-            {/* Right: Zoom controls */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
+            {/* Right: Zoom & Actions */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 rounded-lg p-0.5 border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
                 <button
+                  type="button"
                   onClick={() => setViewerZoom(z => Math.max(25, z - 25))}
-                  className="px-2 py-1 hover:bg-background rounded text-sm font-bold"
-                  title="Reducir"
+                  className="px-2 py-0.5 hover:bg-white dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-200 font-bold"
+                  title="Reducir zoom (-)"
                 >−</button>
-                <span className="px-2 text-xs font-mono font-medium min-w-[3rem] text-center">{viewerZoom}%</span>
+                <span className="px-1.5 font-mono text-[11px] min-w-[2.5rem] text-center text-zinc-600 dark:text-zinc-300">{viewerZoom}%</span>
                 <button
+                  type="button"
                   onClick={() => setViewerZoom(z => Math.min(300, z + 25))}
-                  className="px-2 py-1 hover:bg-background rounded text-sm font-bold"
-                  title="Ampliar"
+                  className="px-2 py-0.5 hover:bg-white dark:hover:bg-zinc-700 rounded text-zinc-700 dark:text-zinc-200 font-bold"
+                  title="Ampliar zoom (+)"
                 >+</button>
                 <button
+                  type="button"
                   onClick={() => setViewerZoom(100)}
-                  className="px-2 py-1 hover:bg-background rounded text-xs"
-                  title="Restablecer"
+                  className="px-1.5 py-0.5 hover:bg-white dark:hover:bg-zinc-700 rounded text-[10px] text-zinc-500"
+                  title="Restablecer (100%)"
                 >100%</button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(fullScreenFile.url);
+                  toast.success("Enlace copiado al portapapeles");
+                }}
+                className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
+                title="Copiar enlace directo"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <a
+                href={fullScreenFile.url}
+                download={fullScreenFile.nombre}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
+                title="Descargar archivo"
+              >
+                <Download className="w-4 h-4" />
+              </a>
               <a
                 href={fullScreenFile.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 bg-secondary rounded-lg hover:bg-secondary/80"
-                title="Abrir en nueva pestaña"
+                className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
+                title="Abrir en pestaña externa"
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
           </div>
 
-          {/* AI Toolbar */}
-          <div className="bg-card/60 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center justify-center gap-2 flex-wrap shrink-0">
+          {/* AI Tools Bar */}
+          <div className="bg-zinc-50/80 dark:bg-zinc-900/60 border-b border-zinc-200/80 dark:border-zinc-800/80 px-4 py-2 flex items-center justify-center gap-2 flex-wrap shrink-0">
             <button
+              type="button"
               onClick={() => setShowGenOptions(showGenOptions === 'flashcards' ? null : 'flashcards')}
               disabled={generating !== null}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
-                showGenOptions === 'flashcards' ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50",
+                showGenOptions === 'flashcards'
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                  : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-700"
               )}
             >
-              <span className="text-base">{generating === 'flashcards' ? '⏳' : '✨'}</span>
-              {generating === 'flashcards' ? "Generando..." : "Flashcards"}
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{generating === 'flashcards' ? "Generando..." : "Flashcards"}</span>
             </button>
+
             <button
+              type="button"
               onClick={() => setShowGenOptions(showGenOptions === 'quiz' ? null : 'quiz')}
               disabled={generating !== null}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50",
-                showGenOptions === 'quiz' ? "bg-primary text-primary-foreground" : "bg-neon-purple/10 text-neon-purple hover:bg-neon-purple/20"
+                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50",
+                showGenOptions === 'quiz'
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                  : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-700"
               )}
             >
-              <span className="text-base">{generating === 'quiz' ? '⏳' : '📋'}</span>
-              {generating === 'quiz' ? "Generando..." : "Cuestionario"}
+              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+              <span>{generating === 'quiz' ? "Generando..." : "Cuestionario"}</span>
             </button>
+
             <button
+              type="button"
               onClick={() => fullScreenFile && handleGenerateContent(fullScreenFile, 'summary')}
               disabled={generating !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
             >
-              <span className="text-base">{generating === 'summary' ? '⏳' : '📝'}</span>
-              {generating === 'summary' ? "Resumiendo..." : "Resumir"}
+              <FileText className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{generating === 'summary' ? "Resumiendo..." : "Resumir"}</span>
             </button>
-            <div className="w-px h-6 bg-border mx-1" />
+
+            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
             <button
+              type="button"
               onClick={() => {
                 if (isSpeaking) {
                   stop();
@@ -3193,85 +4068,87 @@ export default function Library() {
                   if (fullScreenFile.tipo === 'pdf') {
                     extractAndSpeakPDF(fullScreenFile.url);
                   } else {
-                    speak(fullScreenFile.nombre); // Fallback or read simple text if format supported
+                    speak(fullScreenFile.nombre);
                   }
                 }
               }}
               disabled={isExtractingText}
               className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all",
-                isSpeaking 
-                  ? "bg-neon-cyan/20 text-neon-cyan animate-pulse shadow-[0_0_15px_rgba(0,195,255,0.3)]" 
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
+                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                isSpeaking
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                  : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-700"
               )}
             >
               {isExtractingText ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : isSpeaking ? (
-                <Square className="w-4 h-4 fill-current" />
+                <Square className="w-3.5 h-3.5 fill-current" />
               ) : (
-                <Volume2 className="w-4 h-4" />
+                <Volume2 className="w-3.5 h-3.5" />
               )}
-              {isSpeaking ? "Detener" : "Leer en voz alta"}
+              <span>{isSpeaking ? "Detener voz" : "Leer en voz alta"}</span>
             </button>
 
-            {/* Gen count selector */}
+            {/* Gen count selector in viewer */}
             {showGenOptions && (
-              <div className="flex items-center gap-2 bg-background/50 rounded-lg px-3 py-1.5 border border-border">
-                <span className="text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-800 rounded-lg px-2.5 py-1 border border-zinc-200 dark:border-zinc-700">
+                <span className="text-[11px] text-zinc-500">
                   {showGenOptions === 'flashcards' ? 'Tarjetas:' : 'Preguntas:'}
                 </span>
-                {[5, 10, 15, 20, 30].map(n => (
+                {[5, 10, 15, 20].map(n => (
                   <button
                     key={n}
+                    type="button"
                     onClick={() => setGenCount(n)}
                     className={cn(
-                      "px-2 py-0.5 rounded text-xs font-medium",
-                      genCount === n ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+                      "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                      genCount === n ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     )}
                   >{n}</button>
                 ))}
                 <button
+                  type="button"
                   onClick={() => fullScreenFile && handleGenerateContent(fullScreenFile, showGenOptions, genCount)}
                   disabled={generating !== null}
-                  className="px-3 py-0.5 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-lg text-xs font-semibold hover:opacity-90"
-                >Generar {genCount}</button>
+                  className="px-2 py-0.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded text-[11px] font-medium"
+                >Generar</button>
               </div>
             )}
           </div>
 
-          {/* File Content Area */}
-          <div className="flex-1 overflow-auto bg-black/30">
+          {/* File Content Display */}
+          <div className="flex-1 overflow-auto bg-zinc-100/50 dark:bg-black/40">
             <div
-              className="w-full h-full flex items-start justify-center"
+              className="w-full h-full flex items-start justify-center p-2"
               style={{ transform: `scale(${viewerZoom / 100})`, transformOrigin: 'top center' }}
             >
               {fullScreenFile.tipo === "imagen" && (
                 <img
                   src={fullScreenFile.url}
                   alt={fullScreenFile.nombre}
-                  className="max-w-full h-auto shadow-2xl"
+                  className="max-w-full h-auto shadow-2xl rounded-xl border border-zinc-200/80 dark:border-zinc-800/80"
                 />
               )}
               {fullScreenFile.tipo === "pdf" && (
                 <iframe
                   src={`${fullScreenFile.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                  className="w-full border-0 shadow-2xl"
+                  className="w-full border-0 shadow-2xl rounded-xl"
                   style={{ minHeight: "calc(100vh - 120px)", height: "100%" }}
                   title={fullScreenFile.nombre}
                 />
               )}
               {fullScreenFile.tipo === "link" && (
-                <div className="text-center py-20 bg-card m-4 rounded-xl border border-border">
-                  <LinkIcon className="w-16 h-16 mx-auto mb-4 text-neon-cyan" />
-                  <p className="text-lg font-medium mb-4">{fullScreenFile.nombre}</p>
+                <div className="text-center py-20 bg-white dark:bg-[#18181b] m-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-md max-w-md mx-auto">
+                  <LinkIcon className="w-12 h-12 mx-auto mb-3 text-blue-500" />
+                  <p className="text-sm font-semibold mb-3 text-zinc-900 dark:text-zinc-100">{fullScreenFile.nombre}</p>
                   <a
                     href={fullScreenFile.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90"
+                    className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-medium hover:opacity-90 inline-block shadow-2xs"
                   >
-                    Abrir Link ↗
+                    Abrir Enlace Web ↗
                   </a>
                 </div>
               )}
@@ -3279,16 +4156,21 @@ export default function Library() {
           </div>
 
           {/* Bottom Status Bar */}
-          <div className="bg-card/80 backdrop-blur-xl border-t border-border px-4 py-1.5 flex items-center justify-between text-xs text-muted-foreground shrink-0">
-            <span>
+          <div className="bg-white/90 dark:bg-[#18181b]/90 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 px-4 py-1.5 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0">
+            <span className="truncate max-w-xs sm:max-w-md">
               {fullScreenFile.subject?.nombre
                 ? `📚 ${fullScreenFile.subject.nombre} (${fullScreenFile.subject.año}° año)`
                 : "Sin materia asignada"
               }
             </span>
-            <span>
-              {fullScreenFile.tamaño_bytes ? formatFileSize(fullScreenFile.tamaño_bytes) : ""} · Zoom: {viewerZoom}%
-            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span>
+                {fullScreenFile.tamaño_bytes ? formatFileSize(fullScreenFile.tamaño_bytes) : ""} · Zoom: {viewerZoom}%
+              </span>
+              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 rounded">
+                Esc para salir
+              </kbd>
+            </div>
           </div>
         </div>
       )}

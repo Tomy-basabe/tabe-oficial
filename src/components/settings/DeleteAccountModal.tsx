@@ -74,42 +74,49 @@ export function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-card text-card-foreground border-4 border-[#FF5C5C] rounded-2xl shadow-[8px_8px_0_0_#FF5C5C] overflow-hidden"
+        className="w-full max-w-md bg-white dark:bg-[#18181b] text-foreground border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-account-title"
       >
-        {/* Cabecera de Alerta */}
-        <div className="bg-[#FF5C5C] text-black px-6 py-4 flex items-center justify-between border-b-4 border-foreground">
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert className="w-6 h-6 stroke-[2.5]" />
-            <h3 id="delete-account-title" className="font-black text-base uppercase tracking-tight">
-              Eliminar Cuenta y Todos mis Datos
-            </h3>
+        {/* Cabecera */}
+        <div className="p-5 pb-4 flex items-start justify-between border-b border-zinc-100 dark:border-zinc-800/80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200/60 dark:border-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5 stroke-[2]" />
+            </div>
+            <div>
+              <h3 id="delete-account-title" className="font-semibold text-base text-zinc-900 dark:text-zinc-100">
+                Eliminar cuenta y datos
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Esta acción destruirá todos tus datos
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="w-8 h-8 rounded-lg border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center transition-colors font-black text-sm"
+            className="w-8 h-8 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Cuerpo */}
-        <div className="p-6 space-y-4">
-          <div className="p-4 bg-destructive/10 border-2 border-destructive rounded-xl space-y-2">
-            <p className="text-xs font-black uppercase text-destructive flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+        <div className="p-5 space-y-4">
+          <div className="p-3.5 bg-red-50/70 dark:bg-red-950/20 border border-red-200/70 dark:border-red-900/40 rounded-xl space-y-2">
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               Acción irreversible y definitiva
             </p>
-            <p className="text-xs font-bold text-foreground/90 leading-relaxed">
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
               En cumplimiento del derecho de supresión (Ley 25.326 y RGPD), al confirmar se destruirán permanentemente:
             </p>
-            <ul className="text-[11px] font-bold text-muted-foreground list-disc pl-5 space-y-1">
+            <ul className="text-[11px] text-zinc-500 dark:text-zinc-400 list-disc pl-4 space-y-0.5">
               <li>Todos tus apuntes, notas y documentos de Notion.</li>
               <li>Tus flashcards, cuestionarios y resultados académicos.</li>
               <li>Tus archivos PDF e imágenes subidas en la biblioteca.</li>
@@ -118,9 +125,9 @@ export function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
             </ul>
           </div>
 
-          <div className="space-y-2 pt-2">
-            <label className="block text-xs font-black uppercase text-foreground">
-              Para confirmar, escribe la palabra <span className="text-destructive font-mono underline">ELIMINAR</span> a continuación:
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Para confirmar, escribe <span className="font-mono font-semibold text-red-600 dark:text-red-400">ELIMINAR</span> a continuación:
             </label>
             <input
               type="text"
@@ -128,18 +135,18 @@ export function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
               onChange={(e) => setConfirmationInput(e.target.value)}
               placeholder="ELIMINAR"
               disabled={loading}
-              className="w-full px-4 py-3 bg-background rounded-xl border-3 border-foreground font-black text-sm uppercase tracking-wider text-center focus:outline-none focus:border-destructive shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+              className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-200 dark:border-zinc-700 font-mono text-sm uppercase tracking-wider text-center focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400"
               autoFocus
             />
           </div>
 
           {/* Botones de acción */}
-          <div className="grid grid-cols-2 gap-3 pt-3">
+          <div className="grid grid-cols-2 gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="py-3 px-4 rounded-xl border-3 border-foreground bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all"
+              className="py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-750 font-medium text-xs transition-colors cursor-pointer"
             >
               Cancelar
             </button>
@@ -148,21 +155,21 @@ export function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
               onClick={handleDeleteAccount}
               disabled={!isConfirmed || loading}
               className={cn(
-                "py-3 px-4 rounded-xl border-3 border-foreground font-black text-xs uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center justify-center gap-2 transition-all",
-                isConfirmed
-                  ? "bg-[#FF5C5C] text-black hover:translate-y-[-1px] active:translate-y-[1px] hover:shadow-[5px_5px_0_0_hsl(var(--foreground))] cursor-pointer"
-                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                "py-2.5 px-4 rounded-lg font-medium text-xs text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs",
+                isConfirmed && !loading
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-red-400/60 dark:bg-red-900/40 text-white/70 cursor-not-allowed"
               )}
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Eliminando...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Eliminando...</span>
                 </>
               ) : (
                 <>
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar todo
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar cuenta</span>
                 </>
               )}
             </button>

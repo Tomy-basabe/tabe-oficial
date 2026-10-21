@@ -97,7 +97,6 @@ export const ALL_MOBILE_NAV_ITEMS: {
     categoryLabel: "Comunidad & Juegos",
     icon: "🎮",
     items: [
-      { icon: Sparkles, label: "TabeGochi", path: "/tabegochi", badge: "NUEVO", color: "text-[#EC4899]", bgActive: "bg-[#EC4899] text-white" },
       { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", color: "text-[#10B981]", bgActive: "bg-[#10B981] text-white" },
       { icon: Gamepad2, label: "Juegos", path: "/juegos", badge: "HOT", color: "text-[#F97316]", bgActive: "bg-[#F97316] text-white" },
       { icon: Users, label: "Amigos", path: "/amigos", color: "text-[#06B6D4]", bgActive: "bg-[#06B6D4] text-black" },
@@ -154,9 +153,9 @@ export function MobileNavbar() {
                 onMouseEnter={() => preloadRoute(item.path)}
                 onTouchStart={() => preloadRoute(item.path)}
                 className={cn(
-                  "flex flex-col items-center justify-center min-w-[62px] px-2 py-1.5 rounded-xl border-2 transition-all duration-200 select-none shrink-0",
+                  "flex flex-col items-center justify-center min-w-[62px] px-2 py-1.5 rounded-xl border transition-colors select-none shrink-0",
                   isActive
-                    ? `${item.bgActive} border-foreground shadow-[2.5px_2.5px_0_0_#000] translate-y-[-2px]`
+                    ? `bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100`
                     : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/70"
                 )}
               >
@@ -169,7 +168,7 @@ export function MobileNavbar() {
                   )}
                 </div>
                 <span className={cn(
-                  "text-[10px] tracking-tight mt-1 font-extrabold whitespace-nowrap truncate max-w-[58px]",
+                  "text-[10px] tracking-tight mt-1 font-medium whitespace-nowrap truncate max-w-[58px]",
                   isActive ? "text-inherit" : "text-foreground/80"
                 )}>
                   {item.label}
@@ -190,10 +189,10 @@ export function MobileNavbar() {
               className="flex flex-col items-center justify-center px-3 py-2 shrink-0 text-foreground hover:text-primary transition-all group"
               title="Ver todos los apartados"
             >
-              <div className="w-10 h-10 rounded-xl bg-[#FFE600] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all">
+              <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 transition-colors">
                 <LayoutGrid className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-black uppercase tracking-wider text-foreground mt-0.5">
+              <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400 mt-0.5">
                 Todos
               </span>
             </button>
@@ -203,26 +202,26 @@ export function MobileNavbar() {
           <SheetContent 
             side="bottom" 
             hideCloseButton
-            className="w-full max-h-[85vh] p-0 rounded-t-[28px] border-t-4 border-x-4 border-foreground bg-card shadow-[0_-12px_40px_rgba(0,0,0,0.35)] flex flex-col z-[1100]"
+            className="w-full max-h-[85vh] p-0 rounded-t-2xl border-t border-x border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] shadow-2xl flex flex-col z-[1100]"
           >
             {/* Top Comic Pull Bar */}
-            <div className="pt-3 pb-2 px-6 flex flex-col items-center border-b-2 border-border/60 bg-muted/30">
-              <div className="w-12 h-1.5 bg-foreground/30 rounded-full mb-3" />
+            <div className="pt-3 pb-2 px-6 flex flex-col items-center border-b border-zinc-100 dark:border-zinc-800/60 bg-transparent">
+              <div className="w-10 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full mb-3" />
               <div className="w-full flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center text-black font-black text-xs">
+                  <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xs">
                     ⚡
                   </div>
                   <div>
-                    <SheetTitle className="text-base font-black uppercase text-foreground leading-tight">
+                    <SheetTitle className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight">
                       Todos los Apartados
                     </SheetTitle>
-                    <p className="text-[11px] font-bold text-muted-foreground">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
                       Toca cualquier opción para ir directo
                     </p>
                   </div>
                 </div>
-                <SheetClose className="p-1.5 rounded-xl bg-secondary border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-transform">
+                <SheetClose className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
                   <X className="w-5 h-5 text-foreground" />
                 </SheetClose>
               </div>
@@ -243,10 +242,10 @@ export function MobileNavbar() {
                       ComicAudio.playPop();
                     }}
                     className={cn(
-                      "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-tight whitespace-nowrap border-2 transition-all shrink-0",
+                      "px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap border transition-colors shrink-0",
                       selectedCategory === cat.id
-                        ? "bg-[#00E5FF] text-black border-black shadow-[2px_2px_0_0_#000]"
-                        : "bg-secondary text-muted-foreground border-transparent hover:text-foreground"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-2xs"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60"
                     )}
                   >
                     {cat.label}
@@ -283,10 +282,10 @@ export function MobileNavbar() {
                           onMouseEnter={() => preloadRoute(item.path)}
                           onTouchStart={() => preloadRoute(item.path)}
                           className={cn(
-                            "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center group relative",
+                            "flex flex-col items-center justify-center p-2.5 rounded-xl border transition-colors text-center group relative",
                             isActive
-                              ? `${item.bgActive} border-foreground shadow-[3px_3px_0_0_#000] translate-y-[-2px]`
-                              : "bg-card border-foreground/30 shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:border-foreground hover:translate-y-[-2px]"
+                              ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100"
+                              : "bg-zinc-50/60 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                           )}
                         >
                           {item.badge && (
@@ -295,13 +294,13 @@ export function MobileNavbar() {
                             </span>
                           )}
                           <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                            "w-8 h-8 rounded-lg flex items-center justify-center transition-transform",
                             isActive ? "bg-black/15 text-inherit" : "bg-muted text-foreground"
                           )}>
                             <Icon className="w-5 h-5" />
                           </div>
                           <span className={cn(
-                            "text-xs font-black mt-2 leading-tight truncate w-full",
+                            "text-xs font-medium mt-1.5 leading-tight truncate w-full",
                             isActive ? "text-inherit" : "text-foreground"
                           )}>
                             {item.label}
@@ -319,7 +318,7 @@ export function MobileNavbar() {
               <SheetClose asChild>
                 <button 
                   onClick={() => ComicAudio.playPop()}
-                  className="w-full py-2.5 rounded-xl bg-foreground text-background font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] active:translate-y-[1px]"
+                  className="w-full py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-medium text-xs border border-transparent shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
                 >
                   Cerrar Menú
                 </button>

@@ -142,9 +142,9 @@ export function useNotionDocuments() {
     }
 
     try {
-      // Timeout de seguridad de 2.5 segundos para evitar pantallas de carga infinitas
+      // Timeout de seguridad amplio para conexiones con latencia o cold starts de Supabase
       const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 2500);
+        setTimeout(() => resolve({ data: null, error: { message: "FETCH_DOCUMENTS_TIMEOUT" } }), 8000);
       });
 
       // @AI-CRITICAL-INSTRUCTION: MANTENER EFICIENCIA DE EGRESS.
@@ -165,14 +165,15 @@ export function useNotionDocuments() {
       const res = await Promise.race([fetchPromise, timeoutPromise]);
       let { data, error } = res as any;
 
-      if (error && error.message !== "FETCH_DOCUMENTS_TIMEOUT") {
-        console.warn("Initial documents fetch error, attempting fallback without cooperative columns:", error.message);
-        // Fallback inmediato si no existen las columnas de colaboración en Supabase
+      // Fallback robusto e inmediato si la consulta con joins falla o da timeout
+      if (!data || error) {
+        console.warn("Initial documents fetch error, attempting fallback:", error?.message);
+        // Fallback 1: sin profiles join (evita error si la FK de profiles no está expuesta en PostgREST)
         const fallbackRes = await supabase
           .from("notion_documents")
           .select(`
             id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-            owner:profiles(nombre, avatar_url, username),
+            is_shared, share_token, share_permission,
             subject:subjects(id, nombre, codigo, año)
           `)
           .order("updated_at", { ascending: false })
@@ -182,6 +183,7 @@ export function useNotionDocuments() {
           data = fallbackRes.data;
           error = null;
         } else {
+          // Fallback 2: select simple garantizado sin ningún join
           console.warn("Second fallback without join relationships:", fallbackRes.error?.message);
           const simpleRes = await supabase
             .from("notion_documents")
@@ -299,9 +301,6 @@ export function useNotionDocuments() {
       console.warn("Exception during fetchDocuments:", err);
     } finally {
       // Garantizar SIEMPRE que loading pase a false para nunca dejar la pantalla trabada
-      if (!_notionDocsCache) {
-        _notionDocsCache = [];
-      }
       setLoading(false);
     }
   }, [user, isGuest]);
@@ -311,7 +310,7 @@ export function useNotionDocuments() {
     if (!loading) return;
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2500);
+    }, 8000);
     return () => clearTimeout(timer);
   }, [loading]);
 

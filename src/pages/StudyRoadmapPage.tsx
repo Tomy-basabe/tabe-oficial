@@ -23,6 +23,7 @@ import {
   X,
   BookOpen,
   Check,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -135,23 +136,23 @@ export default function StudyRoadmapPage() {
     activeRoadmap?.roadmap_data.event_label;
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-16">
-      {/* ── HEADER SUPERIOR NEOBRUTALISTA ── */}
-      <div className="sticky top-0 z-30 bg-card border-b-4 border-foreground px-4 py-3 shadow-[0_4px_0_0_#000]">
+    <div className="min-h-screen bg-background text-foreground pb-16 selection:bg-primary/20">
+      {/* ── HEADER SUPERIOR APPLE / NOTION ── */}
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           {/* Volver a TABE AI */}
           <div className="flex items-center gap-3">
             <Link
               to="/TABEAI"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-foreground bg-card hover:bg-muted font-black text-xs uppercase shadow-[2px_2px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-muted/40 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Volver a TABE AI</span>
             </Link>
 
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#00E5FF] shadow-[0_0_6px_#00E5FF]" />
-              <h1 className="text-sm font-black uppercase tracking-wider">
+            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border/40">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+              <h1 className="text-xs font-semibold text-foreground tracking-tight">
                 Exámenes · Motor de Rutas de Estudio
               </h1>
             </div>
@@ -163,7 +164,7 @@ export default function StudyRoadmapPage() {
               <button
                 type="button"
                 onClick={() => setRoadmapToDelete(activeRoadmap)}
-                className="px-3 py-1.5 bg-card hover:bg-[#FF3366] hover:text-white text-foreground font-black uppercase text-xs border-2 border-foreground rounded-xl shadow-[2px_2px_0px_#000] transition-all cursor-pointer flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 hover:border-destructive/30 hover:bg-destructive/10 text-muted-foreground hover:text-destructive text-xs font-medium transition-colors cursor-pointer"
                 title="Eliminar esta ruta de estudio"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -174,7 +175,7 @@ export default function StudyRoadmapPage() {
             {!showWizard && (
               <button
                 onClick={() => setShowWizard(true)}
-                className="px-3 py-1.5 bg-[#FFE600] hover:bg-[#ffe100] text-black font-black uppercase text-xs border-2 border-foreground rounded-xl shadow-[3px_3px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium transition-all shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Nuevo Plan</span>
@@ -182,21 +183,22 @@ export default function StudyRoadmapPage() {
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 pt-6">
+      <main className="max-w-5xl mx-auto px-4 pt-8">
         {/* Si estamos en modo Wizard */}
         {showWizard ? (
-          <div className="py-4">
-            <div className="text-center max-w-md mx-auto mb-6">
-              <span className="px-3 py-1 rounded-full bg-[#FFE600] text-black font-black text-[10px] uppercase border-2 border-foreground shadow-[2px_2px_0px_#000]">
-                Creador de Rutas de Estudio
-              </span>
-              <h2 className="text-2xl font-black uppercase tracking-wide mt-2">
-                Prepara tu Examen con IA
+          <div className="py-2 animate-in fade-in duration-300">
+            <div className="text-center max-w-lg mx-auto mb-8">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-[11px] font-medium text-primary mb-3">
+                <Compass className="w-3.5 h-3.5" />
+                <span>Creador de Rutas de Estudio</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+                Prepara tu examen con IA
               </h2>
-              <p className="text-xs font-medium text-muted-foreground mt-1">
-                Convierte tus apuntes y materias en curso en un árbol de niveles personalizado por evento.
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+                Convierte tus apuntes y materias en curso en un árbol de niveles personalizado paso a paso.
               </p>
             </div>
 
@@ -210,33 +212,33 @@ export default function StudyRoadmapPage() {
           </div>
         ) : activeRoadmap ? (
           /* Vista del Árbol de Niveles */
-          <div className="space-y-6">
-            {/* ── HUD SUPERIOR GAMER ── */}
-            <div className="p-4 md:p-5 bg-card border-4 border-foreground rounded-2xl shadow-[6px_6px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* ── HUD SUPERIOR NOTION / APPLE ── */}
+            <div className="p-5 md:p-6 bg-card/70 backdrop-blur-sm border border-border/60 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
               {/* Información de Materia y Selector */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] uppercase border-2 border-foreground shadow-[2px_2px_0px_#000]">
-                    Ruta Activa
+                  <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium">
+                    Ruta activa
                   </span>
-                  <span className="text-xs font-black uppercase text-muted-foreground">
-                    Meta: {activeRoadmap.target_mastery}% Dominio ({workload.questionCount} preg. y {workload.flashcardCount} flashcards por nivel)
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Meta: {activeRoadmap.target_mastery}% Dominio ({workload.questionCount} preg. y {workload.flashcardCount} flashcards)
                   </span>
                   {eventBadge && (
-                    <span className="px-2 py-0.5 rounded-md bg-[#00E5FF] text-black font-black text-[10px] uppercase border-2 border-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                    <span className="px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/50 text-[11px] font-medium flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
                       {eventBadge}
                     </span>
                   )}
                   {activeRoadmap.roadmap_data.materialStats?.notionDocsCount ? (
-                    <span className="px-2 py-0.5 rounded-md bg-[#FFE600] text-black font-black text-[10px] uppercase border-2 border-foreground flex items-center gap-1 shadow-[1.5px_1.5px_0px_#000]">
-                      <BookOpen className="w-3 h-3" />
-                      {activeRoadmap.roadmap_data.materialStats.notionDocsCount} apunte(s) de TABE
+                    <span className="px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/50 text-[11px] font-medium flex items-center gap-1">
+                      <BookOpen className="w-3 h-3 text-muted-foreground" />
+                      {activeRoadmap.roadmap_data.materialStats.notionDocsCount} apunte(s)
                     </span>
                   ) : null}
                   {(activeRoadmap.study_preference ||
                     activeRoadmap.roadmap_data.study_preference) && (
-                    <span className="px-2 py-0.5 rounded-md bg-muted text-foreground font-black text-[10px] uppercase border border-foreground/40 flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-medium border border-border/40 flex items-center gap-1">
                       <Sparkles className="w-2.5 h-2.5 text-primary" />
                       Modo:{" "}
                       {activeRoadmap.study_preference ||
@@ -245,14 +247,14 @@ export default function StudyRoadmapPage() {
                   )}
                 </div>
 
-                <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide">
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
                   {activeRoadmap.subject_name}
                 </h2>
 
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-normal">
                   <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span>
-                    {activeRoadmap.total_levels} niveles intensivos • Cada nivel incluye Guía Teórica, {workload.flashcardCount} Flashcards y Examen de {workload.questionCount} preguntas (aprobación ≥{workload.requiredAccuracyPercent}%)
+                    {activeRoadmap.total_levels} niveles • Guía teórica, {workload.flashcardCount} flashcards y examen (aprobación ≥{workload.requiredAccuracyPercent}%)
                   </span>
                 </div>
               </div>
@@ -260,30 +262,31 @@ export default function StudyRoadmapPage() {
               {/* Métricas: Días Restantes y Barra de Progreso */}
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Días para el examen */}
-                <div className="px-4 py-2 bg-muted/80 border-3 border-foreground rounded-xl shadow-[3px_3px_0px_#000] flex items-center gap-2.5">
-                  <Flame className="w-5 h-5 text-[#FF3366] shrink-0" />
+                <div className="px-4 py-2.5 bg-muted/40 border border-border/60 rounded-xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                    <Flame className="w-4 h-4" />
+                  </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase text-muted-foreground block">
-                      Días para Examen
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
+                      Días para examen
                     </span>
-                    <span className="text-base font-black text-foreground">
-                      {daysLeft === 0 ? "¡HOY!" : `${daysLeft} Días`}
+                    <span className="text-sm font-semibold text-foreground">
+                      {daysLeft === 0 ? "¡Hoy!" : `${daysLeft} días`}
                     </span>
                   </div>
                 </div>
 
                 {/* Progreso general */}
-                <div className="min-w-[160px] space-y-1.5">
-                  <div className="flex justify-between text-xs font-black uppercase">
-                    <span>
-                      Progreso ({activeRoadmap.completed_levels}/
-                      {activeRoadmap.total_levels}):
+                <div className="min-w-[170px] space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">
+                      Progreso ({activeRoadmap.completed_levels}/{activeRoadmap.total_levels})
                     </span>
-                    <span className="text-[#BFFF00]">{progressPercent}%</span>
+                    <span className="font-semibold text-emerald-500">{progressPercent}%</span>
                   </div>
-                  <div className="h-5 w-full bg-background border-2 border-foreground rounded-lg overflow-hidden p-0.5 shadow-[2px_2px_0px_#000]">
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#BFFF00] transition-all duration-500 rounded"
+                      className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -291,47 +294,50 @@ export default function StudyRoadmapPage() {
               </div>
             </div>
 
-            {/* Selector de Rutas */}
+            {/* Selector de Rutas - Pestañas Notion */}
             {roadmaps.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                <span className="text-[10px] font-black uppercase text-muted-foreground shrink-0">
-                  Tus Rutas ({roadmaps.length}):
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-xs font-medium text-muted-foreground shrink-0 mr-1">
+                  Rutas guardadas:
                 </span>
-                {roadmaps.map((r) => (
-                  <div
-                    key={r.id}
-                    className={cn(
-                      "flex items-center rounded-xl border-2 border-foreground shrink-0 transition-all shadow-[2px_2px_0px_#000] overflow-hidden",
-                      r.id === activeRoadmap.id
-                        ? "bg-[#FFE600] text-black"
-                        : "bg-card text-foreground hover:bg-muted"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActiveRoadmapId(r.id)}
-                      className="px-3 py-1.5 font-black text-xs uppercase cursor-pointer"
+                {roadmaps.map((r) => {
+                  const isActive = r.id === activeRoadmap.id;
+                  return (
+                    <div
+                      key={r.id}
+                      className={cn(
+                        "inline-flex items-center rounded-lg border text-xs font-medium shrink-0 transition-all overflow-hidden",
+                        isActive
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      )}
                     >
-                      {r.subject_name} ({r.completed_levels}/{r.total_levels})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRoadmapToDelete(r);
-                      }}
-                      className="px-2 py-1.5 border-l-2 border-foreground/30 hover:bg-[#FF3366] hover:text-white transition-colors cursor-pointer"
-                      title={`Eliminar ruta de ${r.subject_name}`}
-                    >
-                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => setActiveRoadmapId(r.id)}
+                        className="px-3 py-1.5 cursor-pointer truncate max-w-[180px]"
+                      >
+                        {r.subject_name} ({r.completed_levels}/{r.total_levels})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRoadmapToDelete(r);
+                        }}
+                        className="px-1.5 py-1.5 hover:bg-destructive/15 hover:text-destructive text-muted-foreground transition-colors cursor-pointer border-l border-border/40"
+                        title={`Eliminar ruta de ${r.subject_name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
             {/* ── MAPA DE NIVELES EN ZIGZAG ── */}
-            <div className="p-4 md:p-8 bg-card/60 border-4 border-foreground rounded-3xl shadow-[8px_8px_0px_#000] min-h-[500px]">
+            <div className="p-4 md:p-8 bg-card/50 border border-border/60 rounded-2xl shadow-xs min-h-[500px]">
               <RoadmapSkillTree
                 levels={activeRoadmap.roadmap_data.roadmap}
                 currentLevel={activeRoadmap.current_level}
@@ -340,36 +346,36 @@ export default function StudyRoadmapPage() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-16">
-            <h3 className="text-lg font-black uppercase">
+          <div className="text-center py-20">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Cargando rutas de estudio...
             </h3>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Modal de Confirmación para Eliminar Ruta */}
       {roadmapToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-card border-4 border-foreground rounded-2xl shadow-[8px_8px_0_0_hsl(var(--foreground))] overflow-hidden">
-            <div className="px-5 py-3.5 bg-[#FF3366] text-white border-b-4 border-foreground flex items-center justify-between">
-              <div className="flex items-center gap-2 font-black text-sm uppercase tracking-wider">
-                <AlertTriangle className="w-5 h-5" />
-                <span>Eliminar Ruta de Estudio</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-card border border-border/80 rounded-2xl shadow-lg overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                <span>Eliminar ruta de estudio</span>
               </div>
               <button
                 type="button"
                 onClick={() => setRoadmapToDelete(null)}
-                className="w-7 h-7 rounded-lg bg-white text-black border-2 border-black flex items-center justify-center font-black cursor-pointer"
+                className="w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
-              <p className="text-xs sm:text-sm font-bold text-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                 ¿Estás seguro de que querés eliminar la ruta de{" "}
-                <span className="font-black underline">
+                <span className="font-semibold text-foreground">
                   {roadmapToDelete.subject_name}
                 </span>
                 ? Se eliminará todo su progreso y contenido.
@@ -380,15 +386,15 @@ export default function StudyRoadmapPage() {
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setRoadmapToDelete(null)}
-                  className="px-4 py-2 rounded-xl border-2 border-foreground bg-card hover:bg-muted text-xs font-black uppercase cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-border/60 bg-muted/40 hover:bg-muted text-xs font-medium text-foreground transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <HoldButton
                   size="md"
-                  holdTime={1400}
+                  holdTime={1200}
                   disabled={isDeleting}
-                  backgroundColor="#FF3366"
+                  backgroundColor="#ef4444"
                   fillColor="#b91c1c"
                   textColor="#ffffff"
                   fillTextColor="#ffffff"
@@ -396,9 +402,9 @@ export default function StudyRoadmapPage() {
                   doneIcon={<Check className="w-3.5 h-3.5 shrink-0" />}
                   doneLabel="Eliminada"
                   onHold={handleConfirmDeleteRoadmap}
-                  className="px-5 py-2 rounded-xl border-2 border-foreground text-xs font-black uppercase shadow-[3px_3px_0_0_#000]"
+                  className="px-4 py-2 rounded-xl text-xs font-medium shadow-xs"
                 >
-                  {isDeleting ? "Eliminando..." : "Mantener para Eliminar"}
+                  {isDeleting ? "Eliminando..." : "Mantener para eliminar"}
                 </HoldButton>
               </div>
             </div>

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { toLocalDateStr } from "@/lib/utils";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
@@ -55,13 +55,6 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
   const filteredSubjects = yearFilter
     ? subjects.filter(s => s.año === yearFilter)
     : subjects;
-
-  const subjectsByYear = [...new Set(filteredSubjects.map(s => s.año || 0))]
-    .sort((a, b) => a - b)
-    .map(year => ({
-      year,
-      subjects: filteredSubjects.filter(s => (s.año || 0) === year),
-    }));
 
   const h = parseFloat(horas) || 0;
   const m = parseFloat(minutos) || 0;
@@ -145,17 +138,17 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6 overflow-hidden">
-        <DialogHeader className="space-y-2">
+      <DialogContent className="sm:max-w-[460px] bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-xl overflow-hidden">
+        <DialogHeader className="space-y-1.5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#BFFF00] border-2 border-foreground rounded-xl flex items-center justify-center -rotate-3 shadow-[2px_2px_0_0_hsl(var(--foreground))] shrink-0">
-              <Clock className="w-5 h-5 text-black" strokeWidth={2.5} />
+            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-100 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+              <Clock className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
             </div>
             <div>
-              <DialogTitle className="font-black text-xl uppercase tracking-wider text-foreground">
+              <DialogTitle className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
                 Cargar Tiempo Manual
               </DialogTitle>
-              <DialogDescription className="text-xs font-bold text-muted-foreground uppercase">
+              <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
                 Registra horas de estudio presencial, libros o apuntes
               </DialogDescription>
             </div>
@@ -165,9 +158,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Quick Presets */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-[#FFD700]" />
-              Duración Rápida
+            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              Duración rápida
             </Label>
             <div className="grid grid-cols-3 gap-2">
               {PRESET_DURATIONS.map((preset) => {
@@ -180,14 +173,16 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                       setHoras(preset.h);
                       setMinutos(preset.m);
                     }}
-                    className={`py-1.5 px-2 rounded-lg border-2 border-foreground text-left transition-all ${
+                    className={`py-2 px-2.5 rounded-lg border text-left transition-colors ${
                       isSelected
-                        ? "bg-[#BFFF00] text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-x-[-1px] translate-y-[-1px]"
-                        : "bg-muted/50 hover:bg-muted text-foreground hover:translate-y-[-1px]"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                        : "bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-200/80 dark:border-zinc-700/70"
                     }`}
                   >
-                    <div className="font-black text-xs leading-none">{preset.label}</div>
-                    <div className="text-[10px] font-bold text-muted-foreground leading-tight mt-0.5">{preset.sub}</div>
+                    <div className="font-semibold text-xs leading-none">{preset.label}</div>
+                    <div className={`text-[10px] leading-tight mt-1 ${isSelected ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400"}`}>
+                      {preset.sub}
+                    </div>
                   </button>
                 );
               })}
@@ -197,7 +192,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           {/* Manual Duration (Hours and Minutes) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="manual-horas" className="text-xs font-black uppercase text-foreground">
+              <Label htmlFor="manual-horas" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Horas
               </Label>
               <Input
@@ -207,12 +202,12 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                 max="24"
                 value={horas}
                 onChange={(e) => setHoras(e.target.value)}
-                className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black text-base text-foreground rounded-lg h-10"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-medium text-sm text-zinc-900 dark:text-zinc-100 rounded-lg h-9 shadow-2xs focus-visible:ring-1 focus-visible:ring-zinc-400"
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="manual-minutos" className="text-xs font-black uppercase text-foreground">
+              <Label htmlFor="manual-minutos" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Minutos
               </Label>
               <Input
@@ -222,7 +217,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                 max="59"
                 value={minutos}
                 onChange={(e) => setMinutos(e.target.value)}
-                className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-black text-base text-foreground rounded-lg h-10"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-medium text-sm text-zinc-900 dark:text-zinc-100 rounded-lg h-9 shadow-2xs focus-visible:ring-1 focus-visible:ring-zinc-400"
                 required
               />
             </div>
@@ -231,22 +226,22 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           {/* Date with quick buttons */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="manual-fecha" className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#00E5FF]" />
+              <Label htmlFor="manual-fecha" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-zinc-400" />
                 Fecha
               </Label>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleSetToday}
-                  className="text-[10px] font-black uppercase px-2 py-0.5 rounded border border-foreground bg-muted hover:bg-muted/80 text-foreground transition-all"
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors"
                 >
                   Hoy
                 </button>
                 <button
                   type="button"
                   onClick={handleSetYesterday}
-                  className="text-[10px] font-black uppercase px-2 py-0.5 rounded border border-foreground bg-muted hover:bg-muted/80 text-foreground transition-all"
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors"
                 >
                   Ayer
                 </button>
@@ -257,7 +252,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] font-bold text-sm text-foreground rounded-lg h-10"
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-medium text-sm text-zinc-900 dark:text-zinc-100 rounded-lg h-9 shadow-2xs focus-visible:ring-1 focus-visible:ring-zinc-400"
               required
             />
           </div>
@@ -265,8 +260,8 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           {/* Subject Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-[#FF9B71]" />
+              <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                 Materia (Opcional)
               </Label>
               {years.length > 1 && (
@@ -274,10 +269,10 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                   <button
                     type="button"
                     onClick={() => setYearFilter("")}
-                    className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${
                       yearFilter === ""
-                        ? "bg-[#BFFF00] text-black border-foreground"
-                        : "bg-muted text-muted-foreground border-transparent"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+                        : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
                     }`}
                   >
                     Todas
@@ -287,10 +282,10 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                       key={y}
                       type="button"
                       onClick={() => setYearFilter(y)}
-                      className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${
                         yearFilter === y
-                          ? "bg-[#BFFF00] text-black border-foreground"
-                          : "bg-muted text-muted-foreground border-transparent"
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+                          : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
                       }`}
                     >
                       {y}°
@@ -303,19 +298,19 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
               value={subjectId || "none"}
               onValueChange={(val) => setSubjectId(val === "none" ? "" : val)}
             >
-              <SelectTrigger className="w-full h-11 bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] rounded-lg font-bold text-sm text-foreground focus:ring-0 focus:ring-offset-0 px-3 cursor-pointer">
+              <SelectTrigger className="w-full h-9 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg font-medium text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs focus:ring-1 focus:ring-zinc-400 px-3 cursor-pointer">
                 <SelectValue placeholder="Sin materia específica (Estudio general)" />
               </SelectTrigger>
-              <SelectContent className="bg-card text-foreground border-2 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl max-h-64 z-[9999]">
-                <SelectItem value="none" className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black">
+              <SelectContent className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl max-h-64 z-[9999]">
+                <SelectItem value="none" className="font-medium text-xs sm:text-sm cursor-pointer py-1.5 px-3">
                   Sin materia específica (Estudio general)
                 </SelectItem>
 
                 {filteredSubjects.filter(s => (s as any).status !== "aprobada").length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-3 py-1.5 bg-muted/60 border-y border-foreground/10 flex items-center gap-1.5 tracking-wider my-1">
-                      <BookOpen className="w-3.5 h-3.5 text-cyan-500" />
-                      📖 Materias en Cursada / Pendientes
+                    <SelectLabel className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 flex items-center gap-1.5 my-1">
+                      <BookOpen className="w-3 h-3 text-sky-500" />
+                      Materias en cursada / pendientes
                     </SelectLabel>
                     {filteredSubjects
                       .filter(s => (s as any).status !== "aprobada")
@@ -323,9 +318,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                         <SelectItem
                           key={s.id}
                           value={s.id}
-                          className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
+                          className="font-medium text-xs sm:text-sm cursor-pointer py-1.5 px-3"
                         >
-                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                          {s.nombre} {s.año ? `(Año ${s.año})` : ""}
                         </SelectItem>
                       ))}
                   </SelectGroup>
@@ -333,9 +328,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
                 {filteredSubjects.filter(s => (s as any).status === "aprobada").length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 px-3 py-1.5 bg-emerald-500/10 border-y border-foreground/10 flex items-center gap-1.5 tracking-wider my-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      ✅ Materias Aprobadas
+                    <SelectLabel className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider px-3 py-1.5 bg-emerald-500/10 flex items-center gap-1.5 my-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      Materias aprobadas
                     </SelectLabel>
                     {filteredSubjects
                       .filter(s => (s as any).status === "aprobada")
@@ -343,9 +338,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
                         <SelectItem
                           key={s.id}
                           value={s.id}
-                          className="font-bold text-sm cursor-pointer py-2 px-3 focus:bg-[#BFFF00] focus:text-black"
+                          className="font-medium text-xs sm:text-sm cursor-pointer py-1.5 px-3"
                         >
-                          {s.nombre} {s.año ? `[Año ${s.año}]` : ""}
+                          {s.nombre} {s.año ? `(Año ${s.año})` : ""}
                         </SelectItem>
                       ))}
                   </SelectGroup>
@@ -355,16 +350,16 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
           </div>
 
           {/* Live Rewards Estimate Card */}
-          <div className="bg-[#FFE600]/20 border-2 border-dashed border-foreground/40 rounded-xl p-3 flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wide text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-[#FFD700] fill-current" />
+          <div className="bg-zinc-50 dark:bg-zinc-850/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               Recompensas calculadas:
             </span>
             <div className="flex items-center gap-2">
-              <span className="bg-[#BFFF00] text-black font-black text-xs px-2 py-0.5 rounded border border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+              <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold text-xs px-2 py-0.5 rounded-md border border-amber-500/20">
                 +{xpGained} XP
               </span>
-              <span className="bg-[#00E5FF] text-black font-black text-xs px-2 py-0.5 rounded border border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] flex items-center gap-1">
+              <span className="bg-sky-500/10 text-sky-700 dark:text-sky-400 font-semibold text-xs px-2 py-0.5 rounded-md border border-sky-500/20 flex items-center gap-1">
                 <Coins className="w-3 h-3" /> +{creditsGained}
               </span>
             </div>
@@ -374,13 +369,16 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
             <button
               type="submit"
               disabled={loading || totalSeconds <= 0}
-              className="w-full bg-[#BFFF00] text-black font-black uppercase text-xs sm:text-sm py-3 px-4 rounded-xl border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-[1px] active:shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
-                <span>Guardando...</span>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Guardando...</span>
+                </div>
               ) : (
                 <>
-                  <Check className="w-4 h-4 stroke-[3]" />
+                  <Check className="w-4 h-4" />
                   <span>Registrar {h > 0 ? `${h}h ` : ""}{m > 0 ? `${m}m` : ""} de Estudio</span>
                 </>
               )}

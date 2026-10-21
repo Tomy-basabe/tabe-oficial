@@ -44,7 +44,7 @@
     justify-content: space-between;
     height: calc(48px + env(safe-area-inset-top, 0px));
     padding: env(safe-area-inset-top, 0px) 12px 0 12px;
-    border-bottom: 2px solid hsl(var(--foreground));
+    border-bottom: 1px solid var(--notion-border);
     background: var(--notion-topbar-bg);
     flex-shrink: 0;
     gap: 8px;

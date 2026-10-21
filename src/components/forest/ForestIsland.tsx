@@ -1,18 +1,42 @@
 import React, { useState, useMemo } from "react";
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
-import { FOREST_ISLANDS, IslandId, IslandTheme } from "@/hooks/forestIslandsData";
+import { FOREST_ISLANDS, IslandId } from "@/hooks/forestIslandsData";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { TreeInspectionModal } from "./TreeInspectionModal";
 import { ForestRetroSky } from "./ForestRetroSky";
 import { IslandUnderhang, IslandSurfaceDetails } from "./ForestIslandDetails";
 import { ForestIslandScenery } from "./ForestIslandScenery";
 import { IslandAmbientLife } from "./IslandAmbientLife";
-import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { Sun, Moon, Sparkles, Compass, Info, Leaf, MapPin } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Sparkles,
+  Compass,
+  Info,
+  Trees,
+  Flame,
+  Gamepad2,
+  BookOpen,
+  Orbit,
+  Clock,
+  Skull,
+  Plus,
+  CheckCircle2,
+  Shield,
+  Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TimeRange = "today" | "week" | "month" | "year" | "all";
+
+const ISLAND_ICONS: Record<IslandId, React.ComponentType<{ className?: string }>> = {
+  classic: Trees,
+  pizza: Flame,
+  gaming: Gamepad2,
+  study: BookOpen,
+  cosmic: Orbit,
+};
 
 interface ForestIslandProps {
   plants: Plant[];
@@ -104,94 +128,102 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
   }, [healthyTrees.length, deadTrees.length]);
 
   const LEVEL_FILTERS = [
-    { id: "all", label: "Todas las Dificultades", badge: "🌟" },
-    { id: 1, label: "Muy Fácil", badge: "🍄" },
-    { id: 2, label: "Fácil", badge: "🌻" },
-    { id: 3, label: "Normal", badge: "🌳" },
-    { id: 4, label: "Difícil", badge: "🌲" },
-    { id: 5, label: "Épico", badge: "🔥" },
-    { id: 6, label: "Legendario", badge: "💎" },
+    { id: "all", label: "Todas" },
+    { id: 1, label: "Muy Fácil" },
+    { id: 2, label: "Fácil" },
+    { id: 3, label: "Normal" },
+    { id: 4, label: "Difícil" },
+    { id: 5, label: "Épico" },
+    { id: 6, label: "Legendario" },
   ] as const;
 
   return (
     <div className="space-y-6">
-      {/* 1. SELECTOR DE 5 ISLAS TEMÁTICAS (Estilo World Select Arcade) */}
-      <div className="bg-card text-foreground border-4 border-foreground rounded-3xl p-4 sm:p-5 shadow-[8px_8px_0_0_hsl(var(--foreground))] space-y-4">
+      {/* 1. SELECTOR DE 5 ISLAS TEMÁTICAS (Estilo Notion / ChatGPT Cards) */}
+      <div className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs space-y-4">
         {/* Banner de Selección de Mundos */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b-2 border-foreground/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200/80 dark:border-zinc-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#FFE600] border-3 border-black flex items-center justify-center shadow-[3px_3px_0_0_#000] -rotate-3 shrink-0">
-              <Compass className="w-6 h-6 text-black" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center shrink-0">
+              <Compass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#BFFF00] bg-black px-2 py-0.5 rounded-md border border-black shadow-[1px_1px_0_0_#000]">
-                  World Select · 5 Mundos
-                </span>
-                <span className="text-xs font-bold text-muted-foreground hidden md:inline">
-                  Archipiélago de Estudio TABE
-                </span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">5 Ecosistemas</span>
               </div>
-              <h2 className="font-display font-black text-lg sm:text-xl md:text-2xl uppercase tracking-wider text-foreground">
-                Archipiélago de Estudio • 5 Islas Temáticas
+              <h2 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Islas de Concentración
               </h2>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#BFFF00] text-black border-2 border-black rounded-xl font-black text-xs uppercase shadow-[2px_2px_0_0_#000]">
-              <Sparkles className="w-3.5 h-3.5 text-black" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>{currentIsland.tagline}</span>
-            </div>
+            </span>
           </div>
         </div>
 
-        {/* Tarjetas de Selección de Isla (Grandes, claras y legibles) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-1">
+        {/* Tarjetas de Selección de Isla */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
           {FOREST_ISLANDS.map((island) => {
             const isSelected = activeIslandId === island.id;
             const countForIsland = plants.filter((p) => (p.island_id || "classic") === island.id).length;
+            const IslandIcon = ISLAND_ICONS[island.id] || Compass;
+
             return (
               <button
                 key={island.id}
                 type="button"
                 onClick={() => handleIslandChange(island.id)}
                 className={cn(
-                  "p-3 sm:p-4 rounded-2xl border-3 sm:border-4 font-black transition-all flex flex-col items-center justify-between gap-2.5 cursor-pointer relative text-left group",
+                  "p-3 rounded-xl border font-normal transition-all flex flex-col items-start justify-between gap-2 cursor-pointer relative text-left group",
                   isSelected
-                    ? "bg-[#BFFF00] text-black border-black shadow-[5px_5px_0_0_#000] scale-[1.03] ring-2 ring-black"
-                    : "bg-muted/40 text-foreground border-foreground/30 hover:border-foreground hover:bg-muted/80 hover:translate-y-[-2px] active:translate-y-[1px] shadow-[2px_2px_0_0_hsl(var(--foreground)/30)]"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-xs"
+                    : "bg-zinc-50/50 dark:bg-zinc-800/40 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-100/60 dark:hover:bg-zinc-800"
                 )}
               >
-                {/* Cabecera de la tarjeta: Emoji y Contador */}
+                {/* Cabecera de la tarjeta: Icono y Contador */}
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-3xl sm:text-4xl filter drop-shadow-[2px_2px_0_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform">
-                    {island.emoji}
-                  </span>
-                  <span
+                  <div
                     className={cn(
-                      "text-xs px-2 py-0.5 rounded-full border-2 border-black font-mono font-black shadow-[1px_1px_0_0_#000]",
-                      isSelected ? "bg-black text-white" : "bg-card text-foreground"
+                      "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                      isSelected
+                        ? "bg-white/10 text-white dark:bg-black/10 dark:text-zinc-900"
+                        : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700"
                     )}
                   >
-                    {countForIsland} {countForIsland === 1 ? "árbol" : "árboles"}
+                    <IslandIcon className="w-4 h-4" />
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[11px] px-2 py-0.5 rounded-md font-mono font-medium",
+                      isSelected
+                        ? "bg-white/20 text-white dark:bg-black/10 dark:text-zinc-900"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                    )}
+                  >
+                    {countForIsland}
                   </span>
                 </div>
 
-                {/* Nombre de la isla (Grande y muy legible) */}
-                <div className="w-full text-center">
-                  <div className="text-sm sm:text-base font-black uppercase tracking-wide truncate">
+                {/* Nombre de la isla */}
+                <div className="w-full">
+                  <div className="text-xs sm:text-sm font-semibold truncate leading-tight">
                     {island.name}
                   </div>
-                  <div className={cn(
-                    "text-[11px] font-bold truncate mt-0.5",
-                    isSelected ? "text-black/80" : "text-muted-foreground"
-                  )}>
-                    {island.id === "pizza" && "Masa & Mozzarella"}
-                    {island.id === "classic" && "Bosque Silvestre"}
-                    {island.id === "gaming" && "Arcade & Neón"}
-                    {island.id === "study" && "Roble & Biblioteca"}
-                    {island.id === "cosmic" && "Gravedad Cero"}
+                  <div
+                    className={cn(
+                      "text-[11px] truncate mt-0.5",
+                      isSelected ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-400 dark:text-zinc-500"
+                    )}
+                  >
+                    {island.id === "pizza" && "Gastronomía"}
+                    {island.id === "classic" && "Naturaleza"}
+                    {island.id === "gaming" && "Digital"}
+                    {island.id === "study" && "Académica"}
+                    {island.id === "cosmic" && "Estelar"}
                   </div>
                 </div>
               </button>
@@ -201,10 +233,10 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
       </div>
 
       {/* 2. Top Bar with Filters and Ambience Switch */}
-      <div className="bg-card text-foreground border-4 border-foreground rounded-2xl p-4 shadow-[6px_6px_0_0_hsl(var(--foreground))] space-y-3">
+      <div className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Time Range Pills */}
-          <div className="flex items-center gap-1.5 p-1 bg-muted/60 border-2 border-foreground rounded-xl w-full md:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl w-full md:w-auto overflow-x-auto scrollbar-none">
             {(
               [
                 { id: "today", label: "Hoy" },
@@ -221,10 +253,10 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                   setTimeRange(t.id);
                 }}
                 className={cn(
-                  "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer",
                   timeRange === t.id
-                    ? "bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
                 {t.label}
@@ -233,18 +265,25 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
           </div>
 
           {/* Ambience & Summary Badges */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end flex-wrap">
             <div className="flex items-center gap-2">
-              <ComicBadge variant="green" size="sm">
-                🌲 {healthyTrees.length} {healthyTrees.length === 1 ? "Árbol" : "Árboles"}
-              </ComicBadge>
-              <ComicBadge variant="cyan" size="sm">
-                ⏱️ {Math.floor(totalStudyMinutes / 60)}h {totalStudyMinutes % 60}m
-              </ComicBadge>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                <Trees className="w-3.5 h-3.5 text-emerald-600" />
+                <span>
+                  {healthyTrees.length} {healthyTrees.length === 1 ? "Árbol" : "Árboles"}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-cyan-50 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">
+                <Clock className="w-3.5 h-3.5 text-cyan-600" />
+                <span>
+                  {Math.floor(totalStudyMinutes / 60)}h {totalStudyMinutes % 60}m
+                </span>
+              </span>
               {deadTrees.length > 0 && (
-                <ComicBadge variant="pink" size="sm">
-                  💀 {deadTrees.length}
-                </ComicBadge>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
+                  <Skull className="w-3.5 h-3.5 text-rose-600" />
+                  <span>{deadTrees.length}</span>
+                </span>
               )}
             </div>
 
@@ -255,19 +294,16 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                 setIsNightMode(!isNightMode);
               }}
               title={isNightMode ? "Cambiar a Día Soleado" : "Cambiar a Noche Mística"}
-              className={cn(
-                "w-10 h-10 rounded-xl border-3 border-foreground flex items-center justify-center shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px] transition-all cursor-pointer",
-                isNightMode ? "bg-indigo-950 text-amber-300" : "bg-amber-300 text-amber-950"
-              )}
+              className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300"
             >
-              {isNightMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              {isNightMode ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
             </button>
           </div>
         </div>
 
         {/* Difficulty Filter Bar */}
-        <div className="flex items-center gap-1.5 p-1 bg-muted/40 border-2 border-foreground/40 rounded-xl overflow-x-auto">
-          <span className="text-[10px] font-black uppercase text-muted-foreground px-2 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 overflow-x-auto scrollbar-none">
+          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 px-1 whitespace-nowrap">
             Dificultad:
           </span>
           {LEVEL_FILTERS.map((f) => {
@@ -280,44 +316,43 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                   setSelectedLevel(f.id);
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer",
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer",
                   isSelected
-                    ? "bg-foreground text-background border-2 border-foreground shadow-[2px_2px_0_0_#BFFF00]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 )}
               >
-                <span>{f.badge}</span>
-                <span>{f.label}</span>
+                {f.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 3. THE ISOMETRIC / 2.5D COMIC FLOATING ISLAND WITH DYNAMIC THEME */}
+      {/* 3. THE ISOMETRIC / 2.5D FLOATING ISLAND WITH DYNAMIC THEME */}
       <div
         className={cn(
-          "relative overflow-hidden rounded-3xl border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] transition-colors duration-700 min-h-[480px] p-6 lg:p-10 flex flex-col justify-between bg-gradient-to-b",
+          "relative overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs transition-colors duration-700 min-h-[480px] p-6 lg:p-10 flex flex-col justify-between bg-gradient-to-b",
           isNightMode ? currentIsland.skyNight : currentIsland.skyDay
         )}
       >
         {/* Sky Background Elements - Retro Pixel Animated Sky */}
         <ForestRetroSky isNightMode={isNightMode} currentIsland={currentIsland} />
 
-        {/* Header Ribbon / Island Title - Con padding derecho amplio (pr-24 sm:pr-28) para despejar el Sol / Luna */}
+        {/* Header Ribbon / Island Title */}
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pr-24 sm:pr-28">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 bg-card text-foreground border-3 border-foreground rounded-2xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-            <span className="text-lg">{currentIsland.emoji}</span>
-            <span className="font-black uppercase tracking-wider text-xs sm:text-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl shadow-xs">
+            {React.createElement(ISLAND_ICONS[currentIsland.id] || Compass, { className: "w-4 h-4 text-emerald-600 dark:text-emerald-400" })}
+            <span className="font-semibold text-xs sm:text-sm">
               {currentIsland.name} • {timeRange === "today" ? "Hoy" : timeRange === "week" ? "Semana" : timeRange === "month" ? "Mes" : timeRange === "year" ? "Año" : "Todo"}
             </span>
-            <span className="text-[11px] font-bold text-muted-foreground ml-1">
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 ml-1">
               ({filteredPlants.length} árboles)
             </span>
           </div>
 
-          {/* Badge de Tasa de Supervivencia: Ubicado a la izquierda del Sol / Luna sin superponerse */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black/75 text-white border-2 border-black rounded-xl text-xs font-black uppercase backdrop-blur-sm shadow-[2px_2px_0_0_#000]">
+          {/* Badge de Tasa de Supervivencia */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 dark:bg-black/80 text-white border border-zinc-700 rounded-xl text-xs font-medium backdrop-blur-md shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>Supervivencia: {successRate}%</span>
           </div>
@@ -335,7 +370,7 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
             {/* 3D Earth Base Slices with Theme Colors */}
             <div
               className={cn(
-                "relative rounded-[40px] border-4 border-black p-4 sm:p-6 md:p-8 transition-colors duration-500",
+                "relative rounded-[36px] border-2 border-black/40 p-4 sm:p-6 md:p-8 transition-colors duration-500",
                 isNightMode ? currentIsland.groundNight : currentIsland.groundDay,
                 isNightMode ? currentIsland.crustShadowNight : currentIsland.crustShadowDay
               )}
@@ -351,49 +386,37 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
               {/* Detailed Surface Texture Elements */}
               <IslandSurfaceDetails islandId={activeIslandId} isNightMode={isNightMode} />
 
-              {/* Permanent 3D Comic Scenery Props (Never empty!) */}
+              {/* Permanent Scenery Props */}
               <ForestIslandScenery islandId={activeIslandId} isNightMode={isNightMode} />
 
               {/* Motor de Vida Ambiental & Sprites Animados Pasivos por Isla */}
               <IslandAmbientLife activeIslandId={activeIslandId} />
 
-              {/* Thematic Surface Decorations (Toppings, Gemstones, Scrolls, etc.) */}
-              {currentIsland.decorations.map((deco, idx) => (
-                <div
-                  key={idx}
-                  title={deco.label}
-                  className={cn("absolute select-none pointer-events-none", deco.className)}
-                >
-                  {deco.emoji}
-                </div>
-              ))}
-
               {/* TREES DISPLAY GRID */}
               {filteredPlants.length === 0 ? (
                 <div className="relative py-12 px-4 flex flex-col items-center justify-center text-center z-10">
                   {/* Banner Central de Reino Activo */}
-                  <div className="bg-black/85 backdrop-blur-md p-6 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0_0_#000] max-w-lg mx-auto flex flex-col items-center">
-                    <div className="w-20 h-20 bg-[#BFFF00] border-4 border-black rounded-2xl flex items-center justify-center shadow-[4px_4px_0_0_#000] -rotate-6 text-4xl mb-3">
-                      {currentIsland.emoji}
+                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-lg max-w-md mx-auto flex flex-col items-center">
+                    <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-center mb-3">
+                      {React.createElement(ISLAND_ICONS[currentIsland.id] || Compass, { className: "w-7 h-7 text-emerald-600 dark:text-emerald-400" })}
                     </div>
-                    <h4 className="text-xl sm:text-2xl font-black uppercase text-[#BFFF00] tracking-wide" style={{ WebkitTextStroke: "1px black" }}>
-                      ¡{currentIsland.name} Lista para Florecer!
+                    <h4 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                      {currentIsland.name} sin árboles aún
                     </h4>
-                    <p className="text-white text-xs sm:text-sm font-bold mt-2 leading-relaxed">
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm mt-1.5 leading-relaxed">
                       {currentIsland.emptyStateAdvice}
                     </p>
 
                     {/* Parcelas de cultivo listas */}
-                    <div className="flex items-center justify-center gap-3 my-4">
+                    <div className="flex items-center justify-center gap-2.5 my-4">
                       {[1, 2, 3, 4].map((slot) => (
                         <div
                           key={slot}
                           onClick={() => onPlantNewTree?.(activeIslandId)}
-                          className="w-12 h-12 rounded-xl border-3 border-dashed border-[#BFFF00]/70 bg-white/10 hover:bg-[#BFFF00]/30 hover:border-[#BFFF00] flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-110 group"
+                          className="w-10 h-10 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-100/50 dark:bg-zinc-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:border-emerald-500 flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105"
                           title="Toca para plantar aquí"
                         >
-                          <span className="text-base text-[#BFFF00] font-black group-hover:scale-125 transition-transform">+</span>
-                          <span className="text-[8px] font-mono text-white/70">#{slot}</span>
+                          <Plus className="w-4 h-4 text-zinc-400 hover:text-emerald-600" />
                         </div>
                       ))}
                     </div>
@@ -405,9 +428,10 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                           ComicAudio.playSprout();
                           onPlantNewTree(activeIslandId);
                         }}
-                        className="mt-2 px-6 py-3.5 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs sm:text-sm rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[1px] transition-all inline-flex items-center gap-2.5 cursor-pointer"
+                        className="mt-1 px-5 py-2.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs sm:text-sm rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 cursor-pointer"
                       >
-                        <span>🌱 Plantar Primera Semilla</span>
+                        <Plus className="w-4 h-4 text-emerald-500" />
+                        <span>Plantar Primera Semilla</span>
                       </button>
                     )}
                   </div>
@@ -434,11 +458,11 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                         }}
                         className="island-tree-node group relative flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-125 hover:z-30 active:scale-95"
                       >
-                        {/* Clean Comic Tooltip */}
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-[10px] font-black uppercase px-2.5 py-1.5 rounded-lg border-2 border-white shadow-[3px_3px_0_0_#000] whitespace-nowrap pointer-events-none z-50 flex flex-col items-center gap-0.5">
-                          <span>{plantInfo.emoji} {plantInfo.name} ({plant.growth_percentage}%)</span>
-                          <span className="text-[9px] text-[#BFFF00] font-mono">
-                            {plantInfo.difficultyLabel} · {plantInfo.requiredMinutes}m
+                        {/* Notion Style Tooltip */}
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg border border-zinc-700 shadow-md whitespace-nowrap pointer-events-none z-50 flex flex-col items-center gap-0.5">
+                          <span>{plantInfo.name} ({plant.growth_percentage}%)</span>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            {plantInfo.difficultyLabel} • {plantInfo.requiredMinutes}m
                           </span>
                         </div>
 
@@ -446,12 +470,12 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                         <div
                           title={plantInfo.difficultyLabel}
                           className={cn(
-                            "absolute -top-0.5 -right-0.5 z-20 w-3 h-3 rounded-full border-[1.5px] border-black shadow-[1px_1px_0_0_#000] select-none",
+                            "absolute -top-0.5 -right-0.5 z-20 w-2.5 h-2.5 rounded-full border border-white shadow-xs select-none",
                             plantInfo.level === 1 && "bg-lime-400",
-                            plantInfo.level === 2 && "bg-emerald-400",
-                            plantInfo.level === 3 && "bg-sky-400",
-                            plantInfo.level === 4 && "bg-amber-400",
-                            plantInfo.level === 5 && "bg-fuchsia-400",
+                            plantInfo.level === 2 && "bg-cyan-400",
+                            plantInfo.level === 3 && "bg-amber-400",
+                            plantInfo.level === 4 && "bg-orange-400",
+                            plantInfo.level === 5 && "bg-rose-400",
                             plantInfo.level === 6 && "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.9)]"
                           )}
                         />
@@ -480,36 +504,42 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                         className="flex flex-col items-center justify-center p-2 opacity-60 hover:opacity-100 cursor-pointer group transition-opacity"
                         title={`Espacio disponible para plantar en ${currentIsland.name}`}
                       >
-                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-black/60 bg-black/20 flex items-center justify-center group-hover:bg-[#BFFF00]/40 transition-colors">
-                          <span className="text-xs font-black text-white drop-shadow-[1px_1px_0_#000]">+</span>
+                        <div className="w-9 h-9 rounded-full border border-dashed border-white/60 bg-black/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                          <Plus className="w-3.5 h-3.5 text-white" />
                         </div>
-                        <div className="w-8 h-2 rounded-full bg-black/30 mt-1" />
+                        <div className="w-7 h-2 rounded-full bg-black/30 mt-1" />
                       </div>
                     ))}
                 </div>
               )}
 
-              {/* Hanging Underhang Details (Cheese drips, hanging roots, cyber cables, bookmark ribbons, floating asteroids) */}
+              {/* Hanging Underhang Details */}
               <IslandUnderhang islandId={activeIslandId} isNightMode={isNightMode} />
             </div>
           </div>
         </div>
 
         {/* Island Footer Ribbon with Quick Advice */}
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-black uppercase text-white drop-shadow-[2px_2px_0_#000] bg-black/50 p-3 rounded-2xl border-2 border-black/40 backdrop-blur-sm">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium text-white/90 bg-black/60 p-3 rounded-xl border border-white/10 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-[#BFFF00]" />
-            <span>Toca cualquier árbol para ver su certificado o eliminarlo</span>
+            <Info className="w-4 h-4 text-emerald-400" />
+            <span>Toca cualquier árbol para ver su detalle o gestionarlo</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-[#BFFF00]">🌱 Verde = Completado</span>
-            <span className="text-[#FF5C5C]">💀 Gris = Marchito</span>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span className="flex items-center gap-1.5 text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+              Completado
+            </span>
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-zinc-500 inline-block" />
+              Marchito
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Tree Inspection Modal (Allows inspection and quick deletion of any plant) */}
+      {/* Tree Inspection Modal */}
       <TreeInspectionModal
         plant={inspectedPlant}
         isOpen={!!inspectedPlant}

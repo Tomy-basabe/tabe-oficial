@@ -2116,13 +2116,13 @@ export function TipTapPDFExporter({
   return (
     <div className="flex items-center">
       {/* Comic styled PDF export button group */}
-      <div className="inline-flex items-center rounded-lg border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] overflow-hidden transition-all hover:-translate-y-0.5 active:translate-y-0.5">
+      <div className="inline-flex items-center rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 shadow-2xs overflow-hidden h-8">
         {/* Main button: DIRECT BACKGROUND DOWNLOAD */}
         <button
           onClick={() => exportToPDF({ forceDownload: true })}
           disabled={exporting && !backgroundTask?.active}
           title="Descargar PDF en tu equipo (Descarga en segundo plano)"
-          className="flex items-center gap-1.5 px-3 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black font-black text-xs uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer select-none"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 h-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors disabled:opacity-50 cursor-pointer select-none"
         >
           {backgroundTask?.active ? (
             <>
@@ -2152,47 +2152,44 @@ export function TipTapPDFExporter({
           }}
           disabled={exporting && !backgroundTask?.active}
           title="Opciones de exportación cómic (portada, biblioteca)"
-          className="px-1.5 py-1 bg-[#FFE600] hover:bg-[#FFD600] text-black border-l-2 border-black transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
+          className="px-1.5 h-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 border-l border-zinc-200/80 dark:border-zinc-800/80 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
         >
           <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
         </button>
       </div>
 
-      {/* Comic Export Modal */}
+      {/* Modern Export Modal */}
       <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
-        <DialogContent className="comic-panel max-w-md bg-background border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] p-0 overflow-hidden rounded-2xl">
-          {/* Header con Halftone Comic */}
-          <div className="relative bg-[#FFE600] border-b-[3px] border-black p-5 text-black overflow-hidden">
-            <div className="absolute inset-0 comic-dots-overlay opacity-30 pointer-events-none" />
-            <div className="relative z-10 flex items-center justify-between mb-2">
-              <ComicBadge variant="pink" rotate="left" size="sm">
-                ¡COMIC EDITION!
-              </ComicBadge>
-              <ComicBadge variant="cyan" rotate="right" size="sm">
-                A4 • ALTA CALIDAD
-              </ComicBadge>
+        <DialogContent className="max-w-md bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6">
+          <DialogHeader className="space-y-1.5 pb-2 border-b border-zinc-200/80 dark:border-zinc-800/80">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+                <Download className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Exportar Apunte a PDF
+                </DialogTitle>
+                <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Descargá tu apunte en alta calidad mientras continuás navegando en Tabe
+                </DialogDescription>
+              </div>
             </div>
-            <DialogTitle className="comic-title text-2xl text-black tracking-wide">
-              💥 EXPORTAR APUNTE
-            </DialogTitle>
-            <DialogDescription className="text-black/80 font-bold text-xs uppercase mt-0.5">
-              Descargá tu apunte en segundo plano mientras seguís usando Tabe
-            </DialogDescription>
-          </div>
+          </DialogHeader>
 
-          <div className="p-5 space-y-4">
+          <div className="pt-4 space-y-4">
             {/* Preview Card */}
-            <div className="comic-panel bg-card p-3.5 rounded-xl flex items-center gap-3 border-2 border-black dark:border-white shadow-[3px_3px_0_0_#000] dark:shadow-[3px_3px_0_0_#fff]">
-              <div className="w-12 h-12 bg-[#00E5FF] text-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0 select-none overflow-hidden">
-                <TabeIconRenderer iconId={documentEmoji || "lightning"} size={26} />
+            <div className="p-3.5 rounded-xl flex items-center gap-3 border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/40">
+              <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0 select-none overflow-hidden">
+                <TabeIconRenderer iconId={documentEmoji || "lightning"} size={22} />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-black text-sm text-foreground truncate">
+                <h4 className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">
                   {documentTitle || "Apunte sin título"}
                 </h4>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-[#00FF66] inline-block border border-black" />
-                  Descarga fluida sin trabas
+                <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  Descarga fluida en segundo plano
                 </p>
               </div>
             </div>
@@ -2200,44 +2197,44 @@ export function TipTapPDFExporter({
             {/* Opciones */}
             <div className="space-y-2.5">
               {coverUrl && (
-                <label className="flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-black dark:hover:border-white transition-all cursor-pointer bg-card/60">
+                <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer bg-white dark:bg-zinc-900/30">
                   <div className="flex items-center gap-2.5">
-                    <Sparkles className="w-4 h-4 text-[#FFE600]" />
+                    <Sparkles className="w-4 h-4 text-purple-500" />
                     <div>
-                      <p className="text-xs font-black text-foreground">Incluir portada del apunte</p>
-                      <p className="text-[10px] text-muted-foreground font-medium">Añade la imagen de portada al inicio del PDF</p>
+                      <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Incluir portada del apunte</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Añade la imagen de portada al inicio del PDF</p>
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={includeCover}
                     onChange={(e) => setIncludeCover(e.target.checked)}
-                    className="w-4 h-4 rounded border-2 border-black accent-[#FFE600] cursor-pointer"
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 accent-zinc-900 dark:accent-zinc-100 cursor-pointer"
                   />
                 </label>
               )}
 
               {subjectId && (
-                <label className="flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-black dark:hover:border-white transition-all cursor-pointer bg-card/60">
+                <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer bg-white dark:bg-zinc-900/30">
                   <div className="flex items-center gap-2.5">
-                    <Library className="w-4 h-4 text-[#00E5FF]" />
+                    <Library className="w-4 h-4 text-zinc-500" />
                     <div>
-                      <p className="text-xs font-black text-foreground">Guardar copia en mi Biblioteca</p>
-                      <p className="text-[10px] text-muted-foreground font-medium">Sube también una copia a la nube de Tabe</p>
+                      <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Guardar copia en mi Biblioteca</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Sube también una copia a la nube de Tabe</p>
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={saveToLibrary}
                     onChange={(e) => setSaveToLibrary(e.target.checked)}
-                    className="w-4 h-4 rounded border-2 border-black accent-[#FFE600] cursor-pointer"
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 accent-zinc-900 dark:accent-zinc-100 cursor-pointer"
                   />
                 </label>
               )}
             </div>
 
-            {/* Hint cómic no bloqueante */}
-            <div className="p-2.5 rounded-lg bg-muted/50 border border-black/10 dark:border-white/10 text-[11px] text-muted-foreground flex items-center gap-2">
+            {/* Hint no bloqueante */}
+            <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
               <span className="text-base">⚡</span>
               <span>
                 <strong>Descarga en segundo plano:</strong> Podés cerrar esta ventana y seguir leyendo o editando notas mientras tu archivo se prepara.
@@ -2250,17 +2247,17 @@ export function TipTapPDFExporter({
                 type="button"
                 onClick={() => exportToPDF({ forceDownload: true, forceLibrary: saveToLibrary })}
                 disabled={exporting && !backgroundTask?.active}
-                className="w-full bg-[#FFE600] text-black hover:bg-[#FFD600] font-black text-sm uppercase py-3 border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
+                className="w-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs sm:text-sm py-2.5 rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
               >
                 {backgroundTask?.active ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
-                    <span>DESCARGANDO ({backgroundTask.progress}%)...</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Descargando ({backgroundTask.progress}%)...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 stroke-[2.5]" />
-                    <span>💥 ¡DESCARGAR PDF A MI EQUIPO!</span>
+                    <Download className="w-4 h-4" />
+                    <span>Descargar PDF a mi equipo</span>
                   </>
                 )}
               </button>
@@ -2270,7 +2267,7 @@ export function TipTapPDFExporter({
                   type="button"
                   onClick={() => exportToPDF({ forceLibrary: true, forceDownload: false })}
                   disabled={exporting && !backgroundTask?.active}
-                  className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-black text-xs uppercase py-2.5 border-2 border-black dark:border-white shadow-[2.5px_2.5px_0_0_#000] dark:shadow-[2.5px_2.5px_0_0_#fff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
+                  className="w-full bg-white dark:bg-zinc-800/60 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 select-none"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Solo guardar en la Biblioteca</span>
@@ -2281,20 +2278,16 @@ export function TipTapPDFExporter({
         </DialogContent>
       </Dialog>
 
-      {/* Comic Overwrite Confirmation Dialog */}
+      {/* Modern Overwrite Confirmation Dialog */}
       <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
-        <DialogContent className="comic-panel max-w-md bg-background border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] p-6 rounded-2xl">
-          <DialogHeader>
-            <div className="flex items-center gap-2 mb-1">
-              <ComicBadge variant="orange" size="sm" rotate="left">
-                ¡ATENCIÓN!
-              </ComicBadge>
-            </div>
-            <DialogTitle className="comic-title text-xl text-foreground">
-              ⚠️ EL ARCHIVO YA EXISTE
+        <DialogContent className="max-w-md bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6">
+          <DialogHeader className="space-y-1.5 pb-2">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              El archivo ya existe
             </DialogTitle>
-            <DialogDescription className="font-medium text-xs text-muted-foreground mt-2">
-              Ya tienes un archivo llamado <strong className="text-foreground">"{pendingFile?.fileName}.pdf"</strong> en tu biblioteca. ¿Qué deseas hacer con la copia en la nube?
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Ya tienes un archivo llamado <strong className="text-zinc-900 dark:text-zinc-100">"{pendingFile?.fileName}.pdf"</strong> en tu biblioteca. ¿Qué deseas hacer con la copia en la nube?
             </DialogDescription>
           </DialogHeader>
 
@@ -2302,21 +2295,21 @@ export function TipTapPDFExporter({
             <button
               type="button"
               onClick={() => setShowOverwriteDialog(false)}
-              className="px-3 py-2 bg-secondary hover:bg-secondary/80 font-black text-xs uppercase border-2 border-black dark:border-white shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff] rounded-lg active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-xs text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={handleSaveAsCopy}
-              className="px-3 py-2 bg-[#00E5FF] text-black font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg hover:bg-[#00cbeb] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-xs text-zinc-900 dark:text-zinc-100 border border-zinc-300 dark:border-zinc-600 rounded-lg transition-colors cursor-pointer shadow-2xs"
             >
               Guardar Copia
             </button>
             <button
               type="button"
               onClick={handleOverwrite}
-              className="px-3 py-2 bg-[#FF2E93] text-white font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0_0_#000] rounded-lg hover:bg-[#e02680] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
             >
               Sobrescribir
             </button>
@@ -2324,35 +2317,34 @@ export function TipTapPDFExporter({
         </DialogContent>
       </Dialog>
 
-      {/* ─── Widget Flotante de Descarga Cómic en Segundo Plano (Estilo Chrome / Google Docs) ─── */}
+      {/* ─── Widget Flotante de Descarga en Segundo Plano (Estilo Moderno Notion/Chrome) ─── */}
       {backgroundTask && (
         <div className="fixed bottom-5 right-5 z-[9999] max-w-sm w-[92vw] sm:w-96 pointer-events-auto transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
-          <div className="comic-panel bg-card border-[3px] border-black dark:border-white shadow-[6px_6px_0_0_#000] dark:shadow-[6px_6px_0_0_#fff] overflow-hidden rounded-2xl">
-            {/* Header del widget con halftone cómic */}
+          <div className="bg-white dark:bg-[#1e1e1e] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl overflow-hidden rounded-2xl">
+            {/* Header del widget */}
             <div
-              className={`relative px-4 py-2.5 border-b-[3px] border-black flex items-center justify-between overflow-hidden ${
+              className={`px-4 py-2.5 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between ${
                 backgroundTask.isComplete
-                  ? "bg-[#00FF66] text-black"
+                  ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
                   : backgroundTask.error
-                  ? "bg-[#FF2E93] text-white"
-                  : "bg-[#FFE600] text-black"
+                  ? "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
+                  : "bg-zinc-50 text-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-200"
               }`}
             >
-              <div className="absolute inset-0 comic-dots-overlay opacity-25 pointer-events-none" />
-              <div className="relative z-10 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {backgroundTask.isComplete ? (
-                  <CheckCircle2 className="w-4 h-4 stroke-[3]" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 ) : backgroundTask.error ? (
-                  <AlertCircle className="w-4 h-4 stroke-[3]" />
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                 ) : (
-                  <Loader2 className="w-4 h-4 animate-spin stroke-[3]" />
+                  <Loader2 className="w-4 h-4 animate-spin text-zinc-600 dark:text-zinc-400" />
                 )}
-                <span className="font-black text-xs uppercase tracking-wider">
+                <span className="font-medium text-xs">
                   {backgroundTask.isComplete
-                    ? "¡Descarga Lista!"
+                    ? "Descarga completada"
                     : backgroundTask.error
                     ? "Error en descarga"
-                    : "Descarga en segundo plano"}
+                    : "Descargando en segundo plano"}
                 </span>
               </div>
 
@@ -2360,50 +2352,50 @@ export function TipTapPDFExporter({
               <button
                 type="button"
                 onClick={backgroundTask.isComplete || backgroundTask.error ? dismissTask : cancelExport}
-                className="relative z-10 w-6 h-6 rounded-md bg-black/10 hover:bg-black/20 text-current flex items-center justify-center font-bold text-xs cursor-pointer transition-colors"
+                className="w-6 h-6 rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 text-current flex items-center justify-center text-xs cursor-pointer transition-colors"
                 title={backgroundTask.isComplete ? "Cerrar notificación" : "Cancelar descarga"}
               >
-                <X className="w-3.5 h-3.5 stroke-[3]" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Contenido del widget */}
-            <div className="p-4 space-y-3 bg-background">
+            <div className="p-4 space-y-3 bg-white dark:bg-[#1e1e1e]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#00E5FF] text-black border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0 select-none overflow-hidden">
+                <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0 select-none overflow-hidden">
                   <TabeIconRenderer iconId={documentEmoji || "lightning"} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h5 className="font-black text-xs text-foreground truncate">
+                  <h5 className="font-medium text-xs text-zinc-900 dark:text-zinc-100 truncate">
                     {backgroundTask.title}
                   </h5>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 mt-0.5">
+                  <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
                     <span
-                      className={`w-2 h-2 rounded-full inline-block border border-black ${
+                      className={`w-1.5 h-1.5 rounded-full inline-block ${
                         backgroundTask.isComplete
-                          ? "bg-[#00FF66]"
+                          ? "bg-emerald-500"
                           : backgroundTask.error
-                          ? "bg-[#FF2E93]"
-                          : "bg-[#FFE600] animate-pulse"
+                          ? "bg-red-500"
+                          : "bg-amber-500 animate-pulse"
                       }`}
                     />
                     {backgroundTask.statusText}
                   </p>
                 </div>
-                <span className="font-black text-xs text-foreground font-mono">
+                <span className="font-mono text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   {backgroundTask.progress}%
                 </span>
               </div>
 
-              {/* Barra de progreso Cómic */}
-              <div className="relative w-full h-3.5 bg-muted rounded-full border-2 border-black dark:border-white overflow-hidden p-[1px]">
+              {/* Barra de progreso */}
+              <div className="relative w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-200 border-r border-black ${
+                  className={`h-full rounded-full transition-all duration-200 ${
                     backgroundTask.isComplete
-                      ? "bg-[#00FF66]"
+                      ? "bg-emerald-500"
                       : backgroundTask.error
-                      ? "bg-[#FF2E93]"
-                      : "bg-[#00E5FF]"
+                      ? "bg-red-500"
+                      : "bg-zinc-900 dark:bg-white"
                   }`}
                   style={{ width: `${Math.min(100, Math.max(5, backgroundTask.progress))}%` }}
                 />
@@ -2411,18 +2403,18 @@ export function TipTapPDFExporter({
 
               {/* Footer info o acciones */}
               <div className="flex items-center justify-between pt-1">
-                <p className="text-[10px] font-medium text-muted-foreground italic truncate max-w-[210px]">
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate max-w-[210px]">
                   {backgroundTask.isComplete
-                    ? "🎉 Guardado en tu carpeta de descargas"
+                    ? "Guardado en descargas"
                     : backgroundTask.error
-                    ? "Podés reintentar cuando gustes"
-                    : "⚡ Podés seguir usando Tabe con fluidez"}
+                    ? "Reintentá cuando gustes"
+                    : "Podés seguir usando Tabe con fluidez"}
                 </p>
                 {!backgroundTask.isComplete && !backgroundTask.error ? (
                   <button
                     type="button"
                     onClick={cancelExport}
-                    className="text-[10px] font-black text-red-500 hover:text-red-600 uppercase underline cursor-pointer"
+                    className="text-[10px] font-medium text-red-600 hover:text-red-700 dark:text-red-400 cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -2430,7 +2422,7 @@ export function TipTapPDFExporter({
                   <button
                     type="button"
                     onClick={dismissTask}
-                    className="text-[10px] font-black text-foreground hover:underline uppercase cursor-pointer"
+                    className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                   >
                     Cerrar
                   </button>

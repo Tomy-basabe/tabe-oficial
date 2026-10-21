@@ -25,7 +25,6 @@ const statusOptions: {
   label: string; 
   icon: any; 
   badge: string;
-  activeColor: string; 
   description: string;
 }[] = [
   {
@@ -33,32 +32,28 @@ const statusOptions: {
     label: "Aprobada",
     icon: Trophy,
     badge: "100%",
-    activeColor: "bg-[#FFE600] text-black border-black shadow-[4px_4px_0_0_#000]",
-    description: "¡Materia completada con éxito!"
+    description: "Materia completada con éxito"
   },
   {
     value: "regular",
     label: "Regular",
     icon: Clock,
-    badge: "FINAL",
-    activeColor: "bg-[#00E5FF] text-black border-black shadow-[4px_4px_0_0_#000]",
-    description: "Cursada aprobada, falta final"
+    badge: "Final",
+    description: "Cursada aprobada, final pendiente"
   },
   {
     value: "cursable",
     label: "Cursable",
     icon: BookOpen,
-    badge: "LISTA",
-    activeColor: "bg-[#48BD22] text-white border-black shadow-[4px_4px_0_0_#000]",
+    badge: "Lista",
     description: "Habilitada para cursar"
   },
   {
     value: "recursar",
     label: "Recursar",
     icon: RotateCcw,
-    badge: "REPITE",
-    activeColor: "bg-[#FF2E93] text-white border-black shadow-[4px_4px_0_0_#000]",
-    description: "Volver a cursar este año"
+    badge: "Repite",
+    description: "Volver a cursar"
   },
 ];
 
@@ -137,54 +132,66 @@ export function SubjectStatusModal({
 
   const isBlocked = subject.status === "bloqueada";
 
+  const getStatusBadgeStyle = (status: SubjectStatus) => {
+    switch (status) {
+      case "aprobada":
+        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
+      case "regular":
+        return "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20";
+      case "cursable":
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
+      case "recursar":
+        return "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20";
+      case "bloqueada":
+      default:
+        return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700";
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-lg bg-card border-4 border-foreground shadow-[8px_8px_0_0_#000] rounded-2xl p-4 sm:p-6 max-h-[92vh] overflow-y-auto">
-        <DialogHeader className="space-y-2 pb-2 border-b-2 border-border/80">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-lg bg-[#FFE600] text-black font-black text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000] -rotate-1">
+      <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto">
+        <DialogHeader className="space-y-2 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
               Año {subject.año}
             </span>
-            <span className="px-2 py-0.5 rounded-lg bg-secondary text-foreground font-black text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 font-mono">
               {subject.codigo}
             </span>
             <span className={cn(
-              "px-2 py-0.5 rounded-lg font-black text-xs uppercase border-2 border-black shadow-[1.5px_1.5px_0_0_#000] ml-auto",
-              subject.status === "aprobada" && "bg-[#48BD22] text-white",
-              subject.status === "regular" && "bg-[#00E5FF] text-black",
-              subject.status === "cursable" && "bg-[#FFE600] text-black",
-              subject.status === "bloqueada" && "bg-muted text-muted-foreground",
-              subject.status === "recursar" && "bg-[#FF2E93] text-white"
+              "text-[11px] font-medium px-2 py-0.5 rounded-md border ml-auto capitalize",
+              getStatusBadgeStyle(subject.status)
             )}>
-              Estado: {subject.status}
+              {subject.status}
             </span>
           </div>
-          <DialogTitle className="font-black text-xl sm:text-2xl uppercase tracking-tight text-foreground text-left">
+          <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100 text-left">
             {subject.nombre}
           </DialogTitle>
         </DialogHeader>
 
         {showDeleteConfirm ? (
           <div className="py-6 space-y-4 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#FF2E93] text-white border-3 border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-8 h-8 stroke-[3]" />
+            <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6 stroke-[2]" />
             </div>
             <div className="space-y-1">
-              <p className="font-black text-lg uppercase text-foreground">
+              <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
                 ¿Eliminar esta materia?
               </p>
-              <p className="font-bold text-xs text-muted-foreground max-w-xs mx-auto">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto">
                 Se borrarán sus correlatividades y notas registradas. Esta acción no se puede deshacer.
               </p>
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => {
                   ComicAudio.playPop();
                   setShowDeleteConfirm(false);
                 }}
-                className="flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-wider bg-secondary hover:bg-secondary/80 border-2 border-black shadow-[3px_3px_0_0_#000] transition-all"
+                className="flex-1 py-2 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
               >
                 Cancelar
               </button>
@@ -192,9 +199,9 @@ export function SubjectStatusModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-wider bg-[#FF2E93] text-white border-2 border-black shadow-[3px_3px_0_0_#000] hover:opacity-90 active:translate-y-[1px] transition-all"
+                className="flex-1 py-2 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-700 text-white transition-colors disabled:opacity-50"
               >
-                {loading ? "Eliminando..." : "Sí, Eliminar"}
+                {loading ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
           </div>
@@ -202,18 +209,18 @@ export function SubjectStatusModal({
           <div className="py-3 space-y-4">
             {/* Info Banner when blocked by correlatives */}
             {isBlocked && (
-              <div className="p-3.5 rounded-2xl bg-[#FF6600]/15 border-3 border-black shadow-[4px_4px_0_0_#000] space-y-2.5">
+              <div className="p-3.5 rounded-lg bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#FF6600] text-white border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0">
-                      <Lock className="w-5 h-5 stroke-[3]" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                      <Lock className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <h4 className="font-black text-xs sm:text-sm uppercase text-foreground">
-                        Materia Bloqueada por Correlativas
+                      <h4 className="font-medium text-xs text-zinc-900 dark:text-zinc-100">
+                        Materia bloqueada por correlativas
                       </h4>
-                      <p className="text-[11px] font-bold text-muted-foreground">
-                        Requisitos previos pendientes según el plan de carrera:
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        Requisitos previos pendientes según el plan:
                       </p>
                     </div>
                   </div>
@@ -224,26 +231,26 @@ export function SubjectStatusModal({
                         ComicAudio.playPop();
                         onEditDependencies(subject);
                       }}
-                      className="px-2.5 py-1 rounded-xl font-black text-[10px] uppercase bg-[#FFE600] text-black border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-[#ffe033] flex items-center gap-1.5 transition-all"
+                      className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 flex items-center gap-1.5 transition-colors"
                     >
-                      <Link2 className="w-3.5 h-3.5 stroke-[3]" />
-                      Editar Correlativas
+                      <Link2 className="w-3 h-3" />
+                      Editar correlativas
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-1.5 pt-0.5">
+                <div className="space-y-1 pt-1">
                   {subject.requisitos_faltantes.map((req, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 bg-card border-2 border-black rounded-xl shadow-[1.5px_1.5px_0_0_#000]">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF2E93] border border-black shrink-0" />
-                      <span className="text-xs font-black text-foreground">{req}</span>
+                    <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-white/60 dark:bg-zinc-900/40 border border-amber-500/15 rounded-md">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="text-xs text-zinc-700 dark:text-zinc-300">{req}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Partial Grades Section with Comic styling */}
+            {/* Partial Grades Section */}
             {saveGrades && (
               <PartialGradesSection
                 key={subjectId}
@@ -255,10 +262,10 @@ export function SubjectStatusModal({
 
             {/* Current Final Grade Badge */}
             {subject.nota && (
-              <div className="flex items-center justify-center gap-2.5 p-3 bg-[#FFE600] text-black border-3 border-black rounded-2xl shadow-[3px_3px_0_0_#000]">
-                <Star className="w-5 h-5 fill-black stroke-black" />
-                <span className="font-black text-sm uppercase tracking-wide">
-                  Nota Final Registrada: {subject.nota}
+              <div className="flex items-center justify-center gap-2 p-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+                  Nota final registrada: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{subject.nota}</span>
                 </span>
               </div>
             )}
@@ -266,14 +273,14 @@ export function SubjectStatusModal({
             {/* Status Options Section */}
             {!readOnly && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#FFE600] fill-[#FFE600]" />
-                  <label className="font-black text-xs uppercase tracking-wider text-foreground">
-                    Cambiar Estado de la Materia
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                    Cambiar estado de la materia
                   </label>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-2">
                   {statusOptions.map((option) => {
                     const Icon = option.icon;
                     const isSelected = selectedStatus === option.value;
@@ -289,40 +296,32 @@ export function SubjectStatusModal({
                           handleStatusSelect(option.value);
                         }}
                         className={cn(
-                          "p-3 rounded-2xl border-3 transition-colors text-left group relative",
+                          "p-3 rounded-lg border text-left transition-colors relative",
                           isOptionDisabled
-                            ? "opacity-40 cursor-not-allowed bg-muted/40 border-dashed border-black/30"
+                            ? "opacity-40 cursor-not-allowed bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800"
                             : isSelected
-                            ? option.activeColor
-                            : "border-black/40 bg-card hover:border-black shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:bg-secondary/60"
+                            ? "border-zinc-900 dark:border-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#212121] hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200"
                         )}
                       >
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-1">
                           <div className={cn(
-                            "w-8 h-8 rounded-xl border-2 border-black flex items-center justify-center",
-                            isOptionDisabled
-                              ? "bg-muted text-muted-foreground"
-                              : isSelected ? "bg-black/15 text-inherit" : "bg-muted text-foreground"
+                            "w-7 h-7 rounded-md flex items-center justify-center transition-colors",
+                            isSelected
+                              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                           )}>
-                            {isOptionDisabled ? <Lock className="w-4 h-4 stroke-[2.5]" /> : <Icon className="w-4 h-4 stroke-[2.5]" />}
+                            {isOptionDisabled ? <Lock className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
                           </div>
-                          <span className={cn(
-                            "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black",
-                            isOptionDisabled ? "bg-muted-foreground/30 text-foreground" : "bg-black text-white"
-                          )}>
-                            {isOptionDisabled ? "BLOQ" : option.badge}
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                            {isOptionDisabled ? "Bloq" : option.badge}
                           </span>
                         </div>
 
-                        <p className="font-black text-sm uppercase leading-tight">
+                        <p className="text-xs font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
                           {option.label}
                         </p>
-                        <p className={cn(
-                          "text-[10px] font-bold mt-0.5 leading-tight truncate",
-                          isOptionDisabled
-                            ? "text-muted-foreground"
-                            : isSelected ? "opacity-90" : "text-muted-foreground"
-                        )}>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-tight truncate">
                           {isOptionDisabled ? "Requisitos pendientes" : option.description}
                         </p>
                       </button>
@@ -330,7 +329,7 @@ export function SubjectStatusModal({
                   })}
                 </div>
 
-                {/* Botón para restablecer estado a automático si ya tenía estado manual previo */}
+                {/* Botón para restablecer estado a automático */}
                 {(subject.status === "aprobada" || subject.status === "regular" || subject.status === "recursar") && (
                   <button
                     type="button"
@@ -340,11 +339,13 @@ export function SubjectStatusModal({
                       setNota("");
                     }}
                     className={cn(
-                      "w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-black/40 text-xs font-black uppercase text-muted-foreground hover:text-foreground hover:border-black flex items-center justify-center gap-1.5 transition-all mt-1",
-                      selectedStatus === "cursable" && "bg-secondary text-foreground border-solid border-black shadow-[2px_2px_0_0_#000]"
+                      "w-full py-2 px-3 rounded-lg border border-dashed text-xs font-medium flex items-center justify-center gap-1.5 transition-colors mt-1",
+                      selectedStatus === "cursable"
+                        ? "border-zinc-900 dark:border-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100"
+                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                     )}
                   >
-                    <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <RotateCcw className="w-3 h-3" />
                     Restablecer estado (cálculo automático)
                   </button>
                 )}
@@ -353,12 +354,12 @@ export function SubjectStatusModal({
 
             {/* Nota Input for Aprobada */}
             {selectedStatus === "aprobada" && (
-              <div className="p-3.5 rounded-2xl bg-[#FFE600]/20 border-3 border-black shadow-[4px_4px_0_0_#000] space-y-2 animate-in fade-in slide-in-from-top-2">
+              <div className="p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between">
-                  <label className="font-black text-xs uppercase tracking-wider text-black flex items-center gap-1.5">
-                    <Trophy className="w-4 h-4" /> Calificación Final de Examen (1 - 10)
+                  <label className="text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-amber-500" /> Calificación final (1 - 10)
                   </label>
-                  <span className="text-[10px] font-black bg-[#48BD22] text-white px-2 py-0.5 rounded-md border border-black">
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                     Mínimo 4
                   </span>
                 </div>
@@ -369,15 +370,15 @@ export function SubjectStatusModal({
                   step="0.5"
                   value={nota}
                   onChange={(e) => setNota(e.target.value)}
-                  placeholder="Ej: 8, 9, 10"
-                  className="w-full px-4 py-3 bg-white text-black font-black text-xl text-center rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] focus:outline-none focus:ring-4 focus:ring-[#FFE600]"
+                  placeholder="Ej: 8"
+                  className="w-full px-3 py-2 bg-white dark:bg-[#1e1e1e] text-zinc-900 dark:text-zinc-100 font-medium text-base text-center rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600"
                 />
               </div>
             )}
 
             {/* Action Buttons */}
             {!readOnly && (
-              <div className="flex items-center gap-2 pt-2 border-t-2 border-border/80">
+              <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
                 {onEditDetails && (
                   <button
                     type="button"
@@ -385,10 +386,10 @@ export function SubjectStatusModal({
                       ComicAudio.playPop();
                       onEditDetails(subject);
                     }}
-                    className="p-3 rounded-xl font-black bg-secondary hover:bg-secondary/80 border-2 border-black shadow-[2px_2px_0_0_#000] text-sm flex items-center justify-center transition-all"
-                    title="Editar Información"
+                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+                    title="Editar información"
                   >
-                    <Settings2 className="w-5 h-5" />
+                    <Settings2 className="w-4 h-4" />
                   </button>
                 )}
                 {onEditDependencies && (
@@ -398,10 +399,10 @@ export function SubjectStatusModal({
                       ComicAudio.playPop();
                       onEditDependencies(subject);
                     }}
-                    className="p-3 rounded-xl font-black bg-secondary hover:bg-secondary/80 border-2 border-black shadow-[2px_2px_0_0_#000] text-sm flex items-center justify-center transition-all"
-                    title="Editar Correlativas"
+                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+                    title="Editar correlativas"
                   >
-                    <Link2 className="w-5 h-5 stroke-[2.5]" />
+                    <Link2 className="w-4 h-4" />
                   </button>
                 )}
                 {onDelete && (
@@ -411,24 +412,19 @@ export function SubjectStatusModal({
                       ComicAudio.playPop();
                       setShowDeleteConfirm(true);
                     }}
-                    className="p-3 rounded-xl font-black bg-[#FF2E93]/20 text-[#FF2E93] hover:bg-[#FF2E93]/30 border-2 border-black shadow-[2px_2px_0_0_#000] transition-all"
-                    title="Eliminar Materia"
+                    className="p-2 rounded-lg border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    title="Eliminar materia"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={!selectedStatus || loading}
-                  className={cn(
-                    "flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs sm:text-sm tracking-wider transition-all border-3 border-black",
-                    selectedStatus
-                      ? "bg-[#FFE600] text-black shadow-[4px_4px_0_0_#000] hover:bg-[#ffe033] active:translate-y-[1px]"
-                      : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-muted"
-                  )}
+                  className="flex-1 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-3.5 py-2 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Guardando..." : "¡Guardar Cambios!"}
+                  {loading ? "Guardando..." : "Guardar cambios"}
                 </button>
               </div>
             )}

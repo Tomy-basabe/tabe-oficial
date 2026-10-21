@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Zap, Users, Copy, Check, Swords, Bot, KeyRound, Sparkles, Send } from "lucide-react";
+import { Zap, Users, Copy, Check, Swords, Bot, KeyRound, Sparkles, Send, ArrowLeft, ArrowRight, User } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useFriends } from "@/hooks/useFriends";
@@ -66,7 +66,7 @@ export function GameModeModal({
     if (!generatedCode) return;
     navigator.clipboard.writeText(generatedCode);
     setCopied(true);
-    toast.success("¡Código copiado al portapapeles!");
+    toast.success("Código copiado al portapapeles");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -95,159 +95,203 @@ export function GameModeModal({
         }
       }}
     >
-      <DialogContent className="bg-card text-foreground border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl max-w-lg p-6">
-        <DialogHeader>
-          <DialogTitle className="font-black uppercase text-2xl flex items-center justify-between border-b-4 border-foreground pb-4">
-            <div className="flex items-center gap-2">
-              <Swords className="w-7 h-7 text-[#FFD700]" strokeWidth={2.5} />
-              <span>{gameTitle}</span>
+      <DialogContent className="bg-card text-foreground border border-border/80 shadow-2xl rounded-2xl max-w-lg p-6 overflow-hidden">
+        <DialogHeader className="pb-3 border-b border-border/60">
+          <DialogTitle className="flex items-center justify-between text-lg font-semibold tracking-tight">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                <Swords className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-base">{gameTitle}</span>
+                <span className="block text-xs font-normal text-muted-foreground">Configuración de partida</span>
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         {/* TAB 1: SELECCION DE MODO */}
         {tab === "select" && (
-          <div className="space-y-4 pt-2">
-            <p className="text-xs font-black uppercase text-muted-foreground">
-              ¿Cómo quieres jugar hoy?
+          <div className="space-y-3 pt-3">
+            <p className="text-xs text-muted-foreground font-medium">
+              Elige cómo deseas jugar esta partida:
             </p>
 
-            {/* Partida Rápida */}
-            <div
-              onClick={() => {
-                onClose();
-                onSelectQuickMatch();
-              }}
-              className="group p-4 bg-muted/40 border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#00E5FF] border-2 border-foreground flex items-center justify-center text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] group-hover:rotate-6 transition-transform">
-                  <Zap className="w-6 h-6" strokeWidth={3} />
+            <div className="space-y-2">
+              {/* Partida Rápida */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSelectQuickMatch();
+                }}
+                className="w-full group p-3.5 bg-card/60 hover:bg-muted/60 border border-border/60 hover:border-border rounded-xl transition-all flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Partida rápida
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Emparejamiento inmediato 1 vs 1 o con bot de apoyo
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black uppercase text-base text-foreground">Partida Rápida</h4>
-                  <p className="text-xs font-bold text-muted-foreground">Busca un rival 1v1 o juega contra Bot TABE</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border/50">
+                    Automático
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </div>
-              <span className="font-black text-xs uppercase bg-[#BFFF00] text-black px-2 py-1 rounded border border-foreground">
-                Auto
-              </span>
-            </div>
+              </button>
 
-            {/* Crear Sala Privada */}
-            <div
-              onClick={handleCreate}
-              className="group p-4 bg-muted/40 border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#BFFF00] border-2 border-foreground flex items-center justify-center text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] group-hover:rotate-6 transition-transform">
-                  <Users className="w-6 h-6" strokeWidth={3} />
+              {/* Crear Sala Privada */}
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={loading}
+                className="w-full group p-3.5 bg-card/60 hover:bg-muted/60 border border-border/60 hover:border-border rounded-xl transition-all flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Crear sala privada
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Genera un código privado para jugar con un compañero
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black uppercase text-base text-foreground">Crear Sala</h4>
-                  <p className="text-xs font-bold text-muted-foreground">Crea un código privado y reta a un amigo</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border/50">
+                    Código
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </div>
-              <span className="font-black text-xs uppercase bg-foreground text-background px-2 py-1 rounded border border-foreground">
-                Código
-              </span>
-            </div>
+              </button>
 
-            {/* Unirse con Código */}
-            <div
-              onClick={() => setTab("join_room")}
-              className="group p-4 bg-muted/40 border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#FFD700] border-2 border-foreground flex items-center justify-center text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] group-hover:rotate-6 transition-transform">
-                  <KeyRound className="w-6 h-6" strokeWidth={3} />
+              {/* Unirse con Código */}
+              <button
+                type="button"
+                onClick={() => setTab("join_room")}
+                className="w-full group p-3.5 bg-card/60 hover:bg-muted/60 border border-border/60 hover:border-border rounded-xl transition-all flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Unirse a una sala
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Ingresa el código compartido por tu amigo
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black uppercase text-base text-foreground">Unirse a Sala</h4>
-                  <p className="text-xs font-bold text-muted-foreground">Ingresa con el código que te compartió tu rival</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border/50">
+                    Unirse
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </div>
-              <span className="font-black text-xs uppercase bg-[#FFD700] text-black px-2 py-1 rounded border border-foreground">
-                Entrar
-              </span>
-            </div>
+              </button>
 
-            {/* Modo Práctica vs Bot */}
-            <div
-              onClick={() => {
-                onClose();
-                onSelectBotMatch();
-              }}
-              className="group p-4 bg-muted/40 border-4 border-foreground rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#C688EB] border-2 border-foreground flex items-center justify-center text-black shadow-[2px_2px_0_0_hsl(var(--foreground))] group-hover:rotate-6 transition-transform">
-                  <Bot className="w-6 h-6" strokeWidth={3} />
+              {/* Modo Práctica vs Bot */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSelectBotMatch();
+                }}
+                className="w-full group p-3.5 bg-card/60 hover:bg-muted/60 border border-border/60 hover:border-border rounded-xl transition-all flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Modo práctica (vs IA)
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Entrena tus conocimientos contra el bot de TABE
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-black uppercase text-base text-foreground">Práctica Solitario</h4>
-                  <p className="text-xs font-bold text-muted-foreground">Juega al instante contra el Bot de TABE</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-md border border-border/50">
+                    Individual
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </div>
-              <span className="font-black text-xs uppercase bg-[#C688EB] text-black px-2 py-1 rounded border border-foreground">
-                1P
-              </span>
+              </button>
             </div>
           </div>
         )}
 
         {/* TAB 2: SALA CREADA (CÓDIGO + RETAR AMIGOS) */}
         {tab === "create_room" && (
-          <div className="space-y-6 pt-2">
+          <div className="space-y-5 pt-3">
             <div className="text-center space-y-2">
-              <span className="text-xs font-black uppercase text-muted-foreground">Código de tu Sala Privada</span>
-              <div className="p-4 bg-background border-4 border-foreground rounded-xl flex items-center justify-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-                <span className="font-black text-3xl tracking-widest text-foreground font-mono">
+              <span className="text-xs font-medium text-muted-foreground">Código de tu sala privada</span>
+              <div className="p-3.5 bg-muted/40 border border-border/80 rounded-xl flex items-center justify-center gap-3">
+                <span className="font-mono font-bold text-2xl tracking-widest text-foreground">
                   {generatedCode}
                 </span>
                 <Button
                   size="icon"
-                  className="bg-[#BFFF00] text-black border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#a6e600]"
+                  variant="outline"
+                  className="h-9 w-9 shrink-0 border-border/80 hover:bg-muted"
                   onClick={handleCopyCode}
                   title="Copiar código"
                 >
-                  {copied ? <Check className="w-5 h-5" strokeWidth={3} /> : <Copy className="w-5 h-5" strokeWidth={2.5} />}
+                  {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                 </Button>
               </div>
-              <p className="text-xs font-bold text-muted-foreground">
-                Pásale este código a tu amigo para que entre desde "Unirse a Sala"
+              <p className="text-xs text-muted-foreground">
+                Comparte este código con tu compañero para que ingrese desde "Unirse a una sala".
               </p>
             </div>
 
             {/* Desafiar amigos directamente */}
             {friends.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#FFD700]" />
-                  <span className="text-xs font-black uppercase text-foreground">O desafía a un amigo ahora:</span>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Invitar a un amigo en línea:</span>
                 </div>
-                <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
                   {friends.map((friendship) => {
                     const friend = friendship.friend;
                     const isInvited = invitedFriends.has(friend.user_id);
                     return (
                       <div
                         key={friend.user_id}
-                        className="p-2.5 bg-muted/50 border-2 border-foreground rounded-xl flex items-center justify-between text-sm"
+                        className="p-2.5 bg-muted/30 border border-border/60 rounded-lg flex items-center justify-between text-xs"
                       >
-                        <span className="font-black uppercase truncate text-foreground">
-                          {friend.nombre || friend.username || `#${friend.display_id}`}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground shrink-0">
+                            <User className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-medium truncate text-foreground">
+                            {friend.nombre || friend.username || `#${friend.display_id}`}
+                          </span>
+                        </div>
                         <Button
                           size="sm"
+                          variant={isInvited ? "outline" : "default"}
                           disabled={isInvited}
                           onClick={() => handleSendInvite(friend.user_id, friend.nombre || friend.username || "Amigo")}
-                          className={cn(
-                            "font-black text-xs uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] h-8",
-                            isInvited ? "bg-muted text-muted-foreground" : "bg-[#00E5FF] text-black hover:bg-[#00cce6]"
-                          )}
+                          className="h-7 text-xs px-2.5 font-medium shrink-0"
                         >
-                          <Send className="w-3.5 h-3.5 mr-1" />
+                          <Send className="w-3 h-3 mr-1" />
                           {isInvited ? "Enviado" : "Desafiar"}
                         </Button>
                       </div>
@@ -257,22 +301,23 @@ export function GameModeModal({
               </div>
             )}
 
-            <div className="flex gap-2 pt-2 border-t-2 border-foreground/20">
+            <div className="flex gap-2.5 pt-2 border-t border-border/60">
               <Button
                 variant="outline"
-                className="flex-1 font-black uppercase border-2 border-foreground"
+                className="flex-1 h-10 text-xs font-medium border-border/80"
                 onClick={() => setTab("select")}
               >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Volver
               </Button>
               <Button
-                className="flex-1 bg-[#BFFF00] text-black font-black uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#a6e600]"
+                className="flex-1 h-10 text-xs font-medium"
                 onClick={() => {
                   onClose();
                   onSelectQuickMatch();
                 }}
               >
-                Iniciar Partida
+                Esperar o Iniciar
               </Button>
             </div>
           </div>
@@ -280,34 +325,35 @@ export function GameModeModal({
 
         {/* TAB 3: UNIRSE CON CÓDIGO */}
         {tab === "join_room" && (
-          <div className="space-y-6 pt-2">
+          <div className="space-y-4 pt-3">
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-muted-foreground">
-                Ingresa el código que te dio tu amigo
+              <label className="text-xs font-medium text-muted-foreground block">
+                Ingresa el código proporcionado por tu compañero
               </label>
               <Input
                 placeholder="Ej: TAB-482"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-                className="bg-background border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl h-14 font-mono font-black text-2xl text-center uppercase tracking-widest text-foreground focus-visible:ring-0"
+                className="bg-muted/30 border border-border/80 rounded-xl h-12 font-mono font-bold text-xl text-center uppercase tracking-widest text-foreground focus-visible:ring-1"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2.5 pt-2 border-t border-border/60">
               <Button
                 variant="outline"
-                className="flex-1 font-black uppercase border-2 border-foreground h-12"
+                className="flex-1 h-10 text-xs font-medium border-border/80"
                 onClick={() => setTab("select")}
               >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Volver
               </Button>
               <Button
                 disabled={loading || !inputCode.trim()}
                 onClick={handleJoin}
-                className="flex-1 bg-[#00E5FF] text-black font-black uppercase border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-[#00cce6] h-12"
+                className="flex-1 h-10 text-xs font-medium"
               >
-                {loading ? "Entrando..." : "Entrar a Sala"}
+                {loading ? "Conectando..." : "Entrar a la sala"}
               </Button>
             </div>
           </div>

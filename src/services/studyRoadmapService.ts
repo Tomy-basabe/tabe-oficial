@@ -635,42 +635,7 @@ function saveLocalRoadmaps(list: StudyRoadmap[]) {
  */
 export async function rewardUserGamification(coinsToAdd: number, xpToAdd: number) {
   try {
-    const currentCoins = Number(localStorage.getItem("tabe_gochi_coins_v1") || 50);
-    const newCoins = currentCoins + coinsToAdd;
-    localStorage.setItem("tabe_gochi_coins_v1", String(newCoins));
-
-    let updatedPets: any[] = [];
-    const rawPets = localStorage.getItem("tabe_gochi_pets_v1");
-    if (rawPets) {
-      const pets = JSON.parse(rawPets);
-      if (Array.isArray(pets) && pets.length > 0) {
-        if (!pets[0].isDead) {
-          pets[0].xp = (pets[0].xp || 0) + xpToAdd;
-        }
-        localStorage.setItem("tabe_gochi_pets_v1", JSON.stringify(pets));
-        updatedPets = pets;
-      }
-    }
-
-    // Si el usuario está autenticado, sincronizar en segundo plano a la nube
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id && updatedPets.length > 0) {
-        const activePetId = localStorage.getItem("tabe_gochi_active_pet_id_v1") || updatedPets[0].id;
-        const inventoryRaw = localStorage.getItem("tabe_gochi_inventory_v1");
-        const inventory = inventoryRaw ? JSON.parse(inventoryRaw) : ["apple", "room"];
-        const { saveTabeGochiCloud } = await import("@/services/tabegochiSyncService");
-        await saveTabeGochiCloud(session.user.id, {
-          pets: updatedPets,
-          activePetId,
-          coins: newCoins,
-          inventory,
-          updatedAt: Date.now(),
-        });
-      }
-    } catch {}
-
-    toast.success(`🎉 ¡Nivel Superado! +${coinsToAdd} Tabecoins y +${xpToAdd} XP para tu mascota!`);
+    toast.success(`🎉 ¡Nivel Superado! +${xpToAdd} XP sumados a tu progreso académico.`);
   } catch (e) {
     console.warn("Error sumando recompensas:", e);
   }

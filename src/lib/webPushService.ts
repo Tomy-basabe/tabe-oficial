@@ -185,15 +185,6 @@ export interface SyncAlarmsParams {
     date: string;
     daysBefore: number;
   }>;
-  pet?: {
-    name: string;
-    hunger: number;
-    health: number;
-    isSick: boolean;
-    isDead: boolean;
-    lastUpdated: number;
-    enabled: boolean;
-  };
 }
 
 export function syncAlarmsToIndexedDB(params: SyncAlarmsParams): Promise<void> {
@@ -224,22 +215,6 @@ export function syncAlarmsToIndexedDB(params: SyncAlarmsParams): Promise<void> {
         enabled: params.studyReminderEnabled,
         lastSentDate: null,
       });
-
-      // 2. Guardar recordatorio de cuidado de mascota (TABE-GOTCHI)
-      if (params.pet) {
-        store.put({
-          id: "pet_reminder",
-          petName: params.pet.name,
-          hunger: params.pet.hunger,
-          health: params.pet.health,
-          isSick: params.pet.isSick,
-          isDead: params.pet.isDead,
-          lastUpdated: params.pet.lastUpdated,
-          hour: params.studyReminderHour ?? 9,
-          enabled: params.pet.enabled,
-          lastSentDate: null,
-        });
-      }
 
       // 3. Guardar eventos de calendario distinguiendo exámenes reales
       params.exams.forEach((ex) => {

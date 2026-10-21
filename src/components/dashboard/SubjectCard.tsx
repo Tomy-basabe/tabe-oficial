@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { BookOpen, Lock, Clock, RotateCcw } from "lucide-react";
-import { LegendarySubjectCard } from "@/components/subjects/LegendarySubjectCard";
+import { BookOpen, Lock, Clock, RotateCcw, Check, Sparkles } from "lucide-react";
 
 export type SubjectStatus = "aprobada" | "regular" | "cursable" | "bloqueada" | "recursar";
 
@@ -17,62 +16,31 @@ interface SubjectCardProps {
   compact?: boolean;
 }
 
-const statusConfig = {
+const statusConfig: Record<SubjectStatus, { label: string; icon: any; badgeClass: string }> = {
+  aprobada: {
+    label: "Aprobada",
+    icon: Check,
+    badgeClass: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60",
+  },
   regular: {
-    label: "REGULAR",
+    label: "Regular",
     icon: Clock,
-    bgLight: "#eff6ff",
-    bgHoverLight: "#dbeafe",
-    bgDark: "#1e3a8a80",
-    bgHoverDark: "#1e3a8a99",
-    tabBg: "#3b82f6",
-    tabText: "#ffffff",
-    iconColor: "#1e3a8a",
-    textLight: "#1e3a8a",
-    textDark: "#93c5fd",
-    shadowColor: "#1475e5"
+    badgeClass: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/60",
   },
   cursable: {
-    label: "CURSABLE",
+    label: "Cursable",
     icon: BookOpen,
-    bgLight: "#f0fdf4",
-    bgHoverLight: "#dcfce7",
-    bgDark: "#14532d80",
-    bgHoverDark: "#14532d99",
-    tabBg: "#22c55e",
-    tabText: "#ffffff",
-    iconColor: "#14532d",
-    textLight: "#14532d",
-    textDark: "#86efac",
-    shadowColor: "#48bd22"
+    badgeClass: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60",
   },
   bloqueada: {
-    label: "BLOQUEADA",
+    label: "Bloqueada",
     icon: Lock,
-    bgLight: "#f4f4f580",
-    bgHoverLight: "#f4f4f580",
-    bgDark: "#27272a33",
-    bgHoverDark: "#27272a33",
-    tabBg: "#71717a",
-    tabText: "#ffffff",
-    iconColor: "#71717a",
-    textLight: "#71717a",
-    textDark: "#a1a1aa",
-    shadowColor: "hsl(var(--muted-foreground))"
+    badgeClass: "bg-zinc-50 text-zinc-400 dark:bg-zinc-900/40 dark:text-zinc-500 border-zinc-200/40 dark:border-zinc-800/40",
   },
   recursar: {
-    label: "RECURSAR",
+    label: "Recursar",
     icon: RotateCcw,
-    bgLight: "#fef2f2",
-    bgHoverLight: "#fee2e2",
-    bgDark: "#7f1d1d80",
-    bgHoverDark: "#7f1d1d99",
-    tabBg: "#ef4444",
-    tabText: "#ffffff",
-    iconColor: "#7f1d1d",
-    textLight: "#7f1d1d",
-    textDark: "#fca5a5",
-    shadowColor: "#ef4444"
+    badgeClass: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60",
   },
 };
 
@@ -87,124 +55,77 @@ export const SubjectCard = memo(function SubjectCard({
   onClick,
   compact = false,
 }: SubjectCardProps) {
-  // Use Legendary card for approved subjects
-  if (status === "aprobada") {
-    return (
-      <LegendarySubjectCard
-        nombre={nombre}
-        codigo={codigo}
-        nota={nota}
-        año={año}
-        numero_materia={numero_materia}
-        onClick={onClick}
-        compact={compact}
-      />
-    );
-  }
-
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.cursable;
   const Icon = config.icon;
-
-  const cardStyle = {
-    '--card-bg-light': config.bgLight,
-    '--card-bg-dark': config.bgDark,
-    '--card-bg-hover-light': config.bgHoverLight,
-    '--card-bg-hover-dark': config.bgHoverDark,
-    '--card-text-light': config.textLight,
-    '--card-text-dark': config.textDark,
-    '--card-shadow': config.shadowColor,
-    '--tab-bg': config.tabBg,
-    '--tab-text': config.tabText,
-    '--icon-color': config.iconColor,
-  } as React.CSSProperties;
 
   return (
     <div
       onClick={onClick}
-      style={cardStyle}
-      className="relative group transition-all duration-200 pt-7 h-full flex flex-col cursor-pointer hover:-translate-y-1"
+      className={cn(
+        "group relative bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs transition-[border-color,box-shadow] duration-150 cursor-pointer flex flex-col justify-between h-full",
+        status === "bloqueada" && "opacity-75"
+      )}
     >
-      {/* Folder Tab */}
-      <div 
-        className={cn(
-          "absolute top-0 left-0 h-7 px-3 rounded-t-lg border-[3px] border-b-0 border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5 select-none"
-        )}
-        style={{ backgroundColor: "var(--tab-bg)", color: "var(--tab-text)" }}
-      >
-        <Icon className="w-3.5 h-3.5" style={{ color: "var(--tab-text)" }} />
-        {config.label}
-      </div>
-
-      {/* Main Folder Body */}
-      <div
-        className={cn(
-          "relative z-10 w-full rounded-xl rounded-tl-none border-[3px] border-foreground text-left transition-shadow duration-200 flex-1 flex flex-col",
-          "bg-[var(--card-bg-light)] dark:bg-[var(--card-bg-dark)]",
-          "text-[var(--card-text-light)] dark:text-[var(--card-text-dark)]",
-          "hover:bg-[var(--card-bg-hover-light)] dark:hover:bg-[var(--card-bg-hover-dark)] hover:shadow-[4px_4px_0_0_var(--card-shadow)]",
-          status === "bloqueada" && "opacity-90",
-          compact ? "p-3" : "p-4"
-        )}
-      >
-        <div className="flex items-start justify-between mb-1 relative z-10">
-          <span 
-            className="text-[10px] font-extrabold px-2 py-0.5 rounded-md border-2 border-foreground"
-            style={{ backgroundColor: "var(--tab-bg)", color: "var(--tab-text)" }}
-          >
-            AÑO {año}
+      {/* Top Header: Status + Year */}
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className={cn(
+            "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border",
+            config.badgeClass
+          )}>
+            <Icon className="w-3 h-3" />
+            {config.label}
           </span>
-          {numero_materia && (
-            <span className="text-[10px] font-black bg-foreground text-background px-1.5 py-0.5 rounded-sm">
-              #{numero_materia}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+            <span>{año}° Año</span>
+            {numero_materia && <span>#{numero_materia}</span>}
+          </div>
         </div>
 
+        {/* Title */}
         <h3 className={cn(
-          "font-black leading-tight mt-2 line-clamp-2 min-h-[2.5rem]",
-          compact ? "text-sm" : "text-base"
+          "font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2",
+          compact ? "text-xs min-h-[2rem]" : "text-sm min-h-[2.5rem]"
         )}>
           {nombre}
         </h3>
+      </div>
 
-        {/* Bottom Bar matching LegendarySubjectCard */}
-        <div className="mt-auto pt-3 border-t-[3px] border-foreground/20 flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-widest text-foreground/80">
-              {codigo}
-            </span>
-            {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
-              <span className="text-xs font-black px-2 py-0.5 rounded-md border-2 border-foreground bg-background text-foreground shadow-[1.5px_1.5px_0_0_hsl(var(--foreground))]">
-                NOTA: {nota}
+      {/* Bottom Footer: Code + Grade */}
+      <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
+        <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+          {codigo}
+        </span>
+        {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
+          <span className="font-semibold text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80">
+            Nota: {nota}
+          </span>
+        )}
+      </div>
+
+      {/* Missing Requirements for Blocked Subjects */}
+      {status === "bloqueada" && requisitos_faltantes.length > 0 && !compact && (
+        <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 flex items-center gap-1 mb-1">
+            <Lock className="w-2.5 h-2.5" /> Requisitos pendientes:
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {requisitos_faltantes.slice(0, 2).map((req, idx) => (
+              <span
+                key={idx}
+                className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[9px] text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 truncate max-w-[140px]"
+              >
+                {req}
+              </span>
+            ))}
+            {requisitos_faltantes.length > 2 && (
+              <span className="text-[9px] text-zinc-400 self-center">
+                +{requisitos_faltantes.length - 2}
               </span>
             )}
           </div>
-
-          {/* Show missing requirements for blocked subjects */}
-          {status === "bloqueada" && requisitos_faltantes.length > 0 && !compact && (
-            <div className="pt-1.5 border-t border-dashed border-foreground/30">
-              <p className="text-[9px] text-foreground font-black mb-1 flex items-center gap-1 uppercase">
-                <Lock className="w-2.5 h-2.5" /> Requisitos:
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {requisitos_faltantes.slice(0, 2).map((req, idx) => (
-                  <span
-                    key={idx}
-                    className="px-1.5 py-0.5 bg-background border border-foreground rounded text-[8px] font-black text-foreground"
-                  >
-                    {req}
-                  </span>
-                ))}
-                {requisitos_faltantes.length > 2 && (
-                  <span className="text-[8px] font-black text-muted-foreground self-center">
-                    +{requisitos_faltantes.length - 2}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 });

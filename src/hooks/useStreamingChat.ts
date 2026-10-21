@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AIModelOption, DEFAULT_AI_MODEL, PowerEffort } from "@/config/aiModels";
-import { buildStudentContext, streamAIChat, StreamResult } from "@/lib/aiClientService";
+import { buildStudentContext, streamAIChat, StreamResult, AIStatusUpdate } from "@/lib/aiClientService";
 
 const personaCache = new Map<string, { name: string; prompt: string }>();
 
@@ -11,6 +11,7 @@ export function useStreamingChat(
   powerLevel: PowerEffort = "medio"
 ) {
   const [isStreaming, setIsStreaming] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AIStatusUpdate | null>(null);
   const { user, isGuest } = useAuth();
 
   const streamMessage = useCallback(
@@ -27,6 +28,11 @@ export function useStreamingChat(
       image?: { data: string; mime_type: string }
     ) => {
       setIsStreaming(true);
+      setAiStatus({
+        state: "thinking",
+        label: "Pensando...",
+        detail: "Analizando contexto y apuntes...",
+      });
 
       if (isGuest) {
         setTimeout(() => {
@@ -40,6 +46,7 @@ export function useStreamingChat(
               clearInterval(interval);
               onComplete({ content: text });
               setIsStreaming(false);
+              setAiStatus(null);
             }
           }, 30);
         }, 300);
@@ -103,7 +110,7 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
 4. SIN SÍMBOLOS MARKDOWN: NUNCA uses asteriscos (**), numerales (#), viñetas (-) ni tablas, porque estamos sintetizando tu voz a audio y esos caracteres traban o ensucian la pronunciación.`
           : studentContext;
 
-        // 3. Stream with automatic provider fallback and power level
+        // 3. Stream with automatic NVIDIA multi-model cascade, provider fallback and power level
         await streamAIChat({
           messages,
           systemPrompt,
@@ -113,6 +120,7 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
           image,
           onDelta,
           onReset,
+          onStatusChange: (status) => setAiStatus(status),
           onComplete,
           onError,
         });
@@ -120,10 +128,11 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
         onError(error instanceof Error ? error : new Error("Error desconocido al procesar el mensaje"));
       } finally {
         setIsStreaming(false);
+        setAiStatus(null);
       }
     },
     [user, isGuest, activeModel, powerLevel]
   );
 
-  return { isStreaming, streamMessage };
+  return { isStreaming, aiStatus, streamMessage };
 }

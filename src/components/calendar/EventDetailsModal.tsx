@@ -1,191 +1,187 @@
 import React from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-    Calendar as CalendarIcon,
-    Clock,
-    BookOpen,
-    Trash2,
-    ExternalLink,
-    MapPin,
-    FileText,
-    X
+  Calendar as CalendarIcon,
+  Clock,
+  BookOpen,
+  Trash2,
+  ExternalLink,
+  MapPin,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarEvent, EventType } from "@/hooks/useCalendarEvents";
+import { CalendarEvent } from "@/hooks/useCalendarEvents";
 import { cn } from "@/lib/utils";
 import { generateGoogleCalendarUrl } from "@/lib/googleCalendarUrl";
 import { toast } from "sonner";
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
+import { eventTypeColors, eventTypeDots } from "@/pages/Calendar";
 
 interface EventDetailsModalProps {
-    event: CalendarEvent | null;
-    open: boolean;
-    onClose: () => void;
-    onDelete: (id: string) => Promise<void>;
+  event: CalendarEvent | null;
+  open: boolean;
+  onClose: () => void;
+  onDelete: (id: string) => Promise<void>;
 }
 
 const eventTypeLabels: Record<string, string> = {
-    P1: "Parcial 1",
-    P2: "Parcial 2",
-    Global: "Global",
-    "Recuperatorio P1": "Recuperatorio P1",
-    "Recuperatorio P2": "Recuperatorio P2",
-    "Recuperatorio Global": "Recuperatorio Global",
-    Final: "Final",
-    Estudio: "Sesión de Estudio",
-    TP: "Trabajo Práctico",
-    Entrega: "Entrega",
-    Clase: "Clase",
-    Otro: "Otro",
+  P1: "Parcial 1",
+  P2: "Parcial 2",
+  Global: "Global",
+  "Recuperatorio P1": "Recuperatorio P1",
+  "Recuperatorio P2": "Recuperatorio P2",
+  "Recuperatorio Global": "Recuperatorio Global",
+  Final: "Final",
+  Estudio: "Sesión de Estudio",
+  TP: "Trabajo Práctico",
+  Entrega: "Entrega",
+  Clase: "Clase",
+  Otro: "Otro",
 };
 
-const getEventLabel = (type: string) => type.startsWith("P") && !["P1", "P2"].includes(type) ? `Parcial ${type.replace("P", "")}` : (eventTypeLabels[type] || type);
-
-const eventTypeColors: Record<string, string> = {
-    P1: "text-black bg-[#00FF9D] border-2 border-foreground",
-    P2: "text-black bg-[#00F0FF] border-2 border-foreground",
-    Global: "text-black bg-[#FFD21C] border-2 border-foreground",
-    "Recuperatorio P1": "text-black bg-[#FF3366] border-2 border-foreground",
-    "Recuperatorio P2": "text-black bg-[#FF3366] border-2 border-foreground",
-    "Recuperatorio Global": "text-black bg-[#FF3366] border-2 border-foreground",
-    Final: "text-white bg-[#B000FF] border-2 border-foreground",
-    Estudio: "text-black bg-[#4ECDC4] border-2 border-foreground",
-    TP: "text-black bg-[#FF9F1C] border-2 border-foreground",
-    Entrega: "text-white bg-[#FF007F] border-2 border-foreground",
-    Clase: "text-black bg-[#3A86FF] border-2 border-foreground",
-    Otro: "text-black bg-[#E5E5E5] border-2 border-foreground",
-};
-
-const getEventColor = (type: string) => eventTypeColors[type] || "text-black bg-[#E5E5E5] border-2 border-foreground";
+const getEventLabel = (type: string) =>
+  type.startsWith("P") && !["P1", "P2"].includes(type)
+    ? `Parcial ${type.replace("P", "")}`
+    : (eventTypeLabels[type] || type);
 
 export function EventDetailsModal({ event, open, onClose, onDelete }: EventDetailsModalProps) {
-    const { confirm } = useConfirm();
-    if (!event) return null;
+  const { confirm } = useConfirm();
+  if (!event) return null;
 
-    const handleExportToGoogle = () => {
-        const url = generateGoogleCalendarUrl({
-            title: event.titulo,
-            date: event.fecha,
-            time: event.hora || undefined,
-            description: event.notas || undefined,
-        });
-        window.open(url, "_blank");
-        toast.success("Abriendo Google Calendar...");
-    };
+  const handleExportToGoogle = () => {
+    const url = generateGoogleCalendarUrl({
+      title: event.titulo,
+      date: event.fecha,
+      time: event.hora || undefined,
+      description: event.notas || undefined,
+    });
+    window.open(url, "_blank");
+    toast.success("Abriendo Google Calendar...");
+  };
 
-    const handleDelete = async () => {
-        const ok = await confirm({
-            title: "¿Eliminar evento?",
-            description: `¿Estás seguro de eliminar el evento "${event.titulo}"? Esta acción no se puede deshacer.`,
-            confirmText: "Eliminar",
-            cancelText: "Cancelar",
-            variant: "danger"
-        });
-        if (ok) {
-            await onDelete(event.id);
-            onClose();
-        }
-    };
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "¿Eliminar evento?",
+      description: `¿Estás seguro de eliminar el evento "${event.titulo}"? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (ok) {
+      await onDelete(event.id);
+      onClose();
+    }
+  };
 
-    const eventDate = new Date(event.fecha + "T12:00:00");
+  const eventDate = new Date(event.fecha + "T12:00:00");
+  const displayNotes = cleanDisplayNotes(event.notas);
 
-    return (
-        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="sm:max-w-[400px] bg-background border-4 border-foreground p-0 overflow-hidden rounded-xl shadow-[8px_8px_0_0_hsl(var(--foreground))]">
-                <div className="p-6 space-y-6">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <span className={cn(
-                                "px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest",
-                                getEventColor(event.tipo_examen)
-                            )}>
-                                {getEventLabel(event.tipo_examen)}
-                            </span>
-                            <DialogTitle className="text-2xl font-display font-black uppercase tracking-tight text-foreground pt-2 leading-tight">
-                                {event.titulo}
-                            </DialogTitle>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 border-[3px] border-transparent hover:border-foreground rounded-lg hover:bg-[#FFD21C] transition-all text-foreground hover:shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-0 active:shadow-none"
-                        >
-                            <X className="w-5 h-5 font-bold" />
-                        </button>
-                    </div>
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-md w-[95vw] bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-2xl p-6 space-y-4">
+        <DialogHeader className="space-y-1.5 text-left">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border",
+                eventTypeColors[event.tipo_examen] || "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full", eventTypeDots[event.tipo_examen] || "bg-zinc-400")} />
+              <span>{getEventLabel(event.tipo_examen)}</span>
+            </span>
+          </div>
+          <DialogTitle className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 leading-snug">
+            {event.titulo}
+          </DialogTitle>
+          <DialogDescription className="sr-only">Detalles del evento de calendario</DialogDescription>
+        </DialogHeader>
 
-                    <div className="space-y-4">
-                        {/* Date & Time */}
-                        <div className="flex items-center gap-4 text-foreground">
-                            <div className="w-12 h-12 rounded-xl bg-[#4ECDC4] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center">
-                                <CalendarIcon className="w-6 h-6 text-black" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-black uppercase tracking-widest text-foreground">
-                                    {format(eventDate, "EEEE, d 'de' MMMM", { locale: es })}
-                                </p>
-                                <p className="text-xs font-bold text-muted-foreground uppercase">
-                                    {event.hora ? `De ${event.hora} a ${event.hora_fin || '...'}` : "Todo el día"}
-                                </p>
-                            </div>
-                        </div>
+        <div className="space-y-3 pt-1 text-xs">
+          {/* Fecha y Hora */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70">
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+            </div>
+            <div>
+              <p className="font-medium text-zinc-800 dark:text-zinc-200 capitalize">
+                {format(eventDate, "EEEE, d 'de' MMMM", { locale: es })}
+              </p>
+              <p className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5">
+                <Clock className="w-3 h-3" />
+                <span>{event.is_all_day ? "Todo el día" : event.hora ? `${event.hora} hs` : "Sin horario especificado"}</span>
+              </p>
+            </div>
+          </div>
 
-                        {/* Subject */}
-                        {event.subject_nombre && (
-                            <div className="flex items-center gap-4 text-foreground">
-                                <div className="w-12 h-12 rounded-xl bg-[#FFE66D] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center">
-                                    <BookOpen className="w-6 h-6 text-black" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black uppercase tracking-widest text-foreground">
-                                        {event.subject_nombre}
-                                    </p>
-                                    <p className="text-xs font-bold text-muted-foreground uppercase">Materia asociada</p>
-                                </div>
-                            </div>
-                        )}
+          {/* Materia */}
+          {event.subject_nombre && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70">
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+                <BookOpen className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <div>
+                <p className="font-medium text-zinc-800 dark:text-zinc-200">{event.subject_nombre}</p>
+                <p className="text-[11px] text-zinc-400">Materia académica vinculada</p>
+              </div>
+            </div>
+          )}
 
-                        {/* Notes */}
-                        {cleanDisplayNotes(event.notas) && (
-                            <div className="flex items-start gap-4 text-foreground">
-                                <div className="w-12 h-12 rounded-xl bg-[#00F0FF] border-[3px] border-foreground shadow-[4px_4px_0_0_#000] flex items-center justify-center flex-shrink-0">
-                                    <FileText className="w-6 h-6 text-black" />
-                                </div>
-                                <div className="bg-white p-4 rounded-xl flex-1 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] text-black">
-                                    <p className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Notas</p>
-                                    <p className="text-sm font-bold whitespace-pre-wrap leading-relaxed">
-                                        {cleanDisplayNotes(event.notas)}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+          {/* Ubicación */}
+          {event.ubicacion && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70">
+              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <div>
+                <p className="font-medium text-zinc-800 dark:text-zinc-200">{event.ubicacion}</p>
+                <p className="text-[11px] text-zinc-400">Ubicación / Modalidad</p>
+              </div>
+            </div>
+          )}
 
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-4 border-t-4 border-foreground">
-                        <button
-                            onClick={handleExportToGoogle}
-                            className="flex-1 py-3 px-4 rounded-lg text-sm font-black uppercase tracking-widest bg-[#4285F4] text-white border-[3px] border-foreground hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0_0_#000]"
-                        >
-                            <ExternalLink className="w-5 h-5" />
-                            Google
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            className="px-5 py-3 rounded-lg text-sm font-black uppercase tracking-widest bg-[#FF3366] text-black border-[3px] border-foreground hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-y-[2px] active:shadow-[2px_2px_0_0_#000] transition-all flex items-center justify-center gap-2 shadow-[4px_4px_0_0_#000]"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+          {/* Notas */}
+          {displayNotes && (
+            <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 space-y-1">
+              <p className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                <FileText className="w-3 h-3" />
+                <span>Notas</span>
+              </p>
+              <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                {displayNotes}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Acciones */}
+        <div className="flex items-center gap-2 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
+          <button
+            type="button"
+            onClick={handleExportToGoogle}
+            className="flex-1 h-9 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Abrir en Google</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="h-9 px-3 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center justify-center"
+            title="Eliminar evento"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

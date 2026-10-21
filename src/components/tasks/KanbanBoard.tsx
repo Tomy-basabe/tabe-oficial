@@ -1,4 +1,4 @@
-﻿import { StudyTask, TaskStatus } from "@/types/tasks";
+import { StudyTask, TaskStatus } from "@/types/tasks";
 import { TaskCard } from "./TaskCard";
 import { Plus, ListTodo, Zap, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,8 @@ interface ColumnConfig {
   status: TaskStatus;
   title: string;
   icon: any;
-  headerBg: string;
-  badgeBg: string;
-  accentColor: string;
+  dotColor: string;
+  badgeStyle: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -25,25 +24,22 @@ const COLUMNS: ColumnConfig[] = [
     status: "todo",
     title: "Por Hacer",
     icon: ListTodo,
-    headerBg: "bg-[#FFE600] text-black",
-    badgeBg: "bg-black text-white",
-    accentColor: "border-[#FFE600]",
+    dotColor: "bg-zinc-400 dark:bg-zinc-500",
+    badgeStyle: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60",
   },
   {
     status: "in_progress",
     title: "En Progreso",
     icon: Zap,
-    headerBg: "bg-[#00E5FF] text-black",
-    badgeBg: "bg-black text-white",
-    accentColor: "border-[#00E5FF]",
+    dotColor: "bg-blue-500",
+    badgeStyle: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/50",
   },
   {
     status: "done",
     title: "Completadas",
     icon: CheckCircle2,
-    headerBg: "bg-[#00FF9D] text-black",
-    badgeBg: "bg-black text-white",
-    accentColor: "border-[#00FF9D]",
+    dotColor: "bg-emerald-500",
+    badgeStyle: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/50",
   },
 ];
 
@@ -59,7 +55,7 @@ export function KanbanBoard({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 items-start">
       {COLUMNS.map((col) => {
         const columnTasks = getTasksByStatus(col.status);
         const Icon = col.icon;
@@ -67,40 +63,36 @@ export function KanbanBoard({
         return (
           <div
             key={col.status}
-            className="bg-muted/40 border-4 border-foreground rounded-2xl p-4 sm:p-5 shadow-[6px_6px_0_0_hsl(var(--foreground))] space-y-4 min-h-[500px] flex flex-col"
+            className="bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-3.5 space-y-3 min-h-[560px] flex flex-col"
           >
             {/* Column Header */}
-            <div className={cn(
-              "flex items-center justify-between p-3 rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_#000]",
-              col.headerBg
-            )}>
+            <div className="flex items-center justify-between pb-1 px-1">
               <div className="flex items-center gap-2">
-                <Icon className="w-5 h-5 stroke-[2.5]" />
-                <h3 className="font-black uppercase text-sm tracking-wider">
-                  {col.title}
+                <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
+                <h3 className="font-semibold text-xs tracking-wider uppercase text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Icon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <span>{col.title}</span>
                 </h3>
               </div>
-              <span className={cn(
-                "text-xs font-black px-2.5 py-0.5 rounded-full border border-black shadow-[1px_1px_0_0_#000]",
-                col.badgeBg
-              )}>
+
+              <span className={cn("text-[11px] font-medium px-2 py-0.5 rounded-full border", col.badgeStyle)}>
                 {columnTasks.length}
               </span>
             </div>
 
             {/* Tasks Container */}
-            <div className="flex-1 space-y-3 overflow-y-auto">
+            <div className="flex-1 space-y-2.5 overflow-y-auto">
               {columnTasks.length === 0 ? (
-                <div className="border-2 border-dashed border-foreground/30 rounded-xl p-8 text-center space-y-2 my-auto">
-                  <p className="font-black text-xs uppercase text-muted-foreground">
-                    Sin tareas aquí
+                <div className="border border-dashed border-zinc-200 dark:border-zinc-800/80 rounded-xl p-8 text-center space-y-1.5 my-auto">
+                  <p className="font-medium text-xs text-zinc-600 dark:text-zinc-400">
+                    Sin tareas
                   </p>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                    {col.status === "todo" 
-                      ? "¡Añade entregas o lecturas para organizarte!"
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
+                    {col.status === "todo"
+                      ? "Añade entregas o temas para comenzar a organizarte."
                       : col.status === "in_progress"
-                      ? "Pasa una tarea acá cuando comiences a estudiar."
-                      : "Las tareas terminadas aparecerán acá."}
+                      ? "Arranca una tarea para verla en progreso."
+                      : "Las tareas finalizadas se listarán acá."}
                   </p>
                 </div>
               ) : (
@@ -116,13 +108,13 @@ export function KanbanBoard({
               )}
             </div>
 
-            {/* Quick Add Button per Column */}
+            {/* Quick Add Button per Column (Notion Style) */}
             <button
               onClick={() => onOpenCreateModal(col.status)}
-              className="w-full py-2.5 px-3 rounded-xl bg-card hover:bg-muted font-black text-xs uppercase text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
+              className="w-full py-2 px-3 rounded-lg text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/60 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Añadir Tarea</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Añadir tarea</span>
             </button>
           </div>
         );

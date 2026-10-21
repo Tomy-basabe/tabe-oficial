@@ -13,7 +13,10 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  Check,
+  Compass,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import {
@@ -254,67 +257,90 @@ const CAREER_METADATA: Record<
   },
 };
 
-// Dynamically load all JSON career templates
+// Carga todas las plantillas JSON de carreras
 const careerTemplates = import.meta.glob("../data/*_template.json", { eager: true });
+
+interface CareerItem {
+  id: string;
+  name: string;
+  universityId: string;
+  universityName: string;
+  universityShort: string;
+  faculty: string;
+  degreeType: string;
+  subjectsCount: number;
+  years: number;
+  icon: typeof GraduationCap;
+  color: string;
+  description: string;
+  tags: string[];
+}
 
 export default function Careers() {
   const [selectedUniversity, setSelectedUniversity] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Process and enrich all career data from templates
-  const allCareers = useMemo(() => {
-    return Object.entries(careerTemplates)
-      .map(([path, module]: [string, any]) => {
-        const id = path.split("/").pop()?.replace("_template.json", "") || "";
-        const data = module.default || module;
-        const subjects = data.subjects || [];
-        const maxYear = Math.max(...subjects.map((s: any) => Number(s.año) || 0), 0);
+  // Process all career templates
+  const allCareers: CareerItem[] = useMemo(() => {
+    const list: CareerItem[] = [];
 
-        const meta = CAREER_METADATA[id] || {
-          name: id
-            .split("_")
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" "),
-          universityId: "UTN",
-          faculty: "Universidad",
-          icon: GraduationCap,
-          color: "#0072CE",
-        };
+    for (const path in careerTemplates) {
+      const mod: any = careerTemplates[path];
+      const data: any = mod.default || mod;
+      const id = path.split("/").pop()?.replace("_template.json", "") || "";
+      const subjects: any[] = Array.isArray(data.subjects) ? data.subjects : [];
+      const maxYear = Math.max(...subjects.map((s: any) => Number(s.año) || 0), 0);
 
-        const uni = UNIVERSITIES.find((u) => u.id === meta.universityId) || UNIVERSITIES[0];
+      const meta = CAREER_METADATA[id] || {
+        name: id.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+        universityId: "UTN",
+        faculty: "Universidad",
+        icon: GraduationCap,
+        color: "#0072CE",
+      };
+      const universityDef = UNIVERSITIES.find((u) => u.id === meta.universityId) || UNIVERSITIES[0];
 
-        return {
-          id,
-          name: meta.name,
-          universityId: meta.universityId,
-          universityName: uni.name,
-          faculty: meta.faculty,
-          subjectsCount: subjects.length,
-          years: maxYear || 5,
-          icon: meta.icon,
-          color: meta.color,
-          description: `Plan de estudios estructurado con ${subjects.length} materias distribuidas en ${maxYear || 5} años con correlatividades y seguimiento en tiempo real.`,
-        };
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      list.push({
+        id,
+        name: meta.name,
+        universityId: meta.universityId,
+        universityName: universityDef.name,
+        universityShort: universityDef.shortName,
+        faculty: meta.faculty,
+        degreeType: "Grado",
+        subjectsCount: subjects.length,
+        years: maxYear || 5,
+        icon: meta.icon,
+        color: meta.color,
+        description: `Plan de estudios con ${subjects.length} materias en ${maxYear || 5} años.`,
+        tags: [],
+      });
+    }
+
+    return list.sort((a, b) => a.name.localeCompare(b.name));
   }, []);
 
-  // Filtered universities based on tab and search
+  // Filtered universities with their matching careers
   const displayedUniversities = useMemo(() => {
     return UNIVERSITIES.map((uni) => {
-      const uniCareers = allCareers.filter((c) => {
+      const careersInUni = allCareers.filter((c) => {
         const matchesUni = c.universityId === uni.id;
-        const matchesSearch =
-          searchQuery.trim() === "" ||
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.faculty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          uni.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesUni && matchesSearch;
+        if (!matchesUni) return false;
+
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase().trim();
+        return (
+          c.name.toLowerCase().includes(q) ||
+          c.faculty.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          uni.name.toLowerCase().includes(q) ||
+          uni.shortName.toLowerCase().includes(q)
+        );
       });
 
       return {
         ...uni,
-        careers: uniCareers,
+        careers: careersInUni,
       };
     }).filter((uni) => {
       const matchesTab = selectedUniversity === "ALL" || selectedUniversity === uni.id;
@@ -326,75 +352,89 @@ export default function Careers() {
   const totalCareersCount = allCareers.length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-[#BFFF00] selection:text-black">
+    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-500/20 selection:text-blue-600">
       <LandingNavbar />
 
-      {/* Hero Header */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden bg-secondary/40 border-b-4 border-foreground">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-5">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#BFFF00] text-black border-2 border-foreground text-xs font-black uppercase tracking-wider shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              <Building2 className="w-4 h-4" />
-              Catálogo Oficial por Universidades
-            </span>
+      {/* Hero Header (Clean Apple/Notion style) */}
+      <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#121212]/50">
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="max-w-3xl mx-auto text-center space-y-5">
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight leading-none text-foreground">
-              Planes de <span className="text-[#ff9415] italic">Carrera</span>
-            </h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight"
+            >
+              Planes de Estudio
+            </motion.h1>
 
-            <p className="text-base sm:text-lg text-muted-foreground font-bold leading-relaxed max-w-2xl mx-auto">
-              Explorá todos los planes de estudio universitarios agrupados por institución con sus logos oficiales, mapas de correlatividades y seguimiento académico inteligente.
-            </p>
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto"
+            >
+              Explorá carreras agrupadas por institución con sus mapas de correlatividades, malla interactiva y carga directa a tu perfil.
+            </motion.p>
 
-            {/* Buscador interactivo en vivo */}
-            <div className="max-w-xl mx-auto relative pt-2">
+            {/* Buscador minimalista */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="max-w-lg mx-auto relative pt-2"
+            >
               <div className="relative flex items-center">
-                <Search className="w-5 h-5 absolute left-4 text-muted-foreground" />
+                <Search className="w-4 h-4 absolute left-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Buscar carrera (ej: Sistemas, Agronomía, Civil, Trabajo Social)..."
+                  placeholder="Buscar carrera (ej: Sistemas, Agronomía, Civil)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-4 border-foreground bg-card text-foreground font-bold text-sm shadow-[4px_4px_0_0_hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-primary placeholder:font-bold placeholder:text-muted-foreground/70"
+                  className="w-full pl-11 pr-20 py-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all placeholder:text-zinc-400"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-4 text-xs font-black uppercase px-2 py-1 bg-muted border border-foreground/30 rounded-md text-foreground hover:bg-muted/80"
+                    className="absolute right-3 text-xs font-medium px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 rounded-lg transition-colors cursor-pointer"
                   >
                     Limpiar
                   </button>
                 )}
               </div>
-            </div>
+            </motion.div>
 
-            {/* Micro badges informativos */}
-            <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs font-black text-muted-foreground uppercase">
-              {["Validado por estudiantes", "Mapas de Correlatividades", `${totalCareersCount} Planes disponibles`, "100% Gratuito"].map((t) => (
-                <span key={t} className="flex items-center gap-1.5 bg-card px-3 py-1 rounded-xl border-2 border-foreground/20 shadow-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  {t}
-                </span>
-              ))}
+            {/* Badges informativos */}
+            <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> Validado por estudiantes
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> {totalCareersCount} Planes disponibles
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> 100% Gratuito
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Barra de Filtros por Universidad (Tabs con logos oficiales) */}
-      <section className="sticky top-16 z-40 bg-card border-b-4 border-foreground py-3 shadow-[0_4px_0_0_hsl(var(--foreground))]">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Barra de Filtros por Universidad (Tabs modernas) */}
+      <section className="sticky top-16 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/60 dark:border-zinc-800/60 py-2.5 shadow-2xs">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             <button
               onClick={() => setSelectedUniversity("ALL")}
               className={cn(
-                "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-tight whitespace-nowrap border-2 transition-all cursor-pointer shrink-0",
+                "flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
                 selectedUniversity === "ALL"
-                  ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                  : "bg-background text-foreground border-foreground/30 hover:border-foreground"
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                  : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
               )}
             >
-              <Building2 className="w-4 h-4" />
+              <Building2 className="w-3.5 h-3.5" />
               <span>Todas ({totalCareersCount})</span>
             </button>
 
@@ -407,22 +447,22 @@ export default function Careers() {
                   key={uni.id}
                   onClick={() => setSelectedUniversity(uni.id)}
                   className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-tight whitespace-nowrap border-2 transition-all cursor-pointer shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
                     isSelected
-                      ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                      : "bg-background text-foreground border-foreground/30 hover:border-foreground"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                      : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
                   )}
                 >
-                  <div className="w-4 h-4 shrink-0 rounded-md overflow-hidden flex items-center justify-center">
-                    <UniversityLogo universityId={uni.id} className="w-4 h-4" />
+                  <div className="w-3.5 h-3.5 shrink-0 rounded-md overflow-hidden flex items-center justify-center">
+                    <UniversityLogo universityId={uni.id} className="w-3.5 h-3.5" />
                   </div>
                   <span>{uni.shortName}</span>
                   <span
                     className={cn(
-                      "text-[10px] px-1.5 py-0.2 rounded font-black border",
+                      "text-[10px] px-1.5 py-0.2 rounded-md font-medium",
                       isSelected
-                        ? "bg-background text-foreground border-transparent"
-                        : "bg-muted text-muted-foreground border-foreground/20"
+                        ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                        : "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400"
                     )}
                   >
                     {count}
@@ -436,12 +476,12 @@ export default function Careers() {
 
       {/* Contenido Principal: Separado por Universidad */}
       <main className="py-12 md:py-16 flex-1">
-        <div className="container mx-auto px-4 md:px-6 max-w-7xl space-y-16">
+        <div className="container mx-auto px-4 md:px-6 max-w-7xl space-y-14">
           {displayedUniversities.length === 0 ? (
-            <div className="text-center py-20 p-8 bg-card border-4 border-foreground rounded-3xl shadow-[8px_8px_0_0_hsl(var(--foreground))] max-w-md mx-auto space-y-4">
-              <Search className="w-12 h-12 text-muted-foreground mx-auto" />
-              <h3 className="text-xl font-black uppercase">No se encontraron carreras</h3>
-              <p className="text-sm font-bold text-muted-foreground">
+            <div className="text-center py-16 p-8 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs max-w-md mx-auto space-y-3">
+              <Search className="w-8 h-8 text-zinc-400 mx-auto" />
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron carreras</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
                 No hay coincidencias para "{searchQuery}". Intentá buscar con otro término o limpiá el filtro.
               </p>
               <button
@@ -449,7 +489,7 @@ export default function Careers() {
                   setSearchQuery("");
                   setSelectedUniversity("ALL");
                 }}
-                className="px-4 py-2 bg-[#00E5FF] text-black font-black uppercase text-xs rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] active:translate-y-[1px]"
+                className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium text-xs rounded-xl shadow-xs hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors cursor-pointer"
               >
                 Restablecer Filtros
               </button>
@@ -459,40 +499,39 @@ export default function Careers() {
               <section
                 key={uni.id}
                 id={`uni-${uni.id.toLowerCase()}`}
-                className="space-y-6 scroll-mt-36"
+                className="space-y-5 scroll-mt-36"
               >
-                {/* Encabezado prominente de la Universidad con Logo Oficial */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 md:p-6 bg-card border-4 border-foreground rounded-2xl shadow-[6px_6px_0_0_hsl(var(--foreground))]">
-                  <div className="flex items-center gap-4 min-w-0">
-                    {/* Logo Oficial Grande de la Universidad */}
-                    <div className="w-14 h-14 md:w-16 md:md:h-16 rounded-2xl flex items-center justify-center p-1.5 bg-background border-3 border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] shrink-0 hover:scale-105 transition-transform">
+                {/* Encabezado limpio de la Universidad con Logo */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 md:p-6 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shrink-0">
                       <UniversityLogo universityId={uni.id} className="w-full h-full" />
                     </div>
 
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-black text-xl md:text-2xl uppercase tracking-tight text-foreground truncate">
+                        <h2 className="font-semibold text-lg md:text-xl text-zinc-900 dark:text-zinc-100 truncate">
                           {uni.name}
                         </h2>
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-secondary text-foreground border border-foreground/30">
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
                           {uni.location}
                         </span>
                       </div>
-                      <p className="text-xs md:text-sm font-bold text-muted-foreground mt-0.5 truncate">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate font-normal">
                         {uni.facultyInfo}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <span className="px-3 py-1.5 rounded-xl bg-[#BFFF00] text-black border-2 border-foreground text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                    <span className="px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
                       {uni.careers.length} {uni.careers.length === 1 ? "Carrera" : "Carreras"}
                     </span>
                   </div>
                 </div>
 
-                {/* Grilla de Carreras de esta Universidad */}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {/* Grilla de Carreras */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                   {uni.careers.map((career) => {
                     const CareerIcon = career.icon;
 
@@ -500,59 +539,58 @@ export default function Careers() {
                       <Link
                         key={career.id}
                         to={`/carreras/${career.id}`}
-                        className="group relative p-5 bg-card rounded-2xl border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-3px] hover:shadow-[7px_7px_0_0_hsl(var(--foreground))] active:translate-y-[1px] transition-all flex flex-col justify-between h-full cursor-pointer"
+                        className="group relative p-5 bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full cursor-pointer"
                       >
                         <div>
-                          {/* Cabecera de la tarjeta: Icono temático + Mini logo oficial de la universidad */}
+                          {/* Cabecera de la tarjeta: Icono + Mini logo */}
                           <div className="flex items-center justify-between mb-3.5">
                             <div
-                              className="w-11 h-11 rounded-xl flex items-center justify-center p-2 border-2 border-foreground shadow-xs group-hover:scale-110 group-hover:-rotate-2 transition-transform"
+                              className="w-10 h-10 rounded-xl flex items-center justify-center p-2 border border-zinc-200/60 dark:border-zinc-700/60 transition-transform group-hover:scale-105"
                               style={{
-                                backgroundColor: `${career.color}18`,
+                                backgroundColor: `${career.color}14`,
                                 color: career.color,
                               }}
                             >
-                              <CareerIcon className="w-6 h-6" />
+                              <CareerIcon className="w-5 h-5" />
                             </div>
 
-                            {/* Badge oficial de la universidad con su logo */}
-                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-foreground/30 shadow-2xs">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800">
                               <div className="w-3.5 h-3.5 shrink-0">
                                 <UniversityLogo universityId={uni.id} className="w-3.5 h-3.5" />
                               </div>
-                              <span className="text-[10px] font-black uppercase text-foreground">
+                              <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
                                 {uni.shortName}
                               </span>
                             </div>
                           </div>
 
                           {/* Título de la Carrera */}
-                          <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-1.5">
+                          <h3 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 line-clamp-2 group-hover:text-blue-500 transition-colors mb-1">
                             {career.name}
                           </h3>
 
                           {/* Subtítulo de Facultad */}
-                          <p className="text-[11px] font-bold text-muted-foreground uppercase line-clamp-1 mb-3">
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal line-clamp-1 mb-3">
                             {career.faculty}
                           </p>
 
-                          {/* Datos métricos de la carrera */}
+                          {/* Datos métricos */}
                           <div className="grid grid-cols-2 gap-2 mb-4">
-                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-secondary/50 border border-foreground/15 text-[11px] font-bold text-foreground">
-                              <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                              <BookOpen className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                               <span>{career.subjectsCount} Materias</span>
                             </div>
-                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-secondary/50 border border-foreground/15 text-[11px] font-bold text-foreground">
-                              <Calendar className="w-3.5 h-3.5 text-[#ff9415] shrink-0" />
+                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                              <Calendar className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                               <span>{career.years} Años</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Botón inferior Ver Plan */}
-                        <div className="pt-3 border-t-2 border-foreground/15 flex items-center justify-between text-xs font-black uppercase text-foreground group-hover:text-primary transition-colors mt-auto">
+                        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs font-medium text-zinc-600 dark:text-zinc-400 group-hover:text-blue-500 transition-colors mt-auto">
                           <span>Ver Mapa y Plan</span>
-                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </Link>
                     );
@@ -565,39 +603,36 @@ export default function Careers() {
       </main>
 
       {/* Sección Herramientas integradas */}
-      <section className="py-16 md:py-20 bg-secondary/30 border-t-4 border-foreground">
+      <section className="py-16 md:py-20 bg-zinc-50/50 dark:bg-[#121212]/50 border-t border-zinc-200/80 dark:border-zinc-800/80">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-block px-3 py-1 rounded-md bg-[#ff9415]/15 border-2 border-[#ff9415] text-xs font-black uppercase text-[#ff9415] mb-3">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 text-xs font-medium mb-3">
               Herramientas Universitarias
             </span>
-            <h2 className="text-2xl md:text-4xl font-black uppercase text-foreground">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               Todo lo que necesitás para tu carrera
             </h2>
-            <p className="text-sm md:text-base font-bold text-muted-foreground mt-2">
-              Desde el primer año hasta tu tesis: mapa de correlatividades, apuntes, pomodoro y tutor de IA.
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-normal mt-2 leading-relaxed">
+              Desde el primer año hasta tu tesis: mapa de correlatividades, apuntes, pomodoro y tutor inteligente.
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: Layers, label: "Correlatividades", val: "Árbol Interactivo", color: "#1475e5" },
-              { icon: Clock, label: "Productividad", val: "Pomodoro Focus", color: "#ff9415" },
-              { icon: Target, label: "Seguimiento", val: "Métricas & Notas", color: "#48bd22" },
-              { icon: Sparkles, label: "Apoyo Académico", val: "Tutor IA Rioplatense", color: "#8b5cf6" },
+              { icon: Layers, label: "Correlatividades", val: "Árbol Interactivo" },
+              { icon: Clock, label: "Productividad", val: "Pomodoro Focus" },
+              { icon: Target, label: "Seguimiento", val: "Métricas & Notas" },
+              { icon: Sparkles, label: "Apoyo Académico", val: "Tutor IA Rioplatense" },
             ].map((item, i) => (
               <div
                 key={i}
-                className="p-5 bg-card rounded-2xl border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] text-center space-y-2"
+                className="p-5 bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs text-center space-y-2"
               >
-                <div
-                  className="w-10 h-10 rounded-xl mx-auto flex items-center justify-center border-2 border-foreground"
-                  style={{ backgroundColor: `${item.color}15`, color: item.color }}
-                >
-                  <item.icon className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl mx-auto flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-700 dark:text-zinc-300">
+                  <item.icon className="w-4 h-4" />
                 </div>
-                <div className="text-[10px] uppercase font-black text-muted-foreground">{item.label}</div>
-                <div className="text-xs md:text-sm font-black text-foreground">{item.val}</div>
+                <div className="text-[10px] uppercase font-medium text-zinc-400">{item.label}</div>
+                <div className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.val}</div>
               </div>
             ))}
           </div>
@@ -605,23 +640,23 @@ export default function Careers() {
       </section>
 
       {/* Banner Call-to-action ¿No encontrás tu carrera? */}
-      <section className="py-16 bg-card border-t-4 border-foreground">
+      <section className="py-14 bg-white dark:bg-zinc-950 border-t border-zinc-200/80 dark:border-zinc-800/80">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="p-8 md:p-12 rounded-3xl bg-[#FFD700] text-black border-4 border-black shadow-[8px_8px_0_0_#000] flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="space-y-3 max-w-xl text-center md:text-left">
-              <span className="px-3 py-1 bg-black text-white rounded-full text-xs font-black uppercase">
+          <div className="p-8 sm:p-10 rounded-3xl bg-zinc-900 text-white dark:bg-[#181818] border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+            <div className="space-y-2 text-center md:text-left max-w-xl">
+              <span className="px-2.5 py-1 bg-white/10 rounded-full text-[11px] font-medium text-zinc-300 border border-white/15">
                 Plan Personalizado
               </span>
-              <h3 className="text-2xl md:text-4xl font-black uppercase leading-tight">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
                 ¿No encontrás tu carrera o universidad?
               </h3>
-              <p className="font-bold text-sm md:text-base text-black/80">
-                Con TABE podés crear tu propio plan en segundos. Subí tu PDF o cargá tus materias y dejá que nuestra IA gestione tus correlatividades y calendario.
+              <p className="text-xs sm:text-sm text-zinc-400 font-normal leading-relaxed">
+                Con TABE podés crear tu propio plan en segundos. Subí tu PDF o cargá tus materias y gestioná tus correlatividades y calendario.
               </p>
             </div>
             <Link
               to="/registro"
-              className="px-6 py-3.5 bg-black text-white hover:bg-black/90 font-black uppercase text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#fff] hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center gap-2 shrink-0"
+              className="px-5 py-2.5 bg-white text-zinc-900 hover:bg-zinc-100 font-medium text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 shrink-0 shadow-xs cursor-pointer"
             >
               <span>Crear mi Plan Gratis</span>
               <ArrowRight className="w-4 h-4" />

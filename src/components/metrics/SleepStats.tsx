@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSleepLogs, SleepLog } from "@/hooks/useSleepLogs";
 import { DateRange } from "@/components/metrics/DateRangeFilter";
 import { 
-  differenceInDays, eachDayOfInterval, format, 
+  differenceInDays, format, 
   parseISO, subDays 
 } from "date-fns";
 import { es } from "date-fns/locale";
@@ -89,7 +89,6 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     return `${h}h ${m}m`;
   };
 
-  // Safe days interval (clamped up to 31 days for clean chart display)
   const chartDays = useMemo(() => {
     const to = dateRange.to ? dateRange.to : new Date();
     const from = dateRange.from ? dateRange.from : subDays(to, 6);
@@ -136,14 +135,14 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 animate-pulse">
-              <div className="w-10 h-10 bg-muted rounded-xl mb-3 border-2 border-foreground/20" />
-              <div className="h-6 bg-muted rounded w-20 mb-2 border border-foreground/10" />
-              <div className="h-4 bg-muted rounded w-28 border border-foreground/10" />
+            <div key={i} className="neo-bento-card p-5 animate-pulse">
+              <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-3" />
+              <div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded w-20 mb-2" />
+              <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded w-28" />
             </div>
           ))}
         </div>
-        <div className="h-64 bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6 animate-pulse" />
+        <div className="h-64 neo-bento-card p-6 animate-pulse" />
       </div>
     );
   }
@@ -152,139 +151,145 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
     <div className="space-y-6">
       {/* Header Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 border-2 border-foreground rounded-lg bg-[#C688EB] flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform shrink-0">
-              <TrendingUp className="w-6 h-6 text-black" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground uppercase font-bold">Promedio</p>
-              <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter truncate">
-                {formatHours(avgHours)}
-              </p>
+        <div className="neo-bento-card p-5 group">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Promedio diario</span>
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-indigo-500" />
             </div>
           </div>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {formatHours(avgHours)}
+          </p>
+          <p className="text-[11px] text-zinc-400 mt-1">Horas de descanso</p>
         </div>
 
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#BFFF00] flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform shrink-0">
-              <Star className="w-5 h-5 text-black" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-muted-foreground uppercase">Sueño Bueno</p>
-              <p className="text-xl sm:text-2xl font-black text-foreground">{qualityCounts.buena} días</p>
+        <div className="neo-bento-card p-5 group">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Descanso Bueno</span>
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+              <Star className="w-4 h-4 text-emerald-500 fill-emerald-500/20" />
             </div>
           </div>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {qualityCounts.buena} <span className="text-sm font-normal text-zinc-400">días</span>
+          </p>
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Reparador y continuo</p>
         </div>
 
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#FFD700] flex items-center justify-center -rotate-3 group-hover:rotate-0 transition-transform shrink-0">
-              <CloudMoon className="w-5 h-5 text-black" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-muted-foreground uppercase">Sueño Regular</p>
-              <p className="text-xl sm:text-2xl font-black text-foreground">{qualityCounts.regular} días</p>
+        <div className="neo-bento-card p-5 group">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Descanso Regular</span>
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+              <CloudMoon className="w-4 h-4 text-amber-500" />
             </div>
           </div>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {qualityCounts.regular} <span className="text-sm font-normal text-zinc-400">días</span>
+          </p>
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">Interrupciones leves</p>
         </div>
 
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-5 hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all group">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-foreground rounded-lg bg-[#FF5C5C] flex items-center justify-center rotate-3 group-hover:rotate-0 transition-transform shrink-0">
-              <AlertTriangle className="w-5 h-5 text-black" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-muted-foreground uppercase">Sueño Malo</p>
-              <p className="text-xl sm:text-2xl font-black text-foreground">{qualityCounts.mala} días</p>
+        <div className="neo-bento-card p-5 group">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Descanso Insuficiente</span>
+            <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-rose-500" />
             </div>
           </div>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {qualityCounts.mala} <span className="text-sm font-normal text-zinc-400">días</span>
+          </p>
+          <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-medium">Insomnio o déficit</p>
         </div>
       </div>
 
       {/* Main Chart Card */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6 border-b-4 border-foreground pb-4">
-            <div className="flex items-center gap-2.5">
-              <MoonStar className="w-6 h-6 text-foreground" strokeWidth={3} />
-              <h2 className="font-black uppercase text-lg sm:text-xl text-foreground">Horas de Sueño</h2>
-            </div>
-            <Button 
-              onClick={handleAdd}
-              className="bg-[#C688EB] text-black border-2 border-foreground hover:bg-[#b56fe0] hover:translate-y-[-1px] shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all font-black text-xs uppercase h-10 gap-2 rounded-lg"
-            >
-              <Plus className="w-4 h-4" strokeWidth={3} />
-              Registrar Sueño
-            </Button>
-          </div>
-
-          {logs.length === 0 ? (
-            <div className="h-48 flex flex-col items-center justify-center text-center p-4">
-              <div className="w-12 h-12 bg-[#C688EB]/20 border-2 border-foreground/30 rounded-xl flex items-center justify-center mb-3">
-                <Moon className="w-6 h-6 text-foreground opacity-60" strokeWidth={2.5} />
+        <div className="lg:col-span-2 neo-bento-card p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">
+              <div className="flex items-center gap-2">
+                <MoonStar className="w-4 h-4 text-indigo-500" />
+                <h2 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Horas de Descanso por Noche
+                </h2>
               </div>
-              <p className="text-foreground font-black uppercase text-sm">No hay registros para este periodo</p>
-              <p className="text-muted-foreground font-bold text-xs uppercase mt-0.5 mb-3">
-                Empieza a registrar tus horas de descanso
-              </p>
               <button 
                 onClick={handleAdd}
-                className="bg-[#BFFF00] text-black font-black uppercase text-xs px-4 py-2 border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:translate-y-[-1px] rounded-lg transition-all"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-xs px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
               >
-                Cargar mi primer sueño
+                <Plus className="w-3.5 h-3.5" />
+                Registrar Descanso
               </button>
             </div>
-          ) : (
-            <div className="flex items-end justify-between gap-1 sm:gap-2 h-48 overflow-x-auto pb-2 px-1 no-scrollbar">
-              {chartData.map((item, idx) => (
-                <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[55px] flex flex-col items-center justify-end gap-1.5 h-full group relative">
-                  <div className="w-full flex-1 flex flex-col justify-end">
-                    <div
-                      className={cn(
-                        "w-full transition-all duration-300 rounded-t-sm relative border-2 border-foreground",
-                        item.calidad === 'buena' ? "bg-[#BFFF00] border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" :
-                        item.calidad === 'regular' ? "bg-[#FFD700] border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" :
-                        item.calidad === 'mala' ? "bg-[#FF5C5C] border-b-0 shadow-[2px_0_0_0_hsl(var(--foreground))]" :
-                        "bg-muted/60 border-border/40"
-                      )}
-                      style={{
-                        height: `${Math.min(Math.max((item.horas / 12) * 100, item.horas > 0 ? 8 : 4), 100)}%`,
-                      }}
-                    >
-                      {item.horas > 0 && (
-                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background px-2 py-1 rounded text-[10px] font-black whitespace-nowrap z-20 pointer-events-none shadow-md">
-                          {formatHours(item.horas)} · {item.calidad || 'Registrado'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black text-foreground uppercase leading-tight">{item.label}</span>
-                  <span className="text-[9px] font-bold text-muted-foreground leading-tight">{item.sublabel}</span>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <div className="mt-6 pt-5 border-t-4 border-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {logs.length === 0 ? (
+              <div className="h-48 flex flex-col items-center justify-center text-center p-4">
+                <div className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-2.5">
+                  <Moon className="w-5 h-5 text-zinc-400" />
+                </div>
+                <p className="text-zinc-700 dark:text-zinc-300 font-medium text-sm">No hay registros para este período</p>
+                <p className="text-zinc-400 text-xs mt-0.5 mb-3">
+                  Empieza a registrar tus horas de descanso
+                </p>
+                <button 
+                  onClick={handleAdd}
+                  className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-medium text-xs px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 transition-colors cursor-pointer"
+                >
+                  Cargar mi primer registro
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-end justify-between gap-1 sm:gap-2 h-48 overflow-x-auto pb-2 px-1 no-scrollbar border-b border-zinc-100 dark:border-zinc-800/80">
+                {chartData.map((item, idx) => (
+                  <div key={`${item.date}-${idx}`} className="flex-1 min-w-[28px] max-w-[50px] flex flex-col items-center justify-end gap-1.5 h-full group relative">
+                    <div className="w-full flex-1 flex flex-col justify-end">
+                      <div
+                        className={cn(
+                          "w-full transition-all duration-300 rounded-t-md relative",
+                          item.calidad === 'buena' ? "bg-emerald-500" :
+                          item.calidad === 'regular' ? "bg-amber-500" :
+                          item.calidad === 'mala' ? "bg-rose-500" :
+                          "bg-zinc-100 dark:bg-zinc-800/60"
+                        )}
+                        style={{
+                          height: `${Math.min(Math.max((item.horas / 12) * 100, item.horas > 0 ? 8 : 4), 100)}%`,
+                        }}
+                      >
+                        {item.horas > 0 && (
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap z-20 pointer-events-none shadow-md">
+                            {formatHours(item.horas)} · {item.calidad || 'Registrado'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400 leading-tight">{item.label}</span>
+                    <span className="text-[9px] text-zinc-400 leading-tight">{item.sublabel}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase mb-0.5">Total descansado en el periodo</p>
-              <p className="text-2xl sm:text-3xl font-black text-foreground">
+              <p className="text-xs text-zinc-400 font-medium">Total descansado en el período</p>
+              <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {formatHours(logs.reduce((acc, l) => acc + (Number(l.horas) || 0), 0))}
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs font-black uppercase text-foreground">
+            <div className="flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
               <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 border-2 border-foreground rounded-sm bg-[#BFFF00]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                 <span>Bueno</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 border-2 border-foreground rounded-sm bg-[#FFD700]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <span>Regular</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-3.5 h-3.5 border-2 border-foreground rounded-sm bg-[#FF5C5C]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                 <span>Malo</span>
               </div>
             </div>
@@ -292,22 +297,26 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
         </div>
 
         {/* Sleep Quality & Advice Card */}
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6 flex flex-col justify-between">
+        <div className="neo-bento-card p-6 flex flex-col justify-between">
           <div>
-            <h3 className="font-black uppercase text-lg sm:text-xl text-foreground mb-4 border-b-2 border-foreground/20 pb-3 flex items-center gap-2">
-              <Moon className="w-5 h-5 text-foreground" /> Análisis de Higiene
+            <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3 flex items-center gap-2">
+              <Moon className="w-4 h-4 text-indigo-500" /> Análisis de Higiene
             </h3>
 
-            <div className="space-y-4">
-              <div className="p-3.5 rounded-xl border-2 border-foreground bg-muted/40">
-                <p className="text-xs font-black uppercase text-foreground mb-1">Objetivo Diario</p>
-                <p className="text-xs font-bold text-muted-foreground">
+            <div className="space-y-3.5">
+              <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-850/40">
+                <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Objetivo Diario</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   7 a 9 horas por noche para una consolidación óptima de la memoria y agilidad mental.
                 </p>
                 <div className="mt-3 flex items-center gap-2">
                   <div className={cn(
-                    "text-xs font-black px-2.5 py-1 rounded-md border-2 border-foreground",
-                    avgHours >= 7 ? "bg-[#BFFF00] text-black" : avgHours >= 6 ? "bg-[#FFD700] text-black" : "bg-[#FF5C5C] text-black"
+                    "text-xs font-semibold px-2.5 py-1 rounded-md border",
+                    avgHours >= 7 
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" 
+                      : avgHours >= 6 
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" 
+                      : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
                   )}>
                     {avgHours >= 7 ? "✓ En rango ideal" : avgHours >= 6 ? "⚠ Descanso ajustado" : "✗ Déficit de sueño"}
                   </div>
@@ -315,9 +324,9 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
               </div>
 
               {avgHours > 0 && avgHours < 7 && (
-                <div className="p-3.5 bg-[#FFD700] text-black rounded-xl border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                  <p className="text-xs font-black uppercase">Consejo de Rendimiento</p>
-                  <p className="text-[11px] font-bold mt-1 text-black/80">
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 rounded-xl">
+                  <p className="text-xs font-semibold">Consejo de Rendimiento</p>
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
                     Dormir menos de 7 horas reduce la retención a largo plazo hasta un 30%. Intenta adelantar 30 minutos tu hora de acostarte.
                   </p>
                 </div>
@@ -325,8 +334,8 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
             </div>
           </div>
 
-          <div className="pt-4 border-t-2 border-foreground/20 mt-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase text-center">
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-4">
+            <p className="text-[11px] text-zinc-400 text-center">
               Los registros se sincronizan con tus métricas de enfoque
             </p>
           </div>
@@ -335,8 +344,8 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
 
       {/* History Log Table */}
       {logs.length > 0 && (
-        <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-6">
-          <h3 className="font-black uppercase text-lg sm:text-xl text-foreground mb-4 border-b-2 border-foreground/20 pb-3">
+        <div className="neo-bento-card p-6">
+          <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100 mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
             Historial de Noches Registradas ({logs.length})
           </h3>
 
@@ -344,41 +353,41 @@ export function SleepStats({ dateRange }: SleepStatsProps) {
             {logs.slice().reverse().map(log => (
               <div 
                 key={log.id}
-                className="flex items-center justify-between p-3 rounded-lg border-2 border-foreground bg-muted/30 hover:bg-muted/60 transition-colors"
+                className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-850/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
-                    "w-3 h-3 rounded-full border border-foreground",
-                    log.calidad === 'buena' ? "bg-[#BFFF00]" :
-                    log.calidad === 'regular' ? "bg-[#FFD700]" : "bg-[#FF5C5C]"
+                    "w-2.5 h-2.5 rounded-full shrink-0",
+                    log.calidad === 'buena' ? "bg-emerald-500" :
+                    log.calidad === 'regular' ? "bg-amber-500" : "bg-rose-500"
                   )} />
                   <div>
-                    <p className="font-black text-sm uppercase text-foreground">
+                    <p className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">
                       {format(parseISO(log.fecha), "EEEE d 'de' MMMM", { locale: es })}
                     </p>
-                    <p className="text-xs font-bold text-muted-foreground uppercase">
+                    <p className="text-[11px] text-zinc-400 capitalize">
                       Calidad {log.calidad}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-black text-base text-foreground bg-card border-2 border-foreground px-2.5 py-0.5 rounded-lg shadow-[1px_1px_0_0_hsl(var(--foreground))]">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700 px-2.5 py-0.5 rounded-md">
                     {formatHours(log.horas)}
                   </span>
                   <button
                     onClick={() => handleEdit(log)}
-                    className="p-1.5 rounded-lg bg-[#FFD700] border-2 border-foreground text-black hover:translate-y-[-1px] transition-all"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     title="Editar registro"
                   >
-                    <Pencil className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(log)}
-                    className="p-1.5 rounded-lg bg-[#FF5C5C] border-2 border-foreground text-black hover:translate-y-[-1px] transition-all"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
                     title="Eliminar registro"
                   >
-                    <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>

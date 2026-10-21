@@ -6,7 +6,58 @@ const LOCAL_TASKS_KEY = "tabe_guest_study_tasks";
 function getLocalTasks(): StudyTask[] {
   try {
     const raw = localStorage.getItem(LOCAL_TASKS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) return JSON.parse(raw);
+    const initialDemo: StudyTask[] = [
+      {
+        id: "demo-task-1",
+        user_id: "guest",
+        subject_id: null,
+        titulo: "Resolver guía de ejercicios prácticos",
+        descripcion: "Completar los ejercicios 1 al 15 de la guía práctica.",
+        estado: "todo",
+        prioridad: "alta",
+        fecha_limite: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+        pomodoros_estimados: 2,
+        pomodoros_completados: 0,
+        posicion: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subjects: { id: "demo-s1", nombre: "Análisis I", codigo: "AM1" },
+      },
+      {
+        id: "demo-task-2",
+        user_id: "guest",
+        subject_id: null,
+        titulo: "Repasar fórmulas para examen global",
+        descripcion: "Leyes de termodinámica y óptica.",
+        estado: "todo",
+        prioridad: "media",
+        fecha_limite: new Date(Date.now() + 172800000).toISOString().split("T")[0],
+        pomodoros_estimados: 3,
+        pomodoros_completados: 1,
+        posicion: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subjects: { id: "demo-s2", nombre: "Física II", codigo: "F2" },
+      },
+      {
+        id: "demo-task-3",
+        user_id: "guest",
+        subject_id: null,
+        titulo: "Descargar apuntes y bibliografía de la unidad 3",
+        descripcion: "Revisar lecturas recomendadas.",
+        estado: "todo",
+        prioridad: "baja",
+        fecha_limite: null,
+        pomodoros_estimados: 1,
+        pomodoros_completados: 0,
+        posicion: 2,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+    saveLocalTasks(initialDemo);
+    return initialDemo;
   } catch {
     return [];
   }

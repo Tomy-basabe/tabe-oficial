@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, Clock, Check, X, Sparkles, Zap, Trophy, Volume2, Square } from "lucide-react";
+import { ChevronLeft, Clock, Check, X, Zap, Volume2, VolumeX, RotateCw, Sparkles, FastForward } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { cn } from "@/lib/utils";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 
 interface Flashcard {
   id: string;
@@ -38,13 +39,14 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [flyingCardIndex, setFlyingCardIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const cardCount = Math.min(cards.length, 12);
 
-  // Spaced repetition shuffle
+  // Spaced repetition shuffle: prioriza las cartas con mayor tasa de error
   useEffect(() => {
     const cardsWithPriority = cards.map(card => {
       const totalAttempts = card.veces_correcta + card.veces_incorrecta;
@@ -67,19 +69,25 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
     setRemainingIndices(sorted.map((_, i) => i));
   }, [cards]);
 
-  // Shuffle animation timeline
+  // Cronograma de animación de shuffle inicial
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
-    timers.push(setTimeout(() => setShufflePhase("riffle"), 900));
-    timers.push(setTimeout(() => setShufflePhase("stack"), 2300));
-    timers.push(setTimeout(() => setShufflePhase("ready"), 3100));
+    timers.push(setTimeout(() => setShufflePhase("riffle"), 700));
+    timers.push(setTimeout(() => setShufflePhase("stack"), 1600));
+    timers.push(setTimeout(() => setShufflePhase("ready"), 2300));
     timers.push(setTimeout(() => {
       setShufflePhase("done");
       setIsShuffling(false);
       setStudyPhase("picking");
-    }, 3600));
+    }, 2800));
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
+
+  const skipShuffleAnimation = () => {
+    setShufflePhase("done");
+    setIsShuffling(false);
+    setStudyPhase("picking");
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -87,7 +95,7 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // User picks a card from the spread
+  // Seleccionar carta del abanico
   const handlePickCard = useCallback((cardIdx: number) => {
     if (studyPhase !== "picking") return;
     setSelectedIndex(cardIdx);
@@ -95,92 +103,135 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
     setStudyPhase("viewing");
   }, [studyPhase]);
 
-  // User answers (correct or incorrect)
+  // Calificar respuesta
   const handleResult = useCallback(async (status: 'correct' | 'partial' | 'incorrect') => {
     if (selectedIndex === null) return;
+
+    if (isSpeaking) {
+      stop();
+    }
 
     if (status === 'correct') {
       setCorrectCount(prev => prev + 1);
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 1200);
-    } else if (status === 'partial') {
-      // Maybe some subtle animation for partial?
+      setTimeout(() => setShowConfetti(false), 900);
+    } else if (status === 'incorrect') {
+      setIncorrectCount(prev => prev + 1);
     }
 
     setStudyPhase("animating");
     setFlyingCardIndex(selectedIndex);
     await onCardResult(shuffledCards[selectedIndex].id, status);
 
-    // After animation, move card to completed pile
+    // Mover carta al mazo de completadas
     setTimeout(() => {
-      setCompletedIndices(prev => [...prev, selectedIndex!]);
+      setCompletedIndices(prev => [...prev, selectedIndex]);
       setRemainingIndices(prev => prev.filter(i => i !== selectedIndex));
       setFlyingCardIndex(null);
       setSelectedIndex(null);
       setIsFlipped(false);
 
-      // Check if all cards are done
       const newRemaining = remainingIndices.filter(i => i !== selectedIndex);
       if (newRemaining.length === 0) {
         onComplete();
       } else {
         setStudyPhase("picking");
       }
-    }, 700);
-  }, [selectedIndex, onCardResult, onComplete, remainingIndices]);
+    }, 450);
+  }, [selectedIndex, isSpeaking, stop, onCardResult, shuffledCards, remainingIndices, onComplete]);
 
-  // Go back to picking (deselect card)
+  // Deseleccionar y volver al mazo
   const handleBackToPicking = useCallback(() => {
+    if (isSpeaking) stop();
     setSelectedIndex(null);
     setIsFlipped(false);
     setStudyPhase("picking");
-  }, []);
+  }, [isSpeaking, stop]);
+
+  // Atajos de teclado para flujo de estudio
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (studyPhase !== "viewing" || selectedIndex === null) return;
+
+      if (e.code === "Space" || e.key === "Enter") {
+        e.preventDefault();
+        setIsFlipped(prev => !prev);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleBackToPicking();
+      } else if (isFlipped) {
+        if (e.key === "1") {
+          e.preventDefault();
+          handleResult("incorrect");
+        } else if (e.key === "2") {
+          e.preventDefault();
+          handleResult("partial");
+        } else if (e.key === "3") {
+          e.preventDefault();
+          handleResult("correct");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [studyPhase, selectedIndex, isFlipped, handleBackToPicking, handleResult]);
 
   const totalCards = shuffledCards.length;
   const answeredCount = completedIndices.length;
   const progress = totalCards > 0 ? (answeredCount / totalCards) * 100 : 0;
   const selectedCard = selectedIndex !== null ? shuffledCards[selectedIndex] : null;
 
-  // Shuffle animation card styles
+  // Manejo de lectura en voz alta
+  const handleToggleSpeak = (e: React.MouseEvent, text: string) => {
+    e.stopPropagation();
+    if (isSpeaking) {
+      stop();
+    } else {
+      speak(text);
+    }
+  };
+
+  // Estilos de la baraja durante la animación inicial
   const getShuffleCardStyle = (i: number): React.CSSProperties => {
     const total = cardCount;
     const mid = (total - 1) / 2;
 
     switch (shufflePhase) {
       case "fan-out": {
-        const angle = (i - mid) * 12;
-        const yOffset = Math.pow(Math.abs(i - mid), 2) * 3;
+        const angle = (i - mid) * 9;
+        const yOffset = Math.pow(Math.abs(i - mid), 2) * 2.2;
         return {
           transform: `rotate(${angle}deg) translateY(${-yOffset}px)`,
-          transformOrigin: "center 200%",
-          transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-          transitionDelay: `${i * 40}ms`,
+          transformOrigin: "center 180%",
+          transition: "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transitionDelay: `${i * 25}ms`,
           zIndex: i,
         };
       }
       case "riffle": {
         const isLeft = i % 2 === 0;
         const halfIndex = Math.floor(i / 2);
-        const yPos = halfIndex * -3;
+        const yPos = halfIndex * -2;
         return {
-          transform: `translateX(${isLeft ? -80 : 80}px) translateY(${yPos}px) rotate(${isLeft ? -3 : 3}deg)`,
-          transition: "all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-          transitionDelay: `${i * 50}ms`,
+          transform: `translateX(${isLeft ? -50 : 50}px) translateY(${yPos}px) rotate(${isLeft ? -3 : 3}deg)`,
+          transition: "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          transitionDelay: `${i * 30}ms`,
           zIndex: total - i,
         };
       }
       case "stack": {
         return {
-          transform: `translateX(0) translateY(${-i * 2}px) rotate(0deg)`,
-          transition: "all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
-          transitionDelay: `${(total - i) * 30}ms`,
+          transform: `translateX(0) translateY(${-i * 1.5}px) rotate(0deg)`,
+          transition: "all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transitionDelay: `${(total - i) * 18}ms`,
           zIndex: total - i,
         };
       }
       case "ready": {
         return {
-          transform: `translateY(${-i * 2}px) scale(${1 + (total - i) * 0.003})`,
-          transition: "all 0.4s ease-out",
+          transform: `translateY(${-i * 1.5}px) scale(${1 + (total - i) * 0.002})`,
+          transition: "all 0.25s ease-out",
           zIndex: total - i,
         };
       }
@@ -191,359 +242,395 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
 
   const phaseText = useMemo(() => {
     switch (shufflePhase) {
-      case "fan-out": return "Extendiendo las cartas...";
-      case "riffle": return "Mezclando el mazo...";
-      case "stack": return "Apilando las cartas...";
+      case "fan-out": return "Preparando tarjetas...";
+      case "riffle": return "Optimizando según repaso espaciado...";
+      case "stack": return "Apilando mazo...";
       case "ready": return "¡Listo para estudiar!";
       default: return "";
     }
   }, [shufflePhase]);
 
-  // ─────────── SHUFFLE ANIMATION SCREEN ───────────
+  // ─────────── PANTALLA DE SHUFFLE MINIMALISTA NOTION ───────────
   if (isShuffling) {
     return (
-      <div className="p-4 lg:p-8 min-h-screen flex flex-col items-center justify-center overflow-hidden bg-background">
-        <h2 className="font-black text-2xl lg:text-3xl uppercase tracking-tight text-foreground bg-[#00ffcc] px-6 py-2 border-[4px] border-foreground shadow-[6px_6px_0_0_#000] rounded-xl mb-12 relative z-10 text-center">
-          {deckName}
-        </h2>
+      <div className="p-4 lg:p-8 min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#191919]">
+        <div className="text-center mb-8 max-w-sm">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1 block">
+            Sesión de Estudio
+          </span>
+          <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
+            {deckName}
+          </h2>
+        </div>
 
-        <div className="relative w-40 h-56 lg:w-48 lg:h-64 mb-12">
+        <div className="relative w-40 h-56 sm:w-44 sm:h-60 mb-8">
           {[...Array(cardCount)].map((_, i) => (
             <div
               key={i}
-              className={cn(
-                "absolute inset-0 rounded-2xl overflow-hidden",
-                shufflePhase === "ready" && ""
-              )}
+              className="absolute inset-0 rounded-2xl overflow-hidden"
               style={getShuffleCardStyle(i)}
             >
-              <div
-                className="w-full h-full rounded-2xl border-[3px] border-foreground flex items-center justify-center relative bg-background"
-                style={{
-                  boxShadow: shufflePhase === "ready" ? '4px 4px 0 0 #000' : 'none',
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" className="w-16 h-20">
-                    <path d="M 5 15 H 95 V 40 H 65 V 110 L 50 95 L 35 110 V 40 H 5 Z" fill="#18181b" stroke="#18181b" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <div className="absolute bottom-3 right-3 text-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>
-                  </svg>
+              <div className="w-full h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] shadow-2xs flex flex-col items-center justify-center p-4 relative">
+                <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+                  <TabeLogo size={26} className="object-contain" />
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        <p className={cn(
-          "font-black text-xl lg:text-2xl uppercase tracking-widest transition-all duration-500 relative z-10 px-6 py-2 rounded-xl border-[3px] border-foreground",
-          shufflePhase === "ready" ? "bg-[#ffd21c] text-black shadow-[4px_4px_0_0_#000]" : "bg-background text-foreground"
-        )}>
+        <p className="text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-all duration-300 mb-1.5">
           {phaseText}
         </p>
 
-        <p className="font-black text-xs uppercase tracking-widest text-muted-foreground mt-6 relative z-10">
-          {cards.length} TARJETAS · LAS MÁS DIFÍCILES PRIMERO
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono mb-5">
+          {cards.length} {cards.length === 1 ? "tarjeta" : "tarjetas"}
         </p>
 
-        <div className="flex gap-3 mt-8 relative z-10">
-          {(["fan-out", "riffle", "stack", "ready"] as ShufflePhase[]).map((phase, i) => (
-            <div
-              key={phase}
-              className={cn(
-                "w-3 h-3 rounded-none border-[2px] border-foreground transition-all duration-300",
-                shufflePhase === phase
-                  ? "bg-[#00ffcc] w-8 shadow-[2px_2px_0_0_#000]"
-                  : (["fan-out", "riffle", "stack", "ready"].indexOf(shufflePhase) > i
-                    ? "bg-[#00ffcc]"
-                    : "bg-muted")
-              )}
-            />
-          ))}
-        </div>
+        {/* Botón para saltar animación */}
+        <button
+          onClick={skipShuffleAnimation}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-100 dark:bg-zinc-800/60 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-zinc-200/60 dark:border-zinc-700/60"
+        >
+          <FastForward className="w-3.5 h-3.5" />
+          Empezar ahora
+        </button>
       </div>
     );
   }
+
+  // ─────────── CANVAS DE ESTUDIO ZEN ───────────
   return (
-    <div className="p-4 lg:p-8 min-h-screen relative overflow-hidden">
-      {/* Confetti effect (optional, keep it simple for neo-brutalism) */}
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen relative overflow-hidden bg-white dark:bg-[#191919] flex flex-col justify-between">
+      {/* Micro confetti minimalista al acertar */}
       {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          {[...Array(20)].map((_, i) => (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          {[...Array(14)].map((_, i) => (
             <div
               key={i}
-              className="absolute animate-confetti w-3 h-3 border-[2px] border-foreground shadow-[2px_2px_0_0_#000]"
+              className="absolute animate-fade-in w-1.5 h-1.5 rounded-full"
               style={{
-                left: `${10 + Math.random() * 80}%`,
-                animationDelay: `${Math.random() * 0.3}s`,
-                background: i % 3 === 0 ? '#ffd21c' : i % 3 === 1 ? '#00ffcc' : '#ef4444'
+                left: `${25 + Math.random() * 50}%`,
+                top: `${30 + Math.random() * 40}%`,
+                background: i % 2 === 0 ? '#10b981' : '#3b82f6',
+                opacity: 0.8,
               }}
             />
           ))}
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 z-10 relative">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onExit}
-            className="flex items-center justify-center w-10 h-10 bg-background text-foreground border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] hover:bg-muted transition-all active:translate-y-1 active:shadow-none"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <h2 className="font-black text-2xl uppercase tracking-tight text-foreground bg-[#00ffcc] px-4 py-1 border-[3px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl truncate max-w-[200px] sm:max-w-xs">
-            {deckName}
-          </h2>
+      {/* Cabecera Zen */}
+      <div className="max-w-4xl w-full mx-auto mb-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onExit}
+              title="Salir del modo de estudio"
+              className="w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <h2 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate max-w-[220px] sm:max-w-sm" title={deckName}>
+              {deckName}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Contadores aciertos / fallos */}
+            <div className="flex items-center gap-1.5 text-xs font-mono">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                <Check className="w-3 h-3" />
+                {correctCount}
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60">
+                <X className="w-3 h-3" />
+                {incorrectCount}
+              </span>
+            </div>
+
+            {/* Temporizador */}
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+              <Clock className="w-3 h-3 text-zinc-400" />
+              <span>{formatTime(studyTime)}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-xl border-[3px] border-foreground shadow-[4px_4px_0_0_#000]">
-            <Clock className="w-5 h-5 text-foreground" />
-            <span className="font-black text-lg text-foreground uppercase tracking-widest">{formatTime(studyTime)}</span>
+        {/* Barra de progreso fina */}
+        <div className="space-y-1">
+          <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+            <span>Progreso</span>
+            <span>{answeredCount} / {totalCards} ({Math.round(progress)}%)</span>
           </div>
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center justify-between mb-4 z-10 relative">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 bg-[#00ffcc] text-black px-3 py-1 rounded-lg border-[2px] border-foreground shadow-[2px_2px_0_0_#000]">
-            <Check className="w-5 h-5" />
-            <span className="font-black text-sm">{correctCount}</span>
-          </span>
-          <span className="flex items-center gap-2 bg-[#ef4444] text-white px-3 py-1 rounded-lg border-[2px] border-foreground shadow-[2px_2px_0_0_#000]">
-            <X className="w-5 h-5" />
-            <span className="font-black text-sm">{answeredCount - correctCount}</span>
-          </span>
-        </div>
-        <span className="text-foreground font-black text-sm px-3 py-1 bg-[#ffd21c] border-[2px] border-foreground shadow-[2px_2px_0_0_#000] rounded-lg">
-          {answeredCount} / {totalCards}
-        </span>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="h-4 bg-background rounded-full mb-8 overflow-hidden relative border-[3px] border-foreground shadow-[4px_4px_0_0_#000] z-10">
+      {/* ── ÁREA PRINCIPAL: Abanico o Tarjeta Activa ── */}
+      <div className="flex-1 flex flex-col items-center justify-center relative w-full max-w-4xl mx-auto py-2">
+        {/* Backdrop al enfocar una tarjeta */}
         <div
-          className="h-full bg-[#ffd21c] transition-all duration-700 ease-out border-r-[3px] border-foreground"
-          style={{ width: `${progress}%` }}
+          className={cn(
+            "fixed inset-0 bg-black/40 backdrop-blur-xs z-40 transition-opacity duration-300",
+            (studyPhase === "viewing" || studyPhase === "animating") ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={studyPhase === "viewing" && !isFlipped ? handleBackToPicking : undefined}
         />
-      </div>
 
-      {/* ── UNIFIED MODE: Spread & Active Card ── */}
-      {(studyPhase === "picking" || studyPhase === "viewing" || studyPhase === "answered" || studyPhase === "animating") && (
-        <>
-          {/* Backdrop when a card is active */}
-          <div 
-            className={cn(
-              "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity duration-500",
-              (studyPhase === "viewing" || studyPhase === "animating") ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-            )}
-            onClick={studyPhase === "viewing" && !isFlipped ? handleBackToPicking : undefined}
-          />
+        {studyPhase === "picking" && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mb-4 animate-fade-in flex items-center gap-1.5">
+            <span>Elige una tarjeta para repasar</span>
+          </p>
+        )}
 
-          <div className="flex flex-col items-center animate-fade-in relative z-50">
-            {studyPhase === "picking" && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-6">
-                ELEGÍ UNA CARTA PARA ESTUDIAR
-              </p>
-            )}
+        {/* Abanico interactivo de cartas */}
+        <div className="relative flex justify-center items-end h-[340px] sm:h-[380px] w-full max-w-3xl mx-auto z-45">
+          {remainingIndices.map((cardIdx, posIdx) => {
+            const totalRemaining = remainingIndices.length;
+            const mid = (totalRemaining - 1) / 2;
+            const offset = posIdx - mid;
+            const baseAngle = offset * (totalRemaining <= 5 ? 10 : totalRemaining <= 10 ? 6 : 4);
+            const baseYOffset = Math.pow(Math.abs(offset), 2) * (totalRemaining <= 5 ? 3 : totalRemaining <= 10 ? 2 : 1);
+            const baseXOffset = offset * (totalRemaining <= 5 ? 45 : totalRemaining <= 10 ? 32 : 22);
+            const isHovered = hoveredIndex === cardIdx;
+            const isActive = selectedIndex === cardIdx;
+            const isAnimatingOut = studyPhase === "animating" && flyingCardIndex === cardIdx;
+            const cardInfo = shuffledCards[cardIdx];
 
-            {/* Card spread (The Deck) */}
-            <div className="relative flex justify-center items-end h-[350px] w-full max-w-3xl mx-auto mb-6">
-              {remainingIndices.map((cardIdx, posIdx) => {
-                const totalRemaining = remainingIndices.length;
-                const mid = (totalRemaining - 1) / 2;
-                const offset = posIdx - mid;
-                const baseAngle = offset * (totalRemaining <= 5 ? 12 : totalRemaining <= 10 ? 8 : 5);
-                const baseYOffset = Math.pow(Math.abs(offset), 2) * (totalRemaining <= 5 ? 4 : totalRemaining <= 10 ? 2 : 1);
-                const baseXOffset = offset * (totalRemaining <= 5 ? 50 : totalRemaining <= 10 ? 35 : 25);
-                const isHovered = hoveredIndex === cardIdx;
-                const isActive = selectedIndex === cardIdx;
-                const isAnimatingOut = studyPhase === "animating" && flyingCardIndex === cardIdx;
+            let transformStr = `translateX(${baseXOffset}px) translateY(${baseYOffset}px) rotate(${baseAngle}deg) scale(0.55)`;
+            let zIndexVal = isHovered ? 30 : posIdx;
 
-                const cardInfo = shuffledCards[cardIdx];
+            if (isActive) {
+              transformStr = `translate(0px, -20px) rotate(0deg) scale(1)`;
+              zIndexVal = 50;
+            } else if (isAnimatingOut) {
+              transformStr = `translate(0px, 350px) rotate(${baseAngle}deg) scale(0.2)`;
+              zIndexVal = 50;
+            } else if (isHovered && studyPhase === "picking") {
+              transformStr = `translateX(${baseXOffset}px) translateY(${baseYOffset - 35}px) rotate(${baseAngle}deg) scale(0.6)`;
+            }
 
-                // Calculate transforms
-                let transformStr = `translateX(${baseXOffset}px) translateY(${baseYOffset}px) rotate(${baseAngle}deg) scale(0.5)`;
-                let zIndexVal = isHovered ? 30 : posIdx;
-
-                if (isActive) {
-                  // Active state: Big and moved up
-                  transformStr = `translate(0px, -50px) rotate(0deg) scale(1)`;
-                  zIndexVal = 50;
-                } else if (isAnimatingOut) {
-                  // Fly out animation
-                  transformStr = `translate(0px, 300px) rotate(${baseAngle}deg) scale(0.2)`;
-                  zIndexVal = 50;
-                } else if (isHovered && studyPhase === "picking") {
-                  transformStr = `translateX(${baseXOffset}px) translateY(${baseYOffset - 40}px) rotate(${baseAngle}deg) scale(0.55)`;
-                }
-
-                return (
+            return (
+              <div
+                key={cardIdx}
+                className="absolute cursor-pointer select-none"
+                style={{
+                  transform: transformStr,
+                  transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease",
+                  zIndex: zIndexVal,
+                  bottom: 30,
+                  opacity: (studyPhase === "viewing" && !isActive) ? 0 : 1,
+                  pointerEvents: (studyPhase === "viewing" && !isActive) ? 'none' : 'auto',
+                  perspective: "1200px",
+                }}
+                onClick={() => {
+                  if (studyPhase === "picking") handlePickCard(cardIdx);
+                  else if (isActive && studyPhase === "viewing") setIsFlipped(!isFlipped);
+                }}
+                onMouseEnter={() => setHoveredIndex(cardIdx)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                {/* Contenedor 3D Flip */}
+                <div
+                  className="relative w-72 h-[22rem] sm:w-84 sm:h-[26rem]"
+                  style={{
+                    transformStyle: "preserve-3d",
+                    transition: "transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    transform: isActive
+                      ? (isFlipped ? "rotateY(180deg)" : "rotate(0deg)")
+                      : "rotate(0deg)",
+                  }}
+                >
+                  {/* CARA FRONTAL: Dorso en picking / Pregunta en estudio activo */}
                   <div
-                    key={cardIdx}
-                    className="absolute cursor-pointer"
+                    className={cn(
+                      "absolute inset-0 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden bg-white dark:bg-[#212121]",
+                      isActive ? "shadow-xl" : "shadow-sm hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
+                    )}
                     style={{
-                      transform: transformStr,
-                      transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease",
-                      zIndex: zIndexVal,
-                      bottom: 40,
-                      opacity: (studyPhase === "viewing" && !isActive) ? 0 : 1,
-                      pointerEvents: (studyPhase === "viewing" && !isActive) ? 'none' : 'auto',
-                      perspective: "1200px"
+                      backfaceVisibility: "hidden",
+                      transition: "box-shadow 0.3s ease, border-color 0.3s ease",
                     }}
-                    onClick={() => {
-                      if (studyPhase === "picking") handlePickCard(cardIdx);
-                      else if (isActive && studyPhase === "viewing") setIsFlipped(!isFlipped);
-                    }}
-                    onMouseEnter={() => setHoveredIndex(cardIdx)}
-                    onMouseLeave={() => setHoveredIndex(null)}
                   >
-                    {/* Inner wrapper for 3D flip */}
-                    <div 
-                      className="relative w-64 h-[22rem] lg:w-80 lg:h-[28rem]"
-                      style={{
-                        transformStyle: "preserve-3d",
-                        transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                        transform: isActive 
-                          ? (isFlipped ? "rotateY(180deg)" : "rotate(0deg)") 
-                          : "rotate(0deg)"
-                      }}
-                    >
-                      {/* FRONT FACE (Back of card design when picking, Question when active) */}
-                      <div
-                        className={cn(
-                          "absolute inset-0 rounded-3xl border-[4px] border-foreground overflow-hidden bg-background",
-                          isActive ? (isFlipped ? "shadow-[-8px_8px_0_0_#000]" : "shadow-[8px_8px_0_0_#000]") : "shadow-[6px_6px_0_0_#000]"
-                        )}
-                        style={{
-                          backfaceVisibility: "hidden",
-                          transition: "box-shadow 0.4s ease",
-                          outline: "1px solid transparent"
-                        }}
-                      >
-                        {!isActive ? (
-                          // Design when picking (Card back design)
-                          <div className="absolute inset-0 flex items-center justify-center bg-background">
-                            <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" className="w-24 h-32 lg:w-32 lg:h-40">
-                              <path d="M 5 15 H 95 V 40 H 65 V 110 L 50 95 L 35 110 V 40 H 5 Z" fill="#18181b" stroke="#18181b" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"/>
-                            </svg>
-                            <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 text-foreground">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>
-                              </svg>
-                            </div>
-                          </div>
-                        ) : (
-                          // Question side when active
-                          <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 lg:p-10 bg-background overflow-y-auto">
-                            <p className="text-xs lg:text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">PREGUNTA</p>
-                            <h3 className="text-lg lg:text-xl font-semibold text-foreground leading-relaxed">
-                              {cardInfo.pregunta}
-                            </h3>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 absolute bottom-6">CLICK PARA GIRAR</span>
-                          </div>
-                        )}
+                    {!isActive ? (
+                      // Dorso elegante con el logo oficial de TABE
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-zinc-50 dark:bg-[#1f1f1f] relative overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] dark:opacity-[0.08] pointer-events-none select-none">
+                          <TabeLogo size={190} />
+                        </div>
+                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shadow-xs mb-3 relative z-10 transition-transform group-hover:scale-105">
+                          <TabeLogo size={42} className="object-contain" />
+                        </div>
+                        <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 font-semibold relative z-10">
+                          TABE
+                        </span>
+                      </div>
+                    ) : (
+                      // Pregunta activa
+                      <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8 bg-white dark:bg-[#212121]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            Pregunta
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleSpeak(e, cardInfo.pregunta)}
+                            className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                            title="Escuchar pregunta"
+                          >
+                            {isSpeaking ? <VolumeX className="w-4 h-4 text-zinc-700 dark:text-zinc-200" /> : <Volume2 className="w-4 h-4" />}
+                          </button>
+                        </div>
+
+                        <div className="my-auto py-4 overflow-y-auto max-h-[16rem]">
+                          <p className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed text-center">
+                            {cardInfo.pregunta}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-1.5 text-zinc-400 dark:text-zinc-500 text-[11px] pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+                          <RotateCw className="w-3 h-3" />
+                          <span>Haz clic o presiona <kbd className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono border border-zinc-200 dark:border-zinc-700">Espacio</kbd> para girar</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARA TRASERA: Respuesta */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden bg-white dark:bg-[#212121]",
+                      isActive ? "shadow-xl" : ""
+                    )}
+                    style={{
+                      backfaceVisibility: "hidden",
+                      transform: "rotateY(180deg)",
+                      transition: "box-shadow 0.3s ease",
+                    }}
+                  >
+                    <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8 bg-white dark:bg-[#212121]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            Respuesta
+                          </span>
+                          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
+                            <TabeLogo size={13} />
+                            TABE
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleSpeak(e, cardInfo.respuesta)}
+                          className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                          title="Escuchar respuesta"
+                        >
+                          {isSpeaking ? <VolumeX className="w-4 h-4 text-zinc-700 dark:text-zinc-200" /> : <Volume2 className="w-4 h-4" />}
+                        </button>
                       </div>
 
-                      {/* BACK FACE (Answer) */}
-                      <div
-                        className={cn(
-                          "absolute inset-0 rounded-3xl border-[4px] border-foreground overflow-hidden bg-[#ffd21c]",
-                          isActive ? "shadow-[-8px_8px_0_0_#000]" : ""
-                        )}
-                        style={{
-                          backfaceVisibility: "hidden",
-                          transform: "rotateY(180deg)",
-                          transition: "box-shadow 0.4s ease",
-                          outline: "1px solid transparent"
-                        }}
-                      >
-                        <div className="w-full h-full flex flex-col items-center justify-center p-6 lg:p-10 text-center overflow-y-auto">
-                          <p className="text-xs lg:text-sm font-bold uppercase tracking-widest text-black/70 mb-4">RESPUESTA</p>
-                          <h3 className="text-lg lg:text-xl font-medium text-black leading-relaxed">
-                            {cardInfo.respuesta}
-                          </h3>
-                        </div>
+                      <div className="my-auto py-4 overflow-y-auto max-h-[16rem]">
+                        <p className="text-base sm:text-lg font-normal text-zinc-800 dark:text-zinc-200 leading-relaxed text-center">
+                          {cardInfo.respuesta}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-1.5 text-zinc-400 dark:text-zinc-500 text-[11px] pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+                        <RotateCw className="w-3 h-3" />
+                        <span>Girar nuevamente</span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Panel de calificación estilo Anki/Notion (cuando está volteada) */}
+        {studyPhase === "viewing" && isFlipped && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] w-full max-w-sm px-4 animate-fade-in">
+            <div className="bg-white/95 dark:bg-[#212121]/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 text-center mb-2">
+                ¿Qué tal recordabas esto?
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResult("incorrect");
+                  }}
+                  className="bg-rose-50/60 hover:bg-rose-100/80 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl py-2 px-2 text-xs font-medium border border-rose-200/60 dark:border-rose-900/40 transition-colors flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 group-hover:scale-125 transition-transform" />
+                    <span>No la sabía</span>
+                  </span>
+                  <span className="text-[9px] text-zinc-400 font-mono">[1]</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResult("partial");
+                  }}
+                  className="bg-amber-50/60 hover:bg-amber-100/80 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-xl py-2 px-2 text-xs font-medium border border-amber-200/60 dark:border-amber-900/40 transition-colors flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 group-hover:scale-125 transition-transform" />
+                    <span>A medias</span>
+                  </span>
+                  <span className="text-[9px] text-zinc-400 font-mono">[2]</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResult("correct");
+                  }}
+                  className="bg-emerald-50/60 hover:bg-emerald-100/80 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl py-2 px-2 text-xs font-medium border border-emerald-200/60 dark:border-emerald-900/40 transition-colors flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
+                    <span>¡La sabía!</span>
+                  </span>
+                  <span className="text-[9px] text-zinc-400 font-mono">[3]</span>
+                </button>
+              </div>
             </div>
-
           </div>
+        )}
+      </div>
 
-          {/* Actions when card is active and flipped */}
-          <div className="absolute top-[80%] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-4 w-full max-w-sm px-3 sm:px-4">
-            {studyPhase === "viewing" && isFlipped && (
-              <div className="animate-fade-in w-full text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-background mb-4">
-                  ¿ACERTASTE TU RESPUESTA?
-                </p>
-                <div className="flex justify-center gap-2 sm:gap-3">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleResult('incorrect'); }}
-                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#ef4444] text-white rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
-                  >
-                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:rotate-90 transition-transform" />
-                    <span className="truncate">NO LA SABÍA</span>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleResult('partial'); }}
-                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#ffd21c] text-black rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
-                  >
-                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
-                    <span className="truncate">A MEDIAS</span>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleResult('correct'); }}
-                    className="flex-1 py-3 sm:py-4 px-1.5 sm:px-3 bg-[#00ffcc] text-black rounded-xl border-2 sm:border-[3px] border-foreground shadow-[2px_2px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] font-black uppercase tracking-widest text-[9px] sm:text-[10px] hover:-translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-1 sm:gap-2 group"
-                  >
-                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-125 transition-transform" />
-                    <span className="truncate">¡LA SABÍA!</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+      {/* Pie de página con pila de cartas respondidas */}
+      <div className="max-w-4xl w-full mx-auto flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800/80 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="flex items-center gap-2">
+          {completedIndices.length > 0 ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 font-mono text-zinc-600 dark:text-zinc-300 text-[11px]">
+              <Check className="w-3 h-3 text-emerald-500" />
+              <span>{completedIndices.length} {completedIndices.length === 1 ? "repasada" : "repasadas"}</span>
+            </div>
+          ) : (
+            <span className="text-[11px]">Selecciona cualquier carta para comenzar</span>
+          )}
+        </div>
 
-
-          <div className="flex items-center justify-center gap-12 mt-8 z-10 relative">
-            {/* Completed pile */}
-            {completedIndices.length > 0 && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="relative w-20 h-28">
-                  {completedIndices.slice(-4).map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute inset-0 rounded-xl border-[3px] border-foreground"
-                      style={{
-                        transform: `translateY(${-i * 2}px) rotate(${(i % 3 - 1) * -2}deg)`,
-                        background: i === 0 ? '#00ffcc' : 'hsl(var(--background))',
-                        boxShadow: i === 0 ? '4px 4px 0 0 #000' : 'none',
-                        opacity: 1 - i * 0.15,
-                      }}
-                    />
-                  ))}
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <span className="text-black font-black text-xs uppercase tracking-widest">
-                      ✓ {completedIndices.length}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">
-                  RESPONDIDAS
-                </span>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+        <div className="flex items-center gap-3 text-[11px] font-mono">
+          <span className="hidden sm:inline text-zinc-400">Atajos: [Espacio] voltear · [1-3] calificar · [Esc] volver</span>
+          <span>Restantes: {remainingIndices.length}</span>
+        </div>
+      </div>
     </div>
   );
 }

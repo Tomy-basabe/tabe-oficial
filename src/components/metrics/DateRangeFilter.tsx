@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarIcon, ChevronDown } from "lucide-react";
+import { CalendarIcon, ChevronDown, Check } from "lucide-react";
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -121,27 +121,25 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
     }
   };
 
-  const isPreset = presets.some(p => p.label === value.label);
-
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       {/* Preset Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="flex items-center gap-2 px-3.5 py-2 bg-background border-2 sm:border-3 border-foreground rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider text-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[1px] transition-all cursor-pointer focus:outline-none"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-700/80 border border-zinc-200/90 dark:border-zinc-700/80 rounded-lg text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-200 transition-colors cursor-pointer focus:outline-none shadow-2xs"
           >
-            <CalendarIcon className="w-4 h-4 text-[#00E5FF] shrink-0" />
-            <span className="hidden sm:inline font-bold">{value.label}</span>
-            <span className="sm:hidden font-bold">
+            <CalendarIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <span className="hidden sm:inline">{value.label}</span>
+            <span className="sm:hidden">
               {value.label.length > 15 ? value.label.slice(0, 12) + "..." : value.label}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-70 ml-1" />
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 opacity-70" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-52 bg-card border-3 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl p-1.5"
+          className="w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-xl p-1"
         >
           {presets.map((preset) => {
             const isSelected = value.label === preset.label;
@@ -150,20 +148,21 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                 key={preset.label}
                 onClick={() => handlePresetSelect(preset)}
                 className={cn(
-                  "font-black uppercase text-xs rounded-lg px-3 py-2 cursor-pointer transition-colors my-0.5",
+                  "text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer transition-colors my-0.5 flex items-center justify-between",
                   isSelected
-                    ? "bg-[#00E5FF] text-black font-black"
-                    : "text-foreground hover:bg-muted"
+                    ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold"
+                    : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
                 )}
               >
-                {preset.label}
+                <span>{preset.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100" />}
               </DropdownMenuItem>
             );
           })}
-          <DropdownMenuSeparator className="bg-foreground/20 my-1" />
+          <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
           <DropdownMenuItem
             onClick={() => setIsCustomOpen(true)}
-            className="font-black uppercase text-xs rounded-lg px-3 py-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
           >
             Personalizado...
           </DropdownMenuItem>
@@ -176,38 +175,38 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
           <span className="hidden" />
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto p-0 bg-card border-3 border-foreground shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-xl"
+          className="w-auto p-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl overflow-hidden"
           align="end"
         >
           <div className="p-4 space-y-4">
-            <h4 className="font-medium text-sm">Seleccionar rango</h4>
+            <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 tracking-tight">Seleccionar rango</h4>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Desde</p>
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-zinc-500">Desde</p>
                 <Calendar
                   mode="single"
                   selected={customFrom}
                   onSelect={setCustomFrom}
-                  className="rounded-md border pointer-events-auto"
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 pointer-events-auto"
                   locale={es}
                 />
               </div>
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Hasta</p>
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-zinc-500">Hasta</p>
                 <Calendar
                   mode="single"
                   selected={customTo}
                   onSelect={setCustomTo}
                   disabled={(date) => customFrom ? date < customFrom : false}
-                  className="rounded-md border pointer-events-auto"
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 pointer-events-auto"
                   locale={es}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
+              <p className="text-xs text-zinc-500">
                 {customFrom && customTo
                   ? `${format(customFrom, "dd MMM yyyy", { locale: es })} - ${format(customTo, "dd MMM yyyy", { locale: es })}`
                   : "Selecciona ambas fechas"}
@@ -216,6 +215,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
                 size="sm"
                 onClick={handleCustomApply}
                 disabled={!customFrom || !customTo}
+                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 rounded-lg text-xs font-medium px-3 h-8 shadow-xs"
               >
                 Aplicar
               </Button>

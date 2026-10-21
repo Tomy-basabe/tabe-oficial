@@ -58,7 +58,6 @@ const BombGame = lazy(() => import("@/pages/BombGame"));
 const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
-const TabeGochi = lazy(() => import("@/pages/TabeGochi"));
 const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
 const DemoOne = lazy(() => import("@/components/ui/demo"));
 const Meet = lazy(() => import("@/pages/Meet"));
@@ -141,7 +140,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 const LazyFallback = () => (
-  <LoadingScreen message="Cargando módulo..." submessage="Preparando vista..." />
+  <LoadingScreen message="Cargando..." />
 );
 
 const AppRoutes = () => (
@@ -220,8 +219,6 @@ const AppRoutes = () => (
       <Route path="/juegos/bomba" element={<BombGame />} />
       <Route path="/juegos/tateti" element={<TicTacToeGame />} />
       <Route path="/juegos/ajedrez" element={<ChessGame />} />
-      <Route path="/tabegochi" element={<TabeGochi />} />
-      <Route path="/juegos/tabegochi" element={<TabeGochi />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

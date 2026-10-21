@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { StudyTask, CreateTaskInput, TaskPriority, TaskStatus } from "@/types/tasks";
-import { X, Check, BookOpen, Calendar, Timer, AlertTriangle } from "lucide-react";
+import { X, Check, BookOpen, Calendar, Timer, CheckSquare, Clock, Zap, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -106,26 +106,31 @@ export function TaskModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-      <div 
-        className="bg-card border-4 border-foreground rounded-2xl p-5 sm:p-7 shadow-[8px_8px_0_0_hsl(var(--foreground))] w-full max-w-lg space-y-5 max-h-[90vh] overflow-y-auto"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div
+        className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xl w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b-2 border-border/70">
+        <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/60">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#00E5FF] text-black border-2 border-foreground rounded-xl shadow-[2px_2px_0_0_#000]">
-              <BookOpen className="w-5 h-5" />
+            <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl">
+              <CheckSquare className="w-4 h-4" />
             </div>
-            <h3 className="font-display font-black text-lg uppercase tracking-tight text-foreground">
-              {initialTask ? "Editar Tarea" : "Nueva Tarea de Estudio"}
-            </h3>
+            <div>
+              <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">
+                {initialTask ? "Editar Tarea" : "Nueva Tarea de Estudio"}
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                {initialTask ? "Modifica los detalles de tu pendiente" : "Organiza una entrega, lectura o repaso"}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground border-2 border-foreground hover:bg-muted/80"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -133,9 +138,9 @@ export function TaskModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Quick Presets */}
           {!initialTask && (
-            <div>
-              <label className="text-[11px] font-black uppercase text-muted-foreground block mb-1.5">
-                Plantillas rápidas para estudiantes:
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 block">
+                Plantillas rápidas:
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {PRESETS.map((p) => (
@@ -143,7 +148,7 @@ export function TaskModal({
                     type="button"
                     key={p}
                     onClick={() => handleApplyPreset(p)}
-                    className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground font-bold text-xs border border-foreground/50 hover:border-foreground transition-all"
+                    className="px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/70 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/70 text-zinc-700 dark:text-zinc-300 font-medium text-xs border border-zinc-200/60 dark:border-zinc-700/50 transition-colors cursor-pointer"
                   >
                     + {p}
                   </button>
@@ -153,9 +158,10 @@ export function TaskModal({
           )}
 
           {/* Título */}
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase text-foreground">
-              Título de la Tarea <span className="text-red-500">*</span>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+              <span>Título de la tarea</span>
+              <span className="text-zinc-400 text-[11px]">Obligatorio</span>
             </label>
             <input
               type="text"
@@ -163,7 +169,7 @@ export function TaskModal({
               placeholder="ej. Entregar TP1 de Física, Leer Unidad 3..."
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-background border-2 border-foreground rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:border-zinc-400 transition-colors"
             />
           </div>
 
@@ -180,47 +186,65 @@ export function TaskModal({
 
           {/* Estado & Prioridad */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase text-foreground">Estado</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Estado</label>
               <Select
                 value={estado}
                 onValueChange={(val) => setEstado(val as TaskStatus)}
               >
-                <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                <SelectTrigger className="w-full px-3 py-2 h-auto bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600">
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                  <SelectItem value="todo" className="font-bold cursor-pointer rounded-lg text-xs">
-                    📌 Por Hacer
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl">
+                  <SelectItem value="todo" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                      <span>Por Hacer</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="in_progress" className="font-bold cursor-pointer rounded-lg text-xs">
-                    ⚡ En Progreso
+                  <SelectItem value="in_progress" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-blue-500" />
+                      <span>En Progreso</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="done" className="font-bold cursor-pointer rounded-lg text-xs">
-                    ✅ Completada
+                  <SelectItem value="done" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Completada</span>
+                    </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase text-foreground">Prioridad</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Prioridad</label>
               <Select
                 value={prioridad}
                 onValueChange={(val) => setPrioridad(val as TaskPriority)}
               >
-                <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+                <SelectTrigger className="w-full px-3 py-2 h-auto bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600">
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                  <SelectItem value="baja" className="font-bold cursor-pointer rounded-lg text-xs">
-                    🟢 Baja (Normal)
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl">
+                  <SelectItem value="baja" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
+                      <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                      <span>Baja</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="media" className="font-bold cursor-pointer rounded-lg text-xs">
-                    🟡 Media (Importante)
+                  <SelectItem value="media" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span>Media</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="alta" className="font-bold cursor-pointer rounded-lg text-xs text-rose-500">
-                    🔥 Alta (Urgente)
+                  <SelectItem value="alta" className="font-medium cursor-pointer rounded-lg text-xs">
+                    <span className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>Alta</span>
+                    </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -229,23 +253,23 @@ export function TaskModal({
 
           {/* Fecha Límite & Pomodoros Estimados */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase text-foreground flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                Fecha Límite
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                <span>Fecha Límite</span>
               </label>
               <input
                 type="date"
                 value={fechaLimite}
                 onChange={(e) => setFechaLimite(e.target.value)}
-                className="w-full px-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                className="w-full px-3 py-2 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase text-foreground flex items-center gap-1">
-                <Timer className="w-3.5 h-3.5 text-[#ff4747]" />
-                Pomodoros Estimados
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Timer className="w-3.5 h-3.5 text-rose-500" />
+                <span>Pomodoros (Estimados)</span>
               </label>
               <input
                 type="number"
@@ -253,38 +277,40 @@ export function TaskModal({
                 max={20}
                 value={pomodorosEstimados}
                 onChange={(e) => setPomodorosEstimados(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                className="w-full px-3 py-2 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
               />
             </div>
           </div>
 
           {/* Descripción */}
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase text-foreground">Notas o Detalles</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Notas o Detalles adicionales
+            </label>
             <textarea
               rows={2}
               placeholder="Detalles sobre qué capítulos leer o requisitos del TP..."
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              className="w-full px-3.5 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-[#00E5FF] shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              className="w-full px-3.5 py-2 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl text-xs font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 resize-none transition-colors"
             />
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-border/70">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/60">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-muted text-foreground font-bold text-xs uppercase border-2 border-foreground hover:bg-muted/80"
+              className="px-3.5 py-2 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !titulo.trim()}
-              className="px-5 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <Check className="w-4 h-4 stroke-[3]" />
+              <Check className="w-3.5 h-3.5" />
               <span>{isSubmitting ? "Guardando..." : initialTask ? "Guardar Cambios" : "Crear Tarea"}</span>
             </button>
           </div>

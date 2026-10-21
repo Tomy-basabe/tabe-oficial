@@ -4,15 +4,24 @@ import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { 
   Calendar as CalendarIcon, 
   Clock, 
-  Filter, 
-  AlertCircle, 
   GraduationCap, 
   LayoutPanelLeft, 
   List as ListIcon, 
   CheckCircle2, 
   BookOpen, 
   Timer,
-  ChevronLeft
+  ChevronLeft,
+  Search,
+  Plus,
+  X,
+  RotateCcw,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  ChevronRight,
+  Bot,
+  Flame,
+  AlertCircle
 } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -22,43 +31,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
+import { getExamTheme } from "@/lib/examThemes";
 
-const EXAM_TYPES = [
-  "P1",
-  "P2",
-  "Global",
-  "Recuperatorio P1",
-  "Recuperatorio P2",
-  "Recuperatorio Global",
-  "Final"
+const EXAM_TYPE_OPTIONS = [
+  { value: "all", label: "Todos los tipos" },
+  { value: "P1", label: "Primer Parcial (P1)" },
+  { value: "P2", label: "Segundo Parcial (P2)" },
+  { value: "Final", label: "Examen Final" },
+  { value: "Global", label: "Examen Global" },
+  { value: "Recuperatorio", label: "Recuperatorios" },
 ];
 
-const eventTypeColors: Record<string, string> = {
-  P1: "bg-[#25d06c] border-foreground text-black font-bold",
-  P2: "bg-[#1475e5] border-foreground text-white font-bold",
-  Global: "bg-[#ffd21c] border-foreground text-black font-bold",
-  "Recuperatorio P1": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  "Recuperatorio P2": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  "Recuperatorio Global": "bg-[#ff4e4e] border-foreground text-white font-bold",
-  Final: "bg-[#805ad5] border-foreground text-white font-bold",
-};
+type QuickFilter = "all" | "week" | "parciales" | "finales" | "recuperatorios";
 
 type KanbanStatus = "pending" | "studying" | "ready" | "done";
 
-const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; color: string }[] = [
-  { id: "pending", label: "Pendiente", icon: Timer, color: "bg-muted text-muted-foreground" },
-  { id: "studying", label: "En Estudio", icon: BookOpen, color: "bg-[#1475e5] text-white" },
-  { id: "ready", label: "Listo para rendir", icon: AlertCircle, color: "bg-[#ffd21c] text-black" },
-  { id: "done", label: "Rendido", icon: CheckCircle2, color: "bg-[#25d06c] text-black" },
+const KANBAN_COLUMNS: { id: KanbanStatus; label: string; icon: any; dotColor: string; bgAccent: string }[] = [
+  { id: "pending", label: "Pendiente", icon: Timer, dotColor: "bg-zinc-400", bgAccent: "border-t-zinc-400" },
+  { id: "studying", label: "En Estudio", icon: BookOpen, dotColor: "bg-sky-500", bgAccent: "border-t-sky-500" },
+  { id: "ready", label: "Listo para Rendir", icon: AlertCircle, dotColor: "bg-amber-500", bgAccent: "border-t-amber-500" },
+  { id: "done", label: "Rendido", icon: CheckCircle2, dotColor: "bg-emerald-500", bgAccent: "border-t-emerald-500" },
 ];
 
 export default function Exams() {
   const navigate = useNavigate();
-  const { events, loading, updateEvent, deleteEvent } = useCalendarEvents();
+  const { events, loading, createEvent, updateEvent, deleteEvent } = useCalendarEvents();
   const { rawSubjects: subjects } = useSubjects();
   
+  const [searchQuery, setSearchQuery] = useState<string>("" );
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -68,9 +72,14 @@ export default function Exams() {
     setShowEditModal(true);
   };
 
+  const handleCreateNew = () => {
+    setEventToEdit(null);
+    setShowEditModal(true);
+  };
+
   const subjectMap = useMemo(() => {
     const map = new Map<string, Subject>();
-    subjects.forEach(s => map.set(s.id, s));
+    subjects.forEach((s) => map.set(s.id, s));
     return map;
   }, [subjects]);
 
@@ -90,13 +99,14 @@ export default function Exams() {
         let subjectId = e.subject_id;
         let subjectNombre = e.subject_nombre;
 
-        // If subject_id is missing, try to link with a subject from subjects by name or tag
+        // Si falta subject_id, vincularlo por coincidencia de nombre
         if (!subjectId && (subjectNombre || e.notas)) {
           const targetName = (subjectNombre || "").toLowerCase();
-          const found = subjects.find(s => 
-            (targetName && s.nombre.toLowerCase() === targetName) ||
-            (targetName && s.nombre.toLowerCase().includes(targetName)) ||
-            (targetName && targetName.includes(s.nombre.toLowerCase()))
+          const found = subjects.find(
+            (s) =>
+              (targetName && s.nombre.toLowerCase() === targetName) ||
+              (targetName && s.nombre.toLowerCase().includes(targetName)) ||
+              (targetName && targetName.includes(s.nombre.toLowerCase()))
           );
           if (found) {
             subjectId = found.id;
@@ -141,21 +151,10 @@ export default function Exams() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [upcomingExams, subjectMap, selectedYear]);
 
-  // Resetea la materia seleccionada si cambiamos de año
+  // Resetea la materia seleccionada al cambiar de año
   useEffect(() => {
     setSelectedSubject("all");
   }, [selectedYear]);
-
-  const filteredExams = useMemo(() => {
-    return upcomingExams.filter((exam) => {
-      if (selectedYear !== "all" && exam.subject_id) {
-        const subject = subjectMap.get(exam.subject_id);
-        if (subject && subject.año.toString() !== selectedYear) return false;
-      }
-      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
-      return true;
-    });
-  }, [upcomingExams, selectedSubject, selectedYear, subjectMap]);
 
   const getDaysRemaining = (targetDateStr: string) => {
     const target = parseLocalDate(targetDateStr);
@@ -163,9 +162,59 @@ export default function Exams() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
+
+  const filteredExams = useMemo(() => {
+    return upcomingExams.filter((exam) => {
+      // 1. Filtrar por texto de búsqueda
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesTitle = (exam.titulo || "").toLowerCase().includes(q);
+        const matchesSubject = (exam.subject_nombre || "").toLowerCase().includes(q);
+        const matchesNotes = (exam.notas || "").toLowerCase().includes(q);
+        const matchesType = (exam.tipo_examen || "").toLowerCase().includes(q);
+        if (!matchesTitle && !matchesSubject && !matchesNotes && !matchesType) {
+          return false;
+        }
+      }
+
+      // 2. Filtrar por año académico
+      if (selectedYear !== "all" && exam.subject_id) {
+        const subject = subjectMap.get(exam.subject_id);
+        if (subject && subject.año.toString() !== selectedYear) return false;
+      }
+
+      // 3. Filtrar por materia
+      if (selectedSubject !== "all" && exam.subject_id !== selectedSubject) return false;
+
+      // 4. Filtrar por tipo de examen (dropdown)
+      if (selectedType !== "all") {
+        if (selectedType === "Recuperatorio") {
+          if (!exam.tipo_examen.toLowerCase().includes("recup")) return false;
+        } else if (exam.tipo_examen !== selectedType) {
+          return false;
+        }
+      }
+
+      // 5. Quick filter tabs (Notion / Apple style)
+      if (quickFilter === "week") {
+        const d = getDaysRemaining(exam.fecha);
+        if (d < 0 || d > 7) return false;
+      } else if (quickFilter === "parciales") {
+        const t = (exam.tipo_examen || "").toLowerCase();
+        if (!t.includes("p1") && !t.includes("p2") && !t.includes("parcial")) return false;
+      } else if (quickFilter === "finales") {
+        const t = (exam.tipo_examen || "").toLowerCase();
+        if (!t.includes("final") && !t.includes("global")) return false;
+      } else if (quickFilter === "recuperatorios") {
+        const t = (exam.tipo_examen || "").toLowerCase();
+        if (!t.includes("recup")) return false;
+      }
+
+      return true;
+    });
+  }, [upcomingExams, searchQuery, selectedSubject, selectedYear, selectedType, quickFilter, subjectMap]);
 
   const getExamStatus = (notas: string | null): KanbanStatus => {
     if (!notas) return "pending";
@@ -182,288 +231,673 @@ export default function Exams() {
 
     try {
       await updateEvent(exam.id, { notas: newNotas });
-      toast.success(`Examen movido a ${KANBAN_COLUMNS.find(c => c.id === newStatus)?.label}`);
-    } catch (error) {
+      toast.success(`Examen movido a ${KANBAN_COLUMNS.find((c) => c.id === newStatus)?.label}`);
+    } catch {
       toast.error("Error al actualizar el estado del examen");
     }
   };
 
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() ||
+      selectedYear !== "all" ||
+      selectedSubject !== "all" ||
+      selectedType !== "all" ||
+      quickFilter !== "all"
+  );
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedYear("all");
+    setSelectedSubject("all");
+    setSelectedType("all");
+    setQuickFilter("all");
+  };
+
+  const closestExam = upcomingExams[0];
+  const closestDays = closestExam ? getDaysRemaining(closestExam.fecha) : null;
+
+  // Estadísticas rápidas para el dashboard de exámenes
+  const examsThisWeek = useMemo(() => {
+    return upcomingExams.filter((e) => {
+      const d = getDaysRemaining(e.fecha);
+      return d >= 0 && d <= 7;
+    }).length;
+  }, [upcomingExams]);
+
+  const parcialesCount = useMemo(() => {
+    return upcomingExams.filter((e) => {
+      const t = (e.tipo_examen || "").toLowerCase();
+      return t.includes("p1") || t.includes("p2") || t.includes("parcial");
+    }).length;
+  }, [upcomingExams]);
+
+  const finalesCount = useMemo(() => {
+    return upcomingExams.filter((e) => {
+      const t = (e.tipo_examen || "").toLowerCase();
+      return t.includes("final") || t.includes("global");
+    }).length;
+  }, [upcomingExams]);
+
+  const formatHeaderDate = (dateStr: string) => {
+    const d = parseLocalDate(dateStr);
+    const month = d.toLocaleDateString("es-AR", { month: "short" }).replace(".", "").toUpperCase();
+    const day = d.getDate();
+    const weekday = d.toLocaleDateString("es-AR", { weekday: "short" });
+    return { month, day, weekday };
+  };
+
   if (loading && upcomingExams.length === 0) {
-    return <LoadingScreen message="Cargando Exámenes..." submessage="Sincronizando fechas clave..." />;
+    return <LoadingScreen message="Cargando Exámenes..." submessage="Sincronizando fechas de evaluación..." />;
   }
 
   return (
-    <div className="tabe-page p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div className="flex items-center gap-4">
-          <Link to="/calendario">
-            <Button variant="outline" size="icon" className="border-foreground shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
+    <div className="tabe-page p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Header Apple / Notion / Linear Style */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
+        <div>
+          <Link
+            to="/calendario"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors mb-2 font-medium"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>Volver al Calendario</span>
           </Link>
-          <div className="select-none cursor-default outline-none">
-            <h1 className="text-2xl lg:text-3xl font-black font-display uppercase tracking-widest flex items-center gap-2 select-none cursor-default outline-none">
-              <GraduationCap className="w-8 h-8 text-[#ff4e4e]" />
-              Gestión de Exámenes
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Exámenes
             </h1>
-            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1 select-none cursor-default outline-none">
-              Organiza tu estudio y sigue tu progreso
-            </p>
+            <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/80">
+              {upcomingExams.length} agendados
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
+            Seguimiento de parciales, finales y entregas académicas
+          </p>
+        </div>
+
+        {/* Segmented View Control & Primary CTA */}
+        <div className="flex items-center gap-2.5 self-start md:self-end">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60">
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-all cursor-pointer",
+                viewMode === "list"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              )}
+            >
+              <ListIcon className="w-3.5 h-3.5" />
+              <span>Lista</span>
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-all cursor-pointer",
+                viewMode === "kanban"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              )}
+            >
+              <LayoutPanelLeft className="w-3.5 h-3.5" />
+              <span>Tablero</span>
+            </button>
+          </div>
+
+          <Link
+            to="/tabe-ai/examenes"
+            className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span className="hidden sm:inline">Rutas con IA</span>
+            <span className="sm:hidden">Rutas</span>
+          </Link>
+
+          <Button
+            onClick={handleCreateNew}
+            className="h-9 px-3.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-medium flex items-center gap-1.5 shadow-2xs hover:shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Examen</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards: Apple / Linear Style */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: Próximo a Rendir */}
+        <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+            <span>Próximo a Rendir</span>
+            <Clock className="w-3.5 h-3.5 text-zinc-400" />
+          </div>
+          <div className="mt-2.5">
+            {closestExam ? (
+              <>
+                <div
+                  className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate"
+                  title={closestExam.titulo}
+                >
+                  {closestExam.titulo}
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span
+                    className={cn(
+                      "text-[10px] font-medium px-2 py-0.5 rounded-md border",
+                      closestDays === 0
+                        ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60"
+                        : closestDays === 1
+                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                    )}
+                  >
+                    {closestDays === 0 ? "¡Hoy!" : closestDays === 1 ? "Mañana" : `En ${closestDays} días`}
+                  </span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 font-normal">
+                    {parseLocalDate(closestExam.fecha).toLocaleDateString("es-AR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 py-1 font-normal">
+                Sin exámenes próximos
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex bg-background border-[3px] border-foreground rounded-xl overflow-hidden self-start md:self-center shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <button
-            onClick={() => setViewMode("list")}
-            className={cn(
-              "px-5 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all",
-              viewMode === "list" ? "bg-foreground text-background" : "hover:bg-foreground/10 text-foreground"
-            )}
-          >
-            <ListIcon className="w-4 h-4" />
-            Lista
-          </button>
-          <div className="w-[3px] bg-foreground" />
-          <button
-            onClick={() => setViewMode("kanban")}
-            className={cn(
-              "px-5 py-2.5 text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all",
-              viewMode === "kanban" ? "bg-foreground text-background" : "hover:bg-foreground/10 text-foreground"
-            )}
-          >
-            <LayoutPanelLeft className="w-4 h-4" />
-            Kanban
-          </button>
+        {/* Card 2: Esta semana */}
+        <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+            <span>Esta Semana</span>
+            <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {examsThisWeek}
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">
+              {examsThisWeek === 1 ? "instancia en los próximos 7 días" : "instancias en los próximos 7 días"}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div className="flex items-center gap-2 text-foreground min-w-fit">
-          <Filter className="w-5 h-5" />
-          <span className="text-sm font-black uppercase tracking-widest">Filtrar:</span>
+        {/* Card 3: Instancias Clave */}
+        <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+            <span>Por Instancia</span>
+            <GraduationCap className="w-3.5 h-3.5 text-zinc-400" />
+          </div>
+          <div className="mt-2.5">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-sky-500" />
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 font-normal">Parciales:</span>
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{parcialesCount}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 font-normal">Finales:</span>
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{finalesCount}</span>
+              </div>
+            </div>
+            <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal mt-1">
+              {upcomingExams.length} fechas registradas
+            </div>
+          </div>
         </div>
-        
-        <div className="flex flex-wrap gap-3 w-full">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm min-w-[140px] focus:outline-none focus:translate-y-0.5 focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all h-auto">
-              <SelectValue placeholder="TODOS LOS AÑOS" />
-            </SelectTrigger>
-            <SelectContent className="border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold">
-              <SelectItem value="all">TODOS LOS AÑOS</SelectItem>
-              {availableYears.map((y) => (
-                <SelectItem key={y} value={y}>{y}° AÑO</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="bg-background border-[3px] border-foreground rounded-lg px-4 py-2 font-bold text-sm flex-1 md:flex-none md:min-w-[240px] focus:outline-none focus:translate-y-0.5 focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))] transition-all h-auto">
-              <SelectValue placeholder="TODAS LAS MATERIAS" />
-            </SelectTrigger>
-            <SelectContent className="border-[3px] border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl font-bold max-h-[300px]">
-              <SelectItem value="all">TODAS LAS MATERIAS</SelectItem>
-              {availableSubjects.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name.toUpperCase()}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="min-h-[500px]">
-        {filteredExams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center text-foreground border-[3px] border-dashed border-foreground/30 rounded-2xl bg-card">
-            <GraduationCap className="w-16 h-16 mb-4 opacity-50" />
-            <p className="font-display font-black text-xl tracking-wide">No hay exámenes a la vista</p>
-            <p className="font-medium mt-2 max-w-md mx-auto opacity-70">
-              Asegúrate de tener eventos de tipo Parcial, Final o Global creados en tu calendario.
-            </p>
-            <Link to="/calendario" className="mt-8">
-              <Button variant="default">Ir al Calendario</Button>
+        {/* Card 4: Acceso Rápido a Preparación */}
+        <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+            <span>Herramientas de Estudio</span>
+            <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+          </div>
+          <div className="mt-2.5 flex items-center gap-2">
+            <Link
+              to="/pomodoro"
+              className="flex-1 py-1.5 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-200 text-xs font-medium text-center hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+            >
+              <Timer className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+              <span>Pomodoro</span>
+            </Link>
+            <Link
+              to="/TABEAI"
+              className="flex-1 py-1.5 px-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-medium text-center transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+            >
+              <Bot className="w-3 h-3" />
+              <span>Tutor IA</span>
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Notion-Style Filter & Search Bar */}
+      <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3 sm:p-4 shadow-2xs space-y-3">
+        {/* Search & Selects */}
+        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título, materia, temario o tipo..."
+              className="w-full h-9 pl-8.5 pr-8 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-600 transition-all font-normal"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5 rounded cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+            {/* Filtro por Año */}
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[110px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium">
+                <SelectValue placeholder="Año" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs">
+                <SelectItem value="all">Todos los años</SelectItem>
+                {availableYears.map((y) => (
+                  <SelectItem key={y} value={y}>
+                    {y}° Año
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtro por Materia */}
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[150px] max-w-[220px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium truncate">
+                <SelectValue placeholder="Materia" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs max-h-[260px]">
+                <SelectItem value="all">Todas las materias</SelectItem>
+                {availableSubjects.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="truncate">
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtro por Tipo */}
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs">
+                {EXAM_TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Limpiar */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 px-2.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer font-medium"
+                title="Limpiar filtros"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpiar</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Filter Tabs: Notion View Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-t border-zinc-100 dark:border-zinc-800/60">
+          <button
+            onClick={() => setQuickFilter("all")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors cursor-pointer",
+              quickFilter === "all"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
+          >
+            Todos ({upcomingExams.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter("week")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1",
+              quickFilter === "week"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
+          >
+            <Clock className="w-3 h-3" />
+            <span>Esta Semana ({examsThisWeek})</span>
+          </button>
+          <button
+            onClick={() => setQuickFilter("parciales")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1",
+              quickFilter === "parciales"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
+          >
+            <span>Parciales ({parcialesCount})</span>
+          </button>
+          <button
+            onClick={() => setQuickFilter("finales")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1",
+              quickFilter === "finales"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
+          >
+            <span>Finales & Globales ({finalesCount})</span>
+          </button>
+          <button
+            onClick={() => setQuickFilter("recuperatorios")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1",
+              quickFilter === "recuperatorios"
+                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
+          >
+            <span>Recuperatorios</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content: List or Kanban View */}
+      <div className="min-h-[420px]">
+        {filteredExams.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 sm:p-16 text-center rounded-xl bg-white dark:bg-[#18181b] border border-dashed border-zinc-200 dark:border-zinc-800 shadow-2xs">
+            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 mb-3 border border-zinc-200/60 dark:border-zinc-700/60">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              No se encontraron exámenes
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm font-normal">
+              {hasActiveFilters
+                ? "No hay evaluaciones que coincidan con los filtros seleccionados."
+                : "No tenés exámenes agendados próximamente. Agendá tus parciales para planificar repasos automáticos."}
+            </p>
+            <div className="flex gap-2.5 mt-4">
+              {hasActiveFilters ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-xs rounded-lg cursor-pointer"
+                >
+                  Limpiar filtros
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleCreateNew}
+                    size="sm"
+                    className="text-xs rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Nuevo Examen
+                  </Button>
+                  <Link to="/calendario">
+                    <Button variant="outline" size="sm" className="text-xs rounded-lg cursor-pointer">
+                      Ir al Calendario
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
         ) : viewMode === "list" ? (
-          <div className="grid gap-4">
+          /* List View: Apple / Notion Style Cards */
+          <div className="space-y-2.5">
             {filteredExams.map((exam) => {
               const daysRemaining = getDaysRemaining(exam.fecha);
-              const isUrgent = daysRemaining <= 3;
+              const theme = getExamTheme(exam.tipo_examen);
               const isToday = daysRemaining === 0;
+              const isUrgent = daysRemaining > 0 && daysRemaining <= 3;
+              const notesDisplay = cleanDisplayNotes(exam.notas);
+              const dateInfo = formatHeaderDate(exam.fecha);
 
               return (
-                <div 
+                <div
                   key={exam.id}
                   onClick={() => handleExamClick(exam)}
-                  className="neo-bento-card p-5 bg-muted/30 dark:bg-background transition-all hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group cursor-pointer"
-                  style={exam.color ? { backgroundColor: `${exam.color}` } : {}}
-                  title="Click para ver o modificar este examen"
+                  className="group relative bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 sm:p-4 transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col sm:flex-row gap-3.5 sm:items-center justify-between"
+                  title="Clic para editar o ver detalles"
                 >
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span 
-                        className={cn(
-                          "px-3 py-1 rounded-sm text-[10px] font-black uppercase tracking-widest border-2",
-                          !exam.color && (eventTypeColors[exam.tipo_examen] || (exam.tipo_examen.startsWith("P") ? eventTypeColors["P1"] : "bg-muted text-foreground border-foreground"))
-                        )}
-                        style={exam.color ? { backgroundColor: `rgba(255,255,255,0.2)`, borderColor: "var(--foreground)", color: "#000" } : undefined}
-                      >
-                        {exam.tipo_examen}
+                  {/* Left: Date Block + Exam Details */}
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                    {/* Apple Calendar Style Date Badge */}
+                    <div className="w-11 h-11 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-[9px] font-semibold tracking-wider text-rose-600 dark:text-rose-400 uppercase leading-none">
+                        {dateInfo.month}
                       </span>
-                      {exam.subject_nombre && (
-                        <span className="text-xs font-black uppercase tracking-widest text-foreground flex items-center gap-1.5 px-2 bg-background/50 py-1 rounded-sm border-2 border-foreground/20">
-                          📚 {exam.subject_nombre}
+                      <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-none mt-0.5">
+                        {dateInfo.day}
+                      </span>
+                    </div>
+
+                    {/* Information */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Type Badge */}
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border",
+                            theme.badge
+                          )}
+                        >
+                          <span className={cn("w-1.5 h-1.5 rounded-full", theme.dot)} />
+                          {exam.tipo_examen}
                         </span>
+
+                        {/* Subject Badge */}
+                        {exam.subject_nombre && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                            <BookOpen className="w-2.5 h-2.5 text-zinc-400" />
+                            <span className="truncate max-w-[180px]">{exam.subject_nombre}</span>
+                          </span>
+                        )}
+
+                        {/* Hour */}
+                        {exam.hora && (
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {exam.hora} hs
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors leading-snug truncate">
+                        {exam.titulo}
+                      </h3>
+
+                      {/* Notes snippet */}
+                      {notesDisplay && (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 font-normal">
+                          {notesDisplay}
+                        </p>
                       )}
                     </div>
-                    
-                    <h4 className="text-xl font-display font-black tracking-wide leading-tight group-hover:text-foreground/80 transition-colors">
-                      {exam.titulo}
-                    </h4>
-                    
-                    {cleanDisplayNotes(exam.notas) && (
-                      <p className="text-sm font-bold bg-background/30 p-2 rounded-lg italic line-clamp-2 max-w-2xl border-2 border-foreground/10">
-                        {cleanDisplayNotes(exam.notas)}
-                      </p>
-                    )}
                   </div>
 
-                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between min-w-[180px] w-full md:w-auto gap-4 pl-0 md:pl-8 md:border-l-[3px] border-foreground/20">
-                    <div className="text-right">
-                      <span className="text-sm font-black uppercase tracking-widest flex items-center gap-2 md:justify-end">
-                        <CalendarIcon className="w-5 h-5 text-foreground" />
-                        {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'long'
-                        })}
-                      </span>
-                      {exam.hora && (
-                        <span className="text-xs font-bold flex items-center gap-2 mt-1 md:justify-end opacity-80">
-                          <Clock className="w-4 h-4" />
-                          {exam.hora} hs
-                        </span>
+                  {/* Right: Countdown pill & Study shortcut */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-800/60">
+                    <span
+                      className={cn(
+                        "text-xs font-semibold px-2.5 py-1 rounded-md border",
+                        isToday
+                          ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60 animate-pulse"
+                          : isUrgent
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                          : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                       )}
-                    </div>
+                    >
+                      {isToday ? "¡Rindes hoy!" : daysRemaining === 1 ? "Mañana" : `Faltan ${daysRemaining}d`}
+                    </span>
 
-                    <div className={cn(
-                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border-[3px] shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]",
-                      isToday 
-                        ? "bg-[#ff4e4e] text-white border-foreground animate-pulse" 
-                        : isUrgent 
-                          ? "bg-[#ff4e4e]/20 text-[#ff4e4e] border-[#ff4e4e]" 
-                          : "bg-background text-foreground border-foreground"
-                    )}>
-                      {isToday ? (
-                        <>
-                          <AlertCircle className="w-4 h-4" />
-                          <span>¡RINDES HOY!</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Faltan {daysRemaining} días</span>
-                        </>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/pomodoro");
+                      }}
+                      className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                      title="Estudiar para este examen en Pomodoro"
+                    >
+                      <Timer className="w-3.5 h-3.5" />
+                    </button>
+
+                    <ChevronRight className="w-4 h-4 text-zinc-400 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-            {KANBAN_COLUMNS.map((col) => (
-              <div key={col.id} className="flex flex-col gap-4 bg-card border-[3px] border-foreground p-3 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))] h-full min-h-[500px]">
-                <div className="flex items-center justify-between px-2 py-1 border-b-[3px] border-foreground/10 pb-4">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("p-2 rounded-lg border-[3px] border-foreground shadow-[2px_2px_0_0_#000]", col.color)}>
-                      <col.icon className="w-4 h-4" />
+          /* Kanban Board View: Notion Database Style */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
+            {KANBAN_COLUMNS.map((col) => {
+              const columnExams = filteredExams.filter((e) => getExamStatus(e.notas) === col.id);
+
+              return (
+                <div
+                  key={col.id}
+                  className="flex flex-col gap-2.5 bg-zinc-50/60 dark:bg-[#141416] border border-zinc-200/80 dark:border-zinc-800/80 p-3 rounded-xl shadow-2xs min-h-[460px]"
+                >
+                  {/* Column Header */}
+                  <div className="flex items-center justify-between px-1 py-1 border-b border-zinc-200/60 dark:border-zinc-800/60 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        {col.label}
+                      </span>
                     </div>
-                    <span className="text-xs font-black uppercase tracking-widest leading-none mt-1">{col.label}</span>
+                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs">
+                      {columnExams.length}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-sm bg-foreground text-background">
-                    {filteredExams.filter(e => getExamStatus(e.notas) === col.id).length}
-                  </span>
-                </div>
-                
-                <div className="space-y-4 pt-2">
-                  {filteredExams
-                    .filter(e => getExamStatus(e.notas) === col.id)
-                    .map((exam) => {
+
+                  {/* Cards inside column */}
+                  <div className="space-y-2 pt-0.5">
+                    {columnExams.map((exam) => {
                       const daysRemaining = getDaysRemaining(exam.fecha);
                       const isUrgent = daysRemaining <= 3 && col.id !== "done";
-                      
+                      const isToday = daysRemaining === 0 && col.id !== "done";
+                      const theme = getExamTheme(exam.tipo_examen);
+
                       return (
-                        <div 
+                        <div
                           key={exam.id}
                           onClick={() => handleExamClick(exam)}
                           className={cn(
-                            "bg-background p-4 rounded-xl border-[3px] flex flex-col gap-3 transition-all hover:-translate-y-1 group relative cursor-pointer",
-                            isUrgent ? "border-[#ff4e4e] shadow-[4px_4px_0_0_#ff4e4e]" : "border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))]"
+                            "bg-white dark:bg-[#1c1c1f] p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 flex flex-col gap-2 transition-all group relative cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700",
+                            isUrgent && "border-amber-300 dark:border-amber-500/40"
                           )}
-                          title="Click para ver o modificar este examen"
+                          title="Clic para ver o editar este examen"
                         >
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="text-[9px] font-black tracking-widest opacity-80 uppercase truncate bg-foreground/10 px-2 py-0.5 rounded-sm">
+                          {/* Card Header */}
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 truncate max-w-[140px]">
                               {exam.subject_nombre || "General"}
                             </span>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all absolute top-2 right-2 z-10">
+
+                            {/* Move column quick buttons on hover */}
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               {col.id !== "pending" && (
-                                <button 
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) - 1].id);
+                                    const prevIdx = KANBAN_COLUMNS.findIndex((c) => c.id === col.id) - 1;
+                                    updateExamStatus(exam, KANBAN_COLUMNS[prevIdx].id);
                                   }}
-                                  className="w-7 h-7 flex items-center justify-center rounded-md bg-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
-                                  title="Mover anterior"
+                                  className="w-4.5 h-4.5 flex items-center justify-center rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                                  title="Mover a etapa anterior"
                                 >
-                                  ⬅
+                                  <ArrowLeft className="w-2.5 h-2.5" />
                                 </button>
                               )}
                               {col.id !== "done" && (
-                                <button 
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateExamStatus(exam, KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex(c => c.id === col.id) + 1].id);
+                                    const nextIdx = KANBAN_COLUMNS.findIndex((c) => c.id === col.id) + 1;
+                                    updateExamStatus(exam, KANBAN_COLUMNS[nextIdx].id);
                                   }}
-                                  className="w-7 h-7 flex items-center justify-center rounded-md bg-foreground text-background border-[2px] border-foreground shadow-[2px_2px_0_0_#000] hover:translate-y-0.5 hover:shadow-none text-[12px] font-bold"
-                                  title="Mover siguiente"
+                                  className="w-4.5 h-4.5 flex items-center justify-center rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                                  title="Mover a etapa siguiente"
                                 >
-                                  ➡
+                                  <ArrowRight className="w-2.5 h-2.5" />
                                 </button>
                               )}
                             </div>
                           </div>
-                          
-                          <h5 className="text-sm font-display font-black leading-tight line-clamp-2 min-h-[2.5rem]">
-                            {exam.titulo}
-                          </h5>
 
-                          <div className="flex items-center justify-between pt-3 border-t-[3px] border-foreground/10">
-                            <div className="flex items-center gap-1.5 font-bold">
-                              <CalendarIcon className="w-3.5 h-3.5 opacity-80" />
-                              <span className="text-[10px] uppercase">
-                                {parseLocalDate(exam.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                          {/* Title */}
+                          <h4 className="text-xs font-semibold leading-snug line-clamp-2 text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors">
+                            {exam.titulo}
+                          </h4>
+
+                          {/* Footer with date and countdown */}
+                          <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/60 mt-0.5">
+                            <div className="flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+                              <CalendarIcon className="w-2.5 h-2.5" />
+                              <span>
+                                {parseLocalDate(exam.fecha).toLocaleDateString("es-AR", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}
                               </span>
                             </div>
-                            <span className={cn(
-                              "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm border-2",
-                              isUrgent ? "bg-[#ff4e4e] text-white border-transparent" : "border-foreground"
-                            )}>
-                              {daysRemaining === 0 ? "¡HOY!" : `FALTAN ${daysRemaining}D`}
+
+                            <span
+                              className={cn(
+                                "text-[10px] font-medium px-1.5 py-0.2 rounded border",
+                                isToday
+                                  ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60"
+                                  : isUrgent
+                                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                              )}
+                            >
+                              {isToday ? "¡Hoy!" : `${daysRemaining}d`}
                             </span>
                           </div>
                         </div>
                       );
                     })}
+
+                    {columnExams.length === 0 && (
+                      <div className="p-4 text-center text-xs text-zinc-400 dark:text-zinc-600 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-lg font-normal">
+                        Sin evaluaciones
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Edit Exam Modal */}
+      {/* Modal para Crear / Editar Examen */}
       <AddEventModal
         open={showEditModal}
         onClose={() => {
@@ -475,6 +909,9 @@ export default function Exams() {
             const { id, ...updateData } = data as any;
             await updateEvent(id || eventToEdit.id, updateData);
             toast.success("Examen actualizado correctamente");
+          } else {
+            await createEvent(data as any);
+            toast.success("Examen agendado correctamente");
           }
         }}
         onDelete={async (id) => {
@@ -482,7 +919,7 @@ export default function Exams() {
           toast.success("Examen eliminado correctamente");
         }}
         subjects={subjects}
-        initialDate={eventToEdit ? parseLocalDate(eventToEdit.fecha) : undefined}
+        initialDate={eventToEdit ? parseLocalDate(eventToEdit.fecha) : new Date()}
         editEvent={eventToEdit}
       />
     </div>

@@ -4,99 +4,67 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { HelpCircle, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
-import { ComicBadge } from "@/components/comic/ComicBadge";
-import { useComic } from "@/components/comic/ComicEffectsProvider";
-import { ComicAudio } from "@/components/comic/ComicAudio";
-import { KineticHeading } from "@/components/ui/kinetic-heading";
+import { HelpCircle } from "lucide-react";
 
 export function FaqSection() {
-  const { triggerBurst } = useComic();
-
   const faqs = [
     {
       q: "¿Necesito conocimientos previos para usar TABE?",
-      a: "¡Para nada! La plataforma está diseñada para acompañarte desde tu primer día universitario. Podés organizar materias, cargar apuntes y empezar a estudiar desde cero.",
-      color: "#FFE600",
+      a: "No, en absoluto. La plataforma está diseñada para acompañarte desde tu primer día universitario. Podés organizar tus materias, subir apuntes y practicar preguntas de examen desde cero.",
     },
     {
       q: "¿Cómo empiezo a estudiar gratis?",
-      a: "Te registrás en menos de 10 segundos con tu correo o como invitado. No pedimos tarjeta de crédito ni datos bancarios.",
-      color: "#00E5FF",
+      a: "Te registrás en pocos segundos con tu correo electrónico o ingresás como invitado. No solicitamos tarjeta de crédito ni datos de pago.",
     },
     {
-      q: "¿Qué incluye el acceso a la plataforma?",
-      a: "Acceso total al Asistente IA, generador de quizzes y flashcards con repetición espaciada, cronómetro Pomodoro con 'Mi Bosque' y mapa de correlatividades.",
-      color: "#FF2E93",
+      q: "¿Qué herramientas incluye la plataforma?",
+      a: "Acceso al Tutor IA contextual, generador de cuestionarios y flashcards con repetición espaciada, cronómetro Pomodoro con seguimiento de hábitos y mapas interactivos de correlatividades.",
     },
     {
-      q: "¿Cómo me ayuda la Inteligencia Artificial?",
-      a: "Nuestra IA lee tus apuntes, resúmenes o dudas y te genera preguntas de examen reales, analogías sencillas y explicaciones paso a paso sin vueltas.",
-      color: "#00FF66",
+      q: "¿Cómo asiste la Inteligencia Artificial?",
+      a: "Nuestra IA analiza tus apuntes y resúmenes para generar preguntas de examen realistas, analogías claras y explicaciones paso a paso sin desvíos.",
     },
     {
       q: "¿Sirve para cualquier carrera universitaria?",
-      a: "Sí, es 100% adaptable. Alumnos de Ingeniería, Medicina, Abogacía, Ciencias Económicas y Psicología ya dominan sus parciales con TABE.",
-      color: "#FF6B00",
+      a: "Sí, es completamente adaptable. Estudiantes de Ingeniería, Medicina, Abogacía, Ciencias Económicas y Humanidades ya gestionan sus materias y exámenes en TABE.",
     },
   ];
-
-  const handleTriggerClick = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "RESPUESTA!");
-    ComicAudio.playPop();
-  };
 
   return (
     <section id="faq" className="py-24 md:py-32 relative">
       <div className="container mx-auto px-4 md:px-6 max-w-3xl relative z-10">
-        <div className="text-center mb-16 space-y-4">
-          <KineticHeading
-            as="h2"
-            effect="comic-pop"
-            badge="PREGUNTAS FRECUENTES // FAQ"
-            badgeColor="cyan"
-            className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground"
-          >
-            Preguntas{" "}
-            <motion.span
-              whileHover={{ scale: 1.1, rotate: 2 }}
-              className="text-[#1475e5] dark:text-sky-400 underline decoration-wavy decoration-[#FFE600] inline-block cursor-pointer"
-            >
-              Frecuentes
-            </motion.span>
-          </KineticHeading>
-          <p className="text-muted-foreground text-base sm:text-lg font-bold max-w-lg mx-auto">
-            Todo lo que necesitás saber antes de dar el salto al estudio inteligente.
+        
+        <div className="text-center mb-16 space-y-3">
+          <span className="text-xs font-semibold text-blue-500 uppercase tracking-wider">
+            Preguntas Frecuentes
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Todo lo que necesitás saber
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
+            Respuestas directas a las dudas habituales sobre el funcionamiento de TABE.
           </p>
         </div>
 
-        <Accordion type="single" collapsible className="w-full space-y-4">
-          {faqs.map((faq, i) => (
-            <AccordionItem
-              key={i}
-              value={`item-${i}`}
-              className="bg-card border-[2.5px] border-foreground rounded-2xl px-6 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] transition-all duration-200 select-none overflow-hidden"
-              style={{
-                borderLeftWidth: "6px",
-                borderLeftColor: faq.color,
-              }}
-            >
-              <AccordionTrigger
-                onClick={handleTriggerClick}
-                className="text-left font-black text-base sm:text-lg uppercase tracking-tight py-5 hover:no-underline transition-colors"
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs">
+          <Accordion type="single" collapsible className="w-full space-y-3">
+            {faqs.map((faq, index) => (
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border-b border-zinc-100 dark:border-zinc-800/80 last:border-0 pb-3"
               >
-                {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm sm:text-base font-bold leading-relaxed pb-5 pt-1">
-                <div className="p-3.5 rounded-xl bg-secondary/50 border border-foreground/30 shadow-xs">
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 hover:no-underline py-2.5">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed pt-1">
                   {faq.a}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+
       </div>
     </section>
   );

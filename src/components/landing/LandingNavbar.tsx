@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Moon, Sun, Menu, X, ChevronRight } from "lucide-react";
+import { Moon, Sun, Menu, X, ArrowUpRight } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useSmoothScroll } from "./SmoothScrollProvider";
 
@@ -37,26 +37,37 @@ export function LandingNavbar() {
     };
 
     return (
-        <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-xl border-b-2 border-border py-2" : "bg-transparent py-5"}`}>
+        <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+            scrolled 
+                ? "bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/60 dark:border-zinc-800/60 py-3 shadow-xs" 
+                : "bg-transparent py-5"
+        }`}>
             <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
 
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-3 group" title="TABE - Tu Asistente de Bolsillo Estudiantil">
-                    <img src={logo} alt="TABE - Tu Asistente de Bolsillo Estudiantil" className="w-10 h-10 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6" />
-                    <span className="font-black text-2xl tracking-tight">TABE</span>
+                <Link to="/" className="flex items-center gap-2.5 group" title="TABE - Tu Asistente de Bolsillo Estudiantil">
+                    <img src={logo} alt="TABE" className="w-8 h-8 object-contain transition-transform duration-200 group-hover:scale-105" />
+                    <span className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">TABE</span>
                 </Link>
 
                 {/* Desktop nav */}
-                <div className="hidden md:flex items-center gap-1">
+                <div className="hidden md:flex items-center gap-1 bg-zinc-100/70 dark:bg-zinc-900/70 p-1 rounded-full border border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-md">
                     {links.map(l => (
                         l.scroll ? (
-                            <a key={l.label} href={l.to} onClick={e => handleScroll(e, l.to)}
-                                className="px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all duration-200">
+                            <a 
+                                key={l.label} 
+                                href={l.to} 
+                                onClick={e => handleScroll(e, l.to)}
+                                className="px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200"
+                            >
                                 {l.label}
                             </a>
                         ) : (
-                            <Link key={l.label} to={l.to}
-                                className="px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-all duration-200">
+                            <Link 
+                                key={l.label} 
+                                to={l.to}
+                                className="px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200"
+                            >
                                 {l.label}
                             </Link>
                         )
@@ -64,49 +75,69 @@ export function LandingNavbar() {
                 </div>
 
                 {/* Actions */}
-                <div className="hidden md:flex items-center gap-3">
-                    <button onClick={toggleTheme}
+                <div className="hidden md:flex items-center gap-2.5">
+                    <button 
+                        onClick={toggleTheme}
                         aria-label="Cambiar tema"
-                        data-cursor-text="MODO"
-                        className="p-2.5 rounded-lg border-2 border-border bg-card hover:bg-secondary transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                        className="p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
                         {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
-                    <Link to="/registro"
-                        data-cursor-text="ENTRAR"
-                        className="group flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-lg font-extrabold text-sm border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_hsl(var(--tab-orange))] active:translate-y-0.5 active:shadow-none cursor-pointer">
+                    <Link 
+                        to="/registro"
+                        className="group flex items-center gap-1.5 px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 rounded-xl font-medium text-xs transition-all shadow-xs cursor-pointer"
+                    >
                         Entrar a la App
-                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </Link>
                 </div>
 
-                {/* Mobile */}
-                <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
-                    {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {/* Mobile Hamburger */}
+                <button 
+                    className="md:hidden p-2 rounded-xl text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" 
+                    onClick={() => setOpen(!open)}
+                >
+                    {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
             </div>
 
             {/* Mobile menu */}
             {open && (
-                <div className="md:hidden absolute top-full left-0 w-full bg-background border-b-2 border-border py-4 px-4 space-y-1">
+                <div className="md:hidden absolute top-full left-0 w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 py-4 px-4 space-y-1.5 shadow-lg">
                     {links.map(l => (
                         l.scroll ? (
-                            <a key={l.label} href={l.to} onClick={e => handleScroll(e, l.to)}
-                                className="block px-4 py-3 font-bold text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg">
+                            <a 
+                                key={l.label} 
+                                href={l.to} 
+                                onClick={e => handleScroll(e, l.to)}
+                                className="block px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-lg transition-colors"
+                            >
                                 {l.label}
                             </a>
                         ) : (
-                            <Link key={l.label} to={l.to} onClick={() => setOpen(false)}
-                                className="block px-4 py-3 font-bold text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg">
+                            <Link 
+                                key={l.label} 
+                                to={l.to} 
+                                onClick={() => setOpen(false)}
+                                className="block px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-lg transition-colors"
+                            >
                                 {l.label}
                             </Link>
                         )
                     ))}
-                    <div className="pt-3 flex items-center gap-3">
-                        <button onClick={toggleTheme} aria-label="Cambiar tema" className="p-2.5 rounded-lg border-2 border-border">
-                            {resolvedTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    <div className="pt-3 flex items-center gap-2.5 border-t border-zinc-100 dark:border-zinc-800">
+                        <button 
+                            onClick={toggleTheme} 
+                            aria-label="Cambiar tema" 
+                            className="p-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
+                        >
+                            {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </button>
-                        <Link to="/registro" onClick={() => setOpen(false)}
-                            className="flex-1 text-center py-3 bg-foreground text-background rounded-lg font-extrabold border-2 border-foreground shadow-[3px_3px_0_0_hsl(var(--tab-orange))]">
+                        <Link 
+                            to="/registro" 
+                            onClick={() => setOpen(false)}
+                            className="flex-1 text-center py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-xl font-medium text-xs shadow-xs"
+                        >
                             Entrar a la App
                         </Link>
                     </div>

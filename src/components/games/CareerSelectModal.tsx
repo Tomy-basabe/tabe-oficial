@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, School, Send, AlertCircle, Search, ChevronDown } from "lucide-react";
+import { GraduationCap, School, Send, AlertCircle, Search, Check, ArrowLeft, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,14 +49,14 @@ export function CareerSelectModal({ open, onClose, onCareerSelected, onRequestCa
   const handleConfirm = () => {
     if (!selectedCareer) return;
     onCareerSelected(selectedCareer.name, selectedCareer.university);
-    toast.success("¡Carrera configurada!");
+    toast.success("Carrera actualizada correctamente");
     setSelectedCareer(null);
     setSearchQuery("");
   };
 
   const handleSubmitRequest = async () => {
     if (!requestUni.trim() || !requestCarrera.trim()) {
-      toast.error("Completá ambos campos");
+      toast.error("Por favor completa ambos campos");
       return;
     }
     setSending(true);
@@ -65,7 +65,7 @@ export function CareerSelectModal({ open, onClose, onCareerSelected, onRequestCa
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("¡Solicitud enviada! Te notificaremos cuando se agregue tu carrera.");
+      toast.success("Solicitud enviada. Te avisaremos cuando esté disponible.");
       setShowRequestForm(false);
       setRequestUni("");
       setRequestCarrera("");
@@ -74,134 +74,150 @@ export function CareerSelectModal({ open, onClose, onCareerSelected, onRequestCa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-xl">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
+      <DialogContent className="bg-card text-foreground border border-border/80 shadow-2xl max-w-lg max-h-[85vh] p-6 rounded-2xl overflow-hidden flex flex-col">
+        <DialogHeader className="pb-3 border-b border-border/60">
+          <DialogTitle className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <GraduationCap className="w-4 h-4" />
             </div>
-            {showRequestForm ? "Solicitar carrera nueva" : "¿Qué estudiás?"}
+            <span>{showRequestForm ? "Solicitar nueva carrera" : "Selecciona tu carrera"}</span>
           </DialogTitle>
         </DialogHeader>
 
         {!showRequestForm ? (
-          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-            <p className="text-sm text-muted-foreground">
-              Para emparejarte con rivales de tu carrera, necesitamos saber qué estudiás.
-              Esto no modifica tu plan de estudio.
+          <div className="space-y-4 flex-1 overflow-hidden flex flex-col pt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Elige tu carrera y facultad para que el emparejamiento te asigne preguntas y desafíos relevantes.
             </p>
 
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar carrera o universidad..."
+                placeholder="Buscar carrera o facultad..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-9 h-10 text-sm bg-muted/40 border-border/70 focus-visible:ring-1"
               />
             </div>
 
             {/* Career List */}
-            <div className="flex-1 overflow-y-auto space-y-2 max-h-[40vh] pr-1">
+            <div className="flex-1 overflow-y-auto space-y-1.5 max-h-[38vh] pr-1">
               {filtered.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No se encontraron resultados</p>
+                <div className="text-center py-10 text-muted-foreground">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm font-medium">No se encontraron carreras</p>
+                  <p className="text-xs text-muted-foreground mt-1">¿No encuentras la tuya? Puedes solicitar que la agreguemos.</p>
                 </div>
               ) : (
-                filtered.map(career => (
-                  <button
-                    key={career.id}
-                    onClick={() => setSelectedCareer(career)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-xl border transition-all duration-200",
-                      selectedCareer?.id === career.id
-                        ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-                        : "border-border/50 bg-secondary/30 hover:bg-secondary/60 hover:border-border"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">{career.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <School className="w-3 h-3" />
-                          {career.university}
+                filtered.map(career => {
+                  const isSelected = selectedCareer?.id === career.id;
+                  return (
+                    <button
+                      key={career.id}
+                      type="button"
+                      onClick={() => setSelectedCareer(career)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-xl border transition-all text-sm flex items-center justify-between group",
+                        isSelected
+                          ? "border-primary bg-primary/5 text-foreground font-medium"
+                          : "border-border/60 bg-card/60 hover:bg-muted/60 hover:border-border text-foreground"
+                      )}
+                    >
+                      <div className="min-w-0 pr-3">
+                        <p className="text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                          {career.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <School className="w-3 h-3 text-muted-foreground/70" />
+                          <span className="truncate">{career.university}</span>
                         </p>
                       </div>
-                      {selectedCareer?.id === career.id && (
-                        <div className="w-5 h-5 rounded-full bg-neon-cyan flex items-center justify-center">
-                          <ChevronDown className="w-3 h-3 text-background rotate-0" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))
+                      <div
+                        className={cn(
+                          "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border/80 bg-background"
+                        )}
+                      >
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
 
             {/* Actions */}
-            <div className="space-y-3 pt-2 border-t border-border/50">
+            <div className="space-y-2 pt-3 border-t border-border/60">
               <Button
-                className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple hover:opacity-90 transition-opacity"
+                className="w-full h-10 text-sm font-medium"
                 disabled={!selectedCareer}
                 onClick={handleConfirm}
               >
-                <GraduationCap className="w-4 h-4 mr-2" />
-                Confirmar carrera
+                <Check className="w-4 h-4 mr-1.5" />
+                Confirmar selección
               </Button>
               <Button
                 variant="ghost"
-                className="w-full text-muted-foreground hover:text-foreground"
+                className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
                 onClick={() => setShowRequestForm(true)}
               >
-                ¿No encontrás tu carrera? <span className="ml-1 text-neon-cyan">Solicitala</span>
+                <Plus className="w-3.5 h-3.5" />
+                ¿No encuentras tu carrera? Solicitar agregarla
               </Button>
             </div>
           </div>
         ) : (
           /* Request Form */
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Contanos qué estudias y te avisaremos cuando agreguemos tu carrera.
-              La solicitud le llegará al equipo de TABE.
+          <div className="space-y-4 pt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Ingresa los datos de tu universidad y carrera para que el equipo de contenido agregue los mazos y temarios correspondientes.
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Universidad</label>
+                <label className="text-xs font-medium text-foreground mb-1 block">
+                  Universidad / Facultad
+                </label>
                 <Input
                   placeholder="Ej: UTN FRM, UNCUYO, UBA..."
                   value={requestUni}
                   onChange={(e) => setRequestUni(e.target.value)}
+                  className="h-10 text-sm bg-muted/40 border-border/70"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Carrera</label>
+                <label className="text-xs font-medium text-foreground mb-1 block">
+                  Nombre de la carrera
+                </label>
                 <Input
-                  placeholder="Ej: Ingeniería en Sistemas de Información"
+                  placeholder="Ej: Licenciatura en Ciencias de la Computación"
                   value={requestCarrera}
                   onChange={(e) => setRequestCarrera(e.target.value)}
+                  className="h-10 text-sm bg-muted/40 border-border/70"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2.5 pt-3 border-t border-border/60">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-10 text-xs font-medium border-border/80"
                 onClick={() => setShowRequestForm(false)}
               >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Volver
               </Button>
               <Button
-                className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple"
+                className="flex-1 h-10 text-xs font-medium"
                 disabled={sending || !requestUni.trim() || !requestCarrera.trim()}
                 onClick={handleSubmitRequest}
               >
                 {sending ? "Enviando..." : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
+                    <Send className="w-3.5 h-3.5 mr-1.5" />
                     Enviar solicitud
                   </>
                 )}

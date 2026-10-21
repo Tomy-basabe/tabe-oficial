@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Gamepad2, Trophy, Zap, Clock, Users, Bot, Loader2, Shield, Goal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
 import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
+import { GameDeckSelector } from "@/components/games/GameDeckSelector";
+import { GameSearchingOpponent } from "@/components/games/GameSearchingOpponent";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PremiumGoal, PremiumBall, KeeperBot, KeeperPlayer } from "@/components/games/GameAssets";
@@ -47,7 +49,7 @@ export default function PenaltyGame() {
   const [showCareerModal, setShowCareerModal] = useState(false);
 
   // Deck selection
-  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "Mazo General TABE", total_questions: 15 };
   const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
 
@@ -371,145 +373,43 @@ export default function PenaltyGame() {
   // PHASE 1: Select Deck
   if (gamePhase === 'select_deck') {
     return (
-      <div className="min-h-screen p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/juegos")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl md:text-2xl font-display font-bold">⚽ Tanda de Penales</h1>
-        </div>
-
-        <Card className="card-gamer">
-          <CardContent className="p-6 space-y-4">
-            <div className="text-center">
-              <div className="text-5xl mb-4">⚽</div>
-              <h2 className="font-display font-bold text-xl mb-2">Elegí tu mazo de estudio</h2>
-              <p className="text-muted-foreground text-sm">
-                Las preguntas del juego saldrán de tu mazo de cuestionarios.
-                Respondé correctamente para meter goles.
-              </p>
-            </div>
-
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-              {decks.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">No tenés mazos de cuestionarios todavía</p>
-                  <Button variant="outline" onClick={() => navigate("/cuestionarios")}>
-                    Crear un cuestionario
-                  </Button>
-                </div>
-              ) : (
-                decks.map(deck => (
-                  <button
-                    key={deck.id}
-                    onClick={() => setSelectedDeck(deck)}
-                    className={cn(
-                      "w-full text-left p-4 rounded-xl border transition-all duration-200",
-                      selectedDeck?.id === deck.id
-                        ? "border-neon-cyan bg-neon-cyan/10 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-                        : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{deck.nombre}</p>
-                        <p className="text-xs text-muted-foreground">{deck.total_questions} preguntas</p>
-                      </div>
-                      {selectedDeck?.id === deck.id && (
-                        <div className="w-6 h-6 rounded-full bg-neon-cyan flex items-center justify-center">
-                          <Gamepad2 className="w-3 h-3 text-background" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-
-            {selectedDeck && (
-              <Button
-                className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple text-lg py-6 font-display font-bold"
-                onClick={handleStartSearch}
-              >
-                <Gamepad2 className="w-5 h-5 mr-2" />
-                ¡Buscar Rival!
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
+      <>
+        <GameDeckSelector
+          gameTitle="Tanda de Penales"
+          gameSubtitle="Respondé correctamente las preguntas de tu mazo para definir la dirección y precisión de tus tiros y atajadas."
+          gameIcon={Goal}
+          gameRules="En cada ronda pateás o atajás. Responder correctamente te otorga la máxima precisión y reflejos para atajar o meter gol."
+          decks={decks}
+          selectedDeck={selectedDeck}
+          onSelectDeck={(deck) => setSelectedDeck(deck as QuizDeck)}
+          onStartSearch={handleStartSearch}
+          userCarrera={userCarrera}
+          onOpenCareerModal={() => setShowCareerModal(true)}
+          actionButtonLabel={modeParam === "bot" ? "Iniciar práctica vs Bot" : "Buscar rival ahora"}
+        />
         <CareerSelectModal
           open={showCareerModal}
           onClose={() => setShowCareerModal(false)}
           onCareerSelected={handleCareerSelected}
           onRequestCareer={submitCareerRequest}
         />
-      </div>
+      </>
     );
   }
 
   // PHASE 2: Searching for opponent
   if (gamePhase === 'searching') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="card-gamer max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-6">
-            {/* Pulsing search animation */}
-            <div className="relative mx-auto w-32 h-32">
-              <div className="absolute inset-0 rounded-full border-2 border-neon-cyan/30 animate-ping" />
-              <div className="absolute inset-4 rounded-full border-2 border-neon-purple/30 animate-ping" style={{ animationDelay: '0.5s' }} />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-neon-cyan animate-spin" />
-              </div>
-            </div>
-
-            <div>
-              <h2 className="font-display font-bold text-xl mb-2">Buscando rival...</h2>
-              <p className="text-muted-foreground text-sm mb-4">
-                Emparejando con alguien de tu carrera
-              </p>
-            </div>
-
-            {/* Timer */}
-            <div className="relative w-20 h-20 mx-auto">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-secondary"
-                />
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="url(#gradient)"
-                  strokeWidth="2"
-                  strokeDasharray={`${(timeLeft / 13) * 100}, 100`}
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient id="gradient">
-                    <stop offset="0%" stopColor="hsl(var(--neon-cyan))" />
-                    <stop offset="100%" stopColor="hsl(var(--neon-purple))" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-display font-bold text-2xl">{timeLeft}</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Buscando en tu carrera...
-            </p>
-
-            <Button variant="outline" onClick={handleCancelSearch}>
-              Cancelar
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <GameSearchingOpponent
+        gameTitle="Tanda de Penales"
+        gameIcon={Goal}
+        timeLeft={timeLeft}
+        maxTime={13}
+        userCarrera={userCarrera}
+        userName={user?.user_metadata?.nombre || user?.email?.split('@')[0] || "Tú"}
+        onCancel={handleCancelSearch}
+        statusMessage="Buscando contrincante en tiempo real..."
+      />
     );
   }
 
@@ -804,3 +704,4 @@ export default function PenaltyGame() {
 
   return null;
 }
+

@@ -20,12 +20,12 @@ export interface TabeShowcaseItem extends CarouselItem {
 export const TABE_MODULES: TabeShowcaseItem[] = [
   {
     src: '/caps/tabe-cap-01.png',
-    alt: 'Dashboard principal con TabeGochi y Progreso Global',
-    title: 'Dashboard & TabeGochi',
-    subtitle: 'Progreso y Mascota Virtual',
+    alt: 'Dashboard principal con Progreso Global y Métricas',
+    title: 'Dashboard & Métricas',
+    subtitle: 'Progreso y Hábitos de Estudio',
     category: 'Dashboard',
-    tag: 'XP & Tamagotchi',
-    description: 'Tu centro de comando académico con seguimiento de materias cursables, progreso anual en tiempo real, horas de estudio y tu mascota virtual interactiva TabeGochi.',
+    tag: 'XP & Métricas',
+    description: 'Tu centro de comando académico con seguimiento de materias cursables, progreso anual en tiempo real, horas de estudio y métricas de rendimiento.',
   },
   {
     src: '/caps/tabe-cap-02.png',
@@ -119,8 +119,8 @@ export const TABE_MODULES: TabeShowcaseItem[] = [
   },
   {
     src: '/caps/tabe-cap-12.png',
-    alt: 'Archipiélago de Estudio con 5 Islas Temáticas',
-    title: 'Archipiélago de Estudio',
+    alt: 'Islas de Estudio con 5 Ecosistemas Temáticos',
+    title: 'Islas de Estudio',
     subtitle: 'Gamificación de 5 Islas',
     category: 'Bosque',
     tag: '5 Mundos',

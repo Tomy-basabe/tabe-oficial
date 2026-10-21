@@ -1,9 +1,26 @@
 import { useTheme } from "@/hooks/useTheme";
 
-/** TABE brand mark – renders correct logo for current theme */
-export function TabeLogo({ size = 56, className = "" }: { size?: number; className?: string }) {
+interface TabeLogoProps {
+  size?: number;
+  className?: string;
+  variant?: "default" | "ai";
+}
+
+/** TABE brand mark – renders correct logo adapted to light and dark theme */
+export function TabeLogo({ size = 56, className = "", variant = "default" }: TabeLogoProps) {
   const { theme } = useTheme();
-  const src = "/logo.png"; // Using the new unified clear theme logo for both light and dark
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  let src = "/logo.png";
+  if (variant === "ai") {
+    src = isDark ? "/logos/tabe-ai-dark.png" : "/logos/tabe-ai-light.png";
+  } else {
+    src = isDark ? "/logos/tabe-logo-dark.png" : "/logos/tabe-logo-light.png";
+  }
 
   return (
     <img
@@ -11,6 +28,10 @@ export function TabeLogo({ size = 56, className = "" }: { size?: number; classNa
       alt="TABE"
       className={className}
       style={{ width: size, height: size, objectFit: "contain" }}
+      onError={(e) => {
+        // Fallback robusto al logo principal si no existiera la ruta
+        (e.target as HTMLImageElement).src = "/logo.png";
+      }}
     />
   );
 }

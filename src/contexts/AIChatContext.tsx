@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef } from "react";
 import { useStreamingChat } from "@/hooks/useStreamingChat";
+import { AIStatusUpdate } from "@/lib/aiClientService";
 import {
   AIModelOption,
   DEFAULT_AI_MODEL,
@@ -26,6 +27,7 @@ interface AIChatContextProps {
   setCurrentSessionId: (id: string | null) => void;
   currentSessionRef: React.MutableRefObject<string | null>;
   isStreaming: boolean;
+  aiStatus: AIStatusUpdate | null;
   selectedModel: AIModelOption;
   setSelectedModel: (model: AIModelOption) => void;
   powerLevel: PowerEffort;
@@ -80,7 +82,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  const { isStreaming, streamMessage } = useStreamingChat(selectedModel, powerLevel);
+  const { isStreaming, aiStatus, streamMessage } = useStreamingChat(selectedModel, powerLevel);
 
   return (
     <AIChatContext.Provider
@@ -93,6 +95,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         setCurrentSessionId,
         currentSessionRef,
         isStreaming,
+        aiStatus,
         selectedModel,
         setSelectedModel,
         powerLevel,

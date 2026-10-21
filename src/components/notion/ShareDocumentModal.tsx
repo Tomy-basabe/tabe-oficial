@@ -23,6 +23,7 @@ import {
   Globe,
   Lock,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ShareDocumentModalProps {
   isOpen: boolean;
@@ -79,60 +80,71 @@ export function ShareDocumentModal({
 
     setIsShared(checked);
     setSaving(true);
-    const success = await onUpdateSharing({
-      is_shared: checked,
-      share_permission: permission,
-      share_token: checked ? token : shareToken,
-      is_public: checked,
-    });
-    setSaving(false);
-
-    if (success) {
-      toast.success(checked ? "Enlace de colaboración activado" : "Enlace desactivado");
-    } else {
+    try {
+      const ok = await onUpdateSharing({
+        is_shared: checked,
+        share_permission: permission,
+        share_token: checked ? token : shareToken,
+      });
+      if (ok) {
+        toast.success(checked ? "Enlace de colaboración activado" : "Enlace desactivado");
+      } else {
+        setIsShared(!checked);
+      }
+    } catch {
       setIsShared(!checked);
-      toast.error("Error al actualizar estado de compartir");
+      toast.error("Error al actualizar la configuración de compartir");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleChangePermission = async (newPerm: "view" | "edit") => {
-    if (!isOwner) return;
-    setPermission(newPerm);
+    if (!isOwner || newPerm === permission) return;
 
-    if (isShared) {
-      setSaving(true);
-      const success = await onUpdateSharing({
-        is_shared: true,
+    setPermission(newPerm);
+    setSaving(true);
+    try {
+      const ok = await onUpdateSharing({
+        is_shared: isShared,
         share_permission: newPerm,
         share_token: shareToken,
       });
-      setSaving(false);
-
-      if (success) {
-        toast.success(newPerm === "edit" ? "Permiso cambiado a Lectura y Edición" : "Permiso cambiado a Solo Lectura");
+      if (ok) {
+        toast.success(`Permiso actualizado a ${newPerm === "edit" ? "edición" : "solo lectura"}`);
+      } else {
+        setPermission(permission);
       }
+    } catch {
+      setPermission(permission);
+      toast.error("Error al cambiar permisos");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleRegenerateToken = async () => {
     if (!isOwner) return;
+
     const newToken = typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
       : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-    setShareToken(newToken);
     setSaving(true);
-    const success = await onUpdateSharing({
-      is_shared: isShared,
-      share_permission: permission,
-      share_token: newToken,
-    });
-    setSaving(false);
-
-    if (success) {
-      toast.success("Nuevo enlace generado. El enlace anterior ha sido revocado.");
-    } else {
+    try {
+      const ok = await onUpdateSharing({
+        is_shared: isShared,
+        share_permission: permission,
+        share_token: newToken,
+      });
+      if (ok) {
+        setShareToken(newToken);
+        toast.success("Nuevo enlace generado. El anterior quedó invalidado.");
+      }
+    } catch {
       toast.error("Error al regenerar enlace");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -140,47 +152,47 @@ export function ShareDocumentModal({
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
-    toast.success("¡Enlace copiado al portapapeles!");
+    toast.success("Enlace copiado al portapapeles");
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[540px] bg-card text-foreground border-4 border-foreground rounded-none shadow-[8px_8px_0_0_hsl(var(--foreground))] p-6 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-2 pb-3 border-b-2 border-foreground/20">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-1.5 pb-3 border-b border-zinc-100 dark:border-zinc-800/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-foreground bg-[#FFD700] text-black flex items-center justify-center font-black shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              <Share2 className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+              <Share2 className="w-4 h-4" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-black uppercase tracking-tight">
-                Apunte Cooperativo
+              <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Compartir Apunte
               </DialogTitle>
-              <DialogDescription className="text-xs font-bold text-muted-foreground">
-                Comparte este apunte mediante un enlace con permisos configurables.
+              <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+                Colabora en tiempo real mediante un enlace seguro
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 pt-3">
-          {/* Document Summary */}
-          <div className="p-3 bg-muted border-2 border-foreground flex items-center gap-3">
-            <span className="text-2xl">{document.emoji || "📝"}</span>
+        <div className="space-y-4 pt-2">
+          {/* Document Summary Card */}
+          <div className="p-3 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 rounded-xl flex items-center gap-3">
+            <span className="text-2xl shrink-0">{document.emoji || "📝"}</span>
             <div className="min-w-0 flex-1">
-              <h4 className="font-black text-sm text-foreground truncate">
+              <h4 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
                 {document.titulo || "Sin título"}
               </h4>
-              <p className="text-[11px] font-bold text-muted-foreground">
-                {isOwner ? "Eres el creador de este apunte" : `Creado por ${document.owner?.nombre || "un compañero"}`}
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                {isOwner ? "Eres el autor de este apunte" : `Creado por ${document.owner?.nombre || "un compañero"}`}
               </p>
             </div>
             {isShared ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase bg-[#BFFF00] text-black border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))]">
-                <Globe className="w-3 h-3" /> Enlace Activo
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full shrink-0">
+                <Globe className="w-3 h-3" /> Activo
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase bg-muted-foreground/20 text-foreground border-2 border-foreground">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 rounded-full shrink-0">
                 <Lock className="w-3 h-3" /> Privado
               </span>
             )}
@@ -188,79 +200,80 @@ export function ShareDocumentModal({
 
           {/* Toggle Share Switch (Owner only) */}
           {isOwner ? (
-            <div className="flex items-center justify-between p-3.5 bg-background border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              <div className="space-y-0.5">
-                <label className="text-sm font-black uppercase cursor-pointer flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-primary" />
+            <div className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-2xs">
+              <div className="space-y-0.5 pr-2">
+                <label className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 cursor-pointer flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-zinc-500" />
                   Habilitar enlace de colaboración
                 </label>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  Cualquier persona con el enlace podrá acceder al apunte.
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Cualquier compañero con el enlace podrá acceder.
                 </p>
               </div>
               <Switch
                 checked={isShared}
                 onCheckedChange={handleToggleShare}
                 disabled={saving}
-                className="data-[state=checked]:bg-[#BFFF00] data-[state=checked]:border-2 data-[state=checked]:border-foreground"
               />
             </div>
           ) : (
-            <div className="p-3 bg-muted border-2 border-foreground text-xs font-bold flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>Solo el creador puede activar, desactivar o revocar el enlace de este apunte.</span>
+            <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>Solo el creador puede activar o revocar el enlace de este apunte.</span>
             </div>
           )}
 
           {/* Sharing Options when enabled */}
           {isShared && (
-            <div className="space-y-4 animate-in fade-in-50 duration-200">
+            <div className="space-y-3.5 animate-in fade-in-50 duration-150">
               {/* Permission Selector */}
               {isOwner && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                    Permiso para quienes tengan el enlace:
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                    Permiso de acceso:
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 bg-zinc-100/70 dark:bg-zinc-900/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
                     <button
                       type="button"
                       onClick={() => handleChangePermission("view")}
                       disabled={saving}
-                      className={`flex items-center justify-center gap-2 p-2.5 border-2 border-foreground font-black text-xs uppercase transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] ${
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all",
                         permission === "view"
-                          ? "bg-[#00E5FF] text-black ring-2 ring-foreground"
-                          : "bg-background text-foreground hover:bg-muted"
-                      }`}
+                          ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      )}
                     >
-                      <Eye className="w-4 h-4" />
-                      Solo Lectura (Ver)
+                      <Eye className="w-3.5 h-3.5" />
+                      Solo Lectura
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleChangePermission("edit")}
                       disabled={saving}
-                      className={`flex items-center justify-center gap-2 p-2.5 border-2 border-foreground font-black text-xs uppercase transition-all shadow-[2px_2px_0_0_hsl(var(--foreground))] ${
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all",
                         permission === "edit"
-                          ? "bg-[#FF9B71] text-black ring-2 ring-foreground"
-                          : "bg-background text-foreground hover:bg-muted"
-                      }`}
+                          ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      )}
                     >
-                      <Edit3 className="w-4 h-4" />
-                      Lectura y Edición
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Edición colaborativa
                     </button>
                   </div>
-                  <p className="text-[11px] font-semibold text-muted-foreground mt-1">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {permission === "edit"
-                      ? "⚡ Los invitados podrán escribir en tiempo real (requiere tener cuenta en TABE)."
-                      : "👁️ Los invitados solo podrán ver y leer el apunte sin modificarlo."}
+                      ? "⚡ Los invitados con cuenta en TABE podrán escribir y editar en tiempo real."
+                      : "👁️ Los invitados solo podrán leer y explorar el apunte sin modificarlo."}
                   </p>
                 </div>
               )}
 
               {/* Link Input & Copy */}
               <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   Enlace para compartir:
                 </label>
                 <div className="flex gap-2">
@@ -268,33 +281,31 @@ export function ShareDocumentModal({
                     type="text"
                     readOnly
                     value={shareUrl}
-                    className="flex-1 px-3 py-2 text-xs font-mono font-bold bg-background border-2 border-foreground select-all text-foreground truncate focus:outline-none"
+                    className="flex-1 h-9 px-3 text-xs font-mono bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg select-all text-zinc-800 dark:text-zinc-200 truncate focus:outline-none"
                   />
                   <Button
                     type="button"
                     onClick={handleCopyLink}
-                    className="px-4 bg-[#BFFF00] text-black hover:bg-[#a8e600] border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-x-[1px] hover:translate-y-[1px] font-black text-xs uppercase shrink-0 rounded-none transition-all flex items-center gap-1.5"
+                    className="h-9 px-3.5 text-xs font-medium rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs shrink-0 flex items-center gap-1.5"
                   >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? "Copiado" : "Copiar"}
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copied ? "Copiado" : "Copiar"}</span>
                   </Button>
                 </div>
               </div>
 
               {/* Revoke / Regenerate Token Button */}
               {isOwner && (
-                <div className="pt-1 flex items-center justify-between">
-                  <p className="text-[11px] font-bold text-muted-foreground">
-                    ¿Quieres revocar el enlace anterior?
-                  </p>
+                <div className="pt-1 flex items-center justify-between text-[11px] text-zinc-500">
+                  <span>¿Deseas invalidar el enlace anterior?</span>
                   <button
                     type="button"
                     onClick={handleRegenerateToken}
                     disabled={saving}
-                    className="flex items-center gap-1 text-[11px] font-black uppercase text-red-500 hover:text-red-600 underline cursor-pointer"
+                    className="inline-flex items-center gap-1 text-zinc-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-400 font-medium transition-colors"
                   >
                     <RefreshCw className="w-3 h-3" />
-                    Generar nuevo enlace
+                    Regenerar enlace
                   </button>
                 </div>
               )}
@@ -302,41 +313,41 @@ export function ShareDocumentModal({
           )}
 
           {/* Active Collaborators Section */}
-          <div className="pt-3 border-t-2 border-foreground/20 space-y-2">
+          <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/60 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-zinc-400" />
                 Conectados en este apunte ({activeCollaborators.length})
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                En tiempo real
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                En vivo
               </span>
             </div>
 
             {activeCollaborators.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-semibold italic p-2 bg-muted/40 border border-foreground/10">
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 italic p-2.5 rounded-lg bg-zinc-50/60 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60">
                 No hay otros compañeros conectados a este apunte en este momento.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {activeCollaborators.map((c) => (
                   <div
                     key={c.user_id}
-                    className="flex items-center gap-2 px-2.5 py-1 bg-background border-2 border-foreground shadow-[1px_1px_0_0_hsl(var(--foreground))] text-xs font-black"
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg text-xs text-zinc-800 dark:text-zinc-200 shadow-2xs"
                   >
                     {c.avatar_url ? (
                       <img
                         src={c.avatar_url}
                         alt=""
-                        className="w-5 h-5 rounded-full border border-foreground object-cover shrink-0"
+                        className="w-4 h-4 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="w-4 h-4 rounded-full bg-zinc-800 text-white flex items-center justify-center text-[9px] font-semibold shrink-0">
                         {(c.name || "A").charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span className="truncate max-w-[120px]">{c.name}</span>
+                    <span className="truncate max-w-[120px] font-medium">{c.name}</span>
                   </div>
                 ))}
               </div>
@@ -345,13 +356,13 @@ export function ShareDocumentModal({
         </div>
 
         {/* Footer */}
-        <div className="mt-5 pt-3 border-t-2 border-foreground/20 flex justify-end">
+        <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/60 flex justify-end">
           <Button
             type="button"
             onClick={onClose}
-            className="px-5 bg-card text-foreground hover:bg-muted border-2 border-foreground font-black text-xs uppercase rounded-none shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+            className="px-5 h-8.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium shadow-2xs"
           >
-            Cerrar
+            Listo
           </Button>
         </div>
       </DialogContent>

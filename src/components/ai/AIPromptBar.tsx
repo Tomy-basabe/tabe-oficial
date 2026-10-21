@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
+  Plus,
   Paperclip,
   Globe,
   BrainCog,
@@ -30,28 +31,20 @@ export const powerConfig: Record<
   PowerEffort,
   {
     name: string;
-    tag: string;
     icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-    desc: string;
   }
 > = {
   bajo: {
     name: "Rápido",
-    tag: "Flash",
     icon: Zap,
-    desc: "Respuestas veloces y directas",
   },
   medio: {
     name: "Equilibrado",
-    tag: "Pro",
     icon: Sparkles,
-    desc: "Ideal para materias, apuntes y resúmenes",
   },
   alto: {
-    name: "Pensamiento",
-    tag: "Deep",
+    name: "Pensar",
     icon: Brain,
-    desc: "Razonamiento analítico paso a paso",
   },
 };
 
@@ -177,9 +170,11 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
       setShowThink(false);
       setShowImage(false);
     } else if (mode === "think") {
-      setShowThink((prev) => !prev);
+      const next = !showThink;
+      setShowThink(next);
       setShowSearch(false);
       setShowImage(false);
+      onSelectPowerLevel(next ? "alto" : "medio");
     } else if (mode === "image") {
       setShowImage((prev) => !prev);
       setShowSearch(false);
@@ -251,8 +246,8 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        "relative w-full rounded-2xl border border-zinc-300 dark:border-zinc-800 focus-within:border-zinc-950 dark:focus-within:border-zinc-400 bg-white dark:bg-zinc-950 shadow-sm transition-all duration-200 px-3.5 pt-2.5 pb-2",
-        isDragOver && "border-zinc-950 dark:border-zinc-200 border-dashed bg-zinc-50 dark:bg-zinc-900/50",
+        "relative w-full rounded-3xl border border-zinc-200/90 dark:border-white/10 focus-within:border-zinc-400 dark:focus-within:border-white/20 bg-white dark:bg-[#212121] shadow-md transition-all duration-200 px-4 pt-3 pb-2.5",
+        isDragOver && "border-primary border-dashed bg-zinc-50 dark:bg-zinc-900/50",
         isLoading && "border-zinc-400 dark:border-zinc-600",
         className
       )}
@@ -441,52 +436,40 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
       <div className="flex items-center justify-between gap-2 pt-2 mt-1 border-t border-zinc-100 dark:border-zinc-800/60">
         {/* Left Side: Attachment + Model Chip + Capability Toggles */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-x-auto scrollbar-none py-0.5">
-          {/* Paperclip */}
+          {/* Attach Button (+) */}
           <button
             type="button"
             onClick={onAttachClick}
             disabled={isLoading || isRecordingVoice}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
-            title="Adjuntar imagen, apunte o PDF"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-white/10 dark:hover:bg-white/15 text-zinc-700 dark:text-zinc-200 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+            title="Adjuntar imagen, apunte o archivo"
           >
-            <Paperclip className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.2]" />
           </button>
 
-          {/* Embedded Minimal Model Selector */}
+          {/* Selector de Nivel de IA Sencillo (* Rápido, * Equilibrado, * Pensar) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 disabled={isLoading}
-                className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors cursor-pointer shrink-0 focus:outline-none"
-                title="Cambiar modelo y potencia de respuesta"
+                className="group inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-zinc-200/90 dark:border-white/10 bg-zinc-50/90 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-all cursor-pointer shrink-0 focus:outline-none shadow-2xs hover:shadow-xs select-none"
+                title="Elegir nivel de IA"
               >
-                <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0 opacity-90">
-                  <TabeAIIcon size={13} />
-                </div>
-                <span className="font-semibold text-xs tracking-tight">TABE AI</span>
-                <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                <CurrentPowerIcon className="w-3 h-3 text-zinc-500 dark:text-zinc-400" strokeWidth={1.75} />
-                <span className="hidden xs:inline text-[11px] text-zinc-600 dark:text-zinc-400">
+                <CurrentPowerIcon className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 group-hover:text-foreground transition-colors" strokeWidth={2} />
+                <span className="font-medium text-xs tracking-tight text-foreground">
                   {currentPower.name}
                 </span>
-                <ChevronDown className="w-2.5 h-2.5 text-zinc-400 dark:text-zinc-500 ml-0.5" />
+                <ChevronDown className="w-3 h-3 text-zinc-400 dark:text-zinc-500 ml-0.5 transition-transform duration-150 group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
               align="start"
               sideOffset={6}
-              className="w-[320px] p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 animate-in fade-in zoom-in-95"
+              className="w-44 p-1 bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border border-zinc-200/90 dark:border-white/10 rounded-xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
             >
-              <div className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center justify-between">
-                <span>Modo de Respuesta</span>
-                <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
-                  100% Contexto
-                </span>
-              </div>
-
-              <div className="space-y-1 mt-1">
+              <div className="space-y-0.5">
                 {(["bajo", "medio", "alto"] as PowerEffort[]).map((level) => {
                   const cfg = powerConfig[level];
                   const Icon = cfg.icon;
@@ -496,34 +479,23 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
                     <button
                       key={level}
                       type="button"
-                      onClick={() => onSelectPowerLevel(level)}
+                      onClick={() => {
+                        onSelectPowerLevel(level);
+                        setShowThink(level === "alto");
+                      }}
                       className={cn(
-                        "w-full p-2.5 rounded-lg transition-colors flex items-start gap-3 text-left cursor-pointer border",
+                        "w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between cursor-pointer text-left",
                         isSelected
-                          ? "bg-zinc-100/90 dark:bg-zinc-800/70 border-zinc-300/80 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-                          : "bg-transparent border-transparent hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40 text-zinc-700 dark:text-zinc-300"
+                          ? "bg-zinc-100 dark:bg-white/10 text-zinc-900 dark:text-zinc-100 font-semibold"
+                          : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/70 dark:hover:bg-white/5"
                       )}
                     >
-                      <div className="mt-0.5 shrink-0 text-zinc-600 dark:text-zinc-400">
-                        <Icon className="w-4 h-4" strokeWidth={1.75} />
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" strokeWidth={2} />
+                        <span>{cfg.name}</span>
                       </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                            {cfg.name}
-                          </span>
-                          <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/60">
-                            {cfg.tag}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
-                          {cfg.desc}
-                        </p>
-                      </div>
-
                       {isSelected && (
-                        <Check className="w-3.5 h-3.5 shrink-0 text-zinc-900 dark:text-zinc-100 mt-0.5" strokeWidth={2} />
+                        <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100" strokeWidth={2.2} />
                       )}
                     </button>
                   );
@@ -586,30 +558,27 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
         </div>
 
 
-        {/* Right Side: Live Voice secondary button + Mic + Send */}
+        {/* Right Side: Live Voice pill/circle + Mic + Send */}
         <div className="flex items-center gap-1.5 shrink-0 pl-1">
-          {/* Live Voice Button (in-place avatar activation) */}
+          {/* Live Voice Button (Botón circular azul estilo ChatGPT) */}
           <button
             type="button"
             onClick={onOpenLiveVoice}
             disabled={isLoading}
             className={cn(
-              "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer select-none",
+              "flex h-8 w-8 items-center justify-center rounded-full transition-all cursor-pointer select-none",
               isLiveVoiceActive
-                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                : "border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                ? "bg-emerald-500 text-white animate-pulse shadow-md"
+                : "bg-[#1e60f0] hover:bg-[#1853d6] text-white shadow-xs hover:scale-105 active:scale-95"
             )}
-            title={isLiveVoiceActive ? "Finalizar voz en vivo con TABE AI" : "Conversación de voz en vivo con TABE AI"}
+            title={isLiveVoiceActive ? "Finalizar voz" : "Conversar por voz en vivo"}
           >
             <AudioWaveform
               className={cn(
-                "w-3.5 h-3.5 transition-transform",
-                isLiveVoiceActive ? "text-emerald-500 animate-pulse scale-110" : "text-zinc-600 dark:text-zinc-400"
+                "w-4 h-4 stroke-[2.2] transition-transform",
+                isLiveVoiceActive ? "scale-110" : ""
               )}
             />
-            <span className="hidden sm:inline text-xs">
-              {isLiveVoiceActive ? "En Vivo" : "Voz en Vivo"}
-            </span>
           </button>
 
           {/* Mic dictation */}
@@ -619,7 +588,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
               onClick={isRecordingVoice ? onStopVoiceRecording : onStartVoiceRecording}
               disabled={isLoading}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer",
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors cursor-pointer",
                 isRecordingVoice
                   ? "bg-red-500 text-white animate-pulse"
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"

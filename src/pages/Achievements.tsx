@@ -1,66 +1,59 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  Trophy, GraduationCap, Star, Clock, BookOpen, Flame,
-  Layers, Compass, FilePlus, Library, Lock, Sparkles, RefreshCw,
-  Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar, CheckCircle2,
-  Gamepad2, Swords, ShoppingBag, Award, Mic, Flag, Crown
+  Trophy,
+  Sparkles,
+  Search,
+  X,
+  LayoutGrid,
+  List,
+  Award,
+  ArrowUpDown,
+  Filter,
+  CheckCircle2,
+  Lock,
+  ChevronDown,
+  Check,
+  SlidersHorizontal,
+  ArrowDownAZ,
+  TrendingUp,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAchievements } from "@/hooks/useAchievements";
+import { useAchievements, Achievement } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
+  AchievementCard,
+} from "@/components/achievements/AchievementCard";
+import {
+  AchievementDetailModal,
+} from "@/components/achievements/AchievementDetailModal";
+import {
+  AchievementRankModal,
+} from "@/components/achievements/AchievementRankModal";
+import {
+  AchievementShareModal,
+} from "@/components/achievements/AchievementShareModal";
+import {
+  calculateUserRank,
+  categoryThemes,
+} from "@/components/achievements/achievementUtils";
 
-const iconMap: Record<string, any> = {
-  trophy: Trophy,
-  "graduation-cap": GraduationCap,
-  star: Star,
-  clock: Clock,
-  "book-open": BookOpen,
-  flame: Flame,
-  layers: Layers,
-  compass: Compass,
-  "file-plus": FilePlus,
-  library: Library,
-  target: Target,
-  users: Users,
-  "message-circle": MessageCircle,
-  folder: FolderOpen,
-  sprout: Sprout,
-  brain: Brain,
-  calendar: Calendar,
-  "gamepad-2": Gamepad2,
-  swords: Swords,
-  "shopping-bag": ShoppingBag,
-  award: Award,
-  mic: Mic,
-  flag: Flag,
-  crown: Crown,
-};
+type StatusFilter = "all" | "unlocked" | "locked";
+type SortOption = "default" | "xp-desc" | "xp-asc" | "name" | "recent";
 
-const categoryConfig: Record<string, { label: string; colorHex: string; bgColor: string; borderColor: string }> = {
-  academico: {
-    label: "Académicos",
-    colorHex: "#BFFF00",
-    bgColor: "bg-[#BFFF00]",
-    borderColor: "border-[#BFFF00]",
-  },
-  estudio: {
-    label: "Estudio",
-    colorHex: "#00E5FF",
-    bgColor: "bg-[#00E5FF]",
-    borderColor: "border-[#00E5FF]",
-  },
-  uso: {
-    label: "Uso",
-    colorHex: "#FF9B71",
-    bgColor: "bg-[#FF9B71]",
-    borderColor: "border-[#FF9B71]",
-  },
-  juegos: {
-    label: "Juegos",
-    colorHex: "#FFD000",
-    bgColor: "bg-[#FFD000]",
-    borderColor: "border-[#FFD000]",
-  },
+const SORT_LABELS: Record<SortOption, { label: string; icon: any }> = {
+  default: { label: "Orden predeterminado", icon: SlidersHorizontal },
+  "xp-desc": { label: "Mayor XP (+XP)", icon: Sparkles },
+  "xp-asc": { label: "Menor XP", icon: TrendingUp },
+  name: { label: "Alfabético (A - Z)", icon: ArrowDownAZ },
+  recent: { label: "Desbloqueados primero", icon: CheckCircle2 },
 };
 
 export default function Achievements() {
@@ -70,253 +63,666 @@ export default function Achievements() {
     stats,
     isUnlocked,
     getUnlockDate,
-    checkAndUnlockAchievements
+    checkAndUnlockAchievements,
   } = useAchievements();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
 
-  // Verificar logros al cargar la página
+  // Estados de interfaz y filtrado
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("default");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Estados de Modales
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharingAchievement, setSharingAchievement] = useState<{
+    achievement: Achievement;
+    unlockDate: string | null;
+  } | null>(null);
+
+  // Comprobar logros silenciosamente al cargar para mantener el estado actualizado en segundo plano
   useEffect(() => {
-    const checkOnLoad = async () => {
-      setChecking(true);
-      await checkAndUnlockAchievements();
-      setChecking(false);
+    const checkSilently = async () => {
+      try {
+        await checkAndUnlockAchievements();
+      } catch (err) {
+        console.warn("Silent achievement check:", err);
+      }
     };
-    checkOnLoad();
+    checkSilently();
   }, []);
 
-  const handleRefreshAchievements = async () => {
-    setChecking(true);
-    await checkAndUnlockAchievements();
-    setChecking(false);
-  };
+  // Abrir detalle
+  const handleSelectAchievement = useCallback((achievement: Achievement) => {
+    setSelectedAchievement(achievement);
+    setIsDetailOpen(true);
+  }, []);
 
-  const filteredAchievements = achievements.filter(
-    a => !selectedCategory || a.categoria === selectedCategory
-  );
+  // Abrir compartir
+  const handleOpenShare = useCallback((achievement: Achievement, unlockDate: string | null) => {
+    setSharingAchievement({ achievement, unlockDate });
+    setIsShareModalOpen(true);
+  }, []);
+
+  // Rango actual del usuario
+  const userRank = useMemo(() => calculateUserRank(stats.totalXP), [stats.totalXP]);
+
+  // Filtrado y ordenación de logros
+  const filteredAchievements = useMemo(() => {
+    return achievements
+      .filter((a) => {
+        // Filtro por categoría
+        if (selectedCategory && a.categoria !== selectedCategory) {
+          return false;
+        }
+
+        // Filtro por estado
+        const unlocked = isUnlocked(a.id);
+        if (statusFilter === "unlocked" && !unlocked) return false;
+        if (statusFilter === "locked" && unlocked) return false;
+
+        // Filtro por búsqueda
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const matchName = a.nombre.toLowerCase().includes(q);
+          const matchDesc = a.descripcion.toLowerCase().includes(q);
+          const matchCat = a.categoria.toLowerCase().includes(q);
+          if (!matchName && !matchDesc && !matchCat) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOption === "xp-desc") {
+          return b.xp_reward - a.xp_reward;
+        }
+        if (sortOption === "xp-asc") {
+          return a.xp_reward - b.xp_reward;
+        }
+        if (sortOption === "name") {
+          return a.nombre.localeCompare(b.nombre);
+        }
+        if (sortOption === "recent") {
+          const unlockedA = isUnlocked(a.id);
+          const unlockedB = isUnlocked(b.id);
+          if (unlockedA && !unlockedB) return -1;
+          if (!unlockedA && unlockedB) return 1;
+        }
+        return 0;
+      });
+  }, [achievements, selectedCategory, statusFilter, searchQuery, sortOption, isUnlocked]);
+
+  // Contadores por categoría
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, { total: number; unlocked: number }> = {};
+    Object.keys(categoryThemes).forEach((cat) => {
+      const items = achievements.filter((a) => a.categoria === cat);
+      counts[cat] = {
+        total: items.length,
+        unlocked: items.filter((a) => isUnlocked(a.id)).length,
+      };
+    });
+    return counts;
+  }, [achievements, isUnlocked]);
+
+  const completionPercentage =
+    stats.total > 0 ? Math.round((stats.unlocked / stats.total) * 100) : 0;
 
   if (loading && achievements.length === 0) {
-    return <LoadingScreen message="Cargando Logros..." submessage="Revisando tus metas alcanzadas..." />;
+    return (
+      <LoadingScreen
+        message="Cargando tus logros..."
+        submessage="Sincronizando insignias y experiencia acumulada..."
+      />
+    );
   }
 
-  const groupedAchievements = {
-    academico: filteredAchievements.filter(a => a.categoria === "academico"),
-    estudio: filteredAchievements.filter(a => a.categoria === "estudio"),
-    uso: filteredAchievements.filter(a => a.categoria === "uso"),
-    juegos: filteredAchievements.filter(a => a.categoria === "juegos"),
-  };
+  const ActiveSortIcon = SORT_LABELS[sortOption].icon;
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="p-4 lg:p-7 max-w-[1500px] mx-auto space-y-6">
+      {/* Header Bento Style Notion/ChatGPT */}
+      <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black uppercase tracking-widest text-foreground">
-            Logros
+          <div className="flex items-center gap-2 mb-1.5">
+            <button
+              onClick={() => setIsRankModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 transition-colors cursor-pointer"
+            >
+              <span>Nivel {userRank.rank.level} · {userRank.rank.title}</span>
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+          </div>
+
+          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Logros e Insignias
           </h1>
-          <p className="text-muted-foreground font-bold mt-1 uppercase text-sm">
-            Desbloquea logros y gana XP mientras estudias
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
+            Alcanza hitos de estudio, sube de nivel y desbloquea recompensas en tu trayecto formativo.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={handleRefreshAchievements}
-            disabled={checking}
-            className="bg-[#C688EB] border-4 border-foreground !text-black font-black uppercase text-sm rounded-xl px-4 py-2 flex items-center gap-2 hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] transition-all disabled:opacity-50"
+
+        {/* Acciones principales del Header */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Botón Ver Rangos */}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setIsRankModalOpen(true)}
+            className="text-xs font-medium gap-1.5 h-9"
           >
-            <RefreshCw className={cn("w-4 h-4 !text-black", checking && "animate-spin")} />
-            <span className="!text-black">Verificar</span>
-          </button>
-          <div className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl px-4 py-2 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-foreground" />
-            <span className="font-black text-foreground text-lg">{stats.unlocked}</span>
-            <span className="text-sm font-bold text-muted-foreground">/ {stats.total}</span>
-          </div>
-          <div className="bg-[#BFFF00] border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl px-4 py-2 flex items-center gap-2 !text-black">
-            <Sparkles className="w-5 h-5 !text-black" />
-            <span className="font-black !text-black text-lg">{stats.totalXP}</span>
-            <span className="text-sm font-bold !text-black/75">XP</span>
+            <Award className="w-3.5 h-3.5" />
+            <span>Ver mi rango</span>
+          </Button>
+
+          {/* XP Badge Pill */}
+          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-1.5 shadow-2xs h-9">
+            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span className="text-xs font-semibold">{stats.totalXP}</span>
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">XP</span>
           </div>
         </div>
       </div>
 
-      {/* Progress Overview */}
-      <div className="bg-card border-4 border-foreground shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl p-6 relative overflow-hidden">
-        <div className="flex items-center justify-between mb-4 relative z-10">
-          <h2 className="font-black uppercase text-xl text-foreground">Progreso General</h2>
-          <span className="text-sm font-bold text-muted-foreground uppercase">
-            {stats.total > 0 ? Math.round((stats.unlocked / stats.total) * 100) : 0}% completado
-          </span>
-        </div>
-        
-        <div className="h-6 bg-muted border-4 border-foreground rounded-full overflow-hidden relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] z-10">
-          <div
-            className="h-full bg-[#BFFF00] transition-all duration-1000"
-            style={{ width: `${stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0}%` }}
-          />
-          {/* Grid lines to make it blocky */}
-          <div className="absolute inset-0 flex">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="flex-1 border-r-2 border-foreground/20" />
-            ))}
+      {/* Bento Grid: Progreso Global y Categorías */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Card Progreso General (8 columnas en desktop) */}
+        <div className="lg:col-span-8 neo-bento-card p-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  Progreso Global
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Has completado {stats.unlocked} de {stats.total} logros disponibles
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">
+                  {completionPercentage}%
+                </span>
+                <span className="text-xs font-medium text-zinc-400">completado</span>
+              </div>
+            </div>
+
+            {/* Barra de progreso minimalista */}
+            <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden p-0.5 border border-zinc-200/60 dark:border-zinc-700/60">
+              <div
+                className="h-full bg-zinc-900 dark:bg-zinc-100 rounded-full transition-all duration-700"
+                style={{ width: `${completionPercentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Mini recomendación inline */}
+          <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+              <Award className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>
+                Nivel actual: <strong>{userRank.rank.title}</strong> · {userRank.nextRank ? `Faltan ${userRank.levelTargetXP - userRank.currentLevelXP} XP para Nivel ${userRank.nextRank.level}` : "Rango Máximo"}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsRankModalOpen(true)}
+              className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              Ver tabla de rangos →
+            </button>
           </div>
         </div>
 
-        {/* Category breakdown */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 relative z-10">
-          {Object.entries(categoryConfig).map(([key, config]) => {
-            const categoryAchievements = achievements.filter(a => a.categoria === key);
-            const unlockedCount = categoryAchievements.filter(a => isUnlocked(a.id)).length;
-            const isSelected = selectedCategory === key;
+        {/* Resumen rápido de Insignias (4 columnas en desktop) */}
+        <div className="lg:col-span-4 neo-bento-card p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+              Desbloqueados
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+              Distribución de tus logros en el ecosistema Tabe
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  Logros conseguidos
+                </span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {stats.unlocked}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+                  <Lock className="w-3.5 h-3.5 text-zinc-400" />
+                  Por desbloquear
+                </span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {stats.total - stats.unlocked}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Experiencia total ganada
+                </span>
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  +{stats.totalXP} XP
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+            <button
+              onClick={() => setIsRankModalOpen(true)}
+              className="w-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-between py-1 transition-colors"
+            >
+              <span>Explorar escala de títulos</span>
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tarjetas Bento de Categorías (Filtros interactivos estilo Notion) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {Object.entries(categoryThemes).map(([key, theme]) => {
+          const counts = categoryCounts[key] || { total: 0, unlocked: 0 };
+          const isSelected = selectedCategory === key;
+          const pct = counts.total > 0 ? Math.round((counts.unlocked / counts.total) * 100) : 0;
+
+          return (
+            <button
+              key={key}
+              onClick={() => setSelectedCategory(isSelected ? null : key)}
+              className={`p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer select-none relative overflow-hidden group ${
+                isSelected
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-sm"
+                  : "bg-white dark:bg-[#212121] border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className={`text-xs font-semibold ${
+                    isSelected ? "text-white dark:text-zinc-900" : "text-zinc-900 dark:text-zinc-100"
+                  }`}
+                >
+                  {theme.label}
+                </span>
+                <span
+                  className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                    isSelected
+                      ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                  }`}
+                >
+                  {pct}%
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-1.5">
+                <span
+                  className={`text-2xl font-bold tracking-tight ${
+                    isSelected ? "text-white dark:text-zinc-900" : "text-zinc-900 dark:text-zinc-100"
+                  }`}
+                >
+                  {counts.unlocked}
+                </span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? "text-white/70 dark:text-zinc-900/70" : "text-zinc-400"
+                  }`}
+                >
+                  / {counts.total}
+                </span>
+              </div>
+
+              {/* Barra de progreso de la categoría */}
+              <div
+                className={`h-1.5 rounded-full overflow-hidden mt-3 ${
+                  isSelected ? "bg-white/20 dark:bg-zinc-900/20" : "bg-zinc-100 dark:bg-zinc-800"
+                }`}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    isSelected
+                      ? "bg-white dark:bg-zinc-900"
+                      : theme.accentClass
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Barra de Herramientas y Filtros (Notion / ChatGPT Style Toolbar) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
+        {/* Izquierda: Buscador */}
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar logro por nombre o descripción..."
+            className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] pl-9 pr-8 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Derecha: Desplegables refinados de Categoría y Ordenación + Segmented Control + Vista */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Desplegable Notion Style: Categorías */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 shadow-2xs transition-colors focus:outline-none cursor-pointer">
+              <Filter className="w-3.5 h-3.5 text-zinc-400" />
+              <span>
+                {selectedCategory
+                  ? categoryThemes[selectedCategory]?.label
+                  : "Todas las áreas"}
+              </span>
+              <ChevronDown className="w-3 h-3 text-zinc-400 ml-0.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-52 bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl p-1"
+            >
+              <DropdownMenuLabel className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider px-2 py-1">
+                Filtrar por Área
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => setSelectedCategory(null)}
+                className="text-xs font-medium gap-2 cursor-pointer rounded-lg py-1.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                  <span>Todas las áreas</span>
+                </div>
+                {!selectedCategory && <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+              {Object.entries(categoryThemes).map(([catKey, theme]) => {
+                const count = categoryCounts[catKey];
+                const isActive = selectedCategory === catKey;
+                return (
+                  <DropdownMenuItem
+                    key={catKey}
+                    onClick={() => setSelectedCategory(isActive ? null : catKey)}
+                    className="text-xs font-medium gap-2 cursor-pointer rounded-lg py-1.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${theme.dotColor}`} />
+                      <span>{theme.label}</span>
+                      <span className="text-[10px] text-zinc-400">
+                        ({count?.unlocked || 0}/{count?.total || 0})
+                      </span>
+                    </div>
+                    {isActive && <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Desplegable Notion Style: Ordenación */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 shadow-2xs transition-colors focus:outline-none cursor-pointer">
+              <ActiveSortIcon className="w-3.5 h-3.5 text-zinc-400" />
+              <span>{SORT_LABELS[sortOption].label}</span>
+              <ChevronDown className="w-3 h-3 text-zinc-400 ml-0.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-56 bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl p-1"
+            >
+              <DropdownMenuLabel className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider px-2 py-1">
+                Ordenar por
+              </DropdownMenuLabel>
+              {Object.entries(SORT_LABELS).map(([optKey, config]) => {
+                const OptionIcon = config.icon;
+                const isSelected = sortOption === optKey;
+                return (
+                  <DropdownMenuItem
+                    key={optKey}
+                    onClick={() => setSortOption(optKey as SortOption)}
+                    className="text-xs font-medium gap-2 cursor-pointer rounded-lg py-1.5 focus:bg-zinc-100 dark:focus:bg-zinc-800 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <OptionIcon className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>{config.label}</span>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Segmented Control Estado */}
+          <div className="bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg flex items-center border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium h-9">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                statusFilter === "all"
+                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+            >
+              Todos ({achievements.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("unlocked")}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                statusFilter === "unlocked"
+                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+            >
+              Desbloqueados ({stats.unlocked})
+            </button>
+            <button
+              onClick={() => setStatusFilter("locked")}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                statusFilter === "locked"
+                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+            >
+              Bloqueados ({stats.total - stats.unlocked})
+            </button>
+          </div>
+
+          {/* Toggle de Vista: Grid vs List */}
+          <div className="bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg flex items-center border border-zinc-200/60 dark:border-zinc-700/60 h-9">
+            <button
+              onClick={() => setViewMode("grid")}
+              title="Vista cuadrícula"
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "grid"
+                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              title="Vista lista"
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "list"
+                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicador de Filtros Activos si hay categoría o búsqueda seleccionada */}
+      {(selectedCategory || searchQuery || statusFilter !== "all") && (
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span className="text-zinc-400 flex items-center gap-1">
+            <Filter className="w-3 h-3" />
+            Filtros activos:
+          </span>
+
+          {selectedCategory && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+              Área: {categoryThemes[selectedCategory]?.label}
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="hover:text-red-500 ml-0.5 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+              Búsqueda: "{searchQuery}"
+              <button
+                onClick={() => setSearchQuery("")}
+                className="hover:text-red-500 ml-0.5 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {statusFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+              Estado: {statusFilter === "unlocked" ? "Desbloqueados" : "Bloqueados"}
+              <button
+                onClick={() => setStatusFilter("all")}
+                className="hover:text-red-500 ml-0.5 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          <button
+            onClick={() => {
+              setSelectedCategory(null);
+              setSearchQuery("");
+              setStatusFilter("all");
+            }}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium ml-1 cursor-pointer"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
+      {/* Lista / Grilla de Logros */}
+      {filteredAchievements.length === 0 ? (
+        <div className="neo-bento-card p-12 text-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 mx-auto flex items-center justify-center">
+            <Search className="w-6 h-6" />
+          </div>
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            No se encontraron logros
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto">
+            Intenta cambiar los términos de búsqueda o limpiar los filtros seleccionados para ver más insignias.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCategory(null);
+              setStatusFilter("all");
+            }}
+            className="text-xs font-medium"
+          >
+            Restablecer filtros
+          </Button>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredAchievements.map((achievement) => {
+            const unlocked = isUnlocked(achievement.id);
+            const unlockDate = getUnlockDate(achievement.id);
 
             return (
-              <button
-                key={key}
-                onClick={() => setSelectedCategory(isSelected ? null : key)}
-                className={cn(
-                  "p-4 rounded-xl border-4 transition-all text-center group border-foreground",
-                  isSelected
-                    ? cn(config.bgColor, "!text-black shadow-[inset_4px_4px_0_0_rgba(0,0,0,0.25)] scale-[0.98]")
-                    : "bg-card text-foreground hover:translate-y-[-2px] shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] hover:bg-muted"
-                )}
-              >
-                <p className={cn("text-3xl font-black", isSelected ? "!text-black" : "text-foreground")}>
-                  {unlockedCount}/{categoryAchievements.length}
-                </p>
-                <p className={cn(
-                  "text-sm font-bold uppercase mt-1 transition-colors",
-                  isSelected ? "!text-black/85" : "text-muted-foreground group-hover:text-foreground"
-                )}>
-                  {config.label}
-                </p>
-              </button>
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+                unlocked={unlocked}
+                unlockDate={unlockDate}
+                onSelect={handleSelectAchievement}
+                onShare={handleOpenShare}
+                viewMode="grid"
+              />
             );
           })}
         </div>
-      </div>
-
-      {/* Achievements by Category */}
-      {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-card border-4 border-foreground/30 rounded-xl p-6 animate-pulse shadow-[4px_4px_0_0_hsl(var(--foreground)/0.2)]">
-              <div className="w-16 h-16 bg-muted border-2 border-foreground/20 rounded-xl mb-4" />
-              <div className="h-4 bg-muted rounded-sm mb-2" />
-              <div className="h-3 bg-muted rounded-sm w-3/4" />
-            </div>
-          ))}
-        </div>
       ) : (
-        <div className="space-y-8 tour-achievements-list">
-          {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => {
-            if (selectedCategory && selectedCategory !== category) return null;
-            if (categoryAchievements.length === 0) return null;
-
-            const config = categoryConfig[category as keyof typeof categoryConfig];
+        <div className="space-y-2">
+          {filteredAchievements.map((achievement) => {
+            const unlocked = isUnlocked(achievement.id);
+            const unlockDate = getUnlockDate(achievement.id);
 
             return (
-              <div key={category}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("w-4 h-4 rounded-full border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]", config.bgColor)} />
-                  <h2 className="font-black uppercase text-xl text-foreground">{config.label}</h2>
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {categoryAchievements.map(achievement => {
-                    const unlocked = isUnlocked(achievement.id);
-                    const Icon = iconMap[achievement.icono] || Trophy;
-                    const unlockDate = getUnlockDate(achievement.id);
-
-                    if (unlocked) {
-                      return (
-                        <div
-                          key={achievement.id}
-                          className="bg-card border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] rounded-2xl p-6 transition-all relative overflow-hidden flex flex-col justify-between"
-                        >
-                          {/* Top colored accent line */}
-                          <div className={cn("absolute top-0 left-0 right-0 h-2", config.bgColor)} />
-
-                          <div className="relative z-10 flex-1 flex flex-col">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className={cn(
-                                "w-14 h-14 rounded-xl border-4 border-foreground flex items-center justify-center shadow-[3px_3px_0_0_hsl(var(--foreground))]",
-                                config.bgColor
-                              )}>
-                                <Icon className="w-7 h-7 !text-black" />
-                              </div>
-                              <div className={cn(
-                                "px-3 py-1 text-xs font-black uppercase border-2 border-foreground rotate-[5deg] shadow-[2px_2px_0_0_hsl(var(--foreground))] !text-black",
-                                config.bgColor
-                              )}>
-                                +{achievement.xp_reward} XP
-                              </div>
-                            </div>
-
-                            <h3 className="font-black text-lg uppercase mb-2 text-foreground">
-                              {achievement.nombre}
-                            </h3>
-                            <p className="text-sm font-bold leading-relaxed text-muted-foreground flex-1">
-                              {achievement.descripcion}
-                            </p>
-
-                            {unlockDate && (
-                              <div className="text-xs mt-4 font-black uppercase flex items-center gap-1.5 text-foreground/80 pt-3 border-t border-border">
-                                <Sparkles className="w-3.5 h-3.5 text-[#BFFF00]" />
-                                <span>Desbloqueado: {unlockDate}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Locked achievement card
-                    return (
-                      <div
-                        key={achievement.id}
-                        className="bg-card/40 dark:bg-card/30 border-4 border-foreground/30 shadow-[4px_4px_0_0_hsl(var(--foreground)/0.15)] rounded-2xl p-6 transition-all relative overflow-hidden flex flex-col justify-between opacity-70 hover:opacity-100"
-                      >
-                        <div className="relative z-10 flex-1 flex flex-col">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="w-14 h-14 rounded-xl border-4 border-foreground/30 flex items-center justify-center bg-muted text-foreground/50 shadow-[2px_2px_0_0_hsl(var(--foreground)/0.15)] relative">
-                              <Icon className="w-7 h-7 text-muted-foreground/60" />
-                              <span className="absolute -bottom-1 -right-1 bg-background border-2 border-foreground/40 rounded-full p-0.5">
-                                <Lock className="w-3 h-3 text-muted-foreground" />
-                              </span>
-                            </div>
-                            <div className="px-3 py-1 text-xs font-black uppercase border-2 border-foreground/30 rotate-[5deg] bg-muted text-muted-foreground shadow-[2px_2px_0_0_hsl(var(--foreground)/0.15)]">
-                              +{achievement.xp_reward} XP
-                            </div>
-                          </div>
-
-                          <h3 className="font-black text-lg uppercase mb-2 text-foreground/70">
-                            {achievement.nombre}
-                          </h3>
-                          <p className="text-sm font-bold leading-relaxed text-muted-foreground/80 flex-1">
-                            {achievement.descripcion}
-                          </p>
-
-                          <div className="text-xs mt-4 font-black uppercase flex items-center justify-between text-muted-foreground/60 pt-3 border-t border-border/40">
-                            <span className="flex items-center gap-1.5">
-                              <Lock className="w-3.5 h-3.5" />
-                              <span>Bloqueado</span>
-                            </span>
-                            {achievement.condicion_valor > 0 && (
-                              <span className="font-bold text-[11px] bg-muted/80 px-2 py-0.5 rounded border border-border/50">
-                                Meta: {achievement.condicion_valor}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+                unlocked={unlocked}
+                unlockDate={unlockDate}
+                onSelect={handleSelectAchievement}
+                onShare={handleOpenShare}
+                viewMode="list"
+              />
             );
           })}
         </div>
       )}
+
+      {/* Modales Interactivos del Apartado */}
+      <AchievementDetailModal
+        achievement={selectedAchievement}
+        unlocked={selectedAchievement ? isUnlocked(selectedAchievement.id) : false}
+        unlockDate={selectedAchievement ? getUnlockDate(selectedAchievement.id) : null}
+        open={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onOpenShare={handleOpenShare}
+      />
+
+      <AchievementRankModal
+        open={isRankModalOpen}
+        onClose={() => setIsRankModalOpen(false)}
+        achievements={achievements}
+        isUnlocked={isUnlocked}
+        totalXP={stats.totalXP}
+      />
+
+      <AchievementShareModal
+        achievement={sharingAchievement?.achievement || null}
+        unlockDate={sharingAchievement?.unlockDate || null}
+        open={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </div>
   );
 }

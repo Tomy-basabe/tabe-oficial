@@ -170,30 +170,6 @@ function checkOfflineReminders() {
             }
           }
 
-          // 2. Check pet reminder (TABE-GOTCHI a las 9 AM)
-          if (item.id === 'pet_reminder' && item.enabled) {
-            var petHour = typeof item.hour === 'number' ? item.hour : 9;
-            if (item.lastSentDate !== todayStr && currentHours >= petHour) {
-              var isCritical = item.isDead || item.isSick || (typeof item.health === 'number' && item.health <= 25) || (typeof item.hunger === 'number' && item.hunger <= 25);
-              var petTitle = isCritical
-                ? '🚨 ¡' + (item.petName || 'Tu mascota') + ' te necesita urgente! 💔'
-                : '🐾 ¡Cuidá a ' + (item.petName || 'tu mascota') + ' en TABE! ❤️';
-              var petBody = isCritical
-                ? 'Tiene hambre extrema o salud crítica. ¡Entrá a cuidarla antes de que se muera!'
-                : 'No te olvides de darle de comer y mimarla hoy para mantenerla sana y con vida.';
-              self.registration.showNotification(petTitle, {
-                body: petBody,
-                icon: '/pwa-192x192.png',
-                badge: '/pwa-192x192.png',
-                tag: 'pet-reminder-' + todayStr,
-                data: { url: '/tabe-gotchi' },
-                vibrate: [200, 100, 200, 100, 200]
-              });
-              item.lastSentDate = todayStr;
-              store.put(item);
-            }
-          }
-
           // 3. Check upcoming exams y eventos (solo decir examen a los que realmente lo son)
           if (item.type === 'exam' && item.examDate) {
             var eventHour = typeof item.hour === 'number' ? item.hour : 9;

@@ -22,63 +22,61 @@ function PomodoroGoalWidgetConnected() {
 
 function PomodoroGoalWidgetContent({ weekData, loading }: { weekData: any[]; loading: boolean }) {
   if (loading) {
-    return <Skeleton className="w-full h-48 rounded-2xl" />;
+    return <Skeleton className="w-full h-36 rounded-xl" />;
   }
 
   const todayData = weekData && weekData.length > 0 
     ? (weekData.find(d => d.isToday) || weekData[weekData.length - 1]) 
     : { minutes: 0 };
-  const todayMinutes = todayData.minutes;
+  const todayMinutes = todayData.minutes || 0;
   const dailyGoalMinutes = 120;
   const progressPercentage = Math.min(Math.round((todayMinutes / dailyGoalMinutes) * 100), 100);
   const isGoalReached = todayMinutes >= dailyGoalMinutes;
 
   return (
-    <div className="neo-bento-card bento-hover-orange p-6">
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#ff9415]/12 rounded-xl">
-              <Target className="w-5 h-5 text-[#ff9415]" />
-            </div>
-            <h3 className="font-extrabold text-lg">Meta Diaria</h3>
+    <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 sm:p-5 shadow-2xs">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+            <Target className="w-4 h-4" />
           </div>
-          {isGoalReached && (
-            <span className="flex items-center gap-1 text-[10px] font-extrabold text-[#ff9415] bg-[#ff9415]/10 px-2 py-1 rounded-full uppercase tracking-wider">
-              <Flame className="w-3 h-3" /> Lograda
-            </span>
-          )}
+          <h3 className="font-semibold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">Meta Diaria</h3>
         </div>
+        {isGoalReached && (
+          <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60 uppercase tracking-wider">
+            <Flame className="w-3 h-3" /> Lograda
+          </span>
+        )}
+      </div>
 
-        <div className="flex-1 flex items-center justify-center py-4">
-          <ProgressRing progress={progressPercentage} size={110} strokeWidth={8}>
-            <div className="text-center flex flex-col items-center justify-center mt-1">
-              <p className="text-2xl font-black text-[#ff9415]">{progressPercentage}%</p>
-              <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mt-0.5">Focus</p>
+      {/* Compact Horizontal Layout: Ring on left, metrics on right */}
+      <div className="flex items-center gap-4 py-1">
+        <div className="shrink-0">
+          <ProgressRing progress={progressPercentage} size={76} strokeWidth={6}>
+            <div className="text-center">
+              <p className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 leading-none">{progressPercentage}%</p>
             </div>
           </ProgressRing>
         </div>
 
-        <div className="mt-auto">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex flex-col">
-              <span className="text-muted-foreground text-xs font-bold">Progreso hoy</span>
-              <span className="font-extrabold">{todayMinutes} min</span>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <div>
+              <span className="text-zinc-400 text-[11px] block">Hoy</span>
+              <span className="font-medium text-zinc-800 dark:text-zinc-200">{todayMinutes} min</span>
             </div>
-            <div className="h-6 w-px bg-border mx-2" />
-            <div className="flex flex-col text-right">
-              <span className="text-muted-foreground text-xs font-bold">Objetivo</span>
-              <span className="font-extrabold">{dailyGoalMinutes} min</span>
+            <div className="text-right">
+              <span className="text-zinc-400 text-[11px] block">Objetivo</span>
+              <span className="font-medium text-zinc-800 dark:text-zinc-200">{dailyGoalMinutes} min</span>
             </div>
           </div>
-          
-          <div className="mt-3 flex items-center gap-2 text-xs font-bold text-muted-foreground bg-secondary/50 rounded-xl px-2.5 py-2">
-            <TrendingUp className="w-3.5 h-3.5 text-[#ff9415]" />
-            <p>
-              {isGoalReached 
-                ? "¡Imparable! Has superado tu meta." 
-                : `Faltan ${dailyGoalMinutes - todayMinutes} min para alcanzar la meta.`}
-            </p>
+
+          <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <TrendingUp className="w-3 h-3 text-zinc-400 shrink-0" />
+            <span className="truncate">
+              {isGoalReached ? "¡Meta superada!" : `Faltan ${dailyGoalMinutes - todayMinutes}m para la meta`}
+            </span>
           </div>
         </div>
       </div>

@@ -12,7 +12,6 @@ import {
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { TaskListView } from "@/components/tasks/TaskListView";
 import { TaskModal } from "@/components/tasks/TaskModal";
-import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { 
   CheckSquare, 
   Kanban, 
@@ -23,7 +22,8 @@ import {
   Timer, 
   Zap, 
   CheckCircle2, 
-  Sparkles 
+  Clock,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -340,14 +340,19 @@ export default function Tasks() {
 
   if (loading && tasks.length === 0) {
     return (
-      <div className="tabe-page p-3 lg:p-8 space-y-5 pb-24 lg:pb-12 animate-pulse">
-        <div className="h-28 bg-[#00E5FF]/20 border-4 border-foreground/20 rounded-2xl shadow-[4px_4px_0_0_rgba(0,0,0,0.1)]" />
+      <div className="tabe-page p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-12 max-w-7xl mx-auto animate-pulse">
+        <div className="h-20 bg-zinc-100 dark:bg-zinc-800/60 rounded-2xl" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl" />
+          ))}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((col) => (
-            <div key={col} className="bg-card/50 border-2 border-foreground/20 rounded-2xl p-4 space-y-3 min-h-[350px]">
-              <div className="h-7 w-28 bg-muted rounded-lg" />
-              <div className="h-24 bg-muted/60 rounded-xl border border-border/40" />
-              <div className="h-24 bg-muted/60 rounded-xl border border-border/40" />
+            <div key={col} className="bg-zinc-100/60 dark:bg-zinc-800/40 rounded-2xl p-4 space-y-3 min-h-[450px]">
+              <div className="h-6 w-28 bg-zinc-200 dark:bg-zinc-700/60 rounded-lg" />
+              <div className="h-24 bg-zinc-200/50 dark:bg-zinc-700/40 rounded-xl" />
+              <div className="h-24 bg-zinc-200/50 dark:bg-zinc-700/40 rounded-xl" />
             </div>
           ))}
         </div>
@@ -356,113 +361,112 @@ export default function Tasks() {
   }
 
   return (
-    <div className="tabe-page p-3 lg:p-8 space-y-5 pb-24 lg:pb-12">
-      {/* Banner Header Neo-Brutalista */}
-      <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 bg-[#00E5FF] border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] sm:shadow-[8px_8px_0_0_hsl(var(--foreground))] rounded-2xl">
-        <div className="relative z-10">
-          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-3">
-            <CheckSquare className="w-8 h-8 sm:w-10 sm:h-10 text-black shrink-0 stroke-[2.5]" />
-            <span>Gestor de Tareas & Entregas</span>
+    <div className="tabe-page p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-12 max-w-7xl mx-auto">
+      {/* Header Notion/ChatGPT Style */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200/60 dark:border-zinc-800/60">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+            <CheckSquare className="w-6 h-6 text-zinc-900 dark:text-zinc-100 shrink-0" />
+            <span>Gestor de Tareas</span>
           </h1>
-          <p className="text-black font-bold uppercase tracking-wider mt-1 text-xs sm:text-sm flex items-center gap-2">
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span>KANBAN Y TO-DO LIST ASOCIADO A TUS MATERIAS. MAXIMIZÁ TU RENDIMIENTO.</span>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
+            Organiza tus pendientes, entregas y temas de estudio por materia o en tablero Kanban.
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => handleOpenCreateModal("todo")}
-            className="px-4 py-2.5 rounded-xl bg-[#00FF9D] text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate("/pomodoro")}
+            className="px-3.5 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-xs font-medium transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Nueva Tarea</span>
+            <Timer className="w-4 h-4 text-rose-500" />
+            <span>Pomodoro</span>
           </button>
 
           <button
-            onClick={() => navigate("/pomodoro")}
-            className="px-4 py-2.5 rounded-xl bg-white text-black font-black text-xs uppercase tracking-wider border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => handleOpenCreateModal("todo")}
+            className="px-3.5 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-medium shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <Timer className="w-4 h-4 text-[#ff4747]" />
-            <span>Ir al Pomodoro</span>
+            <Plus className="w-4 h-4" />
+            <span>Nueva Tarea</span>
           </button>
         </div>
       </div>
 
       {/* Quick Summary Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-card border-3 border-foreground rounded-xl p-3.5 shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center gap-3">
-          <div className="p-2.5 bg-muted rounded-lg border-2 border-foreground">
-            <ListTodo className="w-5 h-5 text-foreground" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="p-2 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-lg">
+            <ListTodo className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-muted-foreground block">Total Tareas</span>
-            <span className="font-black text-xl text-foreground">{stats.total}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">Total</span>
+            <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{stats.total}</span>
           </div>
         </div>
 
-        <div className="bg-card border-3 border-foreground rounded-xl p-3.5 shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center gap-3">
-          <div className="p-2.5 bg-[#FFE600] text-black rounded-lg border-2 border-foreground">
-            <ListTodo className="w-5 h-5" />
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="p-2 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 rounded-lg">
+            <Clock className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-muted-foreground block">Por Hacer</span>
-            <span className="font-black text-xl text-foreground">{stats.todo}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">Por Hacer</span>
+            <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{stats.todo}</span>
           </div>
         </div>
 
-        <div className="bg-card border-3 border-foreground rounded-xl p-3.5 shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center gap-3">
-          <div className="p-2.5 bg-[#00E5FF] text-black rounded-lg border-2 border-foreground">
-            <Zap className="w-5 h-5" />
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="p-2 bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 rounded-lg">
+            <Zap className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-muted-foreground block">En Progreso</span>
-            <span className="font-black text-xl text-foreground">{stats.inProgress}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">En Progreso</span>
+            <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{stats.inProgress}</span>
           </div>
         </div>
 
-        <div className="bg-card border-3 border-foreground rounded-xl p-3.5 shadow-[3px_3px_0_0_hsl(var(--foreground))] flex items-center gap-3">
-          <div className="p-2.5 bg-[#00FF9D] text-black rounded-lg border-2 border-foreground">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs flex items-center gap-3">
+          <div className="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-lg">
+            <CheckCircle2 className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase text-muted-foreground block">Completadas</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium block">Completadas</span>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-black text-xl text-foreground">{stats.done}</span>
-              <span className="text-[10px] font-bold text-muted-foreground">({stats.progressPercent}%)</span>
+              <span className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{stats.done}</span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">({stats.progressPercent}%)</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Control Bar: Filters, Search, and View Switcher */}
-      <div className="bg-card border-3 border-foreground rounded-xl p-3.5 sm:p-4 shadow-[4px_4px_0_0_hsl(var(--foreground))] flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Left: View Toggle (Kanban vs List) */}
-        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl border-2 border-foreground self-start">
+        <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-lg border border-zinc-200/50 dark:border-zinc-700/50 self-start">
           <button
             onClick={() => setViewMode("kanban")}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all",
+              "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
               viewMode === "kanban"
-                ? "bg-foreground text-background shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             )}
           >
-            <Kanban className="w-4 h-4" />
+            <Kanban className="w-3.5 h-3.5" />
             <span>Kanban</span>
           </button>
 
           <button
             onClick={() => setViewMode("list")}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all",
+              "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
               viewMode === "list"
-                ? "bg-foreground text-background shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             )}
           >
-            <ListTodo className="w-4 h-4" />
-            <span>Lista To-Do</span>
+            <ListTodo className="w-3.5 h-3.5" />
+            <span>Lista</span>
           </button>
         </div>
 
@@ -470,17 +474,17 @@ export default function Tasks() {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Filter by Year */}
           {availableYears.length > 0 && (
-            <div className="flex items-center gap-1 p-1 bg-muted rounded-xl border-2 border-foreground">
+            <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-lg border border-zinc-200/50 dark:border-zinc-700/50">
               <button
                 onClick={() => {
                   setSelectedYearFilter("all");
                   setSelectedSubjectFilter("all");
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                   selectedYearFilter === "all"
-                    ? "bg-foreground text-background shadow-[2px_2px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
                 Todos
@@ -493,10 +497,10 @@ export default function Tasks() {
                     setSelectedSubjectFilter("all");
                   }}
                   className={cn(
-                    "px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                     selectedYearFilter === yr
-                      ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000] translate-y-[-1px]"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                   )}
                 >
                   {yr}°
@@ -506,23 +510,23 @@ export default function Tasks() {
           )}
 
           {/* Filter by Subject */}
-          <div className="min-w-[190px] sm:min-w-[220px]">
+          <div className="min-w-[190px] sm:min-w-[210px]">
             <Select
               value={selectedSubjectFilter}
               onValueChange={setSelectedSubjectFilter}
             >
-              <SelectTrigger className="w-full px-3 py-2 h-auto bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:ring-0 shadow-[2px_2px_0_0_hsl(var(--foreground))]">
+              <SelectTrigger className="w-full px-3 py-1.5 h-9 bg-zinc-50/60 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600">
                 <div className="flex items-center gap-2 truncate">
-                  <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <Filter className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <SelectValue placeholder="Todas las materias" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="bg-popover border-2 border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
-                <SelectItem value="all" className="font-bold cursor-pointer rounded-lg text-xs">
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl max-h-60">
+                <SelectItem value="all" className="font-medium cursor-pointer rounded-lg text-xs">
                   Todas las materias
                 </SelectItem>
                 {filteredSubjectsForDropdown.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="font-bold cursor-pointer rounded-lg text-xs my-0.5">
+                  <SelectItem key={s.id} value={s.id} className="font-medium cursor-pointer rounded-lg text-xs my-0.5">
                     {s.nombre} {s.codigo ? `(${s.codigo})` : ""}
                   </SelectItem>
                 ))}
@@ -532,13 +536,13 @@ export default function Tasks() {
 
           {/* Search box */}
           <div className="relative min-w-[170px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               placeholder="Buscar tareas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-background border-2 border-foreground rounded-xl text-xs font-bold text-foreground focus:outline-none shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+              className="w-full pl-8 pr-3 py-1.5 h-9 bg-zinc-50/60 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg text-xs font-normal text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Bomb, Timer, AlertTriangle, Gamepad2, Loader2, Bot, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { useMatchmaking, getMatchSession } from "@/hooks/useMatchmaking";
 import { recordGameMatch } from "@/lib/gameStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { CareerSelectModal } from "@/components/games/CareerSelectModal";
+import { GameDeckSelector } from "@/components/games/GameDeckSelector";
+import { GameSearchingOpponent } from "@/components/games/GameSearchingOpponent";
 import { cn } from "@/lib/utils";
 import { GameAuthGate } from "@/components/games/GameAuthRequired";
 import { getRandomDefaultQuestion } from "@/data/defaultGameQuestions";
@@ -71,7 +73,7 @@ export default function BombGame() {
   const roomCode = searchParams.get("room");
   const modeParam = searchParams.get("mode");
 
-  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "📚 Mazo General TABE", total_questions: 15 };
+  const DEFAULT_DECK: QuizDeck = { id: "default_tabe_deck", nombre: "Mazo General TABE", total_questions: 15 };
   const [decks, setDecks] = useState<QuizDeck[]>([DEFAULT_DECK]);
   const [selectedDeck, setSelectedDeck] = useState<QuizDeck | null>(DEFAULT_DECK);
   const [gamePhase, setGamePhase] = useState<GamePhase>("select_deck");
@@ -421,89 +423,43 @@ export default function BombGame() {
 
   if (gamePhase === "select_deck") {
     return (
-      <div className="min-h-screen p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/juegos")}><ArrowLeft className="w-5 h-5" /></Button>
-          <h1 className="text-xl md:text-2xl font-display font-bold flex items-center gap-2">
-            <Bomb className="w-6 h-6 text-orange-500" /> La Bomba
-          </h1>
-        </div>
-        <Card className="card-gamer">
-          <CardContent className="p-6 space-y-4">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center">
-                <Bomb className="w-10 h-10 text-orange-500" />
-              </div>
-              <h2 className="font-display font-bold text-xl mb-2">Elegí tu mazo</h2>
-              <p className="text-muted-foreground text-sm">
-                Respondé correctamente para pasar la bomba al rival. Si explota en tu lado, ¡perdés!
-              </p>
-            </div>
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-              {decks.map((deck) => (
-                <button key={deck.id} onClick={() => setSelectedDeck(deck)} className={cn("w-full text-left p-4 rounded-xl border transition-all", selectedDeck?.id === deck.id ? "border-orange-500 bg-orange-500/10" : "border-border/50 bg-secondary/30 hover:bg-secondary/60")}>
-                  <p className="font-medium">{deck.nombre}</p>
-                  <p className="text-xs text-muted-foreground">{deck.total_questions} preguntas</p>
-                </button>
-              ))}
-            </div>
-            {selectedDeck && (
-              <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-lg py-6 font-display font-bold" onClick={handleStartSearch}>
-                <Gamepad2 className="w-5 h-5 mr-2" /> ¡Buscar Rival!
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
+      <>
+        <GameDeckSelector
+          gameTitle="La Bomba"
+          gameSubtitle="Respondé correctamente para pasarle el artefacto a tu rival antes de que se agote el tiempo."
+          gameIcon={Bomb}
+          gameRules="El jugador que sostiene la bomba debe responder bien para enviarla al campo contrario. Si el temporizador llega a cero en tu posesión, ¡explota!"
+          decks={decks}
+          selectedDeck={selectedDeck}
+          onSelectDeck={(deck) => setSelectedDeck(deck as QuizDeck)}
+          onStartSearch={handleStartSearch}
+          userCarrera={userCarrera}
+          onOpenCareerModal={() => setShowCareerModal(true)}
+          actionButtonLabel={modeParam === "bot" ? "Iniciar práctica vs Bot" : "Buscar rival ahora"}
+        />
         <CareerSelectModal
           open={showCareerModal}
           onClose={() => setShowCareerModal(false)}
           onCareerSelected={handleCareerSelected}
           onRequestCareer={submitCareerRequest}
         />
-      </div>
+      </>
     );
   }
 
   // SEARCHING PHASE
   if (gamePhase === 'searching') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="card-gamer max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-6">
-            <div className="relative mx-auto w-32 h-32">
-              <div className="absolute inset-0 rounded-full border-2 border-orange-500/30 animate-ping" />
-              <div className="absolute inset-4 rounded-full border-2 border-red-500/30 animate-ping" style={{ animationDelay: '0.5s' }} />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
-              </div>
-            </div>
-            <div>
-              <h2 className="font-display font-bold text-xl mb-2">Buscando rival...</h2>
-              <p className="text-muted-foreground text-sm mb-4">Emparejando con alguien de tu carrera</p>
-            </div>
-            <div className="relative w-20 h-20 mx-auto">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary" />
-                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#bomb-gradient)" strokeWidth="2" strokeDasharray={`${(searchTimeLeft / 13) * 100}, 100`} strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="bomb-gradient">
-                    <stop offset="0%" stopColor="#f97316" />
-                    <stop offset="100%" stopColor="#dc2626" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-display font-bold text-2xl">{searchTimeLeft}</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Buscando en tu carrera...
-            </p>
-            <Button variant="outline" onClick={handleCancelSearch}>Cancelar</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <GameSearchingOpponent
+        gameTitle="La Bomba"
+        gameIcon={Bomb}
+        timeLeft={searchTimeLeft}
+        maxTime={13}
+        userCarrera={userCarrera}
+        userName={user?.user_metadata?.nombre || user?.email?.split('@')[0] || "Tú"}
+        onCancel={handleCancelSearch}
+        statusMessage="Buscando rival para el duelo de reflejos..."
+      />
     );
   }
 
@@ -631,3 +587,4 @@ export default function BombGame() {
     </div>
   );
 }
+

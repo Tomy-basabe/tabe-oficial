@@ -1,327 +1,251 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, BookOpen, Sparkles, Flame, Zap, Heart, GraduationCap, Brain } from "lucide-react";
+import { ArrowRight, Sparkles, CheckCircle2, BookOpen, Layers, Bot, Zap, Compass, Check } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ComicBadge } from "@/components/comic/ComicBadge";
-import { useComic } from "@/components/comic/ComicEffectsProvider";
-import { ComicAudio } from "@/components/comic/ComicAudio";
-import { TextScrollAnimation } from "@/components/ui/text-scroll-animation";
-import { KineticHeading } from "@/components/ui/kinetic-heading";
-import { TextScatter } from "@/components/ui/text-scatter";
-import { ShatterType } from "@/components/ui/shatter-type";
-import { LetterSwap3D } from "@/components/ui/3d-letter-swap";
-
-const MASCOT_QUOTES = [
-  "¡Hacé click en mí para ganar +50 XP!",
-  "¡Bienvenido a TABE! Estudiar nunca fue tan ágil y entretenido.",
-  "¡Modo Cómic Activado! Tocá cualquier elemento para interactuar.",
-  "¡Menos estrés, mejores notas! Sumate a la comunidad universitaria.",
-  "¡Organizate como un profesional y disfrutá tus fines de semana!",
-];
+import { motion } from "framer-motion";
 
 export function HeroSection() {
-  const { triggerBurst } = useComic();
-  const [mascotQuoteIndex, setMascotQuoteIndex] = useState(0);
-  const [showBubble, setShowBubble] = useState(false);
-  const [studentsCount, setStudentsCount] = useState(350);
-  const [mascotBounce, setMascotBounce] = useState(0);
-  const [mascotSkin, setMascotSkin] = useState<"normal" | "turbo" | "200iq">("normal");
-
-  const handleMascotClick = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    
-    // Cycle skins
-    const nextSkin = mascotSkin === "normal" ? "turbo" : mascotSkin === "turbo" ? "200iq" : "normal";
-    setMascotSkin(nextSkin);
-
-    const burstWords = {
-      normal: "TABE POWER!",
-      turbo: "TURBO FOCUS!",
-      "200iq": "MAX PRODUCTIVIDAD!",
-    };
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, burstWords[nextSkin]);
-    ComicAudio.playPowerUp();
-
-    setMascotQuoteIndex((prev) => (prev + 1) % MASCOT_QUOTES.length);
-    setShowBubble(true);
-    setMascotBounce((prev) => prev + 1);
-  };
-
-  const handleStickerClick = (e: React.MouseEvent, word: string) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, word);
-    ComicAudio.playPop();
-  };
-
-  const handleLikeStudents = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "+1 ESTUDIANTE!");
-    ComicAudio.playPop();
-    setStudentsCount((prev) => prev + 1);
-  };
+  const [activeTab, setActiveTab] = useState<"notion" | "pomodoro" | "quizzes" | "ai">("notion");
 
   return (
-    <section id="hero" className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
-      {/* Halftone & decorative bars */}
-      <motion.div
-        animate={{ x: [0, 20, 0] }}
-        transition={{ repeat: Infinity, duration: 4 }}
-        className="absolute top-24 left-[5%] w-20 h-[6px] bg-[#ff9415] rounded-full -rotate-[17deg] opacity-60 pointer-events-none"
-      />
-      <motion.div
-        animate={{ x: [0, -20, 0] }}
-        transition={{ repeat: Infinity, duration: 5 }}
-        className="absolute top-20 right-[8%] w-16 h-[6px] bg-[#1475e5] rounded-full -rotate-[17deg] opacity-50 pointer-events-none"
-      />
-      <motion.div
-        animate={{ y: [0, 20, 0] }}
-        transition={{ repeat: Infinity, duration: 6 }}
-        className="absolute bottom-28 right-[6%] w-20 h-[6px] bg-[#ff9415] rounded-full -rotate-[17deg] opacity-50 pointer-events-none"
-      />
-      <motion.div
-        animate={{ y: [0, -20, 0] }}
-        transition={{ repeat: Infinity, duration: 7 }}
-        className="absolute bottom-40 left-[12%] w-6 h-[6px] bg-[#48bd22] rounded-full opacity-40 pointer-events-none"
-      />
-
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
-          {/* Text Left Column */}
+    <section id="hero" className="relative pt-32 pb-24 md:pt-44 md:pb-36 overflow-hidden">
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
+        
+        {/* Top Announcement Pill */}
+        <div className="flex justify-center mb-8">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex-1 max-w-2xl space-y-7 text-center lg:text-left"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
           >
-            {/* Subtle Clean Badge */}
-            <div className="flex items-center justify-center lg:justify-start">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-card/60 backdrop-blur-xs text-xs font-semibold text-muted-foreground">
-                <Sparkles className="w-3.5 h-3.5 text-[#1475e5]" />
-                <span>Tu asistente de bolsillo estudiantil</span>
-              </span>
-            </div>
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              TABE 2.0 · Asistente de estudio inteligente y gamificado
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+          </motion.div>
+        </div>
 
-            {/* Headline with diverse interactive typography */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.25rem] font-black leading-[1.08] tracking-tight text-foreground">
-              <TextScatter text="TABE" className="text-[#1475e5] mr-2" velocity={100} rotation={25} />
-              : Estudiá con{" "}
-              <span className="relative inline-block text-[#1475e5]">
-                <TextScatter text="método" velocity={80} rotation={20} />
-                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#1475e5]/30 rounded-full" />
-              </span>
-              .{" "}
-              <span className="relative inline-block text-[#ff9415] mx-1">
-                <ShatterType text="Aprobá" className="text-[#ff9415]" shardsCount={14} burstDistance={90} />
-                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#ff9415]/30 rounded-full" />
-              </span>{" "}
-              con{" "}
-              <span className="relative inline-block text-[#48bd22]">
-                <LetterSwap3D label="estilo" flipDirection="top" className="text-[#48bd22]" />
-                <span className="absolute left-0 bottom-1 w-full h-1 bg-[#48bd22]/30 rounded-full" />
-              </span>
-              .
-            </h1>
+        {/* Hero Title & Subtitle (Apple/Notion aesthetic) */}
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 leading-[1.08]"
+          >
+            Tu carrera universitaria, <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500 dark:from-white dark:via-zinc-200 dark:to-zinc-500 bg-clip-text text-transparent">
+              organizada con precisión.
+            </span>
+          </motion.h1>
 
-            {/* Subtitle with Text Scroll Animation */}
-            <div className="max-w-lg mx-auto lg:mx-0">
-              <TextScrollAnimation
-                text="Tu asistente de bolsillo estudiantil: la plataforma todo‑en‑uno que combina organización académica, gamificación y diseño interactivo para que domines tus materias sin aburrirte."
-                className="text-lg md:text-xl font-bold justify-center lg:justify-start"
-                wordClassName="text-muted-foreground"
-                highlightWords={["organización", "gamificación", "interactivo", "domines"]}
-                highlightColor="#1475e5"
-              />
-            </div>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed"
+          >
+            La plataforma todo-en-uno que fusiona apuntes enriquecidos estilo Notion, mapas de correlatividades, cuestionarios interactivos y hábitos gamificados.
+          </motion.p>
 
-            {/* CTAs — Inked neo-brutalist buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
-              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                <Link
-                  to="/registro"
-                  data-cursor-text="GRATIS"
-                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-foreground text-background rounded-xl font-black text-lg border-2 border-foreground shadow-[4px_4px_0_0_#ff9415] transition-all duration-200 hover:-translate-y-1 hover:shadow-[7px_7px_0_0_#ff9415] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#ff9415]"
-                >
-                  Empezar Gratis
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1.5" />
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                <Link
-                  to="/carreras"
-                  data-cursor-text="EXPLORAR"
-                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-card text-foreground rounded-xl font-black text-lg border-2 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] transition-all duration-200 hover:-translate-y-1 hover:shadow-[7px_7px_0_0_hsl(var(--foreground))] active:translate-y-0.5 active:shadow-none"
-                >
-                  <BookOpen className="w-5 h-5 text-[#1475e5]" />
-                  Ver Carreras
-                </Link>
-              </motion.div>
-            </div>
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3"
+          >
+            <Link
+              to="/registro"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-sm transition-all shadow-sm hover:shadow cursor-pointer"
+            >
+              Comenzar gratis
+              <ArrowRight className="w-4 h-4" />
+            </Link>
 
-            {/* Trust Pills with Interactive hover */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm font-black text-muted-foreground">
-              {["Acceso inmediato", "Validado por alumnos", "100% gratuito"].map((t) => (
-                <motion.span
-                  key={t}
-                  whileHover={{ scale: 1.08, y: -2 }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border-2 border-border shadow-[2px_2px_0_0_hsl(var(--border))] cursor-pointer transition-colors hover:text-foreground select-none"
-                  onClick={(e) => handleStickerClick(e, "GENIAL!")}
-                >
-                  <CheckCircle2 className="w-4 h-4 text-[#48bd22]" />
-                  {t}
-                </motion.span>
-              ))}
-            </div>
+            <Link
+              to="/carreras"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 font-medium text-sm transition-all shadow-2xs cursor-pointer"
+            >
+              <Compass className="w-4 h-4 text-zinc-500" />
+              Explorar Carreras
+            </Link>
           </motion.div>
 
-          {/* Interactive Mascot & Comic Visual Column Right */}
-          <div className="flex-shrink-0 relative flex flex-col items-center select-none">
-            {/* Mascot Interactive Speech Bubble */}
-            <AnimatePresence>
-              {showBubble && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  className="absolute -top-16 md:-top-20 z-30 px-4 py-2.5 rounded-2xl bg-[#FFE600] dark:bg-amber-400 text-zinc-950 font-black text-xs md:text-sm border-2 border-black dark:border-amber-400/50 shadow-[4px_4px_0_0_#000] dark:shadow-none max-w-xs text-center"
-                >
-                  {MASCOT_QUOTES[mascotQuoteIndex]}
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-black dark:border-t-amber-400" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Trust badges */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="pt-4 flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 dark:text-zinc-400"
+          >
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-500" /> 100% Gratuito
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-500" /> Sin tarjetas requeridas
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-500" /> Más de 350 estudiantes activos
+            </span>
+          </motion.div>
+        </div>
 
-            {/* Interactive Mascot with spring tap */}
-            <motion.div
-              key={mascotBounce}
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              whileHover={{ scale: 1.05, rotate: 2 }}
-              whileTap={{ scale: 0.9, rotate: -6 }}
-              onClick={handleMascotClick}
-              data-cursor-text="+50 XP"
-              className="relative cursor-pointer group"
-              title="¡Hacé click en la mascota para cambiar su modo y ganar XP!"
-            >
-              {/* Electric / Turbo Saiyan Aura */}
-              {mascotSkin === "turbo" && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="absolute inset-0 -m-8 rounded-full bg-gradient-to-r from-[#00E5FF]/30 via-[#1475e5]/40 to-[#00FF66]/30 blur-2xl pointer-events-none"
-                />
-              )}
-
-              {/* 200 IQ Golden Galaxy Aura */}
-              {mascotSkin === "200iq" && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: [1, 1.12, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="absolute inset-0 -m-8 rounded-full bg-gradient-to-r from-[#FFE600]/40 via-[#FF6B00]/30 to-[#FFE600]/40 blur-2xl pointer-events-none"
-                />
-              )}
-
-              <motion.img
-                animate={{ y: [0, -12, 0] }}
-                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-                src="/logo.png"
-                alt="TABE Mascota"
-                className="w-56 h-56 md:w-72 md:h-72 lg:w-[380px] lg:h-[380px] object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.25)] relative z-10"
-              />
-
-              {/* Skin indicator badge on mascot */}
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-95 transition-opacity z-20">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900/90 text-amber-300 dark:text-amber-200 font-black text-[10px] tracking-wider uppercase border border-amber-300/40 shadow-sm whitespace-nowrap backdrop-blur-xs">
-                  {mascotSkin === "normal" && (
-                    <>
-                      <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
-                      <span>MODO ESTUDIANTE</span>
-                    </>
-                  )}
-                  {mascotSkin === "turbo" && (
-                    <>
-                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-current" />
-                      <span>MODO ENFOQUE TURBO</span>
-                    </>
-                  )}
-                  {mascotSkin === "200iq" && (
-                    <>
-                      <Brain className="w-3.5 h-3.5 text-orange-300" />
-                      <span>MODO MENTE MAESTRA</span>
-                    </>
-                  )}
-                </span>
+        {/* Interactive Showcase Preview Mockup (Apple product showcase style) */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-14 max-w-5xl mx-auto"
+        >
+          <div className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-2xl p-2 sm:p-4">
+            
+            {/* Top Toolbar / Tab Switcher */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                </div>
+                <span className="text-xs font-mono text-zinc-400 ml-2">tabe.app/workspace</span>
               </div>
-            </motion.div>
 
-            {/* Mascot Comic Skin Selector Bar */}
-            <div className="flex items-center gap-1.5 mt-4 p-1.5 rounded-xl bg-card border border-border shadow-sm z-20 select-none">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMascotSkin("normal");
-                  ComicAudio.playPop();
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
-                  mascotSkin === "normal"
-                    ? "bg-[#FFE600] dark:bg-amber-400 text-zinc-950 shadow-xs font-black"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <GraduationCap className="w-3 h-3" />
-                <span>Normal</span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMascotSkin("turbo");
-                  ComicAudio.playPowerUp();
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
-                  mascotSkin === "turbo"
-                    ? "bg-[#00E5FF] dark:bg-cyan-400 text-zinc-950 shadow-xs font-black"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Zap className="w-3 h-3 fill-current" />
-                <span>Turbo</span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMascotSkin("200iq");
-                  ComicAudio.playPowerUp();
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] uppercase transition-all ${
-                  mascotSkin === "200iq"
-                    ? "bg-[#FF6B00] dark:bg-orange-500 text-white shadow-xs font-black"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Brain className="w-3 h-3" />
-                <span>Pro Focus</span>
-              </button>
+              {/* Tabs */}
+              <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                {[
+                  { id: "notion", label: "Apuntes", icon: BookOpen },
+                  { id: "quizzes", label: "Cuestionarios", icon: Layers },
+                  { id: "pomodoro", label: "Enfoque", icon: Zap },
+                  { id: "ai", label: "Tutor IA", icon: Bot },
+                ].map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTab(t.id as any)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        activeTab === t.id
+                          ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                          : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Clean badges floating around mascot */}
-            <div className="absolute -top-3 right-0 sm:right-2 z-20">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold text-xs backdrop-blur-xs shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                <span>100% Gratuito</span>
-              </span>
-            </div>
+            {/* Inner Interactive Card Screen */}
+            <div className="min-h-[340px] sm:min-h-[420px] rounded-2xl bg-zinc-50/70 dark:bg-[#151515] border border-zinc-200/50 dark:border-zinc-800/50 p-6 flex flex-col justify-center">
+              {activeTab === "notion" && (
+                <div className="max-w-2xl mx-auto space-y-4 text-left animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2 text-zinc-400 text-xs">
+                    <BookOpen className="w-4 h-4 text-blue-500" />
+                    <span>Sistemas Operativos · Resumen Teórico</span>
+                  </div>
+                  <h3 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Planificación de Procesos (CPU Scheduling)</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-normal">
+                    Los algoritmos de planificación determinan qué proceso en la cola de listos (ready queue) obtiene la CPU cuando ésta queda desocupada.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs">
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Algoritmo Round Robin (RR)</span>
+                      <p className="text-xs text-zinc-500 mt-1">Asignación de cuantos de tiempo fijos para garantizar interactividad sin inanición.</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs">
+                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Shortest Job First (SJF)</span>
+                      <p className="text-xs text-zinc-500 mt-1">Minimiza el tiempo de espera promedio pero puede generar starvation en ráfagas largas.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div className="absolute top-8 -left-4 sm:-left-8 z-20">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-semibold text-xs backdrop-blur-xs shadow-xs">
-                <Flame className="w-3.5 h-3.5" />
-                <span>+350 alumnos</span>
-              </span>
+              {activeTab === "quizzes" && (
+                <div className="max-w-xl mx-auto space-y-4 text-left animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between text-xs text-zinc-500">
+                    <span>Pregunta 3 de 10</span>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60">Tasa de acierto: 92%</span>
+                  </div>
+                  <h4 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                    ¿Cuál de las siguientes condiciones NO es necesaria para que ocurra un Deadlock (Bloqueo Mutuo)?
+                  </h4>
+                  <div className="space-y-2 pt-1">
+                    {[
+                      { letter: "A", text: "Exclusión Mutua", correct: false },
+                      { letter: "B", text: "Preempción de Recursos Forzada", correct: true },
+                      { letter: "C", text: "Retención y Espera (Hold and Wait)", correct: false },
+                      { letter: "D", text: "Espera Circular", correct: false }
+                    ].map((opt) => (
+                      <div
+                        key={opt.letter}
+                        className={`p-3 rounded-xl border text-xs font-medium flex items-center justify-between ${
+                          opt.correct
+                            ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/80 text-emerald-900 dark:text-emerald-200"
+                            : "bg-white dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-md flex items-center justify-center font-semibold text-xs ${
+                            opt.correct ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                          }`}>{opt.letter}</span>
+                          <span>{opt.text}</span>
+                        </div>
+                        {opt.correct && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "pomodoro" && (
+                <div className="max-w-md mx-auto text-center space-y-4 animate-in fade-in duration-300">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Sesión de Enfoque Profundo</span>
+                  </div>
+                  <div className="text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+                    25:00
+                  </div>
+                  <p className="text-xs text-zinc-500">Materia activa: Algoritmos y Estructuras de Datos · +40 XP al finalizar</p>
+                  <div className="flex justify-center gap-2 pt-2">
+                    <button className="px-5 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium text-xs shadow-xs">
+                      Iniciar Pomodoro
+                    </button>
+                    <button className="px-4 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
+                      Descanso
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "ai" && (
+                <div className="max-w-xl mx-auto space-y-3 text-left animate-in fade-in duration-300">
+                  <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                    <span className="text-[11px] font-semibold text-zinc-400">TÚ</span>
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 mt-0.5">
+                      ¿Qué temas clave tengo que repasar para el parcial de Física I este viernes según mis apuntes?
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
+                    <div className="flex items-center gap-1.5 text-blue-500 text-[11px] font-semibold mb-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>TABE AI TUTOR</span>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                      Según tus notas y cuestionarios recientes, te sugiero reforzar:
+                      <br />• <strong>Conservación de Energía Mecánica</strong> (2 errores en trivias).
+                      <br />• <strong>Momento Lineal y Choques Inelásticos</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

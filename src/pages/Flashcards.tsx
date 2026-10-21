@@ -4,13 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Layers, Plus, Sparkles, GraduationCap,
   BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check,
-  AlertTriangle, Loader2
+  AlertTriangle, Loader2, Search, ArrowRight, Save
 } from "lucide-react";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,8 @@ import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { HoldButton } from "@/components/ui/HoldButton";
+import { TabeLogo } from "@/components/ui/TabeLogo";
+
 interface Deck {
   id: string;
   nombre: string;
@@ -36,6 +37,7 @@ interface Deck {
 
 interface Flashcard {
   id: string;
+  deck_id?: string;
   pregunta: string;
   respuesta: string;
   veces_correcta: number;
@@ -113,11 +115,12 @@ function setCachedFlashcardSubjects(subs: Subject[]) {
 export default function Flashcards() {
   const { user, isGuest } = useAuth();
   const { checkAndUnlockAchievements } = useAchievements();
-  const { canUse, incrementUsage, getRemaining, isPremium } = useUsageLimits();
+  const { incrementUsage } = useUsageLimits();
   const [subjects, setSubjects] = useState<Subject[]>(() => getCachedFlashcardSubjects());
   const [decks, setDecks] = useState<Deck[]>(() => getCachedFlashcardDecks());
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const activeYears = useMemo(() => {
     const unique = [...new Set(subjects.map(s => Number(s.año)).filter(y => !isNaN(y) && y > 0))].sort((a, b) => a - b);
@@ -130,6 +133,7 @@ export default function Flashcards() {
       setSelectedSubject(null);
     }
   }, [activeYears, selectedYear]);
+
   const { publishResource } = useMarketplace();
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
@@ -160,6 +164,12 @@ export default function Flashcards() {
   const [deckToEdit, setDeckToEdit] = useState<Deck | null>(null);
   const [newSubjectId, setNewSubjectId] = useState<string>("");
 
+  // Quick Card Edit State in Manage Modal
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editQuestionText, setEditQuestionText] = useState("");
+  const [editAnswerText, setEditAnswerText] = useState("");
+  const [manageSearchQuery, setManageSearchQuery] = useState("");
+
   // Import Cards State
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTargetDeck, setImportTargetDeck] = useState<Deck | null>(null);
@@ -169,6 +179,7 @@ export default function Flashcards() {
   const [importSourceDeck, setImportSourceDeck] = useState<Deck | null>(null);
   const [importSourceCards, setImportSourceCards] = useState<Flashcard[]>([]);
   const [selectedImportCards, setSelectedImportCards] = useState<string[]>([]);
+  const [importSearchQuery, setImportSearchQuery] = useState("");
 
   // Merge Decks State
   const [showMergeModal, setShowMergeModal] = useState(false);
@@ -185,14 +196,14 @@ export default function Flashcards() {
   const [importPage, setImportPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // Refs for exit-save (to ensure time is saved on unmount/exit)
+  // Refs for tracking
   const studyTimeRef = useRef(0);
   const selectedDeckRef = useRef<Deck | null>(null);
   const studyStateRef = useRef<StudyState>("browsing");
 
   useEffect(() => { studyTimeRef.current = studyTime; }, [studyTime]);
   useEffect(() => { selectedDeckRef.current = selectedDeck; }, [selectedDeck]);
-    useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
+  useEffect(() => { studyStateRef.current = studyState; }, [studyState]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -266,7 +277,6 @@ export default function Flashcards() {
         setCachedFlashcardDecks(mapped);
         setDecks(mapped);
       } else {
-        // Fallback in case PostgREST schema cache relationship failed
         const { data: rawData } = await supabase
           .from("flashcard_decks")
           .select("id, user_id, subject_id, nombre, total_cards, created_at")
@@ -319,37 +329,23 @@ export default function Flashcards() {
     if (isGuest) {
       if (deckId === "mock-deck-1") {
         const anatomyMocks = [
-          { pregunta: "¿Para qué sirven las Flashcards?", respuesta: "Las flashcards son tarjetas de memoria que ayudan a repasar conceptos clave de forma rápida y efectiva." },
-          { pregunta: "¿Cómo funciona el sistema de estudio?", respuesta: "Te mostramos la pregunta. Pensás la respuesta y luego la volteás para ver si acertaste." },
-          { pregunta: "Aquí puedes colocar preguntas", respuesta: "Aquí pondrías la respuesta correcta que debes memorizar." },
-          { pregunta: "¿Qué evalúa este modo de estudio?", respuesta: "Evalúa tu retención activa, obligándote a recordar el concepto antes de leerlo." },
-          { pregunta: "¿Cómo me ayuda la IA con esto?", respuesta: "Puedes abrir el chat con la IA y pedirle que genere flashcards automáticamente a partir de tus apuntes." },
+          { pregunta: "¿Para qué sirven las Flashcards?", respuesta: "Tarjetas de memoria que ayudan a repasar conceptos clave de forma rápida y efectiva." },
+          { pregunta: "¿Cómo funciona el sistema de estudio?", respuesta: "Observas la pregunta, piensas la respuesta y volteas la tarjeta para comprobar tu retención." },
+          { pregunta: "¿Qué evalúa este modo de estudio?", respuesta: "Evalúa tu recuerdo activo (active recall), reforzando vías neuronales antes de ver la solución." },
+          { pregunta: "¿Qué es la repetición espaciada?", respuesta: "Técnica de aprendizaje que programa repasos en intervalos crecientes para fijar datos en la memoria a largo plazo." },
+          { pregunta: "¿Cómo me ayuda la IA con las flashcards?", respuesta: "Puedes pedirle en el chat que genere paquetes de tarjetas automáticas desde tus apuntes o notas." },
         ].map((c, i) => ({
           id: `mock-card-1-${i}`,
+          deck_id: deckId,
           ...c,
-          veces_correcta: Math.floor(Math.random() * 20),
-          veces_incorrecta: Math.floor(Math.random() * 5),
-          veces_parcial: Math.floor(Math.random() * 5)
+          veces_correcta: 2,
+          veces_incorrecta: 0,
+          veces_parcial: 1
         }));
         setCards(anatomyMocks);
         return anatomyMocks;
       }
-
-      const formulasMocks = [
-        { pregunta: "¿Por qué estudiar en bloques pequeños?", respuesta: "Mejora la atención y evita la fatiga, técnica conocida como Pomodoro." },
-        { pregunta: "¿Qué es el repaso espaciado?", respuesta: "Repasar la información en intervalos cada vez mayores para fijarla a largo plazo." },
-        { pregunta: "Aquí puedes colocar tips", respuesta: "Y aquí la explicación de cómo aplicarlos en tu día a día." },
-        { pregunta: "¿Por qué es importante dormir bien?", respuesta: "El sueño consolida la memoria de lo aprendido durante el día." },
-        { pregunta: "¿Cómo empezar a organizarse?", respuesta: "Utiliza la vista de Calendario de Tabe para planificar tus sesiones y no procrastinar." },
-      ].map((c, i) => ({
-        id: `mock-card-2-${i}`,
-        ...c,
-        veces_correcta: Math.floor(Math.random() * 10),
-        veces_incorrecta: Math.floor(Math.random() * 3),
-        veces_parcial: Math.floor(Math.random() * 3)
-      }));
-      setCards(formulasMocks);
-      return formulasMocks;
+      return [];
     }
 
     const { data, error } = await supabase
@@ -394,7 +390,7 @@ export default function Flashcards() {
       setSelectedDeck(newGuestDeck);
       setCards([]);
       setShowNewCardModal(true);
-      toast.success("¡Mazo creado! Ya podés cargar tus preguntas y respuestas.");
+      toast.success("¡Mazo creado! Ya podés agregar tus tarjetas.");
       return;
     }
 
@@ -420,7 +416,7 @@ export default function Flashcards() {
         return;
       }
 
-      toast.success("¡Mazo creado! Ya podés cargar tus preguntas y respuestas.");
+      toast.success("¡Mazo creado! Ya podés cargar tus tarjetas.");
       await incrementUsage('flashcard_mazos');
       const subjectObj = subjects.find(s => s.id === newDeckSubject);
       const fullDeck: Deck = {
@@ -462,13 +458,11 @@ export default function Flashcards() {
       setDecks(prev => prev.map(d => d.id === selectedDeck.id ? { ...d, total_cards: updated.length } : d));
       setNewCardQuestion("");
       setNewCardAnswer("");
-      toast.success("¡Tarjeta agregada! Podés seguir creando más.");
+      toast.success("¡Tarjeta agregada al mazo!");
       return;
     }
 
     if (!user) return;
-
-    // No per-deck card limit - unlimited cards per deck
 
     const { error } = await supabase
       .from("flashcards")
@@ -485,19 +479,15 @@ export default function Flashcards() {
       toast.success("¡Tarjeta agregada! Podés seguir creando más.");
       setNewCardQuestion("");
       setNewCardAnswer("");
-      // Keep modal open so user can continue creating cards
 
-      // Update deck card count
       const updatedCards = await fetchCards(selectedDeck.id);
       await supabase
         .from("flashcard_decks")
         .update({ total_cards: updatedCards.length })
         .eq("id", selectedDeck.id);
 
-      // Update selectedDeck in memory to reflect new card count
       setSelectedDeck({ ...selectedDeck, total_cards: updatedCards.length });
       fetchDecks();
-      // Verificar logros después de crear una tarjeta
       checkAndUnlockAchievements();
     }
   };
@@ -509,12 +499,10 @@ export default function Flashcards() {
 
     if (isGuest) return;
 
-    // Let's find the card in state to get current values.
     const card = cards.find(c => c.id === cardId);
     if (card) {
       const updates: any = {};
       if (status === 'correct') updates.veces_correcta = (card.veces_correcta || 0) + 1;
-      // veces_parcial no es una columna en bd, se mantiene en estado local
       if (status === 'incorrect') updates.veces_incorrecta = (card.veces_incorrecta || 0) + 1;
 
       await supabase
@@ -525,7 +513,6 @@ export default function Flashcards() {
   }, [cards, isGuest]);
 
   const handleStudyComplete = useCallback(async () => {
-    // Save study session
     if (user && selectedDeck) {
       await supabase
         .from("study_sessions")
@@ -537,7 +524,6 @@ export default function Flashcards() {
           completada: true,
           fecha: toLocalDateStr(),
         });
-      // Verificar logros después de completar estudio de flashcards
       checkAndUnlockAchievements();
     }
     setStudyState("completed");
@@ -546,7 +532,7 @@ export default function Flashcards() {
   const startStudying = async (deck: Deck, filter: 'all' | 'known' | 'partial' | 'unknown' = 'all') => {
     let fetchedCards = await fetchCards(deck.id);
     if (fetchedCards.length === 0) {
-      toast.error("Este mazo no tiene tarjetas");
+      toast.error("Este mazo no tiene tarjetas aún");
       return;
     }
 
@@ -562,7 +548,7 @@ export default function Flashcards() {
     if (fetchedCards.length === 0) {
       const messages = {
         known: "No hay tarjetas marcadas como 'sabidas' todavía",
-        partial: "No hay tarjetas marcadas como 'sabidas a medias' todavía",
+        partial: "No hay tarjetas marcadas como 'a medias' todavía",
         unknown: "No hay tarjetas 'no sabidas' en este mazo"
       };
       toast.info(messages[filter as keyof typeof messages] || "No hay tarjetas con este filtro");
@@ -588,7 +574,9 @@ export default function Flashcards() {
 
   const handleManageCards = async (deck: Deck) => {
     setSelectedDeck(deck);
-    setManagePage(1); // Reset to first page
+    setManagePage(1);
+    setManageSearchQuery("");
+    setEditingCardId(null);
     const fetched = await fetchCards(deck.id);
     setCards(fetched);
     setShowManageCardsModal(true);
@@ -614,13 +602,11 @@ export default function Flashcards() {
 
     setIsDeletingDeck(true);
     try {
-      // First delete all cards in the deck
       await supabase
         .from("flashcards")
         .delete()
         .eq("deck_id", deckToDelete.id);
 
-      // Then delete the deck
       const { error } = await supabase
         .from("flashcard_decks")
         .delete()
@@ -651,11 +637,9 @@ export default function Flashcards() {
 
       if (error) throw error;
 
-      // Update local state
       const updatedCards = cards.filter(c => c.id !== cardId);
       setCards(updatedCards);
 
-      // Update deck card count
       await supabase
         .from("flashcard_decks")
         .update({ total_cards: updatedCards.length })
@@ -669,8 +653,46 @@ export default function Flashcards() {
     }
   };
 
+  const startEditCard = (card: Flashcard) => {
+    setEditingCardId(card.id);
+    setEditQuestionText(card.pregunta);
+    setEditAnswerText(card.respuesta);
+  };
+
+  const saveEditCard = async (cardId: string) => {
+    if (!editQuestionText.trim() || !editAnswerText.trim()) {
+      toast.error("Pregunta y respuesta no pueden estar vacías");
+      return;
+    }
+
+    if (isGuest) {
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, pregunta: editQuestionText.trim(), respuesta: editAnswerText.trim() } : c));
+      setEditingCardId(null);
+      toast.success("Tarjeta actualizada");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("flashcards")
+        .update({
+          pregunta: editQuestionText.trim(),
+          respuesta: editAnswerText.trim(),
+        })
+        .eq("id", cardId);
+
+      if (error) throw error;
+
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, pregunta: editQuestionText.trim(), respuesta: editAnswerText.trim() } : c));
+      setEditingCardId(null);
+      toast.success("Tarjeta actualizada");
+    } catch (e) {
+      console.error("Error updating card:", e);
+      toast.error("Error al guardar cambios de la tarjeta");
+    }
+  };
+
   const stopStudying = async () => {
-    // Save partial session
     if (user && selectedDeck && studyTime > 0) {
       await supabase
         .from("study_sessions")
@@ -682,7 +704,7 @@ export default function Flashcards() {
           completada: false,
           fecha: toLocalDateStr(),
         });
-      toast.success("Sesión guardada");
+      toast.success("Progreso de sesión guardado");
     }
     resetStudy();
   };
@@ -701,27 +723,45 @@ export default function Flashcards() {
     setStudyState("studying");
   };
 
-  const filteredDecks = decks.filter(deck => {
-    const matchesYear = !selectedYear || deck.subject?.año === selectedYear;
-    const matchesSubject = !selectedSubject || deck.subject_id === selectedSubject;
-    return matchesYear && matchesSubject;
-  });
+  const filteredDecks = useMemo(() => {
+    return decks.filter(deck => {
+      const matchesYear = !selectedYear || deck.subject?.año === selectedYear;
+      const matchesSubject = !selectedSubject || deck.subject_id === selectedSubject;
+      const matchesSearch = !searchQuery.trim() ||
+        deck.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (deck.subject?.nombre && deck.subject.nombre.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesYear && matchesSubject && matchesSearch;
+    });
+  }, [decks, selectedYear, selectedSubject, searchQuery]);
 
-  const filteredSubjects = subjects.filter(s => !selectedYear || s.año === selectedYear);
-  const newDeckModalSubjects = subjects.filter(s => !newDeckYear || s.año === newDeckYear);
+  const filteredSubjects = useMemo(() => {
+    return subjects.filter(s => !selectedYear || s.año === selectedYear);
+  }, [subjects, selectedYear]);
+
+  const newDeckModalSubjects = useMemo(() => {
+    return subjects.filter(s => !newDeckYear || s.año === newDeckYear);
+  }, [subjects, newDeckYear]);
 
   // Edit Deck Functions
   const handleEditDeck = (deck: Deck) => {
     setDeckToEdit(deck);
-    setNewSubjectId(deck.subject_id || "");
+    setNewSubjectId(deck.subject_id || "none");
     setShowEditDeckModal(true);
   };
 
   const saveDeckSubject = async () => {
     if (!deckToEdit) return;
+    const subjectIdToSave = newSubjectId === "none" ? null : newSubjectId;
 
-    // Allow null if empty string is passed (or handle based on UI preference)
-    const subjectIdToSave = newSubjectId || null;
+    if (isGuest) {
+      const s = subjects.find(sub => sub.id === subjectIdToSave);
+      const updated = decks.map(d => d.id === deckToEdit.id ? { ...d, subject_id: subjectIdToSave || "", subject: s ? { nombre: s.nombre, codigo: s.codigo, año: s.año } : undefined } : d);
+      setDecks(updated);
+      setCachedFlashcardDecks(updated);
+      toast.success("Materia actualizada");
+      setShowEditDeckModal(false);
+      return;
+    }
 
     const { error } = await supabase
       .from("flashcard_decks")
@@ -751,22 +791,40 @@ export default function Flashcards() {
     setImportSourceDeck(null);
     setImportSourceCards([]);
     setSelectedImportCards([]);
+    setImportSearchQuery("");
   };
 
   const handleImportSelectDeck = async (sourceDeck: Deck) => {
     setImportSourceDeck(sourceDeck);
-    const cards = await fetchCards(sourceDeck.id);
-    setImportSourceCards(cards || []);
-    setImportPage(1); // Reset to first page
+    const fetched = await fetchCards(sourceDeck.id);
+    setImportSourceCards(fetched || []);
+    setImportPage(1);
     setImportStep(2);
   };
 
   const handleImportConfirm = async () => {
-    if (!user || !importTargetDeck || selectedImportCards.length === 0) return;
+    if (!importTargetDeck || selectedImportCards.length === 0) return;
 
     const cardsToCopy = importSourceCards.filter(c => selectedImportCards.includes(c.id));
 
-    // Prepare new cards for insertion
+    if (isGuest) {
+      const newGuestCards = cardsToCopy.map((c, i) => ({
+        id: `guest-imported-${Date.now()}-${i}`,
+        deck_id: importTargetDeck.id,
+        pregunta: c.pregunta,
+        respuesta: c.respuesta,
+        veces_correcta: 0,
+        veces_incorrecta: 0,
+        veces_parcial: 0
+      }));
+      setDecks(prev => prev.map(d => d.id === importTargetDeck.id ? { ...d, total_cards: d.total_cards + newGuestCards.length } : d));
+      toast.success(`${newGuestCards.length} tarjetas importadas`);
+      setShowImportModal(false);
+      return;
+    }
+
+    if (!user) return;
+
     const newCards = cardsToCopy.map(c => ({
       user_id: user.id,
       deck_id: importTargetDeck.id,
@@ -780,11 +838,9 @@ export default function Flashcards() {
     const { error } = await supabase.from("flashcards").insert(newCards);
 
     if (error) {
-      toast.error("Error al importar cartas");
+      toast.error("Error al importar tarjetas");
     } else {
-      toast.success(`${newCards.length} cartas importadas`);
-
-      // Update deck count
+      toast.success(`${newCards.length} tarjetas importadas`);
       const currentCount = importTargetDeck.total_cards;
       await supabase
         .from("flashcard_decks")
@@ -804,14 +860,41 @@ export default function Flashcards() {
     );
   };
 
+  const selectAllImportCards = (filteredCards: Flashcard[]) => {
+    const allFilteredIds = filteredCards.map(c => c.id);
+    const allSelected = allFilteredIds.every(id => selectedImportCards.includes(id));
+    if (allSelected) {
+      setSelectedImportCards(prev => prev.filter(id => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedImportCards(prev => [...new Set([...prev, ...allFilteredIds])]);
+    }
+  };
+
   const handleMergeDecks = async () => {
-    if (!user || selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId) {
+    if (selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId) {
       toast.error("Completa todos los campos y selecciona al menos 2 mazos");
       return;
     }
     setIsMerging(true);
     try {
-      // 1. Create the new deck
+      if (isGuest) {
+        const subjectObj = subjects.find(s => s.id === mergeSubjectId);
+        const newMergedDeck: Deck = {
+          id: `mock-merged-${Date.now()}`,
+          nombre: mergeNewDeckName.trim(),
+          subject_id: mergeSubjectId,
+          total_cards: 10,
+          subject: subjectObj ? { nombre: subjectObj.nombre, codigo: subjectObj.codigo, año: subjectObj.año } : undefined
+        };
+        setDecks(prev => [newMergedDeck, ...prev]);
+        toast.success(`¡Mazo "${mergeNewDeckName}" creado con éxito!`);
+        setShowMergeModal(false);
+        resetMergeState();
+        return;
+      }
+
+      if (!user) return;
+
       const { data: newDeck, error: deckError } = await supabase
         .from("flashcard_decks")
         .insert({
@@ -824,7 +907,6 @@ export default function Flashcards() {
 
       if (deckError) throw deckError;
 
-      // 2. Fetch all cards from selected decks
       const { data: allSourceCards, error: cardsError } = await supabase
         .from("flashcards")
         .select("pregunta, respuesta")
@@ -838,7 +920,6 @@ export default function Flashcards() {
         return;
       }
 
-      // 3. Clone cards into the new deck
       const cardsToInsert = allSourceCards.map(c => ({
         user_id: user.id,
         deck_id: newDeck.id,
@@ -855,7 +936,6 @@ export default function Flashcards() {
 
       if (insertError) throw insertError;
 
-      // 4. Update the total_cards count for the new deck
       await supabase
         .from("flashcard_decks")
         .update({ total_cards: cardsToInsert.length })
@@ -906,26 +986,37 @@ export default function Flashcards() {
     );
   };
 
-  const selectAllImportCards = () => {
-    if (selectedImportCards.length === importSourceCards.length) {
-      setSelectedImportCards([]);
-    } else {
-      setSelectedImportCards(importSourceCards.map(c => c.id));
-    }
-  };
+  const filteredSourceDecks = useMemo(() => {
+    return decks.filter(deck => {
+      if (deck.id === importTargetDeck?.id) return false;
+      const matchesYear = !importSourceYear || deck.subject?.año === importSourceYear;
+      const matchesSubject = !importSourceSubject || deck.subject_id === importSourceSubject;
+      return matchesYear && matchesSubject;
+    });
+  }, [decks, importTargetDeck, importSourceYear, importSourceSubject]);
 
-  const filteredSourceDecks = decks.filter(deck => {
-    // Exclude current target deck
-    if (deck.id === importTargetDeck?.id) return false;
+  const filteredSourceSubjects = useMemo(() => {
+    return subjects.filter(s => !importSourceYear || s.año === importSourceYear);
+  }, [subjects, importSourceYear]);
 
-    const matchesYear = !importSourceYear || deck.subject?.año === importSourceYear;
-    const matchesSubject = !importSourceSubject || deck.subject_id === importSourceSubject;
-    return matchesYear && matchesSubject;
-  });
+  // Filtered cards in Manage modal
+  const filteredManageCards = useMemo(() => {
+    if (!manageSearchQuery.trim()) return cards;
+    const query = manageSearchQuery.toLowerCase();
+    return cards.filter(c => c.pregunta.toLowerCase().includes(query) || c.respuesta.toLowerCase().includes(query));
+  }, [cards, manageSearchQuery]);
 
-  const filteredSourceSubjects = subjects.filter(s => !importSourceYear || s.año === importSourceYear);
+  // Filtered cards in Import modal Step 2
+  const filteredImportCards = useMemo(() => {
+    if (!importSearchQuery.trim()) return importSourceCards;
+    const query = importSearchQuery.toLowerCase();
+    return importSourceCards.filter(c => c.pregunta.toLowerCase().includes(query) || c.respuesta.toLowerCase().includes(query));
+  }, [importSourceCards, importSearchQuery]);
 
-  // Study Mode
+  // Suggested community categories
+  const suggestedCategories = ["Medicina", "Ingeniería", "Programación", "Derecho", "Psicología", "Idiomas"];
+
+  // Study Mode Active View
   if (studyState === "studying" && selectedDeck && cards.length > 0) {
     return (
       <StudyMode
@@ -939,7 +1030,7 @@ export default function Flashcards() {
     );
   }
 
-  // Completion Screen
+  // Completion Screen View
   if (studyState === "completed" && selectedDeck) {
     return (
       <CompletionScreen
@@ -953,155 +1044,203 @@ export default function Flashcards() {
     );
   }
 
-  // Browsing Mode
+  // Browsing Mode View
   return (
-    <div className="tabe-page p-4 lg:p-8 space-y-6 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card border-[3px] border-foreground p-5 rounded-xl shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-[#25d06c] border-[3px] border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] dark:shadow-[2px_2px_0_0_#fff]">
-            <BookOpen className="w-7 h-7 text-black" />
+    <div className="tabe-page p-4 lg:p-7 space-y-5 min-h-screen max-w-7xl mx-auto">
+      {/* Header Notion/ChatGPT */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 rounded-xl shadow-2xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0 shadow-2xs text-zinc-700 dark:text-zinc-300">
+            <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-display text-2xl lg:text-3xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               Flashcards
-              <Sparkles className="w-6 h-6 text-[#ffd21c]" />
             </h1>
-            <p className="text-muted-foreground font-bold uppercase tracking-wider text-xs mt-1">
-              Estudia con tarjetas interactivas
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Tarjetas de memoria para repasar conceptos y definiciones
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowMergeModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-background text-foreground border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors shadow-2xs cursor-pointer"
           >
-            <Layers className="w-5 h-5" />
-            Juntar Mazos
+            <Layers className="w-3.5 h-3.5 text-zinc-500" />
+            Fusionar Mazos
           </button>
           <button
             onClick={() => setShowNewDeckModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_hsl(var(--foreground))] active:translate-y-0 active:shadow-none transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg transition-colors shadow-2xs cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-3.5 h-3.5" />
             Nuevo Mazo
           </button>
         </div>
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#25d06c]/20 flex items-center justify-center">
-            <Layers className="w-6 h-6 text-[#25d06c]" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 flex items-center gap-3.5 shadow-2xs">
+          <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/50 flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
           </div>
-          <div>
-            <p className="text-3xl font-display font-black leading-none">{decks.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Mazos</p>
+          <div className="min-w-0">
+            <p className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono leading-none">{decks.length}</p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 truncate">Mazos activos</p>
           </div>
         </div>
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#1475e5]/20 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-[#1475e5]" />
+
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 flex items-center gap-3.5 shadow-2xs">
+          <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/50 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
           </div>
-          <div>
-            <p className="text-3xl font-display font-black leading-none">
+          <div className="min-w-0">
+            <p className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono leading-none">
               {decks.reduce((acc, d) => acc + d.total_cards, 0)}
             </p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Tarjetas</p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 truncate">Tarjetas totales</p>
           </div>
         </div>
-        <div className="bg-card border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-[#ff4e4e]/20 flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-[#ff4e4e]" />
+
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 flex items-center gap-3.5 shadow-2xs">
+          <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/50 flex items-center justify-center shrink-0">
+            <GraduationCap className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
           </div>
-          <div>
-            <p className="text-3xl font-display font-black leading-none">
-              {new Set(decks.map(d => d.subject_id)).size}
+          <div className="min-w-0">
+            <p className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono leading-none">
+              {new Set(decks.map(d => d.subject_id).filter(Boolean)).size}
             </p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Materias</p>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 truncate">Materias vinculadas</p>
           </div>
         </div>
-        <div className="bg-[#ffd21c] border-[3px] border-foreground rounded-xl p-5 flex items-center gap-4 col-span-2 lg:col-span-1 shadow-[4px_4px_0_0_hsl(var(--foreground))]">
-          <div className="w-12 h-12 rounded-xl border-2 border-foreground bg-background flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-foreground" />
+
+        <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 flex items-center gap-3.5 shadow-2xs col-span-2 lg:col-span-1">
+          <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-amber-500" />
           </div>
-          <div>
-            <p className="text-sm font-black uppercase tracking-widest text-black">¡Estudia hoy!</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-black/70 mt-1">Mantén tu racha</p>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">Racha de estudio</p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">Repasa a diario para consolidar</p>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
-            className={cn(
-              "px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-[3px] border-foreground transition-all",
-              !selectedYear
-                ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000]"
-                : "bg-background text-foreground hover:bg-secondary shadow-[4px_4px_0_0_transparent] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
-            )}
-          >
-            TODOS
-          </button>
-          {activeYears.map(year => (
+      {/* Barra de Búsqueda y Filtros */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
+        {/* Buscador de mazos */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar mazo o materia..."
+            className="w-full pl-8.5 pr-8 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
+          />
+          {searchQuery && (
             <button
-              key={year}
-              onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Filtros de año y materia */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+            <button
+              onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
               className={cn(
-                "px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-[3px] border-foreground transition-all",
-                selectedYear === year
-                  ? "bg-[#1475e5] text-white shadow-[4px_4px_0_0_#000]"
-                  : "bg-background text-foreground hover:bg-secondary shadow-[4px_4px_0_0_transparent] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
+                "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap",
+                !selectedYear
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                  : "bg-white dark:bg-[#212121] text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
               )}
             >
-              AÑO {year}
+              Todos los años
             </button>
-          ))}
-        </div>
-
-        {selectedYear && filteredSubjects.length > 0 && (
-          <select
-            value={selectedSubject || ""}
-            onChange={(e) => setSelectedSubject(e.target.value || null)}
-            className="px-5 py-3 bg-background rounded-xl text-[10px] border-[3px] border-foreground font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] focus:outline-none appearance-none"
-          >
-            <option value="">TODAS LAS MATERIAS</option>
-            {filteredSubjects.map(subject => (
-              <option key={subject.id} value={subject.id}>
-                {subject.nombre}
-              </option>
+            {activeYears.map(year => (
+              <button
+                key={year}
+                onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap",
+                  selectedYear === year
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                    : "bg-white dark:bg-[#212121] text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                )}
+              >
+                {year}° Año
+              </button>
             ))}
-          </select>
-        )}
+          </div>
+
+          {selectedYear && filteredSubjects.length > 0 && (
+            <div className="w-44 sm:w-48">
+              <Select
+                value={selectedSubject || "all"}
+                onValueChange={(val) => setSelectedSubject(val === "all" ? null : val)}
+              >
+                <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] px-2.5 text-xs text-zinc-900 dark:text-zinc-100 shadow-2xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600">
+                  <SelectValue placeholder="Todas las materias" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl text-xs">
+                  <SelectItem value="all" className="cursor-pointer py-1.5">
+                    Todas las materias
+                  </SelectItem>
+                  {filteredSubjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-1.5">
+                      {subject.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Decks Grid */}
+      {/* Grid de Mazos */}
       <div className="tour-flashcards-decks">
         {loading ? (
           <LoadingScreen message="Cargando flashcards..." submessage="Preparando tus mazos de estudio y repaso espaciado" />
         ) : filteredDecks.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary/50 flex items-center justify-center">
-              <Layers className="w-12 h-12 text-muted-foreground opacity-50" />
+          <div className="text-center py-16 bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-8">
+            <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-400 dark:text-zinc-500 shadow-2xs">
+              <Layers className="w-5 h-5" />
             </div>
-            <h3 className="font-display text-xl font-bold mb-2">No hay mazos creados</h3>
-            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-              Crea tu primer mazo de flashcards para empezar a estudiar de forma interactiva
+            <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+              {searchQuery ? "No se encontraron mazos con esta búsqueda" : "No hay mazos creados"}
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5 max-w-sm mx-auto">
+              {searchQuery
+                ? "Prueba con otra palabra clave o limpia los filtros activos para ver tus mazos."
+                : "Crea tu primer mazo para empezar a estudiar de forma interactiva con repetición espaciada."}
             </p>
-            <button
-              onClick={() => setShowNewDeckModal(true)}
-              className="px-6 py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-            >
-              CREAR PRIMER MAZO
-            </button>
+            {searchQuery ? (
+              <button
+                onClick={() => { setSearchQuery(""); setSelectedYear(null); setSelectedSubject(null); }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg text-xs font-medium transition-colors border border-zinc-200/60 dark:border-zinc-700/60 cursor-pointer"
+              >
+                Limpiar filtros
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowNewDeckModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Crear primer mazo
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filteredDecks.map((deck, index) => (
               <FlashcardDeck
                 key={deck.id}
@@ -1123,42 +1262,50 @@ export default function Flashcards() {
         )}
       </div>
 
-      {/* New Deck Modal */}
+      {/* ── MODAL 1: NUEVO MAZO ── */}
       <Dialog open={showNewDeckModal} onOpenChange={setShowNewDeckModal}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Layers className="w-5 h-5 text-foreground" />
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-zinc-500" />
               Nuevo Mazo
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+
+          <div className="space-y-4 pt-3">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Nombre del mazo *</label>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+                Nombre del mazo <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 value={newDeckName}
                 onChange={(e) => setNewDeckName(e.target.value)}
-                placeholder="Ej: Unidad 1 - Conceptos básicos"
-                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                placeholder="Ej: Unidad 1 - Fisiología Celular"
+                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newDeckName.trim()) {
+                    createDeck();
+                  }
+                }}
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Vincular a Materia (Opcional)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Vincular a Materia (Opcional)</label>
                 {newDeckYear && (
                   <button
                     type="button"
                     onClick={() => { setNewDeckYear(null); setNewDeckSubject(null); }}
-                    className="text-[10px] font-black uppercase text-muted-foreground hover:text-foreground underline cursor-pointer"
+                    className="text-[11px] font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                   >
                     Quitar filtro
                   </button>
                 )}
               </div>
-              <div className="flex gap-2 mt-2">
+              <div className="grid grid-cols-6 gap-1.5">
                 {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                   <button
                     key={year}
@@ -1173,10 +1320,10 @@ export default function Flashcards() {
                       }
                     }}
                     className={cn(
-                      "flex-1 py-2.5 rounded-xl text-xs font-black border-[2px] border-foreground transition-all",
+                      "py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer",
                       newDeckYear === year
-                        ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
-                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                        : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     )}
                   >
                     {year}°
@@ -1186,18 +1333,21 @@ export default function Flashcards() {
             </div>
 
             {newDeckYear && newDeckModalSubjects.length > 0 && (
-              <div className="animate-fade-in">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Materia</label>
+              <div className="space-y-1 animate-fade-in">
+                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block">Materia</label>
                 <Select value={newDeckSubject || "none"} onValueChange={(val) => setNewDeckSubject(val === "none" ? null : val)}>
-                  <SelectTrigger className="w-full mt-2 px-4 py-3 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                  <SelectTrigger className="w-full h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors shadow-2xs">
                     <SelectValue placeholder="Seleccionar materia" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl max-h-60">
-                    <SelectItem value="none" className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
-                      ⚪ General (Sin materia específica)
+                  <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl max-h-56 text-xs">
+                    <SelectItem value="none" textValue="General (Sin materia específica)" className="py-1.5 cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <TabeLogo size={14} className="shrink-0 object-contain" />
+                        <span>General (Sin materia específica)</span>
+                      </span>
                     </SelectItem>
                     {newDeckModalSubjects.map(subject => (
-                      <SelectItem key={subject.id} value={subject.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
+                      <SelectItem key={subject.id} value={subject.id} className="py-1.5 cursor-pointer">
                         {subject.nombre}
                       </SelectItem>
                     ))}
@@ -1206,128 +1356,253 @@ export default function Flashcards() {
               </div>
             )}
 
-            <button
-              onClick={createDeck}
-              disabled={!newDeckName.trim()}
-              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed cursor-pointer mt-2"
-            >
-              CREAR MAZO
-            </button>
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setShowNewDeckModal(false)}
+                className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createDeck}
+                disabled={!newDeckName.trim()}
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Crear Mazo
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* New Card Modal */}
+      {/* ── MODAL 2: NUEVA TARJETA ── */}
       <Dialog open={showNewCardModal} onOpenChange={setShowNewCardModal}>
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Plus className="w-5 h-5 text-foreground" />
-              Nueva Tarjeta
-            </DialogTitle>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-zinc-500" />
+                Nueva Tarjeta
+              </DialogTitle>
+              {selectedDeck && (
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 max-w-[150px] truncate">
+                  {selectedDeck.nombre}
+                </span>
+              )}
+            </div>
           </DialogHeader>
-          <div className="space-y-6 py-2">
+
+          <div className="space-y-3.5 pt-3">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pregunta</label>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+                Pregunta o Concepto <span className="text-rose-500">*</span>
+              </label>
               <textarea
                 value={newCardQuestion}
                 onChange={(e) => setNewCardQuestion(e.target.value)}
-                placeholder="Escribe la pregunta..."
+                placeholder="Escribe la pregunta, término o fórmula a memorizar..."
                 rows={3}
-                className="w-full mt-2 px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all resize-none"
+                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors resize-none"
+                autoFocus
               />
             </div>
 
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Respuesta</label>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+                Respuesta o Definición <span className="text-rose-500">*</span>
+              </label>
               <textarea
                 value={newCardAnswer}
                 onChange={(e) => setNewCardAnswer(e.target.value)}
-                placeholder="Escribe la respuesta..."
+                placeholder="Escribe la respuesta esperada o explicación concisa..."
                 rows={3}
-                className="w-full mt-2 px-4 py-3 bg-[#ffd21c] rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all resize-none placeholder:text-black/50"
+                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors resize-none"
               />
             </div>
 
-            <button
-              onClick={createCard}
-              disabled={!newCardQuestion.trim() || !newCardAnswer.trim()}
-              className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
-            >
-              AGREGAR TARJETA
-            </button>
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+              💡 Tip: respuestas breves y directas facilitan el active recall y la memorización espaciada.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setShowNewCardModal(false)}
+                className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={createCard}
+                disabled={!newCardQuestion.trim() || !newCardAnswer.trim()}
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Agregar Tarjeta
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Manage Cards Modal */}
+      {/* ── MODAL 3: GESTIONAR TARJETAS CON BÚSQUEDA Y EDICIÓN INLINE ── */}
       <Dialog open={showManageCardsModal} onOpenChange={setShowManageCardsModal}>
-        <DialogContent className="sm:max-w-lg bg-card border-border max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <Layers className="w-5 h-5 text-neon-cyan" />
-              Gestionar Tarjetas - {selectedDeck?.nombre}
-            </DialogTitle>
+        <DialogContent className="sm:max-w-xl bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6 max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-zinc-500" />
+                <span>Gestionar Tarjetas</span>
+              </DialogTitle>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+                {selectedDeck?.nombre} ({cards.length})
+              </span>
+            </div>
+
+            {/* Buscador dentro del mazo */}
+            {cards.length > 3 && (
+              <div className="relative mt-2">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={manageSearchQuery}
+                  onChange={(e) => {
+                    setManageSearchQuery(e.target.value);
+                    setManagePage(1);
+                  }}
+                  placeholder="Buscar en preguntas o respuestas..."
+                  className="w-full pl-8.5 pr-7 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
+                />
+                {manageSearchQuery && (
+                  <button
+                    onClick={() => setManageSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            )}
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto py-4 space-y-3">
+
+          <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1">
             {cards.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Este mazo no tiene tarjetas</p>
+              <div className="text-center py-10 text-zinc-500 dark:text-zinc-400">
+                <Layers className="w-9 h-9 mx-auto mb-2 text-zinc-400 dark:text-zinc-600 opacity-60" />
+                <p className="text-xs font-medium">Este mazo aún no tiene tarjetas</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Haz clic en "Agregar Tarjeta" para comenzar a cargarlas</p>
+              </div>
+            ) : filteredManageCards.length === 0 ? (
+              <div className="text-center py-8 text-xs text-zinc-500">
+                No hay tarjetas que coincidan con "{manageSearchQuery}"
               </div>
             ) : (
               <>
-                <div className="space-y-3">
-                  {cards.slice((managePage - 1) * ITEMS_PER_PAGE, managePage * ITEMS_PER_PAGE).map((card) => (
-                    <div
-                      key={card.id}
-                      className="p-4 bg-secondary rounded-xl border border-border group hover:border-neon-cyan/30 transition-colors"
-                    >
-                      <div className="flex justify-between items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm line-clamp-2">{card.pregunta}</p>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
-                          <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            <span className="text-neon-green">✓ {card.veces_correcta}</span>
-                            <span className="text-destructive">✗ {card.veces_incorrecta}</span>
+                <div className="space-y-2">
+                  {filteredManageCards.slice((managePage - 1) * ITEMS_PER_PAGE, managePage * ITEMS_PER_PAGE).map((card) => {
+                    const isEditing = editingCardId === card.id;
+
+                    return (
+                      <div
+                        key={card.id}
+                        className="p-3 bg-zinc-50/70 dark:bg-zinc-900/60 rounded-lg border border-zinc-200/70 dark:border-zinc-800/70 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                      >
+                        {isEditing ? (
+                          <div className="space-y-2 animate-fade-in">
+                            <input
+                              type="text"
+                              value={editQuestionText}
+                              onChange={(e) => setEditQuestionText(e.target.value)}
+                              placeholder="Pregunta..."
+                              className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                              autoFocus
+                            />
+                            <textarea
+                              value={editAnswerText}
+                              onChange={(e) => setEditAnswerText(e.target.value)}
+                              placeholder="Respuesta..."
+                              rows={2}
+                              className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 resize-none"
+                            />
+                            <div className="flex items-center justify-end gap-1.5 pt-1">
+                              <button
+                                onClick={() => setEditingCardId(null)}
+                                className="px-2.5 py-1 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => saveEditCard(card.id)}
+                                className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-md text-xs font-medium shadow-2xs"
+                              >
+                                <Save className="w-3 h-3" />
+                                Guardar
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        <HoldButton
-                          size="icon-sm"
-                          radius={8}
-                          backgroundColor="transparent"
-                          fillColor="#f43f5e"
-                          textColor="currentColor"
-                          fillTextColor="#ffffff"
-                          holdTime={1100}
-                          icon={<Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-destructive" />}
-                          doneIcon={<Check className="w-4 h-4 text-white" />}
-                          doneLabel=""
-                          onHold={() => deleteCard(card.id)}
-                          className="rounded-lg transition-colors opacity-0 group-hover:opacity-100 hover:bg-destructive/10"
-                          title="Mantené presionado para borrar esta tarjeta"
-                        />
+                        ) : (
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">
+                                {card.pregunta}
+                              </p>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
+                                {card.respuesta}
+                              </p>
+                              <div className="flex items-center gap-3 mt-2 text-[11px] font-mono">
+                                <span className="text-emerald-600 dark:text-emerald-400">✓ {card.veces_correcta}</span>
+                                <span className="text-rose-500 dark:text-rose-400">✗ {card.veces_incorrecta}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => startEditCard(card)}
+                                className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+                                title="Editar tarjeta"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <HoldButton
+                                size="icon-sm"
+                                radius={8}
+                                backgroundColor="transparent"
+                                fillColor="#f43f5e"
+                                textColor="currentColor"
+                                fillTextColor="#ffffff"
+                                holdTime={1100}
+                                icon={<Trash2 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-500 transition-colors" />}
+                                doneIcon={<Check className="w-3.5 h-3.5 text-white" />}
+                                doneLabel=""
+                                onHold={() => deleteCard(card.id)}
+                                className="rounded-md transition-colors hover:bg-rose-500/10 shrink-0 cursor-pointer"
+                                title="Mantén presionado para borrar esta tarjeta"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {cards.length > ITEMS_PER_PAGE && (
-                  <div className="flex items-center justify-between gap-4 mt-6 px-1">
+                {filteredManageCards.length > ITEMS_PER_PAGE && (
+                  <div className="flex items-center justify-between gap-3 pt-3 px-1">
                     <button
                       disabled={managePage === 1}
                       onClick={() => setManagePage(p => p - 1)}
-                      className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                      className="px-2.5 py-1 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors cursor-pointer"
                     >
                       Anterior
                     </button>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Página {managePage} de {Math.ceil(cards.length / ITEMS_PER_PAGE)}
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                      {managePage} / {Math.ceil(filteredManageCards.length / ITEMS_PER_PAGE)}
                     </span>
                     <button
-                      disabled={managePage === Math.ceil(cards.length / ITEMS_PER_PAGE)}
+                      disabled={managePage === Math.ceil(filteredManageCards.length / ITEMS_PER_PAGE)}
                       onClick={() => setManagePage(p => p + 1)}
-                      className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                      className="px-2.5 py-1 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors cursor-pointer"
                     >
                       Siguiente
                     </button>
@@ -1336,86 +1611,116 @@ export default function Flashcards() {
               </>
             )}
           </div>
-          <div className="pt-4 border-t border-border">
-            <button
-              onClick={() => {
-                setShowManageCardsModal(false);
-                setShowNewCardModal(true);
-              }}
-              className="w-full py-4 bg-[#1475e5] text-white border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              AGREGAR TARJETA
-            </button>
+
+          <div className="pt-3 mt-auto border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+            <span className="text-xs text-zinc-400 font-mono">
+              Total: {cards.length} tarjetas
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowManageCardsModal(false)}
+                className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={() => {
+                  setShowManageCardsModal(false);
+                  setShowNewCardModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Agregar Tarjeta
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Deck Subject Modal */}
+      {/* ── MODAL 4: EDITAR MATERIA DEL MAZO ── */}
       <Dialog open={showEditDeckModal} onOpenChange={setShowEditDeckModal}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-neon-cyan" />
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-zinc-500" />
               Editar Materia - {deckToEdit?.nombre}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-4">
-            <p className="text-sm text-muted-foreground">
-              Asigna una materia a este mazo para organizarlo mejor.
+
+          <div className="space-y-4 pt-3">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Asigna o modifica la materia vinculada a este mazo para mantenerlo categorizado correctamente.
             </p>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Materia</label>
-              <select
-                value={newSubjectId}
-                onChange={(e) => setNewSubjectId(e.target.value)}
-                className="w-full mt-2 px-4 py-3 bg-secondary rounded-xl border border-border font-medium"
-              >
-                <option value="">Sin materia</option>
-                {subjects.map(subject => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.nombre}
-                  </option>
-                ))}
-              </select>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block">Materia</label>
+              <Select value={newSubjectId} onValueChange={setNewSubjectId}>
+                <SelectTrigger className="w-full h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs">
+                  <SelectValue placeholder="Seleccionar materia..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl max-h-56 text-xs">
+                  <SelectItem value="none" textValue="Sin materia vinculada" className="py-1.5 cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <TabeLogo size={14} className="shrink-0 object-contain" />
+                      <span>Sin materia vinculada</span>
+                    </span>
+                  </SelectItem>
+                  {subjects.map(subject => (
+                    <SelectItem key={subject.id} value={subject.id} className="py-1.5 cursor-pointer">
+                      {subject.nombre} ({subject.año}° Año)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <button
-              onClick={saveDeckSubject}
-              className="w-full py-4 bg-[#ffd21c] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
-            >
-              GUARDAR CAMBIOS
-            </button>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setShowEditDeckModal(false)}
+                className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveDeckSubject}
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+              >
+                Guardar Cambios
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Import Cards Modal */}
+      {/* ── MODAL 5: IMPORTAR TARJETAS ── */}
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
-        <DialogContent className="sm:max-w-lg bg-card border-border max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="font-display gradient-text text-xl flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-neon-gold" />
-              Importar Cartas a "{importTargetDeck?.nombre}"
+        <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6 max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span className="truncate">Importar a "{importTargetDeck?.nombre}"</span>
             </DialogTitle>
           </DialogHeader>
 
           {importStep === 1 ? (
-            <div className="flex-1 overflow-y-auto py-4 space-y-5">
-              <p className="text-sm text-muted-foreground">
-                Selecciona un mazo existente para copiar sus cartas.
+            <div className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Selecciona un mazo de origen para clonar o importar sus tarjetas hacia este mazo.
               </p>
 
-              {/* Year Filter */}
+              {/* Filtro por Año */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Filtrar por Año</label>
-                <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1.5">Filtrar por Año</label>
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
                   <button
                     onClick={() => { setImportSourceYear(null); setImportSourceSubject(null); }}
                     className={cn(
-                      "px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
+                      "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer border",
                       !importSourceYear
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                        : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     )}
                   >
                     Todos
@@ -1425,10 +1730,10 @@ export default function Flashcards() {
                       key={year}
                       onClick={() => { setImportSourceYear(year); setImportSourceSubject(null); }}
                       className={cn(
-                        "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                        "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border",
                         importSourceYear === year
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary hover:bg-secondary/80"
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                          : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       )}
                     >
                       {year}°
@@ -1437,42 +1742,45 @@ export default function Flashcards() {
                 </div>
               </div>
 
-              {/* Subject Filter */}
+              {/* Filtro por Materia con Select */}
               {importSourceYear && (
-                <div className="animate-fade-in">
-                  <label className="text-sm font-medium text-muted-foreground">Filtrar por Materia</label>
-                  <select
-                    value={importSourceSubject || ""}
-                    onChange={(e) => setImportSourceSubject(e.target.value || null)}
-                    className="w-full mt-2 px-3 py-2 bg-secondary rounded-lg border border-border text-sm"
-                  >
-                    <option value="">Todas las materias</option>
-                    {filteredSourceSubjects.map(subject => (
-                      <option key={subject.id} value={subject.id}>{subject.nombre}</option>
-                    ))}
-                  </select>
+                <div className="space-y-1 animate-fade-in">
+                  <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block">Filtrar por Materia</label>
+                  <Select value={importSourceSubject || "all"} onValueChange={(val) => setImportSourceSubject(val === "all" ? null : val)}>
+                    <SelectTrigger className="w-full h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs">
+                      <SelectValue placeholder="Todas las materias" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl text-xs">
+                      <SelectItem value="all" className="cursor-pointer py-1.5">Todas las materias</SelectItem>
+                      {filteredSourceSubjects.map(subject => (
+                        <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-1.5">{subject.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
-              {/* Decks List */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Seleccionar Mazo ({filteredSourceDecks.length})</label>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {/* Lista de Mazos Disponibles */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block">
+                  Seleccionar Mazo ({filteredSourceDecks.length})
+                </label>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                   {filteredSourceDecks.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic py-2">No se encontraron mazos.</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 italic py-3 text-center">No se encontraron otros mazos disponibles.</p>
                   ) : (
                     filteredSourceDecks.map(deck => (
                       <button
                         key={deck.id}
                         onClick={() => handleImportSelectDeck(deck)}
-                        className="w-full p-3 bg-secondary rounded-xl hover:bg-secondary/80 transition-all text-left flex justify-between items-center group"
+                        className="w-full p-3 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors text-left flex justify-between items-center group cursor-pointer"
                       >
-                        <div>
-                          <p className="font-medium text-sm group-hover:text-neon-cyan transition-colors">{deck.nombre}</p>
-                          <p className="text-xs text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
+                        <div className="min-w-0 pr-2">
+                          <p className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors truncate">{deck.nombre}</p>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">{deck.subject?.nombre || "Sin materia"}</p>
                         </div>
-                        <span className="text-xs font-medium bg-background/50 px-2 py-1 rounded">
-                          {deck.total_cards} cartas
+                        <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+                          {deck.total_cards} {deck.total_cards === 1 ? "carta" : "cartas"}
                         </span>
                       </button>
                     ))
@@ -1481,78 +1789,98 @@ export default function Flashcards() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-hidden flex flex-col py-4">
-              <div className="flex justify-between items-center mb-4">
+            <div className="flex-1 overflow-hidden flex flex-col py-3">
+              <div className="flex justify-between items-center mb-2.5 pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
                 <button
                   onClick={() => setImportStep(1)}
-                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  className="text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  ← Volver
+                  ← Volver a mazos
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
                     {selectedImportCards.length} seleccionadas
                   </span>
                   <button
-                    onClick={selectAllImportCards}
-                    className="text-xs px-2 py-1 bg-secondary rounded hover:bg-secondary/80"
+                    onClick={() => selectAllImportCards(filteredImportCards)}
+                    className="text-xs px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   >
-                    {selectedImportCards.length === importSourceCards.length ? "Deseleccionar" : "Todas"}
+                    {filteredImportCards.every(c => selectedImportCards.includes(c.id)) ? "Deseleccionar" : "Seleccionar todas"}
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-1">
-                {importSourceCards.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Este mazo está vacío.
+              {/* Buscador dentro del mazo origen */}
+              {importSourceCards.length > 3 && (
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={importSearchQuery}
+                    onChange={(e) => {
+                      setImportSearchQuery(e.target.value);
+                      setImportPage(1);
+                    }}
+                    placeholder="Filtrar tarjetas..."
+                    className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+                  />
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto pr-1 space-y-1.5">
+                {filteredImportCards.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-zinc-500">
+                    No se encontraron tarjetas en este mazo.
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-2">
-                      {importSourceCards.slice((importPage - 1) * ITEMS_PER_PAGE, importPage * ITEMS_PER_PAGE).map(card => (
-                        <div
-                          key={card.id}
-                          onClick={() => toggleImportCardSelection(card.id)}
-                          className={cn(
-                            "p-3 rounded-xl border border-border cursor-pointer transition-all flex gap-3",
-                            selectedImportCards.includes(card.id)
-                              ? "bg-neon-cyan/10 border-neon-cyan"
-                              : "bg-secondary hover:border-neon-cyan/50"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5",
-                            selectedImportCards.includes(card.id)
-                              ? "bg-neon-cyan border-neon-cyan"
-                              : "border-muted-foreground"
-                          )}>
-                            {selectedImportCards.includes(card.id) && <Plus className="w-3 h-3 text-background" />}
+                    <div className="space-y-1.5">
+                      {filteredImportCards.slice((importPage - 1) * ITEMS_PER_PAGE, importPage * ITEMS_PER_PAGE).map(card => {
+                        const isSelected = selectedImportCards.includes(card.id);
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => toggleImportCardSelection(card.id)}
+                            className={cn(
+                              "p-2.5 rounded-lg border cursor-pointer transition-colors flex items-start gap-2.5 select-none",
+                              isSelected
+                                ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-400 dark:border-zinc-600"
+                                : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                              isSelected
+                                ? "bg-zinc-900 border-zinc-900 dark:bg-zinc-100 dark:border-zinc-100 text-white dark:text-zinc-900"
+                                : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                            )}>
+                              {isSelected && <Check className="w-3 h-3" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">{card.pregunta}</p>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">{card.respuesta}</p>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium line-clamp-2">{card.pregunta}</p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{card.respuesta}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
-                    {importSourceCards.length > ITEMS_PER_PAGE && (
-                      <div className="flex items-center justify-between gap-4 mt-6 mb-2 px-1">
+                    {filteredImportCards.length > ITEMS_PER_PAGE && (
+                      <div className="flex items-center justify-between gap-3 pt-2 px-1">
                         <button
                           disabled={importPage === 1}
                           onClick={() => setImportPage(p => p - 1)}
-                          className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                          className="px-2.5 py-1 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors cursor-pointer"
                         >
                           Anterior
                         </button>
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {importPage} / {Math.ceil(importSourceCards.length / ITEMS_PER_PAGE)}
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                          {importPage} / {Math.ceil(filteredImportCards.length / ITEMS_PER_PAGE)}
                         </span>
                         <button
-                          disabled={importPage === Math.ceil(importSourceCards.length / ITEMS_PER_PAGE)}
+                          disabled={importPage === Math.ceil(filteredImportCards.length / ITEMS_PER_PAGE)}
                           onClick={() => setImportPage(p => p + 1)}
-                          className="flex-1 py-2 bg-secondary rounded-xl text-sm font-medium disabled:opacity-30"
+                          className="px-2.5 py-1 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors cursor-pointer"
                         >
                           Siguiente
                         </button>
@@ -1562,13 +1890,19 @@ export default function Flashcards() {
                 )}
               </div>
 
-              <div className="pt-4 mt-auto border-t border-border">
+              <div className="pt-3 mt-auto border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
                 <button
                   onClick={handleImportConfirm}
                   disabled={selectedImportCards.length === 0}
-                  className="w-full py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
+                  className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  IMPORTAR {selectedImportCards.length} CARTAS
+                  Importar {selectedImportCards.length} {selectedImportCards.length === 1 ? "tarjeta" : "tarjetas"}
                 </button>
               </div>
             </div>
@@ -1576,37 +1910,37 @@ export default function Flashcards() {
         </DialogContent>
       </Dialog>
 
-      {/* Merge Decks Modal */}
+      {/* ── MODAL 6: FUSIONAR MAZOS ── */}
       <Dialog open={showMergeModal} onOpenChange={setShowMergeModal}>
-        <DialogContent className="sm:max-w-xl bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Layers className="w-6 h-6 text-foreground" />
-              Juntar Mazos
+        <DialogContent className="sm:max-w-xl bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6 max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-zinc-500" />
+              Fusionar Mazos
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-2">
-            <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-black uppercase tracking-widest text-foreground">
-                  1. Seleccionar Mazos ({selectedDecksToMerge.length} seleccionados)
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  1. Seleccionar Mazos a Combinar
                 </label>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                  Mínimo 2 mazos
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+                  {selectedDecksToMerge.length} seleccionados (mínimo 2)
                 </span>
               </div>
 
-              {/* Source Deck Filters */}
-              <div className="space-y-3 bg-secondary/50 p-4 rounded-xl border-[2px] border-foreground">
-                <div className="flex gap-2 overflow-x-auto pb-1">
+              {/* Filtros de mazos de origen */}
+              <div className="space-y-2 bg-zinc-50/70 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80">
+                <div className="flex gap-1 overflow-x-auto pb-1">
                   <button
                     onClick={() => { setMergeSourceYearFilter(null); setMergeSourceSubjectFilter(null); }}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border-[2px] border-foreground whitespace-nowrap",
+                      "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer border",
                       !mergeSourceYearFilter
-                        ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
-                        : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                        : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     )}
                   >
                     Todos
@@ -1616,10 +1950,10 @@ export default function Flashcards() {
                       key={year}
                       onClick={() => { setMergeSourceYearFilter(year); setMergeSourceSubjectFilter(null); }}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all border-[2px] border-foreground whitespace-nowrap",
+                        "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer border",
                         mergeSourceYearFilter === year
-                          ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000]"
-                          : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                          : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       )}
                     >
                       {year}° Año
@@ -1629,80 +1963,83 @@ export default function Flashcards() {
 
                 {mergeSourceYearFilter && (
                   <Select value={mergeSourceSubjectFilter || "all"} onValueChange={(val) => setMergeSourceSubjectFilter(val === "all" ? null : val)}>
-                    <SelectTrigger className="w-full px-4 py-5 h-auto bg-background rounded-lg border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                    <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 px-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs">
                       <SelectValue placeholder="Todas las materias del año" />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
-                      <SelectItem value="all" className="font-bold uppercase tracking-widest focus:bg-secondary cursor-pointer rounded-lg my-1">Todas las materias del año</SelectItem>
+                    <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl text-xs">
+                      <SelectItem value="all" className="cursor-pointer py-1.5">Todas las materias del año</SelectItem>
                       {subjects.filter(s => s.año === mergeSourceYearFilter).map(s => (
-                        <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
-                          {s.nombre}
-                        </SelectItem>
+                        <SelectItem key={s.id} value={s.id} className="cursor-pointer py-1.5">{s.nombre}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-3 max-h-56 overflow-y-auto pr-1">
+              {/* Lista seleccionable de mazos */}
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {decks
                   .filter(deck => {
                     const matchesYear = !mergeSourceYearFilter || deck.subject?.año === mergeSourceYearFilter;
                     const matchesSubject = !mergeSourceSubjectFilter || deck.subject_id === mergeSourceSubjectFilter;
                     return matchesYear && matchesSubject;
                   })
-                  .map(deck => (
-                    <div
-                      key={deck.id}
-                      onClick={() => toggleMergeDeckSelection(deck.id)}
-                      className={cn(
-                        "p-4 rounded-xl border-[2px] border-foreground cursor-pointer transition-all flex items-center justify-between group",
-                        selectedDecksToMerge.includes(deck.id)
-                          ? "bg-[#25d06c] shadow-[4px_4px_0_0_#000] translate-x-[-2px] translate-y-[-2px]"
-                          : "bg-background hover:bg-secondary hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
-                      )}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "w-6 h-6 rounded-md border-[2px] border-foreground flex items-center justify-center transition-all bg-background",
-                          selectedDecksToMerge.includes(deck.id)
-                            ? "bg-black"
-                            : ""
-                        )}>
-                          {selectedDecksToMerge.includes(deck.id) && <Plus className="w-4 h-4 text-white" />}
+                  .map(deck => {
+                    const isSelected = selectedDecksToMerge.includes(deck.id);
+                    return (
+                      <div
+                        key={deck.id}
+                        onClick={() => toggleMergeDeckSelection(deck.id)}
+                        className={cn(
+                          "p-2.5 rounded-lg border cursor-pointer transition-colors flex items-center justify-between group select-none",
+                          isSelected
+                            ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-400 dark:border-zinc-600"
+                            : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <div className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            isSelected
+                              ? "bg-zinc-900 border-zinc-900 dark:bg-zinc-100 dark:border-zinc-100 text-white dark:text-zinc-900"
+                              : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                          )}>
+                            {isSelected && <Check className="w-3 h-3" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{deck.nombre}</p>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">{deck.subject?.nombre || "Sin materia"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{deck.nombre}</p>
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{deck.subject?.nombre || "Sin materia"}</p>
-                        </div>
+                        <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+                          {deck.total_cards} {deck.total_cards === 1 ? "carta" : "cartas"}
+                        </span>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest bg-background border-[2px] border-foreground px-2 py-1 rounded-lg text-foreground shadow-[2px_2px_0_0_#000]">
-                        {deck.total_cards} cards
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t-[3px] border-foreground border-dashed">
-              <label className="text-sm font-black uppercase tracking-widest text-foreground block">
-                2. Configurar Nuevo Mazo
+            {/* Configurar nuevo mazo fusionado */}
+            <div className="space-y-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+                2. Configurar Nuevo Mazo Combinado
               </label>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Año</label>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">Año</label>
+                  <div className="flex gap-1 overflow-x-auto pb-0.5">
                     {(activeYears.length > 0 ? activeYears : [1, 2, 3, 4, 5, 6]).map(year => (
                       <button
                         key={year}
                         type="button"
                         onClick={() => { setMergeYear(year); setMergeSubjectId(null); }}
                         className={cn(
-                          "w-10 h-10 rounded-xl text-sm font-black transition-all border-[2px] border-foreground shrink-0",
+                          "w-7 h-7 rounded-lg text-xs font-medium transition-colors border shrink-0 cursor-pointer",
                           mergeYear === year
-                            ? "bg-[#ff4e4e] text-white shadow-[2px_2px_0_0_#000]"
-                            : "bg-background text-foreground hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000]"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                            : "bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                         )}
                       >
                         {year}
@@ -1711,57 +2048,55 @@ export default function Flashcards() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Materia</label>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">Materia Destino</label>
                   <Select disabled={!mergeYear} value={mergeSubjectId || ""} onValueChange={setMergeSubjectId}>
-                    <SelectTrigger className="w-full px-4 py-5 h-auto bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:ring-0 focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all text-sm disabled:opacity-50 data-[state=open]:shadow-[4px_4px_0_0_#000]">
+                    <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 disabled:opacity-40 shadow-2xs">
                       <SelectValue placeholder="Seleccionar..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border-[2px] border-foreground shadow-[4px_4px_0_0_#000] rounded-xl">
+                    <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl text-xs">
                       {subjects.filter(s => s.año === mergeYear).map(s => (
-                        <SelectItem key={s.id} value={s.id} className="font-medium focus:bg-secondary cursor-pointer rounded-lg my-1">
-                          {s.nombre}
-                        </SelectItem>
+                        <SelectItem key={s.id} value={s.id} className="cursor-pointer py-1.5">{s.nombre}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nombre del Mazo Combinado</label>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">Nombre del Mazo Combinado</label>
                 <input
                   type="text"
                   value={mergeNewDeckName}
                   onChange={(e) => setMergeNewDeckName(e.target.value)}
-                  placeholder="Ej: Final - Repaso General"
-                  className="w-full px-4 py-3 bg-background rounded-xl border-[2px] border-foreground font-medium shadow-[2px_2px_0_0_#000] focus:outline-none focus:shadow-[4px_4px_0_0_#000] transition-all"
+                  placeholder="Ej: Repaso General - Primer Parcial"
+                  className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 mt-auto flex gap-3">
+          <div className="pt-3 mt-auto border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-end gap-2">
             <button
               onClick={() => setShowMergeModal(false)}
-              className="flex-1 py-3 text-sm font-black uppercase tracking-widest border-[3px] border-foreground rounded-xl bg-background hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all"
+              className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               onClick={handleMergeDecks}
               disabled={isMerging || selectedDecksToMerge.length < 2 || !mergeNewDeckName.trim() || !mergeSubjectId}
-              className="flex-[2] py-4 bg-[#00ffcc] text-black border-[3px] border-foreground rounded-xl font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0 active:shadow-none transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="inline-flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isMerging ? (
                 <>
-                  <div className="w-4 h-4 border-[3px] border-foreground border-t-transparent rounded-full animate-spin" />
-                  COMBINANDO...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Combinando...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
-                  CONFIRMAR COMBINACIÓN
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Confirmar Combinación
                 </>
               )}
             </button>
@@ -1769,7 +2104,7 @@ export default function Flashcards() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Deck Confirmation Modal */}
+      {/* ── MODAL 7: ELIMINAR MAZO CON SEGURIDAD ── */}
       <Dialog
         open={showDeleteDeckModal}
         onOpenChange={(open) => {
@@ -1779,152 +2114,199 @@ export default function Flashcards() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md bg-background border-[3px] border-foreground rounded-2xl shadow-[8px_8px_0_0_#000] p-6 overflow-hidden">
-          <DialogHeader className="space-y-3 pb-1">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border-[2px] border-rose-500 flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000]">
-                <Trash2 className="w-6 h-6 text-rose-500" />
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6 overflow-hidden">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
               </div>
               <div className="min-w-0">
-                <DialogTitle className="font-display text-xl font-black uppercase tracking-wider text-foreground">
+                <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                   Eliminar Mazo
                 </DialogTitle>
-                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
-                  Confirmación requerida
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Confirmación de seguridad requerida
                 </p>
               </div>
             </div>
           </DialogHeader>
 
-          {/* Deck Preview Card */}
-          <div className="my-2 p-4 rounded-xl bg-card border-[2px] border-foreground shadow-[3px_3px_0_0_#000] space-y-3">
-            <div className="flex items-start justify-between gap-3">
+          {/* Preview del mazo */}
+          <div className="my-2 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 space-y-1.5">
+            <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-0.5">
-                  Mazo a eliminar
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 block">
+                  Mazo seleccionado
                 </span>
-                <h4 className="font-display font-black text-base uppercase text-foreground truncate" title={deckToDelete?.nombre}>
+                <h4 className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate" title={deckToDelete?.nombre}>
                   {deckToDelete?.nombre}
                 </h4>
               </div>
-              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-secondary border-[2px] border-foreground shrink-0 shadow-[1px_1px_0_0_#000]">
+              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
                 {deckToDelete?.subject?.nombre || "General"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 pt-2.5 border-t border-border/80 text-xs font-bold text-muted-foreground">
-              <Layers className="w-4 h-4 text-foreground shrink-0" />
+            <div className="flex items-center gap-1.5 pt-1.5 border-t border-zinc-200/60 dark:border-zinc-800/60 text-xs text-zinc-500 dark:text-zinc-400">
+              <Layers className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <span>
-                Contiene <strong className="text-foreground font-black">{deckToDelete?.total_cards ?? 0}</strong> {deckToDelete?.total_cards === 1 ? "tarjeta" : "tarjetas"} de estudio
+                Contiene <strong className="text-zinc-800 dark:text-zinc-200 font-semibold font-mono">{deckToDelete?.total_cards ?? 0}</strong> {deckToDelete?.total_cards === 1 ? "tarjeta" : "tarjetas"} de estudio
               </span>
             </div>
           </div>
 
-          {/* Warning Notice */}
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border-[2px] border-rose-500/40 flex items-start gap-3">
-            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-            <p className="text-xs font-bold text-rose-600 dark:text-rose-400 leading-relaxed">
-              Esta acción es <strong className="font-black underline">permanente e irreversible</strong>. Se eliminará el mazo junto con todas sus tarjetas y su historial de repasos.
+          <div className="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/70 dark:border-rose-900/50 flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
+              Esta acción no se puede deshacer. Se eliminarán todas las tarjetas y estadísticas de repaso acumuladas.
             </p>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col-reverse sm:flex-row gap-3 mt-4 pt-1">
+          <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
             <button
               type="button"
               onClick={() => setShowDeleteDeckModal(false)}
               disabled={isDeletingDeck}
-              className="flex-1 py-3 px-4 bg-background hover:bg-secondary text-foreground rounded-xl font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[4px_4px_0_0_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <HoldButton
-              backgroundColor="#f43f5e"
-              fillColor="#be123c"
+              backgroundColor="#dc2626"
+              fillColor="#991b1b"
               textColor="#ffffff"
               fillTextColor="#ffffff"
-              radius={12}
-              size="md"
-              holdTime={1500}
-              icon={<Trash2 className="w-4 h-4" />}
-              doneIcon={<Check className="w-4 h-4" />}
+              radius={8}
+              size="sm"
+              holdTime={1400}
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+              doneIcon={<Check className="w-3.5 h-3.5" />}
               doneLabel="¡Mazo Eliminado!"
               disabled={isDeletingDeck}
               onHold={confirmDeleteDeck}
-              className="flex-1 py-3 px-4 font-black uppercase tracking-wider text-xs border-[2px] border-foreground shadow-[3px_3px_0_0_#000] hover:shadow-[5px_5px_0_0_#000]"
+              className="rounded-lg px-3.5 py-1.5 text-xs font-medium cursor-pointer shadow-2xs border-0"
             >
-              Mantener para Eliminar Mazo
+              Mantener para eliminar
             </HoldButton>
           </div>
         </DialogContent>
       </Dialog>
-      {/* Modal de Publicar en la Comunidad */}
+
+      {/* ── MODAL 8: PUBLICAR EN LA COMUNIDAD ── */}
       <Dialog open={showPublishModal} onOpenChange={(open) => {
         setShowPublishModal(open);
         if (!open) setPubIsAnonymous(false);
       }}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Publicar mazo en la Comunidad</DialogTitle>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-zinc-500" />
+              Publicar mazo en la Comunidad
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Descripción</label>
+
+          <div className="space-y-3.5 pt-3">
+            <div>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+                Descripción <span className="text-rose-500">*</span>
+              </label>
               <textarea
-                className="w-full h-24 p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
-                placeholder="Describe qué contiene este mazo..."
+                className="w-full h-20 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors resize-none"
+                placeholder="Describe qué conceptos o unidades contiene este mazo..."
                 value={pubDescription}
                 onChange={(e) => setPubDescription(e.target.value)}
+                autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Categoría</label>
+
+            <div>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
+                Categoría <span className="text-rose-500">*</span>
+              </label>
               <input
-                className="w-full p-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-neon-cyan/50"
-                placeholder="Ej: Medicina, Historia, Programación..."
+                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
+                placeholder="Ej: Medicina, Ingeniería, Historia..."
                 value={pubCategory}
                 onChange={(e) => setPubCategory(e.target.value)}
               />
+              {/* Categorías sugeridas en un click */}
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {suggestedCategories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPubCategory(cat)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-medium border transition-colors cursor-pointer",
+                      pubCategory === cat
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div 
+
+            {/* Toggle anónimo estilo Notion */}
+            <div
               onClick={() => setPubIsAnonymous(!pubIsAnonymous)}
               className={cn(
-                "p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between select-none",
-                pubIsAnonymous 
-                  ? "bg-neon-cyan/10 border-neon-cyan" 
-                  : "bg-secondary border-border hover:border-muted-foreground/50"
+                "p-2.5 rounded-lg border cursor-pointer transition-colors flex items-center justify-between select-none",
+                pubIsAnonymous
+                  ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-400 dark:border-zinc-600"
+                  : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700"
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 min-w-0 pr-2">
                 <div className={cn(
-                  "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-                  pubIsAnonymous ? "bg-neon-cyan text-black" : "bg-background text-muted-foreground"
+                  "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
+                  pubIsAnonymous
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
+                    : "bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200/80 dark:border-zinc-800/80"
                 )}>
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
-                <div>
-                  <p className="font-semibold text-sm">Publicar como anónimo</p>
-                  <p className="text-xs text-muted-foreground">
-                    Oculta tu identidad y carrera a los demás usuarios.
+                <div className="min-w-0">
+                  <p className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Publicar como anónimo</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                    Oculta tu perfil y carrera ante los demás usuarios.
                   </p>
                 </div>
               </div>
               <div className={cn(
-                "w-5 h-5 rounded border flex items-center justify-center transition-colors flex-shrink-0",
-                pubIsAnonymous ? "bg-neon-cyan border-neon-cyan text-black" : "border-muted-foreground"
+                "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                pubIsAnonymous
+                  ? "bg-zinc-900 border-zinc-900 dark:bg-zinc-100 dark:border-zinc-100 text-white dark:text-zinc-900"
+                  : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
               )}>
-                {pubIsAnonymous && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                {pubIsAnonymous && <Check className="w-3 h-3" />}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPublishModal(false)}>Cancelar</Button>
-              <Button
-                className="flex-1 bg-neon-cyan text-black hover:bg-neon-cyan/90"
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(false)}
+                className="border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
                 onClick={handlePublishDeck}
                 disabled={isPublishing || !pubDescription.trim() || !pubCategory.trim()}
+                className="inline-flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isPublishing ? "Publicando..." : "Publicar Ahora"}
-              </Button>
+                {isPublishing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Publicando...
+                  </>
+                ) : (
+                  "Publicar Ahora"
+                )}
+              </button>
             </div>
           </div>
         </DialogContent>
@@ -1932,4 +2314,3 @@ export default function Flashcards() {
     </div>
   );
 }
-

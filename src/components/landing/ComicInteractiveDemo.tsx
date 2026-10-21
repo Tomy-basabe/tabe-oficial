@@ -1,281 +1,185 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, CheckCircle2, RotateCw, Trophy, Zap, Sparkles, MessageSquare, Flame, HelpCircle, GraduationCap } from "lucide-react";
-import { ComicAudio } from "@/components/comic/ComicAudio";
-import { useComic } from "@/components/comic/ComicEffectsProvider";
-import { ComicBadge } from "@/components/comic/ComicBadge";
-import { KineticHeading } from "@/components/ui/kinetic-heading";
-import { cn } from "@/lib/utils";
+import { CheckCircle2, RotateCw, Trophy, Zap, Sparkles, BookOpen, ChevronRight, Check } from "lucide-react";
 
 const IA_TIPS = [
-  "Tip #1: La cafeína no reemplaza el sueño, pero estudiar con Pomodoros de 25 min duplica tu retención.",
-  "Tip #2: Resumir con tus propias palabras en Flashcards activa tu memoria activa un 40% más rápido.",
-  "Tip #3: Los parciales no se aprueban por ósmosis: desbloqueá logros y subí de nivel con cada apunte.",
-  "Tip #4: Cuidar tu bosque virtual mientras estudiás te aleja del celular y las distracciones.",
-  "Tip #5: Repasar 15 minutos antes de dormir consolida los conceptos en tu memoria de largo plazo.",
+  "La técnica Pomodoro con bloques de 25 minutos incrementa la retención activa hasta un 40%.",
+  "Resumir con tus propias palabras en flashcards activa la memoria episódica a largo plazo.",
+  "Repasar 15 minutos antes de dormir consolida los conceptos en tu memoria de trabajo.",
+  "Distribuir las sesiones en días alternos previene la sobrecarga cognitiva antes de un parcial.",
 ];
 
 export function ComicInteractiveDemo() {
-  const { triggerBurst } = useComic();
-
-  // Quest card state
   const [questCompleted, setQuestCompleted] = useState(false);
   const [questProgress, setQuestProgress] = useState(45);
   const [userXp, setUserXp] = useState(1250);
-
-  // Flashcard flip state
   const [isFlipped, setIsFlipped] = useState(false);
-
-  // IA tip state
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
-  // Likes / hype button counter
-  const [hypeCount, setHypeCount] = useState(42);
-
-  const handleCompleteQuest = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "LEVEL UP!");
-    ComicAudio.playPowerUp();
-
+  const handleCompleteQuest = () => {
     setQuestCompleted(true);
     setQuestProgress(100);
     setUserXp((prev) => prev + 350);
   };
 
-  const handleResetQuest = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "RESET!");
-    ComicAudio.playPop();
-
+  const handleResetQuest = () => {
     setQuestCompleted(false);
     setQuestProgress(45);
     setUserXp(1250);
   };
 
-  const handleCardFlip = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, isFlipped ? "VOLTEAR!" : "REVELADO!");
-    ComicAudio.playBoing();
-    setIsFlipped(!isFlipped);
-  };
-
-  const handleNextTip = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "TIP!");
-    ComicAudio.playPop();
+  const handleNextTip = () => {
     setCurrentTipIndex((prev) => (prev + 1) % IA_TIPS.length);
   };
 
-  const handleHype = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    triggerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, "BOOM!");
-    ComicAudio.playPop();
-    setHypeCount((prev) => prev + 1);
-  };
-
   return (
-    <section id="demo-interactiva" className="relative py-20 px-4 md:px-6 overflow-hidden">
-      {/* Decorative Halftone strips */}
-      <div className="absolute inset-0 comic-dots-overlay pointer-events-none opacity-40" />
-
+    <section id="demo-interactiva" className="py-20 md:py-28 px-4 md:px-6 relative">
       <div className="container mx-auto max-w-6xl relative z-10">
-        {/* Section Title */}
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <KineticHeading
-            as="h2"
-            effect="gradient-shift"
-            badge="ZONA INTERACTIVA // PROBALO EN VIVO"
-            badgeColor="yellow"
-            className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground"
-          >
-            Tocá, jugá y sentí el estilo{" "}
-            <motion.span
-              whileHover={{ scale: 1.1, rotate: -2 }}
-              className="text-[#1475e5] underline decoration-wavy decoration-[#FFE600] inline-block cursor-pointer"
-            >
-              Cómic
-            </motion.span>
-          </KineticHeading>
-          <p className="text-muted-foreground text-base sm:text-lg font-bold max-w-xl mx-auto">
-            Hacé clic en las tarjetas interactivas y descubrí cómo TABE transforma tus horas de estudio en una experiencia de juego.
+        
+        {/* Header */}
+        <div className="max-w-3xl mx-auto text-center space-y-3 mb-14">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Experimentá el ecosistema en vivo
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
+            Interactuá con las micro-experiencias de estudio de TABE directamente desde tu navegador.
           </p>
         </div>
 
-        {/* 3 Interactive Playground Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Card 1: Gamified Academic Mission */}
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="rounded-2xl bg-card border-[3px] border-foreground p-6 shadow-[5px_5px_0_0_#1475e5] relative flex flex-col justify-between"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <ComicBadge variant="pink" rotate="none" size="sm">
-                  MISIÓN ACADÉMICA
-                </ComicBadge>
-                <span className="text-xs font-black px-2 py-1 rounded bg-amber-400 text-zinc-950 border border-black dark:bg-amber-400/20 dark:text-amber-300 dark:border-amber-400/40 shadow-[1.5px_1.5px_0_0_#000] dark:shadow-none">
-                  +350 XP
+        {/* 3 Interactive Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* 1. Quest / Level Up Card */}
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Misión Diaria</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60">
+                  {userXp} XP
                 </span>
               </div>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                Completar 2 Pomodoros de Álgebra
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal mb-5">
+                Cumplí tus bloques de estudio para ganar experiencia y mantener tu racha activa.
+              </p>
 
-              <div>
-                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
-                  Aprobar Parcial de Física
-                </h3>
-                <p className="text-xs font-bold text-muted-foreground mt-1">
-                  Guías prácticas completadas y 4 sesiones de Pomodoro terminadas.
-                </p>
-              </div>
-
-              {/* Live XP Counter & Progress */}
-              <div className="space-y-2 pt-2">
-                <div className="flex justify-between text-xs font-black">
-                  <span className="text-muted-foreground">Nivel 5 Estudiante</span>
-                  <span className="text-primary">{userXp} XP</span>
+              {/* Progress Bar */}
+              <div className="space-y-1.5 mb-6">
+                <div className="flex justify-between text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+                  <span>Progreso</span>
+                  <span>{questProgress}%</span>
                 </div>
-                <div className="h-3.5 bg-secondary rounded-full border-2 border-foreground overflow-hidden p-[2px]">
+                <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                   <motion.div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      questCompleted
-                        ? "bg-gradient-to-r from-[#00FF66] to-[#00E5FF]"
-                        : "bg-gradient-to-r from-[#1475e5] to-[#FFE600]"
-                    )}
+                    className="h-full bg-emerald-500 rounded-full"
                     animate={{ width: `${questProgress}%` }}
+                    transition={{ duration: 0.4 }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Action button */}
-            <div className="pt-6">
-              {questCompleted ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-2 p-2 rounded-xl bg-[#00FF66]/20 border-2 border-[#00FF66] text-foreground font-black text-xs text-center">
-                    <CheckCircle className="w-4 h-4 text-[#00FF66]" /> ¡MISIÓN SUPERADA! +350 XP
-                  </div>
-                  <button
-                    onClick={handleResetQuest}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs uppercase bg-secondary hover:bg-secondary/80 border-2 border-foreground shadow-[2.5px_2.5px_0_0_hsl(var(--foreground))] transition-all active:translate-y-0.5"
-                  >
-                    <RotateCw className="w-3.5 h-3.5" /> Probar de nuevo
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleCompleteQuest}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm uppercase bg-[#1475e5] text-white border-2 border-foreground shadow-[3.5px_3.5px_0_0_#000] hover:bg-[#1264c4] hover:shadow-[5px_5px_0_0_#000] transition-all active:translate-y-0.5"
-                >
-                  <Trophy className="w-4 h-4" /> ¡Completar Parcial!
-                </button>
-              )}
-            </div>
-          </motion.div>
+            {questCompleted ? (
+              <button
+                onClick={handleResetQuest}
+                className="w-full py-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RotateCw className="w-3.5 h-3.5" /> Reiniciar prueba
+              </button>
+            ) : (
+              <button
+                onClick={handleCompleteQuest}
+                className="w-full py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" /> Completar sesión (+350 XP)
+              </button>
+            )}
+          </div>
 
-          {/* Card 2: 3D Flip Comic Flashcard */}
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="rounded-2xl bg-card border-[3px] border-foreground p-6 shadow-[5px_5px_0_0_#FF2E93] relative flex flex-col justify-between"
+          {/* 2. Flashcard Flip Card */}
+          <div 
+            onClick={() => setIsFlipped(!isFlipped)}
+            className="p-6 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 transition-all select-none"
           >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <ComicBadge variant="green" rotate="none" size="sm">
-                  FLASHCARD 3D
-                </ComicBadge>
-                <span className="text-[11px] font-black text-muted-foreground">Click para voltear</span>
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Flashcard Activa</span>
+                <span className="text-[10px] text-zinc-400">Clic para girar</span>
               </div>
 
-              {/* 3D Flip Container */}
-              <div
-                onClick={handleCardFlip}
-                className="h-40 cursor-pointer rounded-xl border-2 border-foreground p-4 flex flex-col items-center justify-center text-center transition-transform duration-300 relative select-none shadow-[3px_3px_0_0_hsl(var(--foreground))]"
-                style={{
-                  backgroundColor: isFlipped ? "hsl(var(--secondary))" : "hsl(var(--card))",
-                }}
-              >
+              <div className="min-h-[140px] flex flex-col justify-center text-center p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 mb-4">
                 <AnimatePresence mode="wait">
                   {isFlipped ? (
                     <motion.div
                       key="back"
-                      initial={{ opacity: 0, rotateY: 90 }}
-                      animate={{ opacity: 1, rotateY: 0 }}
-                      exit={{ opacity: 0, rotateY: -90 }}
+                      initial={{ opacity: 0, rotateX: 90 }}
+                      animate={{ opacity: 1, rotateX: 0 }}
+                      exit={{ opacity: 0, rotateX: -90 }}
+                      transition={{ duration: 0.2 }}
                       className="space-y-1.5"
                     >
-                      <GraduationCap className="w-8 h-8 text-[#00E5FF] mx-auto" />
-                      <p className="font-black text-xs sm:text-sm text-foreground">
-                        ¡Estudiar 25 min de Pomodoro diario con TABE y no dejar todo para la última noche!
+                      <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Respuesta</span>
+                      <p className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {`F = m · a`}
                       </p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#00E5FF] uppercase">
-                        <CheckCircle2 className="w-3 h-3" /> Respuesta Correcta
-                      </span>
+                      <p className="text-[11px] text-zinc-500">La aceleración de un cuerpo es proporcional a la fuerza neta aplicada.</p>
                     </motion.div>
                   ) : (
                     <motion.div
                       key="front"
-                      initial={{ opacity: 0, rotateY: 90 }}
-                      animate={{ opacity: 1, rotateY: 0 }}
-                      exit={{ opacity: 0, rotateY: 90 }}
+                      initial={{ opacity: 0, rotateX: -90 }}
+                      animate={{ opacity: 1, rotateX: 0 }}
+                      exit={{ opacity: 0, rotateX: 90 }}
+                      transition={{ duration: 0.2 }}
                       className="space-y-1.5"
                     >
-                      <HelpCircle className="w-8 h-8 text-amber-400 mx-auto" />
-                      <p className="font-black text-sm text-foreground">
-                        ¿Cuál es el secreto de los mejores promedios de la carrera?
+                      <span className="text-[11px] font-medium text-blue-500">Pregunta</span>
+                      <p className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        ¿Cuál es la 2da Ley de Newton?
                       </p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase">
-                        <Sparkles className="w-3 h-3 text-amber-400" /> Hacé click para ver la respuesta
-                      </span>
+                      <p className="text-[11px] text-zinc-400">Física I · Unidad Dinámica</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
-              <button
-                onClick={handleCardFlip}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs uppercase bg-[#FF2E93] text-white border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:bg-[#e02480] transition-all active:translate-y-0.5"
-              >
-                <RotateCw className="w-3.5 h-3.5" /> Girar Flashcard
-              </button>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-500">
+              <RotateCw className="w-3.5 h-3.5" />
+              <span>{isFlipped ? "Ver pregunta" : "Revelar fórmula"}</span>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Card 3: IA Comic Advisor & Mascot Bubble */}
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="rounded-2xl bg-card border-[3px] border-foreground p-6 shadow-[5px_5px_0_0_#FFE600] relative flex flex-col justify-between"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <ComicBadge variant="orange" rotate="none" size="sm">
-                  IA DE BOLSILLO
-                </ComicBadge>
-                <button
-                  onClick={handleHype}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary hover:bg-secondary/80 border border-foreground text-[10px] font-black transition-transform active:scale-95"
-                >
-                  <Flame className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {hypeCount}
-                </button>
+          {/* 3. AI Tutor Insight Card */}
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Tutor IA Contextual</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60">
+                  Tip Diario
+                </span>
               </div>
-
-              {/* Comic Speech Bubble */}
-              <div className="p-3.5 rounded-xl bg-card border-2 border-foreground shadow-[3px_3px_0_0_#FFE600] dark:shadow-none min-h-[110px] flex items-center">
-                <p className="text-xs sm:text-sm font-black text-foreground leading-snug">
-                  {IA_TIPS[currentTipIndex]}
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                Recomendación de Estudio
+              </h3>
+              <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 min-h-[100px] flex items-center mb-5">
+                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 font-normal leading-relaxed">
+                  "{IA_TIPS[currentTipIndex]}"
                 </p>
               </div>
             </div>
 
-            <div className="pt-4 flex items-center gap-2">
-              <button
-                onClick={handleNextTip}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-xs uppercase bg-[#FFE600] dark:bg-amber-400 text-zinc-950 border-2 border-foreground shadow-[3px_3px_0_0_#000] dark:shadow-none hover:bg-[#edd400] dark:hover:bg-amber-300 transition-all active:translate-y-0.5"
-              >
-                <MessageSquare className="w-3.5 h-3.5" /> Siguiente Tip de IA
-              </button>
-            </div>
-          </motion.div>
+            <button
+              onClick={handleNextTip}
+              className="w-full py-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            >
+              <span>Siguiente recomendación</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
         </div>
       </div>
     </section>

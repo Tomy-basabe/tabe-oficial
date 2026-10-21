@@ -3,21 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Building2, BookOpen, Check, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { GraduationCap, Building2, BookOpen, ArrowRight, Loader2, Sparkles, FileUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
 import { supabase } from "@/integrations/supabase/client";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 import { toast } from "sonner";
-import { ComicBadge } from "@/components/comic/ComicBadge";
+import { AICareerImportModal } from "@/components/subjects/AICareerImportModal";
 
 export function CareerPlanOnboardingModal() {
   const { user, isGuest } = useAuth();
-  const { subjects, importCareerPlan } = useSubjects();
+  const { subjects, importCareerPlan, importCustomCareerPlan } = useSubjects();
 
   const [isOpen, setIsOpen] = useState(false);
   const [loadingCheck, setLoadingCheck] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Estados de selección en cascada
   const [selectedFacultad, setSelectedFacultad] = useState<string>("");
@@ -188,141 +189,209 @@ export function CareerPlanOnboardingModal() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
-      <DialogContent className="sm:max-w-lg bg-card text-foreground border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-3xl p-6 sm:p-8 space-y-6">
-        <DialogHeader className="text-left space-y-2">
-          <div className="flex items-center gap-2">
-            <ComicBadge variant="yellow" size="sm">
-              ✨ Paso Único
-            </ComicBadge>
-            <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-              Personalizá tu Experiencia
-            </span>
-          </div>
-          <DialogTitle className="font-black text-2xl sm:text-3xl uppercase tracking-tight text-foreground flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFE600] text-black border-3 border-foreground shadow-[3px_3px_0_0_#000] flex items-center justify-center shrink-0 -rotate-3">
-              <GraduationCap className="w-6 h-6" />
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
+        <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto">
+          {/* Header Estilo Notion / ChatGPT */}
+          <DialogHeader className="text-left space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px] font-medium border border-zinc-200/60 dark:border-zinc-700/60">
+                <Sparkles className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                Configuración inicial
+              </span>
             </div>
-            <span>Elegí tu Facultad y Carrera</span>
-          </DialogTitle>
-          <p className="text-xs sm:text-sm font-bold text-muted-foreground leading-relaxed">
-            Configurá tu institución universitaria para adaptar automáticamente tus materias, herramientas de estudio y compañeros.
-          </p>
-        </DialogHeader>
 
-        {/* Flujo en Cascada: Paso 1 y Paso 2 */}
-        <div className="space-y-5">
-          {/* Paso 1: Dropdown de Facultad / Universidad */}
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-[#00E5FF]" />
-              <span>1. Facultad o Universidad</span>
-            </label>
-            <Select value={selectedFacultad} onValueChange={handleFacultadChange}>
-              <SelectTrigger className="w-full h-12 bg-background border-3 border-foreground rounded-2xl font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:ring-0">
-                <SelectValue placeholder="Seleccioná tu universidad o instituto..." />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-3 border-foreground rounded-2xl shadow-[6px_6px_0_0_hsl(var(--foreground))] max-h-60 z-50">
-                {AVAILABLE_FACULTADES.map((fac) => (
-                  <SelectItem key={fac.id} value={fac.id} className="font-bold text-xs sm:text-sm cursor-pointer py-2.5">
-                    {fac.fullLabel}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Paso 2: Dropdown de Carrera (Habilitado según la facultad elegida) */}
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-[#BFFF00]" />
-              <span>2. Carrera</span>
-              {!selectedFacultad && (
-                <span className="text-[10px] font-bold text-muted-foreground normal-case">
-                  (Primero elegí una facultad)
-                </span>
-              )}
-            </label>
-
-            {availableCareers.length > 0 ? (
-              <div className="space-y-3">
-                <Select
-                  value={selectedCareer}
-                  onValueChange={setSelectedCareer}
-                  disabled={!selectedFacultad}
-                >
-                  <SelectTrigger className="w-full h-12 bg-background border-3 border-foreground rounded-2xl font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <SelectValue placeholder="Seleccioná tu carrera..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-3 border-foreground rounded-2xl shadow-[6px_6px_0_0_hsl(var(--foreground))] max-h-60 z-50">
-                    {availableCareers.map((car) => (
-                      <SelectItem key={car.id} value={car.id} className="font-bold text-xs sm:text-sm cursor-pointer py-2.5">
-                        {car.label}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="OTRA" className="font-black text-xs sm:text-sm text-primary cursor-pointer py-2.5">
-                      ✏️ Otra carrera (escribir a mano)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {selectedCareer === "OTRA" && (
-                  <Input
-                    placeholder="Escribí el nombre de tu carrera..."
-                    value={customCareer}
-                    onChange={(e) => setCustomCareer(e.target.value)}
-                    className="h-11 bg-background border-2 border-foreground rounded-xl font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                  />
-                )}
+            <DialogTitle className="font-semibold text-xl sm:text-2xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-2xs">
+                <GraduationCap className="w-5 h-5" />
               </div>
-            ) : (
-              <Input
-                placeholder={
-                  selectedFacultad
-                    ? "Escribí el nombre de tu carrera..."
-                    : "Seleccioná primero una facultad"
-                }
-                value={customCareer}
-                onChange={(e) => setCustomCareer(e.target.value)}
-                disabled={!selectedFacultad}
-                className="h-12 bg-background border-3 border-foreground rounded-2xl font-bold text-xs sm:text-sm shadow-[2px_2px_0_0_hsl(var(--foreground))] disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            )}
+              <span>Elegí tu Facultad y Carrera</span>
+            </DialogTitle>
+
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-normal leading-relaxed">
+              Configurá tu institución universitaria para adaptar automáticamente tus materias, correlatividades oficiales y herramientas de estudio.
+            </p>
+          </DialogHeader>
+
+          {/* Formulario en Cascada */}
+          <div className="space-y-4 pt-1">
+            {/* Paso 1: Dropdown de Facultad / Universidad */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-zinc-400" />
+                <span>1. Facultad o Universidad</span>
+              </label>
+              <Select value={selectedFacultad} onValueChange={handleFacultadChange}>
+                <SelectTrigger className="w-full h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 font-normal text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none">
+                  <SelectValue placeholder="Seleccioná tu universidad o instituto..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl max-h-60 p-1.5 z-50 text-zinc-900 dark:text-zinc-100">
+                  {AVAILABLE_FACULTADES.map((fac) => (
+                    <SelectItem
+                      key={fac.id}
+                      value={fac.id}
+                      className="font-medium text-xs sm:text-sm cursor-pointer py-2 px-3 rounded-lg text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 focus:text-zinc-900 dark:focus:text-zinc-100 transition-colors"
+                    >
+                      {fac.fullLabel}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Paso 2: Dropdown de Carrera */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-zinc-400" />
+                <span>2. Carrera</span>
+                {!selectedFacultad && (
+                  <span className="text-[11px] font-normal text-zinc-400">
+                    (Primero seleccioná una facultad)
+                  </span>
+                )}
+              </label>
+
+              {availableCareers.length > 0 ? (
+                <div className="space-y-2.5">
+                  <Select
+                    value={selectedCareer}
+                    onValueChange={setSelectedCareer}
+                    disabled={!selectedFacultad}
+                  >
+                    <SelectTrigger className="w-full h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 font-normal text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                      <SelectValue placeholder="Seleccioná tu carrera..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl max-h-60 p-1.5 z-50 text-zinc-900 dark:text-zinc-100">
+                      {availableCareers.map((car) => (
+                        <SelectItem
+                          key={car.id}
+                          value={car.id}
+                          className="font-medium text-xs sm:text-sm cursor-pointer py-2 px-3 rounded-lg text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 focus:text-zinc-900 dark:focus:text-zinc-100 transition-colors"
+                        >
+                          {car.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem
+                        value="OTRA"
+                        className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-2 cursor-pointer py-2 px-3 rounded-lg focus:bg-zinc-100 dark:focus:bg-zinc-800/80 transition-colors"
+                      >
+                        ✏️ Otra carrera (escribir a mano)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {selectedCareer === "OTRA" && (
+                    <Input
+                      placeholder="Escribí el nombre de tu carrera..."
+                      value={customCareer}
+                      onChange={(e) => setCustomCareer(e.target.value)}
+                      className="h-10 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none shadow-2xs"
+                    />
+                  )}
+                </div>
+              ) : (
+                <Input
+                  placeholder={
+                    selectedFacultad
+                      ? "Escribí el nombre de tu carrera..."
+                      : "Seleccioná primero una facultad"
+                  }
+                  value={customCareer}
+                  onChange={(e) => setCustomCareer(e.target.value)}
+                  disabled={!selectedFacultad}
+                  className="h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              )}
+            </div>
+
+            {/* Alternativa de Importación Asistida con IA */}
+            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-2xs">
+                  <FileUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
+                    ¿Tenés tu plan en PDF o foto?
+                  </p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Extraé materias y correlativas automáticamente con IA.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setShowAiModal(true)}
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium px-3 py-1.5 h-auto rounded-lg shadow-2xs shrink-0 transition-colors"
+              >
+                Subir con IA
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 w-full border-t-2 border-foreground/15">
-          {/* 3. Opción de Omitir */}
-          <button
-            type="button"
-            onClick={handleDismiss}
-            disabled={saving}
-            className="text-xs font-black uppercase text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer py-2 px-1 transition-colors"
-          >
-            No encuentro mi facultad / Omitir
-          </button>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 w-full border-t border-zinc-100 dark:border-zinc-800/80">
+            {/* Opción de Omitir */}
+            <button
+              type="button"
+              onClick={handleDismiss}
+              disabled={saving}
+              className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors py-2 px-2.5 rounded-lg hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 cursor-pointer"
+            >
+              No encuentro mi facultad / Omitir por ahora
+            </button>
 
-          {/* Botón Guardar / Continuar */}
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !selectedFacultad || (!selectedCareer && !customCareer.trim())}
-            className="w-full sm:w-auto px-6 py-3.5 bg-[#BFFF00] hover:bg-[#a8e000] text-black font-black uppercase text-xs sm:text-sm rounded-2xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Guardando...</span>
-              </>
-            ) : (
-              <>
-                <span>Guardar y Continuar</span>
-                <ArrowRight className="w-4 h-4 stroke-[3]" />
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {/* Botón Guardar / Continuar */}
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !selectedFacultad || (!selectedCareer && !customCareer.trim())}
+              className="w-full sm:w-auto px-5 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs sm:text-sm font-medium rounded-xl shadow-2xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Guardar y Continuar</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal IA de subida de archivos si el usuario prefiere su propio PDF/Excel */}
+      {showAiModal && (
+        <AICareerImportModal
+          open={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onImport={async (data) => {
+            await importCustomCareerPlan(data);
+            if (user && !isGuest) {
+              const facName = data.facultad || selectedFacultad || "Universidad";
+              const carName = data.careerName || "Mi Carrera";
+              await supabase
+                .from("profiles")
+                .update({
+                  facultad: facName,
+                  carrera: carName,
+                  academic_profile_completed: true,
+                  academic_onboarding_dismissed: true,
+                } as any)
+                .eq("user_id", user.id);
+            }
+            localStorage.setItem(storageKey, "true");
+            setShowAiModal(false);
+            setIsOpen(false);
+            toast.success("🎓 ¡Plan de estudios importado exitosamente con IA!");
+          }}
+          existingSubjectsCount={subjects.length}
+        />
+      )}
+    </>
   );
 }

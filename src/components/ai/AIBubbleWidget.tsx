@@ -51,7 +51,7 @@ export function AIBubbleWidget() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, streamMessage, selectedModel } = useAIChat();
+    const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, aiStatus, streamMessage, selectedModel } = useAIChat();
     const { activePersona } = useAIPersonas();
 
     // Hide on /asistente or /TABEAI page
@@ -257,7 +257,7 @@ export function AIBubbleWidget() {
                                     )}
                                 >
                                     {!msg.content && isStreaming && (
-                                        <AIThinkingIndicator personaName={activePersona?.name} />
+                                        <AIThinkingIndicator personaName={activePersona?.name} state={aiStatus?.state} label={aiStatus?.label} detail={aiStatus?.detail} />
                                     )}
                                     {msg.content && msg.role === "assistant" ? (
                                         <ChatMessageContent content={msg.content} className="prose-p:leading-snug prose-p:my-1 text-xs md:text-sm" />

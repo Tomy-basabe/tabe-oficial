@@ -349,7 +349,7 @@ export default function BasketballFileUploader({
   return (
     <div
       className={cn(
-        "relative w-full h-[430px] overflow-hidden rounded-2xl border-[3px] border-dashed border-foreground bg-[#fffaf0] select-none shadow-[4px_4px_0_0_#000] flex flex-col justify-between",
+        "relative w-full h-[420px] overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-900/40 select-none flex flex-col justify-between transition-colors",
         isOver && "ring-4 ring-[#805ad5]/50 bg-[#fff5ea]",
         disabled && "opacity-60 pointer-events-none"
       )}
@@ -380,15 +380,15 @@ export default function BasketballFileUploader({
 
       {/* Selector superior: Subir Archivo vs Subir Carpeta */}
       <div className="relative z-30 pt-4 px-4 flex flex-col items-center">
-        <div className="flex items-center gap-2 bg-background p-1.5 rounded-2xl border-[3px] border-foreground shadow-[3px_3px_0_0_#000]">
+        <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-800 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs">
           <button
             type="button"
             onClick={() => setUploadMode("file")}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+              "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-medium transition-all",
               uploadMode === "file"
-                ? "bg-[#fb923c] text-white shadow-[2px_2px_0_0_#000] -translate-y-0.5"
-                : "text-foreground hover:bg-muted"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
             )}
           >
             <FileText className="w-4 h-4" />
@@ -398,10 +398,10 @@ export default function BasketballFileUploader({
             type="button"
             onClick={() => setUploadMode("folder")}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+              "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-medium transition-all",
               uploadMode === "folder"
-                ? "bg-[#1475e5] text-white shadow-[2px_2px_0_0_#000] -translate-y-0.5"
-                : "text-foreground hover:bg-muted"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
             )}
           >
             <Folder className="w-4 h-4" />
@@ -410,7 +410,7 @@ export default function BasketballFileUploader({
         </div>
 
         {/* Guía legible */}
-        <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground mt-2 text-center">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 text-center font-normal">
           {uploadMode === "file"
             ? "Tira la pelota al aro · ¡Encesta y selecciona tu archivo!"
             : "Tira la carpeta al aro · ¡Encesta y selecciona tu carpeta!"}
@@ -418,7 +418,7 @@ export default function BasketballFileUploader({
       </div>
 
       {/* Tablero de Básquet con el logo PNG de TABE (limpio, sin recuadro rojo) */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-[110px] w-48 h-28 rounded-2xl border-[3px] border-foreground bg-white flex items-center justify-center shadow-[4px_4px_0_0_#000] z-[1]">
+      <div className="absolute left-1/2 -translate-x-1/2 top-[110px] w-48 h-28 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/90 flex items-center justify-center shadow-md z-[1]">
         <img
           src="/images/tabe-logo.png"
           alt="TABE Logo"
@@ -507,7 +507,7 @@ export default function BasketballFileUploader({
             );
           })}
           <motion.div
-            className="absolute -left-5 -top-10 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center border-[3px] border-foreground shadow-[2px_2px_0_0_#000]"
+            className="absolute -left-5 -top-10 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md"
             initial={{ scale: 0, opacity: 1 }}
             animate={{ scale: [0, 1.25, 1], opacity: [1, 1, 0] }}
             transition={{ duration: 0.9, times: [0, 0.4, 1] }}
@@ -520,7 +520,7 @@ export default function BasketballFileUploader({
       {/* Feedback de Rebote */}
       {missedFeedback && (
         <div className="absolute left-1/2 -translate-x-1/2 top-[180px] z-30 pointer-events-none">
-          <span className="px-3 py-1 rounded-lg bg-red-500 text-white font-black text-xs uppercase tracking-widest border-[2px] border-foreground shadow-[2px_2px_0_0_#000] animate-bounce">
+          <span className="px-3 py-1 rounded-lg bg-red-500 text-white font-black text-xs uppercase tracking-widest shadow-sm animate-bounce">
             ¡Rebote! Ajusta tu tiro
           </span>
         </div>
@@ -528,7 +528,7 @@ export default function BasketballFileUploader({
 
       {/* ZONA INFERIOR: Balón (Archivo) o Carpeta lanzable */}
       <div className="relative w-full pb-3 flex flex-col items-center justify-end z-25">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 select-none pointer-events-none text-center">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal mb-1 select-none pointer-events-none text-center">
           {isAiming
             ? isAimingOnTarget
               ? "🎯 ¡Alineado al aro! Suelta para encestar"
@@ -555,7 +555,7 @@ export default function BasketballFileUploader({
             zIndex: behindRim ? 1 : 25,
           }}
           className={cn(
-            "absolute bottom-2.5 left-1/2 -ml-7 w-14 h-14 border-[3px] border-foreground flex items-center justify-center cursor-grab active:cursor-grabbing shadow-[3px_3px_0_0_#000] transition-colors select-none",
+            "absolute bottom-2.5 left-1/2 -ml-7 w-14 h-14 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md transition-all select-none",
             uploadMode === "file"
               ? "bg-[#fb923c] rounded-full hover:bg-[#f97316]"
               : "bg-[#1475e5] rounded-2xl hover:bg-[#0284c7]",

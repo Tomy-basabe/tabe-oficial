@@ -6,7 +6,6 @@ import { ForestIsland } from "@/components/forest/ForestIsland";
 import { ForestFocusStage } from "@/components/forest/ForestFocusStage";
 import { ForestSpeciesNursery } from "@/components/forest/ForestSpeciesNursery";
 import { ForestTimelineStats } from "@/components/forest/ForestTimelineStats";
-import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import {
   TreeDeciduous,
@@ -17,6 +16,13 @@ import {
   Sparkles,
   Flame,
   Info,
+  Trees,
+  Gamepad2,
+  BookOpen,
+  Orbit,
+  Layers,
+  Clock,
+  Check,
 } from "lucide-react";
 import {
   Dialog,
@@ -30,46 +36,23 @@ import { cn } from "@/lib/utils";
 
 type ForestTab = "island" | "active" | "nursery" | "stats";
 
-const MODAL_LEVEL_FILTERS = [
-  { id: "all", label: "Todas", emoji: "🌟" },
-  { id: 1, label: "Muy Fácil", emoji: "🍄" },
-  { id: 2, label: "Fácil", emoji: "🌻" },
-  { id: 3, label: "Normal", emoji: "🌳" },
-  { id: 4, label: "Difícil", emoji: "🌲" },
-  { id: 5, label: "Épico", emoji: "🔥" },
-  { id: 6, label: "Legendario", emoji: "💎" },
-] as const;
-
-const COMIC_LEVEL_STYLES: Record<string | number, { selected: string; unselected: string }> = {
-  all: {
-    selected: "bg-[#FFE600] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-muted/70 text-foreground/80 border-2 border-foreground/30 hover:border-foreground hover:bg-muted",
-  },
-  1: {
-    selected: "bg-[#BFFF00] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-[#BFFF00]/15 text-lime-700 dark:text-lime-300 border-2 border-[#BFFF00]/60 hover:bg-[#BFFF00]/30 hover:border-[#BFFF00]",
-  },
-  2: {
-    selected: "bg-[#00E5FF] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-[#00E5FF]/15 text-cyan-700 dark:text-cyan-300 border-2 border-[#00E5FF]/60 hover:bg-[#00E5FF]/30 hover:border-[#00E5FF]",
-  },
-  3: {
-    selected: "bg-[#FFD21C] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-[#FFD21C]/15 text-amber-700 dark:text-amber-300 border-2 border-[#FFD21C]/60 hover:bg-[#FFD21C]/30 hover:border-[#FFD21C]",
-  },
-  4: {
-    selected: "bg-[#FF9415] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-[#FF9415]/15 text-orange-700 dark:text-orange-300 border-2 border-[#FF9415]/60 hover:bg-[#FF9415]/30 hover:border-[#FF9415]",
-  },
-  5: {
-    selected: "bg-[#FF5C5C] text-white border-3 border-black shadow-[3px_3px_0_0_#000]",
-    unselected: "bg-[#FF5C5C]/15 text-rose-700 dark:text-rose-300 border-2 border-[#FF5C5C]/60 hover:bg-[#FF5C5C]/30 hover:border-[#FF5C5C]",
-  },
-  6: {
-    selected: "bg-gradient-to-r from-[#FFD21C] via-[#FF5C5C] to-[#A855F7] text-white border-3 border-black shadow-[4px_4px_0_0_#000] ring-2 ring-yellow-400 animate-pulse",
-    unselected: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-2 border-purple-500/50 hover:bg-purple-500/30 hover:border-purple-500",
-  },
+export const ISLAND_ICONS: Record<IslandId, React.ComponentType<{ className?: string }>> = {
+  classic: Trees,
+  pizza: Flame,
+  gaming: Gamepad2,
+  study: BookOpen,
+  cosmic: Orbit,
 };
+
+const MODAL_LEVEL_FILTERS = [
+  { id: "all", label: "Todas" },
+  { id: 1, label: "Muy Fácil" },
+  { id: 2, label: "Fácil" },
+  { id: 3, label: "Normal" },
+  { id: 4, label: "Difícil" },
+  { id: 5, label: "Épico" },
+  { id: 6, label: "Legendario" },
+] as const;
 
 export default function Forest() {
   const {
@@ -122,34 +105,26 @@ export default function Forest() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
-      {/* HEADER HERO BANNER (Gaming Comic Style) */}
-      <div className="bg-[#1B4332] rounded-3xl p-6 sm:p-8 border-4 border-black shadow-[8px_8px_0_0_#000] flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        {/* Glow decoration */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-[#BFFF00] opacity-15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex items-center gap-4 sm:gap-6">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#BFFF00] border-4 border-black rounded-2xl shadow-[4px_4px_0_0_#000] flex items-center justify-center -rotate-6 shrink-0">
-            <TreeDeciduous className="w-9 h-9 sm:w-11 sm:h-11 text-black" />
+      {/* HEADER HERO BANNER */}
+      <div className="bg-white dark:bg-[#212121] rounded-2xl p-6 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
+          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 rounded-xl flex items-center justify-center shrink-0">
+            <TreeDeciduous className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <ComicBadge variant="green" size="sm">
-                Focus Forest • TABE
-              </ComicBadge>
-              {forestStats.hasActivePlant && (
-                <ComicBadge variant="cyan" size="sm">
-                  🌱 Árbol en Crecimiento
-                </ComicBadge>
-              )}
-            </div>
-            <h1
-              className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-wider text-[#BFFF00]"
-              style={{ WebkitTextStroke: "1px black" }}
-            >
+            {forestStats.hasActivePlant && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800/60">
+                  <Sprout className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                  Árbol en Crecimiento
+                </span>
+              </div>
+            )}
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               Mi Bosque de Estudio
             </h1>
-            <p className="text-[#BFFF00]/90 font-bold text-xs sm:text-sm mt-0.5 max-w-xl">
-              Inspirado en Forest App: planta árboles, concéntrate en tus materias y mira cómo tu esfuerzo florece en un bosque legendario.
+            <p className="text-zinc-500 dark:text-zinc-400 font-normal text-xs sm:text-sm mt-0.5 max-w-xl">
+              Planta árboles con sesiones de concentración y haz crecer tu ecosistema de productividad académica.
             </p>
           </div>
         </div>
@@ -163,16 +138,16 @@ export default function Forest() {
               setIsPlantModalOpen(true);
             }}
             disabled={forestStats.hasActivePlant}
-            className="w-full md:w-auto px-6 py-3.5 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs sm:text-sm rounded-2xl border-4 border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-[4px_4px_0_0_#000] cursor-pointer"
+            className="w-full md:w-auto px-4 py-2.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs sm:text-sm rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <Plus className="w-5 h-5 stroke-[3]" />
+            <Plus className="w-4 h-4" />
             <span>Plantar Semilla</span>
           </button>
         </div>
       </div>
 
-      {/* NAVIGATION TABS (Gaming Comic Pill Navigation) */}
-      <div className="flex items-center gap-2 p-1.5 bg-card border-4 border-foreground rounded-2xl shadow-[4px_4px_0_0_hsl(var(--foreground))] overflow-x-auto">
+      {/* NAVIGATION TABS */}
+      <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl overflow-x-auto scrollbar-none">
         {[
           { id: "island", label: "El Bosque (5 Islas)", icon: Compass },
           {
@@ -181,7 +156,7 @@ export default function Forest() {
             icon: Sprout,
           },
           { id: "nursery", label: "Vivero de Especies", icon: Sparkles },
-          { id: "stats", label: "Estadísticas y Cementerio", icon: BarChart3 },
+          { id: "stats", label: "Estadísticas y Registro", icon: BarChart3 },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -193,13 +168,13 @@ export default function Forest() {
                 setActiveTab(tab.id as ForestTab);
               }}
               className={cn(
-                "flex-1 min-w-[140px] sm:min-w-fit px-4 py-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
+                "flex-1 min-w-[140px] sm:min-w-fit px-3.5 py-2 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
                 isActive
-                  ? "bg-[#BFFF00] text-black border-2 border-foreground shadow-[2.5px_2.5px_0_0_hsl(var(--foreground))] translate-y-[-1px]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
               )}
             >
-              <Icon className={cn("w-4 h-4", isActive ? "text-black" : "text-foreground")} />
+              <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
             </button>
           );
@@ -252,40 +227,49 @@ export default function Forest() {
         />
       )}
 
-      {/* MODAL: PLANT NEW SEED DIALOG (WIDER ON PC, COMIC STYLED) */}
+      {/* MODAL: PLANT NEW SEED DIALOG (NOTION / CHATGPT CLEAN STYLE) */}
       <Dialog open={isPlantModalOpen} onOpenChange={setIsPlantModalOpen}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] bg-card text-foreground border-4 border-foreground shadow-[10px_10px_0_0_hsl(var(--foreground))] rounded-3xl p-5 sm:p-7 flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl font-black uppercase text-foreground flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-[#BFFF00] border-2 border-black rounded-xl flex items-center justify-center shadow-[2px_2px_0_0_#000]">
-                  <Sprout className="w-5 h-5 text-black" />
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-2xl p-6 sm:p-7 flex flex-col gap-5">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 rounded-xl flex items-center justify-center shrink-0">
+                  <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <span>Elige tu Próximo Árbol a Plantar</span>
+                <div>
+                  <DialogTitle className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    Plantar Nuevo Árbol
+                  </DialogTitle>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Selecciona una especie y la isla destino para iniciar tu ciclo de concentración.
+                  </p>
+                </div>
               </div>
-              <ComicBadge variant="green" size="sm">
-                {modalFilteredPlantTypes.length} disponibles
-              </ComicBadge>
-            </DialogTitle>
+              <span className="hidden sm:inline-flex px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                {modalFilteredPlantTypes.length} especies
+              </span>
+            </div>
           </DialogHeader>
 
-          {/* Selector de Isla Destino (5 Islas Temáticas) */}
-          <div className="space-y-1.5 p-2.5 bg-muted/30 border-2 border-foreground/30 rounded-2xl">
+          {/* Selector de Isla Destino (5 Islas con iconos propios) */}
+          <div className="space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
-                <span>🏝️ Isla Destino:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                <Compass className="w-3.5 h-3.5 text-zinc-500" />
+                <span>Isla Destino:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                   {FOREST_ISLANDS.find((i) => i.id === targetIslandForPlant)?.name}
                 </span>
               </span>
-              <span className="text-[10px] font-bold text-muted-foreground hidden sm:inline">
-                Elige en cuál de tus 5 islas plantar
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:inline">
+                Elige la isla donde echará raíces
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
               {FOREST_ISLANDS.map((island) => {
                 const isSelected = targetIslandForPlant === island.id;
+                const IslandIcon = ISLAND_ICONS[island.id] || Compass;
                 return (
                   <button
                     key={island.id}
@@ -295,13 +279,13 @@ export default function Forest() {
                       setTargetIslandForPlant(island.id);
                     }}
                     className={cn(
-                      "px-2.5 py-1.5 rounded-xl border-2 font-black text-xs uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                      "px-3 py-2 rounded-lg border text-xs font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
                       isSelected
-                        ? "bg-[#BFFF00] text-black border-black shadow-[2px_2px_0_0_#000] scale-[1.02]"
-                        : "bg-card text-foreground border-foreground/30 hover:bg-muted"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-xs"
+                        : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
                     )}
                   >
-                    <span>{island.emoji}</span>
+                    <IslandIcon className="w-3.5 h-3.5" />
                     <span className="truncate">{island.shortName}</span>
                   </button>
                 );
@@ -309,15 +293,10 @@ export default function Forest() {
             </div>
           </div>
 
-          <p className="text-xs font-bold text-muted-foreground -mt-1">
-            Filtra por dificultad para elegir el desafío ideal según las horas que vas a dedicar:
-          </p>
-
-          {/* Level Filter Pills (Full Comic Colors) */}
-          <div className="flex items-center gap-2 p-2 bg-muted/40 border-3 border-foreground rounded-2xl overflow-x-auto w-full">
+          {/* Difficulty Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl overflow-x-auto w-full scrollbar-none">
             {MODAL_LEVEL_FILTERS.map((lvl) => {
               const isLvlActive = modalFilterLevel === lvl.id;
-              const style = COMIC_LEVEL_STYLES[lvl.id] || COMIC_LEVEL_STYLES.all;
               return (
                 <button
                   key={lvl.id}
@@ -327,19 +306,20 @@ export default function Forest() {
                     setModalFilterLevel(lvl.id);
                   }}
                   className={cn(
-                    "px-3 py-2 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer hover:translate-y-[-1px] active:translate-y-[1px]",
-                    isLvlActive ? style.selected : style.unselected
+                    "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer",
+                    isLvlActive
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                   )}
                 >
-                  <span className="text-sm">{lvl.emoji}</span>
                   <span>{lvl.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Species Selector Grid (Spacious 6-column Grid on PC) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 my-2 max-h-[52vh] overflow-y-auto pr-2">
+          {/* Species Selector Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[48vh] overflow-y-auto pr-1">
             {modalFilteredPlantTypes.map((type) => {
               const isSelected = selectedPlantType === type.id;
               return (
@@ -351,42 +331,43 @@ export default function Forest() {
                     setSelectedPlantType(type.id);
                   }}
                   className={cn(
-                    "p-3 rounded-2xl border-3 transition-all flex flex-col items-center justify-between gap-1.5 cursor-pointer relative group text-left",
+                    "p-3 rounded-xl border transition-all flex flex-col items-center justify-between gap-2 cursor-pointer relative text-left group",
                     isSelected
-                      ? "bg-[#BFFF00] text-black border-black shadow-[4px_4px_0_0_#000] scale-[1.02] ring-2 ring-black"
-                      : "bg-muted/40 text-foreground border-foreground/30 hover:border-foreground hover:bg-muted/70 hover:shadow-[3px_3px_0_0_hsl(var(--foreground))]"
+                      ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/80 ring-1 ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                   )}
                 >
-                  {/* Top Level Pill */}
+                  {/* Top Level Tag */}
                   <div className="w-full flex items-center justify-between gap-1">
                     <span
                       className={cn(
-                        "px-1.5 py-0.5 rounded text-[9px] font-black uppercase border border-black",
-                        type.level === 1 && "bg-[#BFFF00] text-black",
-                        type.level === 2 && "bg-[#00E5FF] text-black",
-                        type.level === 3 && "bg-[#FFD21C] text-black",
-                        type.level === 4 && "bg-[#FF9415] text-black",
-                        type.level === 5 && "bg-[#FF5C5C] text-white",
-                        type.level === 6 && "bg-gradient-to-r from-[#FFD21C] via-[#FF5C5C] to-[#A855F7] text-white"
+                        "px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                        type.level === 1 && "bg-lime-50 text-lime-700 dark:bg-lime-950/30 dark:text-lime-300 border-lime-200 dark:border-lime-800/60",
+                        type.level === 2 && "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/60",
+                        type.level === 3 && "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+                        type.level === 4 && "bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+                        type.level === 5 && "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+                        type.level === 6 && "bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 border-purple-200 dark:border-purple-800/60"
                       )}
                     >
-                      {type.level === 6 ? "LEGEND" : type.difficultyLabel}
+                      {type.difficultyLabel}
                     </span>
-                    <span className="text-base">{type.emoji}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
                   </div>
 
                   <div
-                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-xl my-1 group-hover:scale-105 transition-transform"
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-lg my-1 group-hover:scale-105 transition-transform"
                     style={{ backgroundColor: `${type.color}15` }}
                   >
                     <ForestTreeArtwork species={type.id} stage="full" size="md" animated={type.level >= 5} />
                   </div>
 
-                  <span className="text-xs font-black uppercase text-center leading-tight truncate w-full">
+                  <span className="text-xs font-medium text-center leading-tight truncate w-full text-zinc-900 dark:text-zinc-100">
                     {type.name}
                   </span>
 
-                  <div className="flex items-center justify-center gap-1 text-[9px] font-mono font-bold text-muted-foreground uppercase w-full">
+                  <div className="flex items-center justify-center gap-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 w-full">
+                    <Clock className="w-3 h-3 text-zinc-400" />
                     <span>
                       {type.requiredMinutes >= 60
                         ? `${(type.requiredMinutes / 60).toFixed(1)}h`
@@ -400,42 +381,42 @@ export default function Forest() {
 
           {/* Selected Species Summary Card */}
           {selectedTypeInfo && (
-            <div className="p-3 bg-muted/40 border-2 border-foreground/30 rounded-2xl flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-card border-2 border-foreground rounded-xl">
+                <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                   <ForestTreeArtwork species={selectedTypeInfo.id} stage="full" size="sm" animated={false} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-black uppercase truncate text-foreground">{selectedTypeInfo.name}</span>
-                    <ComicBadge variant="green" size="sm">
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{selectedTypeInfo.name}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-700 dark:text-zinc-300">
                       {selectedTypeInfo.difficultyLabel}
-                    </ComicBadge>
+                    </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-bold truncate mt-0.5">{selectedTypeInfo.description}</p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{selectedTypeInfo.description}</p>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs font-black font-mono text-[#16A34A]">{selectedTypeInfo.requiredMinutes} min</p>
-                <p className="text-[9px] font-bold text-muted-foreground">tiempo total</p>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">{selectedTypeInfo.requiredMinutes} min</p>
+                <p className="text-[10px] text-zinc-400">tiempo objetivo</p>
               </div>
             </div>
           )}
 
-          <DialogFooter className="mt-2 flex flex-row gap-3">
+          <DialogFooter className="mt-1 flex flex-row items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={() => setIsPlantModalOpen(false)}
-              className="flex-1 py-3 bg-muted hover:bg-muted/80 text-foreground font-black uppercase text-xs rounded-xl border-2 border-foreground cursor-pointer"
+              className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200/70 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 font-medium text-xs rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={() => handleConfirmPlant(selectedPlantType, targetIslandForPlant)}
-              className="flex-1 py-3 bg-[#BFFF00] hover:bg-[#a6e000] text-black font-black uppercase text-xs rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:translate-y-[-1px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="px-5 py-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Sprout className="w-4 h-4" />
+              <Sprout className="w-4 h-4 text-emerald-500" />
               <span>
                 Plantar {selectedTypeInfo?.name || "Semilla"} en {FOREST_ISLANDS.find((i) => i.id === targetIslandForPlant)?.shortName || "Isla"}
               </span>

@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { PLANT_TYPES, PlantType, Plant } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
-import { ComicBadge } from "@/components/comic/ComicBadge";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { Sprout, Sparkles, Check, Info, Flame, Zap, Shield, Crown, Trophy, Lock, Award, Sparkle } from "lucide-react";
+import { Sprout, Sparkles, Check, Info, Trophy, Lock, Clock, Award, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ForestSpeciesNurseryProps {
@@ -43,85 +42,51 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
     return type.level === selectedLevel;
   });
 
-  const rarityBadgeVariant: Record<string, "green" | "pink" | "cyan" | "yellow"> = {
-    comun: "green",
-    raro: "pink",
-    epico: "cyan",
-    legendario: "yellow",
-  };
-
   const LEVEL_TABS = [
-    { id: "all", label: `Todas (${PLANT_TYPES.length})`, emoji: "🌟" },
-    { id: 1, label: "Muy Fácil (20-30m)", emoji: "🍄" },
-    { id: 2, label: "Fácil (45-60m)", emoji: "🌻" },
-    { id: 3, label: "Normal (2-3h)", emoji: "🌳" },
-    { id: 4, label: "Difícil (4-6h)", emoji: "🌲" },
-    { id: 5, label: "Épico (8-10h)", emoji: "🔥" },
-    { id: 6, label: "Legendario (16-24h)", emoji: "💎" },
+    { id: "all", label: `Todas (${PLANT_TYPES.length})` },
+    { id: 1, label: "Muy Fácil (20-30m)" },
+    { id: 2, label: "Fácil (45-60m)" },
+    { id: 3, label: "Normal (2-3h)" },
+    { id: 4, label: "Difícil (4-6h)" },
+    { id: 5, label: "Épico (8-10h)" },
+    { id: 6, label: "Legendario (16-24h)" },
   ] as const;
-
-  const COMIC_LEVEL_STYLES: Record<string | number, { selected: string; unselected: string }> = {
-    all: {
-      selected: "bg-[#FFE600] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-muted/70 text-foreground/80 border-2 border-foreground/30 hover:border-foreground hover:bg-muted",
-    },
-    1: {
-      selected: "bg-[#BFFF00] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-[#BFFF00]/15 text-lime-700 dark:text-lime-300 border-2 border-[#BFFF00]/60 hover:bg-[#BFFF00]/30 hover:border-[#BFFF00]",
-    },
-    2: {
-      selected: "bg-[#00E5FF] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-[#00E5FF]/15 text-cyan-700 dark:text-cyan-300 border-2 border-[#00E5FF]/60 hover:bg-[#00E5FF]/30 hover:border-[#00E5FF]",
-    },
-    3: {
-      selected: "bg-[#FFD21C] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-[#FFD21C]/15 text-amber-700 dark:text-amber-300 border-2 border-[#FFD21C]/60 hover:bg-[#FFD21C]/30 hover:border-[#FFD21C]",
-    },
-    4: {
-      selected: "bg-[#FF9415] text-black border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-[#FF9415]/15 text-orange-700 dark:text-orange-300 border-2 border-[#FF9415]/60 hover:bg-[#FF9415]/30 hover:border-[#FF9415]",
-    },
-    5: {
-      selected: "bg-[#FF5C5C] text-white border-3 border-black shadow-[3px_3px_0_0_#000]",
-      unselected: "bg-[#FF5C5C]/15 text-rose-700 dark:text-rose-300 border-2 border-[#FF5C5C]/60 hover:bg-[#FF5C5C]/30 hover:border-[#FF5C5C]",
-    },
-    6: {
-      selected: "bg-gradient-to-r from-[#FFD21C] via-[#FF5C5C] to-[#A855F7] text-white border-3 border-black shadow-[4px_4px_0_0_#000] ring-2 ring-yellow-400 animate-pulse",
-      unselected: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-2 border-purple-500/50 hover:bg-purple-500/30 hover:border-purple-500",
-    },
-  };
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto w-full">
-      {/* Header with Level & Difficulty Filters + Gamification Progress */}
-      <div className="bg-card text-foreground border-4 border-foreground rounded-2xl p-4 sm:p-6 shadow-[6px_6px_0_0_hsl(var(--foreground))] flex flex-col gap-4">
+      {/* Header with Level & Difficulty Filters + Progress */}
+      <div className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black uppercase text-foreground flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-amber-400" /> Vivero de Especies & Colección
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+                Catálogo Botánico
+              </span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Vivero de Especies & Colección
             </h3>
-            <p className="text-xs font-bold text-muted-foreground mt-0.5">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               {PLANT_TYPES.length} árboles únicos para cultivar con concentración. Desbloquea cada especie plantándola y cuidándola.
             </p>
           </div>
 
           {/* Gamification Progress Badge */}
-          <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#ffd21c] text-black border-2 border-black rounded-xl text-xs font-black uppercase shadow-[3px_3px_0_0_#000]">
-              <Trophy className="w-4 h-4 fill-black stroke-black shrink-0" />
+          <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs font-medium">
+              <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>{unlockedCount} / {PLANT_TYPES.length} Desbloqueadas</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-2 bg-muted/60 border-2 border-foreground rounded-xl text-xs font-black uppercase shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-              <span>🌱 {filteredTypes.length} mostradas</span>
-            </div>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-medium">
+              <span>{filteredTypes.length} mostradas</span>
+            </span>
           </div>
         </div>
 
-        {/* Level Filter Pills (Full Comic Colors) */}
-        <div className="flex items-center gap-2.5 p-2 bg-muted/40 border-3 border-foreground rounded-2xl overflow-x-auto w-full">
+        {/* Level Filter Pills */}
+        <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl overflow-x-auto w-full scrollbar-none">
           {LEVEL_TABS.map((tab) => {
             const isSelected = selectedLevel === tab.id;
-            const style = COMIC_LEVEL_STYLES[tab.id] || COMIC_LEVEL_STYLES.all;
             return (
               <button
                 key={tab.id}
@@ -130,11 +95,12 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                   setSelectedLevel(tab.id);
                 }}
                 className={cn(
-                  "px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer hover:translate-y-[-1px] active:translate-y-[1px]",
-                  isSelected ? style.selected : style.unselected
+                  "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer",
+                  isSelected
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
-                <span className="text-base">{tab.emoji}</span>
                 <span>{tab.label}</span>
               </button>
             );
@@ -143,7 +109,7 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
       </div>
 
       {/* Species Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredTypes.map((type) => {
           const isSelected = selectedSpecies === type.id;
           const matchingPlants = plants.filter((p) => p.plant_type === type.id);
@@ -158,20 +124,18 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                 onSelectSpecies(type.id);
               }}
               className={cn(
-                "relative bg-card text-foreground rounded-2xl border-4 transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between cursor-pointer group hover:translate-y-[-3px]",
-                isUnlocked
-                  ? isSelected
-                    ? "border-[#ffd21c] shadow-[6px_6px_0_0_#ffd21c] bg-[#ffd21c]/10 ring-2 ring-black"
-                    : "border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:shadow-[6px_6px_0_0_#ffd21c] hover:border-amber-400"
-                  : isSelected
-                  ? "border-[#00E5FF] shadow-[6px_6px_0_0_#00E5FF] bg-muted/30"
-                  : "border-foreground/50 opacity-90 shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:border-foreground hover:opacity-100"
+                "relative bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl border transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between cursor-pointer group",
+                isSelected
+                  ? "border-emerald-500/80 ring-1 ring-emerald-500 shadow-sm"
+                  : isUnlocked
+                  ? "border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 shadow-xs"
+                  : "border-zinc-200/60 dark:border-zinc-800/60 opacity-80 hover:opacity-100 hover:border-zinc-300 dark:hover:border-zinc-700"
               )}
             >
               {/* Selected Marker */}
               {isSelected && (
-                <div className="absolute top-3 right-3 w-8 h-8 bg-[#BFFF00] text-black border-3 border-black rounded-full flex items-center justify-center shadow-[2px_2px_0_0_#000] z-20">
-                  <Check className="w-5 h-5 stroke-[3]" />
+                <div className="absolute top-3.5 right-3.5 w-6 h-6 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-xs z-20">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
               )}
 
@@ -179,67 +143,65 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
               <div className="mb-2">
                 {isUnlocked ? (
                   <div className="flex items-center justify-between gap-1 mb-2">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-black border-2 border-black shadow-[2px_2px_0_0_#000] animate-pulse">
-                      <Trophy className="w-3 h-3 fill-black stroke-black shrink-0" />
-                      <span className="text-[9px] font-black uppercase tracking-wider">¡Logro Desbloqueado!</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] font-medium border border-amber-200 dark:border-amber-800/60">
+                      <Trophy className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Desbloqueada</span>
+                    </span>
                     {completedCount > 0 && (
-                      <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">
-                        {completedCount}★
+                      <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                        {completedCount}x
                       </span>
                     )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 mb-2">
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-muted border-2 border-foreground/30 text-muted-foreground text-[9px] font-black uppercase">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[10px] font-medium border border-zinc-200 dark:border-zinc-700">
                       <Lock className="w-2.5 h-2.5 shrink-0" />
-                      <span>Especie Bloqueada</span>
-                    </div>
+                      <span>Bloqueada</span>
+                    </span>
                   </div>
                 )}
 
-                {/* Badges row: Level Badge + Rarity + Emoji */}
+                {/* Badges row: Level Badge + Rarity */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className={cn(
-                      "px-2 py-0.5 rounded-lg border-2 border-black text-[9px] font-black uppercase shadow-[1px_1px_0_0_#000]",
-                      type.level === 1 && "bg-[#BFFF00] text-black",
-                      type.level === 2 && "bg-[#00E5FF] text-black",
-                      type.level === 3 && "bg-[#FFD21C] text-black",
-                      type.level === 4 && "bg-[#FF9415] text-black",
-                      type.level === 5 && "bg-[#FF5C5C] text-white",
-                      type.level === 6 && "bg-gradient-to-r from-[#FFD21C] via-[#FF5C5C] to-[#A855F7] text-white ring-1 ring-yellow-300"
+                      "px-2 py-0.5 rounded text-[10px] font-medium border",
+                      type.level === 1 && "bg-lime-50 text-lime-700 dark:bg-lime-950/30 dark:text-lime-300 border-lime-200 dark:border-lime-800/60",
+                      type.level === 2 && "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/60",
+                      type.level === 3 && "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+                      type.level === 4 && "bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+                      type.level === 5 && "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+                      type.level === 6 && "bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 border-purple-200 dark:border-purple-800/60"
                     )}
                   >
-                    {type.level === 6 ? "👑 LEGENDARIO" : type.difficultyLabel}
+                    {type.difficultyLabel}
                   </span>
 
-                  <ComicBadge variant={rarityBadgeVariant[type.rarity] || "green"} size="sm">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 capitalize">
                     {type.rarity}
-                  </ComicBadge>
-
-                  <span className="text-lg ml-auto">{type.emoji}</span>
+                  </span>
                 </div>
               </div>
 
-              {/* Illustrated Artwork Showcase with Locked / Unlocked FX */}
+              {/* Illustrated Artwork Showcase */}
               <div
                 className={cn(
-                  "relative my-2.5 py-3 flex items-center justify-center rounded-xl border-2 transition-transform duration-200 overflow-hidden",
+                  "relative my-2.5 py-4 flex items-center justify-center rounded-xl border transition-transform duration-200 overflow-hidden",
                   isUnlocked
-                    ? "border-amber-400/50 group-hover:scale-105"
-                    : "border-foreground/30 bg-muted/40"
+                    ? "border-zinc-200/80 dark:border-zinc-700 group-hover:scale-102"
+                    : "border-zinc-200/60 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30"
                 )}
                 style={{
                   backgroundColor: isUnlocked ? `${type.color}15` : undefined,
                 }}
               >
                 {!isUnlocked && (
-                  <div className="absolute inset-0 bg-background/50 backdrop-blur-[0.5px] flex flex-col items-center justify-center z-10 p-2">
-                    <div className="w-8 h-8 rounded-full bg-background border-2 border-foreground flex items-center justify-center shadow-[2px_2px_0_0_#000] mb-1">
-                      <Lock className="w-4 h-4 text-muted-foreground" />
+                  <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 p-2">
+                    <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shadow-xs mb-1">
+                      <Lock className="w-3.5 h-3.5 text-zinc-400" />
                     </div>
-                    <span className="text-[9px] font-black uppercase text-foreground/80 bg-background/90 px-2 py-0.5 rounded border border-foreground/30">
+                    <span className="text-[10px] text-zinc-600 dark:text-zinc-300 font-medium">
                       Sin cultivar
                     </span>
                   </div>
@@ -250,26 +212,26 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                   stage="full"
                   size="md"
                   animated={isUnlocked && type.level >= 5}
-                  className={!isUnlocked ? "grayscale contrast-75 opacity-30" : undefined}
+                  className={!isUnlocked ? "grayscale opacity-30" : undefined}
                 />
               </div>
 
               {/* Species Name & Lore */}
-              <div className="space-y-1.5 mt-2">
+              <div className="space-y-1.5 mt-1">
                 <div className="flex items-center justify-between">
                   <h4 className={cn(
-                    "text-base font-black uppercase leading-tight",
-                    isUnlocked ? "text-foreground" : "text-muted-foreground"
+                    "text-sm font-semibold truncate",
+                    isUnlocked ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"
                   )}>
                     {type.name}
                   </h4>
                 </div>
 
-                {/* RPG Difficulty Notch Meter */}
-                <div className="space-y-1 pt-1">
-                  <div className="flex items-center justify-between text-[10px] font-black uppercase text-muted-foreground">
-                    <span>Dificultad</span>
-                    <span className="font-mono text-foreground font-black">{type.level}/6</span>
+                {/* Difficulty Notch Meter */}
+                <div className="space-y-1 pt-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                    <span>Nivel</span>
+                    <span className="font-mono text-zinc-700 dark:text-zinc-300">{type.level}/6</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5, 6].map((step) => {
@@ -278,14 +240,14 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                         <div
                           key={step}
                           className={cn(
-                            "h-2 flex-1 rounded-sm border border-foreground/40 transition-all",
+                            "h-1.5 flex-1 rounded-full transition-all",
                             isFilled
                               ? type.level >= 5
-                                ? "bg-fuchsia-500 shadow-[0_0_4px_rgba(217,70,239,0.8)]"
+                                ? "bg-purple-500"
                                 : type.level >= 3
                                 ? "bg-amber-400"
-                                : "bg-emerald-400"
-                              : "bg-muted/40"
+                                : "bg-emerald-500"
+                              : "bg-zinc-100 dark:bg-zinc-800"
                           )}
                         />
                       );
@@ -293,27 +255,27 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                   </div>
                 </div>
 
-                <p className="text-[11px] font-bold text-muted-foreground line-clamp-2 mt-1">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-1">
                   {type.description}
                 </p>
 
-                {/* Difficulty & Speed Metrics Card */}
-                <div className="mt-2 p-2.5 bg-muted/50 rounded-xl border-2 border-foreground/20 text-[10px] font-black uppercase text-foreground/90 space-y-1.5">
+                {/* Metrics Card */}
+                <div className="mt-2 p-2 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-[10px] text-zinc-700 dark:text-zinc-300 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Tiempo total:</span>
-                    <span className="text-[#00E5FF] font-mono font-bold">
+                    <span className="text-zinc-400">Tiempo total:</span>
+                    <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
                       {type.requiredMinutes >= 60
                         ? `${(type.requiredMinutes / 60).toFixed(1)}h (${type.requiredMinutes}m)`
                         : `${type.requiredMinutes} min`}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Velocidad:</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{type.speedMultiplierDescription}</span>
+                    <span className="text-zinc-400">Velocidad:</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{type.speedMultiplierDescription}</span>
                   </div>
                 </div>
 
-                <p className="text-[10px] italic text-amber-600 dark:text-amber-300 line-clamp-1 mt-1">
+                <p className="text-[10px] italic text-zinc-400 line-clamp-1 mt-1">
                   "{type.lore}"
                 </p>
               </div>
@@ -331,12 +293,12 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                 }}
                 disabled={hasActivePlant && !isSelected}
                 className={cn(
-                  "mt-4 w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider border-2 transition-all flex items-center justify-center gap-1.5 shadow-[2px_2px_0_0_hsl(var(--foreground))]",
+                  "mt-3 w-full py-2 rounded-xl font-medium text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer",
                   isSelected
-                    ? "bg-[#BFFF00] text-black border-black"
+                    ? "bg-emerald-600 text-white shadow-xs"
                     : isUnlocked
-                    ? "bg-amber-400/20 text-foreground border-foreground/60 hover:border-black hover:bg-amber-400/30"
-                    : "bg-muted text-foreground/90 border-foreground/40 hover:border-foreground hover:bg-card"
+                    ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700"
+                    : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-xs"
                 )}
               >
                 {isSelected ? (

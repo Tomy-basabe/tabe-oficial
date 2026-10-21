@@ -76,31 +76,27 @@ export const ForestRetroSky: React.FC<ForestRetroSkyProps> = ({
             <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-cyan-200 to-white shadow-[0_0_6px_#fff]" />
           </div>
 
-          {/* Luna Cómic Retro con cráteres */}
+          {/* Luna Estilizada */}
           <div
             className={cn(
-              "absolute top-5 right-5 sm:top-6 sm:right-6 w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center transition-all",
+              "absolute top-5 right-5 sm:top-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/50 shadow-md flex items-center justify-center transition-all",
               currentIsland.moonColor
             )}
           >
-            {/* Cráteres retro */}
-            <div className="w-4 h-4 rounded-full bg-black/15 border-2 border-black/30 absolute top-2 left-3" />
-            <div className="w-2.5 h-2.5 rounded-full bg-black/15 border border-black/30 absolute bottom-3 right-4" />
-            <div className="w-2 h-2 rounded-full bg-black/15 border border-black/30 absolute bottom-5 left-5" />
-            {/* Brillo de luna cómic */}
-            <div className="absolute -inset-1 rounded-full border-2 border-white/40 pointer-events-none" />
+            <div className="w-3 h-3 rounded-full bg-black/10 absolute top-2.5 left-3.5" />
+            <div className="w-2 h-2 rounded-full bg-black/10 absolute bottom-3 right-4" />
           </div>
         </>
       ) : (
         <>
-          {/* SOL CÓMIC GIRATORIO */}
+          {/* Sol Estilizado */}
           <div
             className={cn(
-              "absolute top-5 right-5 sm:top-6 sm:right-6 w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center animate-spin-slow transition-all",
+              "absolute top-5 right-5 sm:top-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-amber-300/60 shadow-md flex items-center justify-center animate-spin-slow transition-all",
               currentIsland.sunColor
             )}
           >
-            <Sun className={cn("w-8 h-8 sm:w-10 sm:h-10", currentIsland.sunIconColor)} />
+            <Sun className={cn("w-7 h-7 sm:w-8 sm:h-8", currentIsland.sunIconColor)} />
           </div>
         </>
       )}

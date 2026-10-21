@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { Crown, Star } from "lucide-react";
+import { Check } from "lucide-react";
 
 interface LegendarySubjectCardProps {
   nombre: string;
@@ -12,12 +12,6 @@ interface LegendarySubjectCardProps {
   compact?: boolean;
 }
 
-export const goldenStyles = {
-  bg: "#ffd21c",
-  text: "#000000",
-  codeBg: "#ffffff",
-};
-
 export const LegendarySubjectCard = memo(function LegendarySubjectCard({
   nombre,
   codigo,
@@ -27,77 +21,40 @@ export const LegendarySubjectCard = memo(function LegendarySubjectCard({
   onClick,
   compact = false,
 }: LegendarySubjectCardProps) {
-  const cardStyle = {
-    '--golden-bg': goldenStyles.bg,
-    '--golden-text': goldenStyles.text,
-    '--golden-code-bg': goldenStyles.codeBg,
-  } as React.CSSProperties;
-
   return (
     <div
       onClick={onClick}
-      style={cardStyle}
-      className="relative group cursor-pointer transition-all duration-200 hover:-translate-y-1 pt-7 h-full flex flex-col"
+      className="group relative bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between h-full"
     >
-      {/* Folder Tab */}
-      <div 
-        className={cn(
-          "absolute top-0 left-0 h-7 px-3 rounded-t-lg border-[3px] border-b-0 border-foreground font-black text-[10px] tracking-wider z-0 flex items-center gap-1.5 select-none"
-        )}
-        style={{ backgroundColor: "var(--golden-bg)", color: "var(--golden-text)" }}
-      >
-        <Crown className="w-3.5 h-3.5" style={{ color: "var(--golden-text)" }} />
-        APROBADA
-      </div>
-
-      {/* Main Folder Body */}
-      <div
-        className={cn(
-          "relative z-10 w-full rounded-xl rounded-tl-none border-[3px] border-foreground text-left transition-shadow duration-200 flex-1 flex flex-col",
-          "bg-[var(--golden-bg)] text-[var(--golden-text)] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))]",
-          compact ? "p-3" : "p-4"
-        )}
-      >
-        {/* Top Badges */}
-        <div className="flex items-start justify-between mb-1">
-          <span 
-            className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-md border-2 border-foreground flex items-center gap-1")}
-            style={{ backgroundColor: "var(--golden-code-bg)", color: "var(--golden-text)" }}
-          >
-            <Star className="w-2.5 h-2.5 fill-current" style={{ color: "var(--golden-text)" }} />
-            AÑO {año}
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+            <Check className="w-3 h-3" />
+            Aprobada
           </span>
-          {numero_materia && (
-            <span className="text-[10px] font-black bg-foreground text-background px-1.5 py-0.5 rounded-sm">
-              #{numero_materia}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+            <span>{año}° Año</span>
+            {numero_materia && <span>#{numero_materia}</span>}
+          </div>
         </div>
 
-        {/* Subject name */}
-        <h3
-          className={cn(
-            "font-black leading-tight mt-2 line-clamp-2 min-h-[2.5rem]",
-            compact ? "text-sm" : "text-base"
-          )}
-        >
+        <h3 className={cn(
+          "font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2",
+          compact ? "text-xs min-h-[2rem]" : "text-sm min-h-[2.5rem]"
+        )}>
           {nombre}
         </h3>
+      </div>
 
-        {/* Bottom / Grade */}
-        <div className={cn("mt-auto flex items-center justify-between pt-3 border-t-[3px] border-foreground border-opacity-20")}>
-          <span className="text-[10px] font-black tracking-widest">
-            {codigo}
+      <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
+        <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+          {codigo}
+        </span>
+        {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
+          <span className="font-semibold text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80">
+            Nota: {nota}
           </span>
-          {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 && (
-            <span 
-              className="text-xs font-black px-2 py-0.5 rounded-md border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-              style={{ backgroundColor: "var(--golden-code-bg)", color: "var(--golden-text)" }}
-            >
-              NOTA: {nota}
-            </span>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

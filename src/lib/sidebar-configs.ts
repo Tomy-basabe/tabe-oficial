@@ -21,8 +21,20 @@ import {
   Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare,
-  Search, Compass, Sparkles
+  Search, Compass, Sparkles, Award
 } from "lucide-react";
+import { 
+  UniversidadCatIcon, 
+  PlanCarreraIcon, 
+  ExamenesIcon, 
+  BibliotecaCustomIcon, 
+  CorrelatividadesCustomIcon,
+  ProductividadCatIcon,
+  RecreacionCatIcon,
+  DashboardCustomIcon,
+  ComunidadCustomIcon,
+  AmigosCustomIcon
+} from "@/components/icons/TabeSectionIcons";
 import { ApuntesIcon, NotionIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { TabetalkIcon } from "@/components/icons/TabetalkIcon";
@@ -48,28 +60,39 @@ export interface CustomSidebarItem {
 }
 
 export const ICON_MAP: Record<string, any> = {
-  GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar,
+  GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar, Award,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap, Sparkles,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
   ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
   Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
   Arcade: ArcadeIcon, ArcadeIcon,
-  ComunidadIcon, Comunidad: ComunidadIcon
+  ComunidadIcon: ComunidadCustomIcon, Comunidad: ComunidadCustomIcon,
+  AmigosIcon: AmigosCustomIcon, Amigos: AmigosCustomIcon,
+  AmigosCustomIcon,
+  ComunidadCustomIcon,
+  UniversidadCatIcon,
+  PlanCarreraIcon,
+  ExamenesIcon,
+  BibliotecaCustomIcon,
+  CorrelatividadesCustomIcon,
+  ProductividadCatIcon,
+  RecreacionCatIcon,
+  DashboardCustomIcon
 };
 
 export const ICON_NAMES = Object.keys(ICON_MAP);
 
 export const DEFAULT_ICON_MAPPING: Record<string, string> = {
-  "/dashboard": "LayoutDashboard",
-  "/carrera": "GraduationCap",
+  "/dashboard": "DashboardCustomIcon",
+  "/carrera": "PlanCarreraIcon",
   "/consultas": "Clock",
   "/apuntes": "ApuntesIcon",
   "/flashcards": "Layers",
   "/cuestionarios": "ClipboardList",
-  "/comunidad": "ComunidadIcon",
-  "/marketplace": "ComunidadIcon",
-  "/biblioteca": "Library",
+  "/comunidad": "ComunidadCustomIcon",
+  "/marketplace": "ComunidadCustomIcon",
+  "/biblioteca": "BibliotecaCustomIcon",
   "/calendario": "Calendar",
   "/rutinas": "Repeat2",
   "/pomodoro": "Timer",
@@ -77,14 +100,13 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/metricas": "BarChart3",
   "/bosque": "TreeDeciduous",
   "/logros": "Trophy",
-  "/amigos": "Users",
+  "/amigos": "AmigosCustomIcon",
   "/TABEAI": "TabeAIIcon",
   "/admin": "Shield",
   "/configuracion": "Settings",
-  "/examenes": "GraduationCap",
+  "/examenes": "ExamenesIcon",
   "/juegos": "Arcade",
-  "/tabegochi": "Sparkles",
-  "/mapa": "Compass"
+  "/mapa": "CorrelatividadesCustomIcon"
 };
 
 export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
@@ -93,7 +115,7 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     path: "/dashboard",
     label: "Dashboard",
     type: "item",
-    iconName: "LayoutDashboard"
+    iconName: "DashboardCustomIcon"
   },
   {
     id: "item-/TABEAI",
@@ -106,23 +128,23 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     id: "cat-academico",
     label: "Académico",
     type: "category",
-    iconName: "GraduationCap",
+    iconName: "UniversidadCatIcon",
     items: [
-      { id: "item-/carrera", path: "/carrera", label: "Plan de Carrera", type: "item", iconName: "GraduationCap" },
-      { id: "item-/examenes", path: "/examenes", label: "Exámenes", type: "item", iconName: "GraduationCap" },
+      { id: "item-/carrera", path: "/carrera", label: "Plan de Carrera", type: "item", iconName: "PlanCarreraIcon" },
+      { id: "item-/examenes", path: "/examenes", label: "Exámenes", type: "item", iconName: "ExamenesIcon" },
       { id: "item-/apuntes", path: "/apuntes", label: "Apuntes", type: "item", iconName: "ApuntesIcon" },
       { id: "item-/flashcards", path: "/flashcards", label: "Flashcards", type: "item", iconName: "Layers" },
       { id: "item-/cuestionarios", path: "/cuestionarios", label: "Cuestionarios", type: "item", iconName: "ClipboardList" },
       { id: "item-/consultas", path: "/consultas", label: "Consultas", type: "item", iconName: "Clock" },
-      { id: "item-/biblioteca", path: "/biblioteca", label: "Biblioteca", type: "item", iconName: "Library" },
-      { id: "item-/mapa", path: "/mapa", label: "Correlatividades", type: "item", iconName: "Compass" }
+      { id: "item-/biblioteca", path: "/biblioteca", label: "Biblioteca", type: "item", iconName: "BibliotecaCustomIcon" },
+      { id: "item-/mapa", path: "/mapa", label: "Correlatividades", type: "item", iconName: "CorrelatividadesCustomIcon" }
     ]
   },
   {
     id: "cat-organizacion",
     label: "Productividad",
     type: "category",
-    iconName: "Calendar",
+    iconName: "ProductividadCatIcon",
     items: [
       { id: "item-/calendario", path: "/calendario", label: "Calendario", type: "item", iconName: "Calendar" },
       { id: "item-/pomodoro", path: "/pomodoro", label: "Pomodoro", type: "item", iconName: "Timer" },
@@ -134,10 +156,9 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     id: "cat-comunidad",
     label: "Juegos & Recreación",
     type: "category",
-    iconName: "Arcade",
+    iconName: "RecreacionCatIcon",
     items: [
       { id: "item-/bosque", path: "/bosque", label: "Mi Bosque", type: "item", iconName: "TreeDeciduous" },
-      { id: "item-/tabegochi", path: "/tabegochi", label: "TabeGochi", type: "item", iconName: "Sparkles" },
       { id: "item-/juegos", path: "/juegos", label: "Juegos", type: "item", iconName: "Arcade" },
       { id: "item-/logros", path: "/logros", label: "Logros", type: "item", iconName: "Trophy" }
     ]
@@ -173,26 +194,25 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
 ];
 
 export const baseNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
+  { icon: DashboardCustomIcon, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
-  { icon: GraduationCap, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
-  { icon: GraduationCap, label: "Exámenes", path: "/examenes", tourClass: "tour-sidebar-examenes" },
+  { icon: PlanCarreraIcon, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
+  { icon: ExamenesIcon, label: "Exámenes", path: "/examenes", tourClass: "tour-sidebar-examenes" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
   { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
   { icon: Layers, label: "Flashcards", path: "/flashcards", tourClass: "tour-sidebar-flashcards" },
   { icon: ClipboardList, label: "Cuestionarios", path: "/cuestionarios", tourClass: "tour-sidebar-cuestionarios" },
-  { icon: ComunidadIcon, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
-  { icon: Library, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
-  { icon: Compass, label: "Correlatividades", path: "/mapa", tourClass: "tour-sidebar-mapa" },
+  { icon: ComunidadCustomIcon, label: "Comunidad", path: "/comunidad", tourClass: "tour-sidebar-comunidad" },
+  { icon: BibliotecaCustomIcon, label: "Biblioteca", path: "/biblioteca", tourClass: "tour-sidebar-biblioteca" },
+  { icon: CorrelatividadesCustomIcon, label: "Correlatividades", path: "/mapa", tourClass: "tour-sidebar-mapa" },
   { icon: Calendar, label: "Calendario", path: "/calendario", tourClass: "tour-sidebar-calendar" },
   { icon: Repeat2, label: "Rutinas", path: "/rutinas", tourClass: "tour-sidebar-rutinas" },
   { icon: Timer, label: "Pomodoro", path: "/pomodoro", tourClass: "tour-sidebar-pomodoro" },
   { icon: CheckSquare, label: "Tareas", path: "/tareas", tourClass: "tour-sidebar-tareas" },
   { icon: BarChart3, label: "Métricas", path: "/metricas", tourClass: "tour-sidebar-metricas" },
   { icon: TreeDeciduous, label: "Mi Bosque", path: "/bosque", tourClass: "tour-sidebar-bosque" },
-  { icon: Sparkles, label: "TabeGochi", path: "/tabegochi", tourClass: "tour-sidebar-tabegochi" },
   { icon: Trophy, label: "Logros", path: "/logros", tourClass: "tour-sidebar-logros" },
-  { icon: Users, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
+  { icon: AmigosCustomIcon, label: "Amigos", path: "/amigos", tourClass: "tour-sidebar-amigos" },
   { icon: ArcadeIcon, label: "Juegos", path: "/juegos", tourClass: "tour-sidebar-juegos" },
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
@@ -229,10 +249,14 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
           lbl === "tabeai" ||
           p === "/tabetalk" ||
           p === "/discord" ||
+          p === "/tabegochi" ||
           item.id === "item-/tabetalk" ||
           item.id === "item-/discord" ||
+          item.id === "item-/tabegochi" ||
           lbl === "tabetalk" ||
-          lbl === "discord"
+          lbl === "discord" ||
+          lbl === "tabegochi" ||
+          lbl === "tabe-gotchi"
         ) {
           return false;
         }
@@ -257,25 +281,46 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
           updated.path = "/comunidad";
           updated.id = "item-/comunidad";
           if (updated.label?.toLowerCase() === "marketplace") updated.label = "Comunidad";
-          if (updated.iconName === "Store" || updated.iconName === "Users") updated.iconName = "ComunidadIcon";
+          if (updated.iconName === "Store" || updated.iconName === "Users" || updated.iconName === "ComunidadIcon") updated.iconName = "ComunidadCustomIcon";
         }
 
         if ((updated.path || updated.id) === "/juegos" || updated.id === "item-/juegos") {
           updated.iconName = "Arcade";
         }
 
-        if ((updated.path || updated.id) === "/tabegochi" || updated.id === "item-/tabegochi") {
-          updated.iconName = "Sparkles";
+        // Asignar los iconos correspondientes a cada ruta
+        const targetPath = updated.path || updated.id;
+        const targetLabel = updated.label?.toLowerCase() || "";
+
+        if (targetPath === "/examenes" || targetPath === "item-/examenes" || targetLabel === "exámenes" || targetLabel === "examenes") {
+          updated.iconName = "ExamenesIcon";
+        } else if (targetPath === "/carrera" || targetPath === "item-/carrera" || targetLabel.includes("carrera")) {
+          updated.iconName = "PlanCarreraIcon";
+        } else if (targetPath === "/amigos" || targetPath === "item-/amigos" || targetLabel === "amigos") {
+          updated.iconName = "AmigosCustomIcon";
+        } else if (targetPath === "/comunidad" || targetPath === "item-/comunidad" || targetLabel === "comunidad") {
+          updated.iconName = "ComunidadCustomIcon";
+        } else if (targetPath === "/biblioteca" || targetPath === "item-/biblioteca" || targetLabel === "biblioteca") {
+          updated.iconName = "BibliotecaCustomIcon";
+        } else if (targetPath === "/mapa" || targetPath === "item-/mapa" || targetLabel.includes("correlat")) {
+          updated.iconName = "CorrelatividadesCustomIcon";
+        } else if (targetPath === "/dashboard" || targetPath === "item-/dashboard" || targetLabel === "dashboard") {
+          updated.iconName = "DashboardCustomIcon";
+        }
+
+        if (updated.type === "category") {
+          if (updated.id === "cat-academico" || targetLabel.includes("académ") || targetLabel.includes("academ") || targetLabel.includes("universidad")) {
+            updated.iconName = "UniversidadCatIcon";
+          } else if (updated.id === "cat-organizacion" || targetLabel.includes("productividad") || targetLabel.includes("organiza")) {
+            updated.iconName = "ProductividadCatIcon";
+          } else if (updated.id === "cat-comunidad" || targetLabel.includes("juego") || targetLabel.includes("recrea")) {
+            updated.iconName = "RecreacionCatIcon";
+          }
         }
 
         if (updated.type === "category" && updated.items) {
-          const isGamesCat =
-            updated.id === "cat-comunidad" ||
-            updated.label?.toLowerCase().includes("comunidad") ||
-            updated.label?.toLowerCase().includes("juego");
           updated = {
             ...updated,
-            iconName: isGamesCat ? "Arcade" : updated.iconName,
             items: sanitizeAndClean(updated.items)
           };
         }
@@ -293,7 +338,7 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
       path: "/dashboard",
       label: "Dashboard",
       type: "item",
-      iconName: "LayoutDashboard"
+      iconName: "DashboardCustomIcon"
     });
   }
 

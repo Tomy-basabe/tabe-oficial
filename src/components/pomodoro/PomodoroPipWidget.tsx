@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Pause, RotateCcw, SkipForward, BellOff, ExternalLink, X } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, BellOff, ExternalLink, X, BookOpen, Coffee, Sparkles } from "lucide-react";
 import { usePomodoro } from "@/contexts/PomodoroContext";
 import { cn } from "@/lib/utils";
 
@@ -38,25 +38,25 @@ export function PomodoroPipWidget({ pipWindow }: PomodoroPipWidgetProps) {
   };
 
   return (
-    <div className="w-full h-full bg-white text-black p-2.5 flex flex-col justify-between border-4 border-black box-border font-sans select-none overflow-hidden">
+    <div className="w-full h-full bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 p-3 flex flex-col justify-between font-sans select-none overflow-hidden box-border">
       {/* Top Bar: Badge and Window Actions */}
-      <div className="flex items-center justify-between gap-1 shrink-0">
+      <div className="flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-1.5">
           {isRinging ? (
-            <span className="px-2 py-0.5 rounded-md bg-[#ff3366] text-black font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_#000] animate-bounce">
-              ⏰ ¡TIEMPO!
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
+              ⏰ ¡Tiempo!
             </span>
           ) : mode === "work" ? (
-            <span className="px-2 py-0.5 rounded-md bg-[#FF6B6B] text-black font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_#000]">
-              🍅 FOCO
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+              <BookOpen className="w-3 h-3" /> Foco
             </span>
           ) : mode === "shortBreak" ? (
-            <span className="px-2 py-0.5 rounded-md bg-[#4ECDC4] text-black font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_#000]">
-              ☕ DESCANSO
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+              <Coffee className="w-3 h-3" /> Descanso
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-md bg-[#FFE66D] text-black font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[2px_2px_0_#000]">
-              🎯 DESCANSO LARGO
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <Sparkles className="w-3 h-3" /> Pausa Larga
             </span>
           )}
         </div>
@@ -66,37 +66,37 @@ export function PomodoroPipWidget({ pipWindow }: PomodoroPipWidgetProps) {
             type="button"
             onClick={handleFocusOpener}
             title="Volver a enfocar TABE"
-            className="p-1 rounded bg-white hover:bg-neutral-100 text-black border-2 border-black shadow-[1.5px_1.5px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
-            <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+            <ExternalLink className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={handleClose}
             title="Cerrar ventana flotante"
-            className="p-1 rounded bg-[#FF6B6B] hover:bg-[#ff5252] text-black border-2 border-black shadow-[1.5px_1.5px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
+            className="p-1.5 rounded-md text-zinc-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
           >
-            <X className="w-3.5 h-3.5 stroke-[3]" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Center: Big Timer & Progress Bar */}
+      {/* Center: Clean Digital Clock & Progress Bar */}
       <div className="flex flex-col items-center justify-center my-auto py-1">
         <div
           className={cn(
-            "font-black text-4xl sm:text-[44px] tracking-tight font-mono leading-none drop-shadow-[2px_2px_0_#FFE600]",
-            isRinging ? "text-[#ff3366] animate-pulse" : "text-black"
+            "font-mono font-semibold text-4xl sm:text-[42px] tracking-tight leading-none tabular-nums",
+            isRinging ? "text-rose-500 animate-pulse" : "text-zinc-900 dark:text-zinc-100"
           )}
         >
           {formatTime(timeLeft)}
         </div>
 
-        <div className="w-full h-2 bg-neutral-200 border-2 border-black rounded-full overflow-hidden mt-1.5 shadow-[1px_1px_0_#000]">
+        <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mt-2.5">
           <div
             className={cn(
-              "h-full transition-all duration-300",
-              mode === "work" ? "bg-[#FF6B6B]" : "bg-[#4ECDC4]"
+              "h-full rounded-full transition-all duration-300",
+              mode === "work" ? "bg-rose-500" : mode === "shortBreak" ? "bg-teal-500" : "bg-amber-500"
             )}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
@@ -104,34 +104,36 @@ export function PomodoroPipWidget({ pipWindow }: PomodoroPipWidgetProps) {
       </div>
 
       {/* Bottom Bar: Action buttons */}
-      <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+      <div className="flex items-center gap-1.5 shrink-0 pt-1">
         {isRinging ? (
           <button
             type="button"
             onClick={stopAlarm}
-            className="flex-1 py-1.5 px-2 bg-[#ff3366] text-black font-black text-xs uppercase tracking-wider border-2 border-black rounded-lg shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1 animate-pulse cursor-pointer"
+            className="flex-1 py-1.5 px-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-2xs animate-pulse cursor-pointer"
           >
-            <BellOff className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>APAGAR</span>
+            <BellOff className="w-3.5 h-3.5" />
+            <span>Detener Alarma</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={toggleTimer}
             className={cn(
-              "flex-1 py-1.5 px-2 font-black text-xs uppercase tracking-wider border-2 border-black rounded-lg shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-black",
-              isActive ? "bg-[#FFE600] hover:bg-[#ffd21c]" : "bg-[#10B981] hover:bg-[#059669]"
+              "flex-1 py-1.5 px-2 font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer",
+              isActive
+                ? "bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200"
+                : "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900"
             )}
           >
             {isActive ? (
               <>
-                <Pause className="w-3.5 h-3.5 fill-black stroke-black" />
-                <span>PAUSAR</span>
+                <Pause className="w-3.5 h-3.5" />
+                <span>Pausar</span>
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5 fill-black stroke-black" />
-                <span>INICIAR</span>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Iniciar</span>
               </>
             )}
           </button>
@@ -141,19 +143,18 @@ export function PomodoroPipWidget({ pipWindow }: PomodoroPipWidgetProps) {
           type="button"
           onClick={() => changeMode(mode === "work" ? "shortBreak" : "work")}
           title={mode === "work" ? "Saltar a descanso" : "Saltar a foco"}
-          className="py-1.5 px-2 bg-white hover:bg-neutral-100 text-black font-black text-xs uppercase tracking-wider border-2 border-black rounded-lg shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+          className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer shadow-2xs"
         >
-          <SkipForward className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span className="text-[10px]">SALTAR</span>
+          <SkipForward className="w-3.5 h-3.5" />
         </button>
 
         <button
           type="button"
           onClick={resetTimer}
-          title="Reiniciar cronómetro"
-          className="py-1.5 px-2 bg-white hover:bg-neutral-100 text-black font-black text-xs uppercase tracking-wider border-2 border-black rounded-lg shadow-[2px_2px_0_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all flex items-center justify-center cursor-pointer"
+          title="Reiniciar ciclo"
+          className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer shadow-2xs"
         >
-          <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

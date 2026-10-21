@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Trash2, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { purgeEventsByTitle, isGoogleCalendarConnected } from "@/lib/googleCalendarSync";
 import { CalendarEvent } from "@/hooks/useCalendarEvents";
@@ -33,7 +33,6 @@ export function PurgeEventsModal({
   const [deleteFromGoogle, setDeleteFromGoogle] = useState(true);
   const [isPurging, setIsPurging] = useState(false);
 
-  // Normalizar texto para ignorar acentos y mayusculas
   const norm = (s: string) =>
     (s || "")
       .trim()
@@ -41,7 +40,6 @@ export function PurgeEventsModal({
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
-  // Cantidad de coincidencias en la lista de eventos en memoria
   const matchingEvents = useMemo(() => {
     if (!targetText.trim()) return [];
     const t = norm(targetText);
@@ -65,9 +63,7 @@ export function PurgeEventsModal({
       cancelText: "Cancelar",
       variant: "danger",
     });
-    if (!ok) {
-      return;
-    }
+    if (!ok) return;
 
     setIsPurging(true);
     toast.info(`Iniciando purga de "${targetText.trim()}"...`, { icon: "🧹" });
@@ -79,10 +75,10 @@ export function PurgeEventsModal({
         toast.info(`No se encontraron eventos con el nombre "${targetText.trim()}"`);
       } else {
         toast.success(
-          `¡Purga completada! Se eliminaron ${res.deletedCount} eventos${
+          `Purga completada: ${res.deletedCount} eliminados${
             res.googleDeletedCount > 0 ? ` y ${res.googleDeletedCount} en Google Calendar` : ""
           }.`,
-          { icon: "✨", duration: 6000 }
+          { icon: "✨", duration: 5000 }
         );
       }
 
@@ -104,105 +100,97 @@ export function PurgeEventsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[500px] border-4 border-foreground shadow-[8px_8px_0_0_#000] p-6 max-h-[90vh] flex flex-col bg-card">
-        <DialogHeader className="space-y-2 text-left">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-red-500 text-white border border-black tracking-wider">
-              Comando Secreto [Ctrl + Shift + Ñ]
-            </span>
-            <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-[#FFE66D] text-black border border-black tracking-wider flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Admin Purge
-            </span>
-          </div>
-          <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-            <Trash2 className="w-5 h-5 text-red-500" />
-            Purga Masiva de Eventos
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-md w-[95vw] bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-2xl p-6 space-y-4">
+        <DialogHeader className="space-y-1 text-left">
+          <DialogTitle className="text-xl font-semibold tracking-tight flex items-center gap-2.5 text-zinc-900 dark:text-zinc-100">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+              <Trash2 className="w-4 h-4 text-rose-500" />
+            </div>
+            <span>Limpieza masiva de eventos</span>
           </DialogTitle>
-          <DialogDescription className="text-xs font-bold text-muted-foreground">
-            Elimina en lote todos los eventos repetitivos que coincidan con el nombre especificado.
+          <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+            Busca y elimina en lote eventos que coincidan con un texto en TABE y Google Calendar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-3">
+        <div className="space-y-3.5 pt-1">
           <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-foreground">
-              Nombre o texto del evento a eliminar:
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Texto del evento a eliminar:
             </label>
             <input
               type="text"
               value={targetText}
               onChange={(e) => setTargetText(e.target.value)}
               placeholder="Ej: gisela fabrega"
-              className="w-full px-3.5 py-2.5 bg-background text-foreground border-[3px] border-foreground rounded-lg text-sm font-bold focus:outline-none focus:shadow-[4px_4px_0_0_hsl(var(--foreground))]"
+              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
             />
           </div>
 
-          <div className="p-3.5 bg-muted/40 border-2 border-foreground/30 rounded-xl space-y-2">
-            <div className="flex items-center justify-between text-xs font-black">
-              <span className="uppercase tracking-wider">Eventos detectados:</span>
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-zinc-500">Eventos detectados:</span>
               <span className={cn(
-                "px-2 py-0.5 rounded font-mono text-xs border",
+                "px-2 py-0.5 rounded text-[11px] font-medium border",
                 matchingEvents.length > 0
-                  ? "bg-red-500 text-white border-black font-black"
-                  : "bg-muted text-muted-foreground border-foreground/20"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                  : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
               )}>
                 {matchingEvents.length} en tu calendario
               </span>
             </div>
 
             {matchingEvents.length > 0 ? (
-              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 pt-1">
+              <div className="max-h-36 overflow-y-auto space-y-1 pr-1 pt-1">
                 {matchingEvents.slice(0, 8).map((ev) => (
                   <div
                     key={ev.id}
-                    className="text-[11px] font-bold p-1.5 rounded bg-background border border-foreground/20 flex items-center justify-between"
+                    className="text-xs p-1.5 rounded-lg bg-white dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 flex items-center justify-between"
                   >
-                    <span className="truncate max-w-[240px]">{ev.titulo}</span>
-                    <span className="text-muted-foreground font-mono text-[10px] shrink-0">
-                      {ev.fecha} {ev.hora ? `(${ev.hora})` : ""}
+                    <span className="truncate max-w-[220px] text-zinc-800 dark:text-zinc-200">{ev.titulo}</span>
+                    <span className="text-zinc-400 text-[11px] shrink-0">
+                      {ev.fecha}
                     </span>
                   </div>
                 ))}
                 {matchingEvents.length > 8 && (
-                  <p className="text-[10px] text-center font-bold text-muted-foreground pt-1">
+                  <p className="text-[10px] text-center text-zinc-400 pt-1">
                     ... y {matchingEvents.length - 8} eventos más
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-xs font-bold text-muted-foreground italic py-1">
-                No hay eventos cargados en vista que coincidan con "{targetText}".
+              <p className="text-xs text-zinc-400 italic py-1">
+                No hay eventos cargados que coincidan con "{targetText}".
               </p>
             )}
           </div>
 
           {isGoogleCalendarConnected(user) && (
-            <label className="flex items-center gap-2.5 p-2.5 bg-[#00F0FF]/10 border-2 border-foreground rounded-lg text-xs font-bold cursor-pointer">
+            <label className="flex items-center gap-2 p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 rounded-xl text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={deleteFromGoogle}
                 onChange={(e) => setDeleteFromGoogle(e.target.checked)}
-                className="w-4 h-4 rounded border-2 border-foreground accent-black"
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-0"
               />
               <span>Borrar también de Google Calendar si están vinculados</span>
             </label>
           )}
 
-          <div className="p-3 bg-red-500/10 border-2 border-red-500 rounded-lg flex items-start gap-2 text-red-600 text-xs font-bold">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-            <p>
-              Esta acción borrará de forma permanente todos los eventos con este nombre.
-            </p>
+          <div className="p-2.5 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2 text-rose-600 dark:text-rose-400 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <p>Esta acción borrará de forma permanente todos los eventos coincidentes.</p>
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2 border-t-2 border-foreground/15">
+        <div className="flex gap-2 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
           <button
             type="button"
             onClick={onClose}
             disabled={isPurging}
-            className="flex-1 py-2.5 px-4 rounded-lg font-black uppercase tracking-wider text-xs bg-muted text-foreground border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] hover:bg-muted/80 transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -210,17 +198,17 @@ export function PurgeEventsModal({
             type="button"
             onClick={handleExecutePurge}
             disabled={isPurging || !targetText.trim()}
-            className="flex-[2] py-2.5 px-4 rounded-lg font-black uppercase tracking-wider text-xs bg-red-600 text-white border-2 border-foreground shadow-[3px_3px_0_0_#000] hover:bg-red-700 active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="flex-[1.5] h-9 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium transition-colors flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
           >
             {isPurging ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>Purgando...</span>
               </>
             ) : (
               <>
-                <Trash2 className="w-4 h-4" />
-                <span>Purgar {matchingEvents.length > 0 ? `(${matchingEvents.length})` : ""} Eventos</span>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Purgar {matchingEvents.length > 0 ? `(${matchingEvents.length})` : ""}</span>
               </>
             )}
           </button>

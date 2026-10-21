@@ -66,4 +66,8 @@ public/Referencia/
 !/public/videos/tabe-voice-*.mp4
 
 # Raw source assets
-TABE 2.0/
+TABE 2.0/
+
+# Scratch & temporary scripts
+scratch/
+scripts/

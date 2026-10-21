@@ -6,6 +6,7 @@ import {
 import { useSubjects } from "@/hooks/useSubjects";
 import { cn } from "@/lib/utils";
 import { BookOpen, CheckCircle2, Filter } from "lucide-react";
+import { TabeLogo } from "@/components/ui/TabeLogo";
 
 export interface SubjectSelectProps {
   value: string | null | undefined;
@@ -13,7 +14,7 @@ export interface SubjectSelectProps {
   placeholder?: string;
   allowNone?: boolean;
   noneValue?: string;
-  noneLabel?: string;
+  noneLabel?: React.ReactNode;
   showYearFilter?: boolean;
   subjects?: Array<{
     id: string;
@@ -35,7 +36,7 @@ export function SubjectSelect({
   placeholder = "Seleccionar materia...",
   allowNone = true,
   noneValue = "none",
-  noneLabel = "⚪ Sin materia específica",
+  noneLabel,
   showYearFilter = true,
   subjects: propSubjects,
   className,
@@ -45,6 +46,14 @@ export function SubjectSelect({
 }: SubjectSelectProps) {
   const { subjects: hookSubjects } = useSubjects();
   const [yearFilter, setYearFilter] = useState<string>("all");
+
+  const defaultNoneLabel = (
+    <span className="flex items-center gap-2">
+      <TabeLogo size={14} className="shrink-0 object-contain" />
+      <span>Sin materia específica</span>
+    </span>
+  );
+  const resolvedNoneLabel = noneLabel !== undefined ? noneLabel : defaultNoneLabel;
 
   // Si nos pasan subjects por prop, los usamos; si no, usamos los de useSubjects()
   const allSubjects = useMemo(() => {
@@ -99,12 +108,17 @@ export function SubjectSelect({
 
   const selectedValue = !value || value === "" || value === "none" ? "none" : value;
 
+  const currentSubject = useMemo(() => {
+    if (!value || value === "none") return null;
+    return allSubjects.find(s => s.id === value);
+  }, [value, allSubjects]);
+
   return (
     <div className={cn("space-y-2", className)}>
       {label && (
         <div className="flex items-center justify-between">
-          <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5 text-primary" />
+          <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
             {label} {required && <span className="text-red-500">*</span>}
           </label>
         </div>
@@ -112,15 +126,15 @@ export function SubjectSelect({
 
       {/* Botones de Filtro por Año */}
       {showYearFilter && availableYears.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap pb-0.5">
+        <div className="flex items-center gap-1.5 flex-wrap pb-0.5">
           <button
             type="button"
             onClick={() => setYearFilter("all")}
             className={cn(
-              "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border-2 transition-all",
+              "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer",
               yearFilter === "all"
-                ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                : "bg-muted text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 border border-zinc-200/60 dark:border-zinc-700/40"
             )}
           >
             Todos
@@ -131,10 +145,10 @@ export function SubjectSelect({
               type="button"
               onClick={() => setYearFilter(String(yr))}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border-2 transition-all",
+                "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                 yearFilter === String(yr)
-                  ? "bg-foreground text-background border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                  : "bg-muted text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
+                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 border border-zinc-200/60 dark:border-zinc-700/40"
               )}
             >
               {yr}° Año
@@ -147,30 +161,40 @@ export function SubjectSelect({
       <Select value={selectedValue} onValueChange={handleSelectChange}>
         <SelectTrigger
           className={cn(
-            "w-full bg-background border-[3px] border-foreground p-3 h-auto rounded-xl text-sm font-bold shadow-[3px_3px_0_0_hsl(var(--foreground))] hover:shadow-[1px_1px_0_0_hsl(var(--foreground))] hover:translate-y-[1px] transition-all focus:ring-0 focus:outline-none text-left truncate text-foreground",
+            "w-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 px-3.5 py-2.5 h-auto rounded-xl text-xs font-normal shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-left truncate text-zinc-900 dark:text-zinc-100",
             triggerClassName
           )}
         >
-          <SelectValue placeholder={placeholder} />
+          {currentSubject ? (
+            <span className="truncate">
+              {currentSubject.nombre} {currentSubject.codigo ? `(${currentSubject.codigo})` : `[Año ${currentSubject.año}]`}
+            </span>
+          ) : selectedValue === "none" && allowNone ? (
+            <span className="truncate flex items-center">
+              {resolvedNoneLabel}
+            </span>
+          ) : (
+            <SelectValue placeholder={placeholder} />
+          )}
         </SelectTrigger>
-        <SelectContent className="bg-popover border-[3px] border-foreground shadow-[6px_6px_0_0_#000] rounded-xl max-h-72 z-[9999]">
+        <SelectContent className="bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800 shadow-lg rounded-xl max-h-72 z-[9999]">
           {allowNone && (
-            <SelectItem value="none" className="font-bold cursor-pointer rounded-lg">
-              {noneLabel}
+            <SelectItem value="none" textValue="Sin materia específica" className="font-normal text-xs cursor-pointer rounded-lg">
+              {resolvedNoneLabel}
             </SelectItem>
           )}
 
           {filteredActive.length > 0 && (
             <SelectGroup>
-              <SelectLabel className="text-[11px] font-black uppercase text-muted-foreground px-2 py-1.5 tracking-wider bg-muted/40 rounded flex items-center gap-1.5 my-1">
-                <BookOpen className="w-3 h-3 text-cyan-500" />
+              <SelectLabel className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 px-2 py-1.5 flex items-center gap-1.5 my-1">
+                <BookOpen className="w-3 h-3 text-zinc-400" />
                 Materias en Cursada / Pendientes ({filteredActive.length})
               </SelectLabel>
               {filteredActive.map((s) => (
                 <SelectItem
                   key={s.id}
                   value={s.id}
-                  className="font-bold cursor-pointer rounded-lg my-0.5 focus:bg-cyan-500/20"
+                  className="font-normal text-xs cursor-pointer rounded-lg my-0.5"
                 >
                   {s.nombre} {s.codigo ? `(${s.codigo})` : `[Año ${s.año}]`}
                 </SelectItem>
@@ -180,7 +204,7 @@ export function SubjectSelect({
 
           {filteredApproved.length > 0 && (
             <SelectGroup>
-              <SelectLabel className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 px-2 py-1.5 tracking-wider bg-emerald-500/10 rounded flex items-center gap-1.5 my-1">
+              <SelectLabel className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 px-2 py-1.5 bg-emerald-500/10 rounded flex items-center gap-1.5 my-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                 Materias Aprobadas ({filteredApproved.length})
               </SelectLabel>
@@ -188,7 +212,7 @@ export function SubjectSelect({
                 <SelectItem
                   key={s.id}
                   value={s.id}
-                  className="font-bold cursor-pointer rounded-lg my-0.5 focus:bg-emerald-500/20"
+                  className="font-normal text-xs cursor-pointer rounded-lg my-0.5"
                 >
                   {s.nombre} {s.codigo ? `(${s.codigo})` : `[Año ${s.año}]`}
                 </SelectItem>
@@ -197,7 +221,7 @@ export function SubjectSelect({
           )}
 
           {filteredActive.length === 0 && filteredApproved.length === 0 && (
-            <div className="py-4 text-center text-xs font-bold text-muted-foreground">
+            <div className="py-4 text-center text-xs font-normal text-zinc-500 dark:text-zinc-400">
               No hay materias para este año seleccionado.
             </div>
           )}

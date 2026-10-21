@@ -16,7 +16,6 @@ import { isExamType } from "@/hooks/useCalendarEvents";
 export interface NotificationSettings {
   studyReminders: boolean;
   examReminders: boolean;
-  petReminders?: boolean;
   reminderTime: string; // HH:mm format
   daysBeforeExam: number;
 }
@@ -24,7 +23,6 @@ export interface NotificationSettings {
 const DEFAULT_SETTINGS: NotificationSettings = {
   studyReminders: true,
   examReminders: true,
-  petReminders: true,
   reminderTime: "09:00",
   daysBeforeExam: 1,
 };
@@ -252,37 +250,12 @@ export function useNotifications() {
 
     const timeUntilReminder = reminderTime.getTime() - now.getTime();
 
-    // 1. Obtener datos de la mascota activa para programar recordatorio
-    let activePetData: any = undefined;
-    try {
-      const rawPets = localStorage.getItem("tabe_gochi_pets_v1");
-      const activePetId = localStorage.getItem("tabe_gochi_active_pet_id_v1");
-      if (rawPets) {
-        const parsed = JSON.parse(rawPets);
-        const currentPet = (Array.isArray(parsed) && parsed.length > 0)
-          ? (parsed.find((p: any) => p.id === activePetId) || parsed[0])
-          : null;
-        if (currentPet) {
-          activePetData = {
-            name: currentPet.name || "tu mascota",
-            hunger: currentPet.hunger ?? 100,
-            health: currentPet.health ?? 100,
-            isSick: !!currentPet.isSick,
-            isDead: !!currentPet.isDead,
-            lastUpdated: currentPet.lastUpdated || Date.now(),
-            enabled: true,
-          };
-        }
-      }
-    } catch (_) {}
-
     // 2. Sync alarm to IndexedDB so Service Worker has it offline (a las 9 AM)
     syncAlarmsToIndexedDB({
       studyReminderHour: hours,
       studyReminderMinute: minutes,
       studyReminderEnabled: settings.studyReminders,
       exams: [], // exams synced separately
-      pet: activePetData,
     });
 
     // 3. Schedule via Chromium Notification Triggers if supported
@@ -291,8 +264,7 @@ export function useNotifications() {
         const reg = await navigator.serviceWorker.ready;
         // @ts-ignore
         if (typeof window !== "undefined" && window.Notification && "showTrigger" in Notification.prototype && (window as any).TimestampTrigger) {
-          try {
-            // @ts-ignore
+          // @ts-ignore
             await reg.showNotification("¡Hora de estudiar! 📚", {
               body: "Mantené tu racha de estudio activa en TABE.",
               icon: "/pwa-192x192.png",
@@ -303,21 +275,6 @@ export function useNotifications() {
               data: { url: "/pomodoro" },
               vibrate: [200, 100, 200]
             } as any);
-
-            if (activePetData) {
-              // @ts-ignore
-              await reg.showNotification(`🐾 ¡Cuidá a ${activePetData.name} en TABE! ❤️`, {
-                body: "No olvides darle de comer y mimarla hoy para mantenerla sana.",
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
-                tag: "pet-reminder-trigger",
-                // @ts-ignore
-                showTrigger: new (window as any).TimestampTrigger(reminderTime.getTime() + 1000),
-                data: { url: "/tabe-gotchi" },
-                vibrate: [200, 100, 200]
-              } as any);
-            }
-          } catch (_) {}
         }
       } catch (_) {}
     }
