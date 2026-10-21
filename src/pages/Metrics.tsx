@@ -550,7 +550,7 @@ export default function Metrics() {
                               {(item.pomodoros > 0 || item.flashcards > 0) && (
                                 <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-normal">
                                   {item.pomodoros > 0 ? `${item.pomodoros} pom` : ""}
-                                  {item.pomodoros > 0 && item.flashcards > 0 ? " · " : ""}
+                                  {item.pomodoros > 0 && item.flashcards > 0 ? " \u00b7 " : ""}
                                   {item.flashcards > 0 ? `${item.flashcards} flash` : ""}
                                 </span>
                               )}
