@@ -130,7 +130,7 @@ serve(async (req) => {
 
     let systemPrompt = "";
     let responseSchema: any = null;
-    const generationCount = count || (type === 'flashcards' ? 10 : 5);
+    const generationCount = count ? Math.min(Math.max(Number(count), 1), 80) : (type === 'flashcards' ? 10 : 5);
 
     if (type === 'flashcards') {
       systemPrompt = `Eres un tutor experto. Analiza el texto proporcionado y extrae los conceptos más importantes para estudiar.
@@ -361,7 +361,7 @@ Devuelve ÚNICAMENTE un objeto JSON con el formato: { "summary": "..." }. Ningun
           }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 16384,
             responseMimeType: "application/json",
             responseSchema: responseSchema
           }
@@ -387,7 +387,7 @@ Devuelve ÚNICAMENTE un objeto JSON con el formato: { "summary": "..." }. Ningun
             }],
             generationConfig: {
               temperature: 0.1,
-              maxOutputTokens: 8192,
+              maxOutputTokens: 16384,
               responseMimeType: "application/json"
             }
           };

@@ -713,7 +713,9 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto), genera EXACTAMENTE la cantidad de preguntas solicitada (si pide 10, hacé 10; si pide 15, hacé 15; si no especifica cantidad, genera al menos 10 preguntas pedagógicas con 4-5 opciones múltiples) y guardá el mazo en su cuenta incluyendo al final:
+8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto/lista de preguntas):
+   - CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios masivos de hasta 80 preguntas completas. Si el usuario pide 10, 20, 40, 50 u 80 preguntas, o si te proporciona un texto o examen con 40, 50 u 80 preguntas, DEBES PROCESAR Y GENERAR LA TOTALIDAD DE LAS PREGUNTAS (hasta 80) sin recortar ni truncar.
+   - OBLIGATORIO: Incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la base de datos de Supabase. NUNCA envíes el JSON suelto como texto de conversación:
 \`\`\`tabe-action:quiz
 {"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
@@ -812,65 +814,114 @@ async function executeActionBlock(
     cleanedContent = cleanedContent.replace(fcRegex, "").trim();
   }
 
-  // 3. Quiz action
+  // 3. Quiz action (soporte robusto de hasta 80 preguntas con batch insert y fallbacks)
+  let quizData: any = null;
   const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)\s*```/;
   const quizMatch = content.match(quizRegex);
+
   if (quizMatch && quizMatch[1]) {
     try {
-      const data = JSON.parse(quizMatch[1].trim());
-      if (data.quiz_name && Array.isArray(data.questions) && data.questions.length > 0) {
-        let subjectId = null;
-        if (data.subject_name) {
-          const { data: subData } = await (supabase as any)
-            .from("subjects")
-            .select("id")
-            .ilike("nombre", `%${data.subject_name.trim()}%`)
-            .limit(1)
-            .maybeSingle();
-          if (subData) subjectId = subData.id;
-        }
+      quizData = JSON.parse(quizMatch[1].trim());
+      cleanedContent = cleanedContent.replace(quizRegex, "").trim();
+    } catch (e) {
+      console.warn("Failed to parse tabe-action:quiz:", e);
+    }
+  }
 
-        const { data: deck } = await (supabase as any)
-          .from("quiz_decks")
-          .insert({
-            user_id: userId,
-            nombre: data.quiz_name,
-            subject_id: subjectId,
-            total_questions: data.questions.length,
-          })
-          .select()
-          .single();
+  // Fallback 1: Si el modelo volcó el JSON en bloque ```json o similar
+  if (!quizData) {
+    const jsonBlockRegex = /```(?:json)?\s*(\{\s*"quiz_name"[\s\S]*?"questions"\s*:\s*\[[\s\S]*?\]\s*\})\s*```/;
+    const jsonMatch = content.match(jsonBlockRegex);
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        quizData = JSON.parse(jsonMatch[1].trim());
+        cleanedContent = cleanedContent.replace(jsonBlockRegex, "").trim();
+      } catch {}
+    }
+  }
 
-        if (deck) {
-          for (const q of data.questions) {
-            const { data: qData } = await (supabase as any)
-              .from("quiz_questions")
-              .insert({
-                deck_id: deck.id,
-                user_id: userId,
-                pregunta: q.pregunta,
-                explicacion: q.explicacion || null,
-              })
-              .select()
-              .single();
+  // Fallback 2: Objeto JSON crudo embebido en el texto de respuesta
+  if (!quizData) {
+    const rawJsonMatch = content.match(/\{\s*"quiz_name"\s*:\s*"[^"]+"\s*,\s*(?:"subject_name"\s*:\s*"[^"]*"\s*,\s*)?"questions"\s*:\s*\[[\s\S]*?\}\s*\]\s*\}/);
+    if (rawJsonMatch) {
+      try {
+        quizData = JSON.parse(rawJsonMatch[0]);
+        cleanedContent = cleanedContent.replace(rawJsonMatch[0], "").trim();
+      } catch {}
+    }
+  }
 
-            if (qData && Array.isArray(q.opciones)) {
-              await (supabase as any).from("quiz_options").insert(
-                q.opciones.map((opt: string, idx: number) => ({
+  if (quizData && quizData.quiz_name && Array.isArray(quizData.questions) && quizData.questions.length > 0) {
+    try {
+      let subjectId = null;
+      if (quizData.subject_name) {
+        const { data: subData } = await (supabase as any)
+          .from("subjects")
+          .select("id")
+          .ilike("nombre", `%${quizData.subject_name.trim()}%`)
+          .limit(1)
+          .maybeSingle();
+        if (subData) subjectId = subData.id;
+      }
+
+      const totalQCount = Math.min(quizData.questions.length, 80);
+      const safeQuestions = quizData.questions.slice(0, 80);
+
+      // 1. Crear Deck
+      const { data: deck } = await (supabase as any)
+        .from("quiz_decks")
+        .insert({
+          user_id: userId,
+          nombre: quizData.quiz_name,
+          subject_id: subjectId,
+          total_questions: totalQCount,
+        })
+        .select()
+        .single();
+
+      if (deck) {
+        // 2. Inserción masiva en lote (Batch) de las preguntas
+        const questionsPayload = safeQuestions.map((q: any) => ({
+          deck_id: deck.id,
+          user_id: userId,
+          pregunta: q.pregunta || "Pregunta sin título",
+          explicacion: q.explicacion || null,
+        }));
+
+        const { data: createdQuestions, error: qErr } = await (supabase as any)
+          .from("quiz_questions")
+          .insert(questionsPayload)
+          .select("id");
+
+        if (createdQuestions && Array.isArray(createdQuestions)) {
+          // 3. Inserción en lote de todas las opciones asociadas
+          const allOptions: any[] = [];
+          createdQuestions.forEach((qData: any, idx: number) => {
+            const originalQ = safeQuestions[idx];
+            if (originalQ && Array.isArray(originalQ.opciones)) {
+              const correctIdx = originalQ.respuesta_correcta ?? originalQ.correcta ?? 0;
+              originalQ.opciones.forEach((optText: string, oIdx: number) => {
+                allOptions.push({
                   question_id: qData.id,
-                  texto: opt,
-                  es_correcta: idx === q.respuesta_correcta,
-                }))
-              );
+                  texto: optText,
+                  es_correcta: oIdx === correctIdx,
+                });
+              });
+            }
+          });
+
+          if (allOptions.length > 0) {
+            for (let i = 0; i < allOptions.length; i += 200) {
+              await (supabase as any).from("quiz_options").insert(allOptions.slice(i, i + 200));
             }
           }
-          quiz_created = { deck, questions_count: data.questions.length };
         }
+
+        quiz_created = { deck, questions_count: totalQCount };
       }
     } catch (e) {
-      console.warn("Failed to parse quiz action:", e);
+      console.warn("Error saving batch quiz action:", e);
     }
-    cleanedContent = cleanedContent.replace(quizRegex, "").trim();
   }
 
   if (event_created || flashcards_created || quiz_created) {
@@ -1058,11 +1109,17 @@ async function streamFromNvidiaProxy(opts: {
       ...messages,
     ];
 
+    // Detectar si el usuario pide generación masiva de preguntas (hasta 80) o contenido extenso
+    const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+    const isBulkContent = /\b(quiz|cuestionario|cuestionarios|flashcards?|simulacro|parcial|preguntas?|evaluaci[oó]n|80|70|60|50|40)\b/i.test(lastUserText);
+
     const temperature = powerLevel === "bajo" ? 0.2 : powerLevel === "alto" ? 0.35 : 0.25;
-    const maxTokens = powerLevel === "bajo" ? 180 : 4096;
+    // Hasta 16384 tokens para permitir cuestionarios de hasta 80 preguntas sin truncamiento
+    const maxTokens = isBulkContent ? 16384 : (powerLevel === "bajo" ? 180 : 8192);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), powerLevel === "bajo" ? 6000 : 12000);
+    const initialTimeoutMs = isBulkContent ? 60000 : (powerLevel === "bajo" ? 8000 : 25000);
+    let timeoutId = setTimeout(() => controller.abort(), initialTimeoutMs);
 
     const response = await fetch("/api/nvidia-ai", {
       method: "POST",
@@ -1080,9 +1137,8 @@ async function streamFromNvidiaProxy(opts: {
       }),
     });
 
-    clearTimeout(timeoutId);
-
     if (!response.ok || !response.body) {
+      clearTimeout(timeoutId);
       return false;
     }
 
@@ -1092,8 +1148,15 @@ async function streamFromNvidiaProxy(opts: {
     let receivedContent = false;
 
     while (true) {
+      // Renovar el timeout con cada fragmento de streaming recibido (35s de inactividad máxima entre tokens)
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => controller.abort(), isBulkContent ? 45000 : 15000);
+
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        clearTimeout(timeoutId);
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       let newlineIndex: number;
       while ((newlineIndex = buffer.indexOf("\n")) !== -1) {

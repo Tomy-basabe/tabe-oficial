@@ -595,7 +595,7 @@ serve(async (req) => {
       "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
       "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
       "9. GESTIÓN ILIMITADA Y EXACTA DE FLASHCARDS Y CUESTIONARIOS:\n" +
-      "   - CUMPLIMIENTO ESTRICTO DE CANTIDAD SOLICITADA: Si el estudiante te pide una cantidad específica de flashcards o preguntas de cuestionario (ej: 'haceme 10 flashcards', 'creame 20 flashcards de este PDF', 'haceme 15 preguntas de quiz de esta imagen', 'creame 30 preguntas de este texto'), DEBES GENERAR EXACTAMENTE ESA CANTIDAD en el llamado a la herramienta ('cards' o 'questions'). Analizá todo el contenido adjunto (PDF, imagen o texto) minuciosamente para extraer cada tema hasta alcanzar la cantidad exacta pedida. NUNCA resumas ni recortes a menos cartas o preguntas de las solicitadas.\n" +
+      "   - CUMPLIMIENTO ESTRICTO DE CANTIDAD SOLICITADA: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios y flashcards de hasta 80 preguntas completas. Si el estudiante te pide una cantidad específica (ej: 10, 20, 30, 50 u 80 preguntas de quiz), DEBES GENERAR EXACTAMENTE ESA CANTIDAD en el llamado a la herramienta ('cards' o 'questions'). Analizá todo el contenido adjunto minuciosamente para extraer cada tema hasta alcanzar la cantidad exacta pedida. NUNCA resumas ni recortes a menos preguntas de las solicitadas.\n" +
       "   - Si el estudiante no especifica cantidad pero adjunta un material o tema extenso, generá al menos 10 a 15 flashcards o 10 preguntas de quiz para asegurar una cobertura completa y profunda.\n" +
       "   - ACCIÓN DIRECTA OBLIGATORIA: Cuando el usuario pide crear flashcards o cuestionarios a partir de un PDF, imagen o texto, LLAMÁ SIEMPRE a 'create_flashcards' o 'create_quiz'. NUNCA respondas sólo texto explicando lo que harías ni las dejes en un mensaje de texto sin llamar a la herramienta; deben crearse directamente en la base de datos para que el usuario las tenga en su mazo.\n" +
       "   - Si pide una cantidad masiva como 50 o 100 cartas, creá el primer lote completo en el llamado de la herramienta y explícale con entusiasmo que ya se guardaron.\n" +
@@ -722,7 +722,7 @@ serve(async (req) => {
               subject_id: { type: "string", description: "Nombre materia" },
               questions: {
                 type: "array",
-                description: "Array con la cantidad exacta de preguntas pedidas por el usuario (ej: 5, 10, 15, 20, etc.)",
+                description: "Array con la cantidad exacta de preguntas pedidas por el usuario (soporta de 1 hasta 80 preguntas completas)",
                 items: {
                   type: "object",
                   properties: {
@@ -981,7 +981,7 @@ serve(async (req) => {
               tools: isCareerImport ? undefined : tools,
               tool_choice: isCareerImport ? undefined : "auto",
               temperature: 0.2,
-              max_tokens: 8192,
+              max_tokens: 16384,
               stream: true
             })
           });
@@ -1000,7 +1000,7 @@ serve(async (req) => {
                 model: geminiModel,
                 messages: groqMessages,
                 temperature: 0.4,
-                max_tokens: 8192,
+                max_tokens: 16384,
                 stream: true
               })
             });
@@ -1036,7 +1036,7 @@ serve(async (req) => {
             model: nvModel,
             messages: groqMessages,
             temperature,
-            max_tokens: 8192,
+            max_tokens: 16384,
             stream: true,
           };
           if (shouldPassTools) {
@@ -1063,7 +1063,7 @@ serve(async (req) => {
                 model: nvModel,
                 messages: groqMessages,
                 temperature,
-                max_tokens: 8192,
+                max_tokens: 16384,
                 stream: true
               })
             });
@@ -1089,7 +1089,7 @@ serve(async (req) => {
             model: groqModel,
             messages: groqMessages,
             temperature,
-            max_tokens: 8192,
+            max_tokens: 16384,
             stream: true,
           };
 
@@ -1120,7 +1120,7 @@ serve(async (req) => {
                 model: groqModel,
                 messages: groqMessages,
                 temperature,
-                max_tokens: 8192,
+                max_tokens: 16384,
                 stream: true
               })
             });
@@ -1160,7 +1160,7 @@ serve(async (req) => {
               tools: tools,
               tool_choice: "auto",
               temperature: 0.5,
-              max_tokens: 8192,
+              max_tokens: 16384,
               stream: true
             })
           });
@@ -1176,7 +1176,7 @@ serve(async (req) => {
                 model: geminiModel,
                 messages: groqMessages,
                 temperature: 0.5,
-                max_tokens: 8192,
+                max_tokens: 16384,
                 stream: true
               })
             });
@@ -1205,7 +1205,7 @@ serve(async (req) => {
             model: "google/gemini-2.0-flash-001",
             messages: groqMessages,
             temperature: 0.5,
-            max_tokens: 8192,
+            max_tokens: 16384,
             stream: true
           })
         });
@@ -1423,26 +1423,47 @@ serve(async (req) => {
                 }
 
                 if (quizDeck) {
-                  const questionsToCreate = args.questions || [];
+                  const rawQuestions = args.questions || [];
+                  const questionsToCreate = rawQuestions.slice(0, 80);
                   let inserted = 0;
-                  for (const q of questionsToCreate) {
-                    const { data: question } = await serviceClient.from("quiz_questions").insert({
-                      deck_id: quizDeck.id, user_id: userId, pregunta: q.pregunta, explicacion: q.explicacion || null
-                    }).select().single();
-                    if (question) {
-                      inserted++;
-                      if (q.opciones && Array.isArray(q.opciones)) {
-                        const opts = q.opciones.map((o: string, i: number) => ({
-                          question_id: question.id, texto: o, es_correcta: i === (q.correcta || 0)
-                        }));
-                        await serviceClient.from("quiz_options").insert(opts);
+
+                  if (questionsToCreate.length > 0) {
+                    const qPayload = questionsToCreate.map((q: any) => ({
+                      deck_id: quizDeck.id,
+                      user_id: userId,
+                      pregunta: q.pregunta || "Pregunta",
+                      explicacion: q.explicacion || null
+                    }));
+
+                    const { data: createdQs } = await serviceClient.from("quiz_questions").insert(qPayload).select("id");
+                    if (createdQs && Array.isArray(createdQs)) {
+                      inserted = createdQs.length;
+                      const allOpts: any[] = [];
+                      createdQs.forEach((qCreated: any, idx: number) => {
+                        const qOrig = questionsToCreate[idx];
+                        if (qOrig && Array.isArray(qOrig.opciones)) {
+                          const corrIdx = qOrig.correcta ?? qOrig.respuesta_correcta ?? 0;
+                          qOrig.opciones.forEach((optText: string, oIdx: number) => {
+                            allOpts.push({
+                              question_id: qCreated.id,
+                              texto: optText,
+                              es_correcta: oIdx === corrIdx
+                            });
+                          });
+                        }
+                      });
+                      if (allOpts.length > 0) {
+                        for (let i = 0; i < allOpts.length; i += 200) {
+                          await serviceClient.from("quiz_options").insert(allOpts.slice(i, i + 200));
+                        }
                       }
                     }
                   }
+
                   const { count: realQCount } = await serviceClient.from("quiz_questions").select("id", { count: "exact", head: true }).eq("deck_id", quizDeck.id);
                   const finalTotal = realQCount ?? ((quizDeck.total_questions || 0) + inserted);
                   await serviceClient.from("quiz_decks").update({ total_questions: finalTotal }).eq("id", quizDeck.id);
-                  toolResult = `\nCuestionario "${quizDeck.nombre}" guardado: se agregaron ${inserted} preguntas (total en cuestionario: ${finalTotal}).`;
+                  toolResult = `\nCuestionario "${quizDeck.nombre}" guardado con éxito: se registraron ${inserted} preguntas (total acumulado: ${finalTotal}).`;
                 } else {
                   toolResult = `\nNo se pudo crear o encontrar el cuestionario.`;
                 }

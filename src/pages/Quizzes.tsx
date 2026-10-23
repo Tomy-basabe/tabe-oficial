@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClipboardList, Plus,  GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle, Filter, Timer, ListChecks } from "lucide-react";
+    Edit, AlertCircle, Filter, Timer, ListChecks, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,6 +206,8 @@ export default function Quizzes() {
         options: { texto: string; es_correcta: boolean }[];
     }
     const [creationQuestions, setCreationQuestions] = useState<DraftQuestion[]>([]);
+    const [showJsonImportModal, setShowJsonImportModal] = useState(false);
+    const [jsonImportText, setJsonImportText] = useState("");
 
     // Manage questions state
     const [manageDeck, setManageDeck] = useState<QuizDeck | null>(null);
@@ -547,6 +549,103 @@ export default function Quizzes() {
         setQuestionFormOpen(true);
     };
 
+        const handleImportJsonQuestions = () => {
+        if (!jsonImportText.trim()) {
+            toast.error("Pega un contenido JSON de preguntas primero");
+            return;
+        }
+        try {
+            let cleanJson = jsonImportText.trim();
+            // Limpiar bloques de markdown si el usuario pegó ```json ... ```
+            if (cleanJson.startsWith("```")) {
+                cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+            }
+            const parsed = JSON.parse(cleanJson);
+            let rawList: any[] = [];
+            let autoName = "";
+            let autoSubject = "";
+
+            if (Array.isArray(parsed)) {
+                rawList = parsed;
+            } else if (parsed && Array.isArray(parsed.questions)) {
+                rawList = parsed.questions;
+                if (parsed.quiz_name) autoName = parsed.quiz_name;
+                if (parsed.subject_name) autoSubject = parsed.subject_name;
+            } else if (parsed && Array.isArray(parsed.cuestionario)) {
+                rawList = parsed.cuestionario;
+                if (parsed.quiz_name) autoName = parsed.quiz_name;
+            } else {
+                toast.error("Formato JSON inválido: debe contener un array de preguntas");
+                return;
+            }
+
+            if (rawList.length === 0) {
+                toast.error("No se encontraron preguntas en el JSON");
+                return;
+            }
+
+            const limitList = rawList.slice(0, 80);
+            const mappedDrafts: DraftQuestion[] = limitList.map((item: any) => {
+                const qText = item.pregunta || item.question || "Pregunta sin título";
+                const qExp = item.explicacion || item.explanation || "";
+                const isMulti = !!item.is_multi_select;
+                let opts: { texto: string; es_correcta: boolean }[] = [];
+
+                if (Array.isArray(item.opciones)) {
+                    const corrIdx = item.correcta ?? item.respuesta_correcta ?? 0;
+                    opts = item.opciones.map((o: any, idx: number) => ({
+                        texto: typeof o === "string" ? o : (o.texto || `Opción ${idx + 1}`),
+                        es_correcta: typeof o === "object" && o.es_correcta !== undefined ? !!o.es_correcta : idx === corrIdx
+                    }));
+                } else if (Array.isArray(item.options)) {
+                    opts = item.options.map((o: any, idx: number) => ({
+                        texto: typeof o === "string" ? o : (o.texto || `Opción ${idx + 1}`),
+                        es_correcta: typeof o === "object" && o.es_correcta !== undefined ? !!o.es_correcta : false
+                    }));
+                } else {
+                    opts = [
+                        { texto: "Verdadero", es_correcta: true },
+                        { texto: "Falso", es_correcta: false }
+                    ];
+                }
+
+                // Garantizar al menos una opción correcta
+                if (!opts.some(o => o.es_correcta) && opts.length > 0) {
+                    opts[0].es_correcta = true;
+                }
+
+                return {
+                    pregunta: qText,
+                    explicacion: qExp,
+                    is_multi_select: isMulti,
+                    options: opts
+                };
+            });
+
+            if (autoName && !newDeckName.trim()) {
+                setNewDeckName(autoName);
+            }
+            if (autoSubject && !newDeckSubject) {
+                const found = subjects.find(s => s.nombre.toLowerCase().includes(autoSubject.toLowerCase()));
+                if (found) {
+                    setNewDeckSubject(found.id);
+                    if (found.año) setNewDeckYear(found.año);
+                }
+            }
+
+            setCreationQuestions(prev => {
+                const combined = [...prev, ...mappedDrafts];
+                return combined.slice(0, 80);
+            });
+
+            toast.success(`¡Se importaron ${mappedDrafts.length} preguntas exitosamente! (Total: ${Math.min(creationQuestions.length + mappedDrafts.length, 80)}/80)`);
+            setJsonImportText("");
+            setShowJsonImportModal(false);
+        } catch (e: any) {
+            toast.error("Error al procesar el JSON: " + (e?.message || "Revisa la sintaxis"));
+        }
+    };
+
     const openAddQuestionForDraft = () => {
         setQuestionFormTarget('draft');
         setEditingQuestion(null);
@@ -809,22 +908,34 @@ export default function Quizzes() {
         }
 
         if (creationQuestions.length > 0) {
-            for (const qDraft of creationQuestions) {
-                const { data: q, error: qErr } = await supabase.from("quiz_questions").insert({
-                    deck_id: deckData.id,
-                    user_id: user.id,
-                    pregunta: qDraft.pregunta.trim(),
-                    explicacion: qDraft.explicacion.trim() || null,
-                    is_multi_select: qDraft.is_multi_select
-                } as any).select().single();
+            const safeQuestions = creationQuestions.slice(0, 80);
+            const qPayload = safeQuestions.map(qDraft => ({
+                deck_id: deckData.id,
+                user_id: user.id,
+                pregunta: qDraft.pregunta.trim(),
+                explicacion: qDraft.explicacion ? qDraft.explicacion.trim() : null,
+                is_multi_select: !!qDraft.is_multi_select
+            }));
 
-                if (q && !qErr) {
-                    const optionsToInsert = qDraft.options.map(o => ({
-                        question_id: q.id,
-                        texto: o.texto.trim(),
-                        es_correcta: o.es_correcta
-                    }));
-                    await supabase.from("quiz_options").insert(optionsToInsert);
+            const { data: createdQs } = await supabase.from("quiz_questions").insert(qPayload as any).select("id");
+            if (createdQs && Array.isArray(createdQs)) {
+                const allOpts: any[] = [];
+                createdQs.forEach((qItem, idx) => {
+                    const qDraft = safeQuestions[idx];
+                    if (qDraft && Array.isArray(qDraft.options)) {
+                        qDraft.options.forEach(o => {
+                            allOpts.push({
+                                question_id: qItem.id,
+                                texto: o.texto.trim(),
+                                es_correcta: !!o.es_correcta
+                            });
+                        });
+                    }
+                });
+                if (allOpts.length > 0) {
+                    for (let i = 0; i < allOpts.length; i += 200) {
+                        await supabase.from("quiz_options").insert(allOpts.slice(i, i + 200));
+                    }
                 }
             }
         }
@@ -1999,14 +2110,25 @@ export default function Quizzes() {
                                                 : `${creationQuestions.length} pregunta(s) lista(s)`}
                                         </p>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={openAddQuestionForDraft}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-xs rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 transition-colors shadow-2xs"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Agregar Pregunta
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowJsonImportModal(true)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-xs rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 transition-colors shadow-2xs cursor-pointer"
+                                            title="Importar preguntas desde JSON de IA (soporta hasta 80 preguntas)"
+                                        >
+                                            <FileUp className="w-3.5 h-3.5 text-primary" />
+                                            Importar Lote (hasta 80)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={openAddQuestionForDraft}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-xs rounded-lg transition-colors shadow-2xs cursor-pointer"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Agregar Pregunta
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {creationQuestions.length > 0 && (
@@ -2066,6 +2188,48 @@ export default function Quizzes() {
                                 : "Crear Cuestionario"}
                         </button>
                     </div>
+
+                {/* Modal Importador de Preguntas JSON (hasta 80 preguntas) */}
+                <Dialog open={showJsonImportModal} onOpenChange={setShowJsonImportModal}>
+                    <DialogContent className="sm:max-w-lg bg-white dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800">
+                        <DialogHeader>
+                            <DialogTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <FileUp className="w-4 h-4 text-primary" />
+                                Importar Preguntas en Lote (hasta 80)
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3 pt-2">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                                Pegá un bloque JSON con el formato de preguntas (de la IA o banco de preguntas). El sistema detectará automáticamente las preguntas, opciones, respuestas correctas y explicaciones pedagógicas.
+                            </p>
+                            <textarea
+                                value={jsonImportText}
+                                onChange={(e) => setJsonImportText(e.target.value)}
+                                placeholder='{\n  "quiz_name": "Parcial 2",\n  "questions": [\n    {\n      "pregunta": "¿...?",\n      "opciones": ["A", "B", "C", "D"],\n      "correcta": 0,\n      "explicacion": "..."\n    }\n  ]\n}'
+                                rows={10}
+                                className="w-full p-3 font-mono text-[11px] bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-800 dark:text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-primary resize-none"
+                            />
+                            <div className="flex items-center justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { setJsonImportText(""); setShowJsonImportModal(false); }}
+                                    className="px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleImportJsonQuestions}
+                                    className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                                >
+                                    <FileUp className="w-3.5 h-3.5" />
+                                    Cargar Preguntas
+                                </button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 </DialogContent>
             </Dialog>
 

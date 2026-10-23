@@ -1,0 +1,520 @@
+{
+  "quiz_name": "Parcial 2 - Redes de Datos",
+  "subject_name": "Redes de Datos",
+  "total_questions": 46,
+  "questions": [
+    {
+      "num": 1,
+      "pregunta": "Respecto a SSL/TLS y el cifrado de segmentos TCP, ¿cuál de las siguientes afirmaciones es correcta?",
+      "opciones": [
+        "Cifra por completo la carga útil de los segmentos; solo es legible el encabezado.",
+        "Cifra por completo los segmentos (encabezado y carga útil), nadie que capture el tráfico puede leerlos.",
+        "Cifra el encabezado pero deja la carga útil en claro.",
+        "Solo comprime los datos, no realiza cifrado."
+      ],
+      "correcta": 0,
+      "explicacion": "SSL es una capa entre aplicación y transporte que se encarga de compresión y encriptación. Cifra la carga útil, pero no el encabezado, así que un atacante puede ver datos como las IP."
+    },
+    {
+      "num": 2,
+      "pregunta": "¿Por qué HTTP no persistente se clasifica como un protocolo \"sin estado\" (stateless)?",
+      "opciones": [
+        "Verdadero: El servidor no guarda información de los clientes ni de los mensajes previos (no tiene memoria de estado).",
+        "Falso: El servidor guarda el historial de peticiones del cliente en memoria persistente."
+      ],
+      "correcta": 0,
+      "explicacion": "HTTP es sin estado porque el servidor no guarda información de los clientes ni de los mensajes, procesando cada solicitud de manera independiente."
+    },
+    {
+      "num": 3,
+      "pregunta": "¿Cuáles de los siguientes son protocolos estándar utilizados en la arquitectura de correo electrónico?",
+      "opciones": [
+        "IMAP, SMTP y POP3",
+        "SMI, HTTPS y SNMP",
+        "IMAP, SMI y HTTPS",
+        "SMTP, POP3 y SNMP"
+      ],
+      "correcta": 0,
+      "explicacion": "Los protocolos estándar de correo son SMTP (transferencia y envío), IMAP (acceso y gestión en servidor) y POP3 (descarga y acceso). SMI y SNMP corresponden a gestión de red."
+    },
+    {
+      "num": 4,
+      "pregunta": "Si se intenta realizar una transacción POP3 mediante `telnet pop3.yahoo.com 143`, ¿la conexión a dicho servicio es correcta?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: POP3 utiliza el puerto 110 por defecto. El puerto 143 corresponde al protocolo IMAP."
+    },
+    {
+      "num": 5,
+      "pregunta": "En las aplicaciones modernas de chat y mensajería (WhatsApp, Telegram, Slack), ¿qué soporte de canales ofrecen?",
+      "opciones": [
+        "Tienen soporte para múltiples canales de chat (grupales/servidores) y mensajería privada.",
+        "Tienen exclusivamente canales únicos y mensajería privada uno a uno.",
+        "Solo permiten difusión unidireccional sin canales privados.",
+        "No soportan mensajería privada."
+      ],
+      "correcta": 0,
+      "explicacion": "WhatsApp, Telegram o Slack soportan tanto chats privados entre dos partes como múltiples canales grupales y comunidades."
+    },
+    {
+      "num": 6,
+      "pregunta": "¿Cuál es la relación de un socket como puerta de enlace entre el proceso de aplicación y la capa de transporte?",
+      "opciones": [
+        "Comunica el proceso de aplicación con el protocolo de transporte de extremo a extremo (sea TCP o UDP).",
+        "Comunica exclusivamente con el protocolo TCP.",
+        "Es un protocolo de enrutamiento interno.",
+        "Solo opera con protocolos de enlace de datos."
+      ],
+      "correcta": 0,
+      "explicacion": "El socket sirve como interfaz con cualquier protocolo de transporte de extremo a extremo (como TCP o UDP), no exclusivamente con TCP."
+    },
+    {
+      "num": 7,
+      "pregunta": "¿Cuáles son las estructuras de red paradigmáticas en el desarrollo de aplicaciones distribuidas?",
+      "opciones": [
+        "Cliente-Servidor y Peer-to-Peer (P2P)",
+        "Hilos y Maestro-Esclavo",
+        "Cliente-Servidor y Hilos",
+        "Maestro-Esclavo y P2P"
+      ],
+      "correcta": 0,
+      "explicacion": "En Cliente-Servidor el servidor está siempre activo con IP fija y conocida. En P2P cada par actúa como cliente y servidor simultáneamente."
+    },
+    {
+      "num": 8,
+      "pregunta": "Se afirma que HTTP es fundamentalmente un protocolo de tipo \"pull\". ¿Esta afirmación es correcta?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: En el modelo pull el cliente solicita activamente la información cargada en el servidor web cuando la necesita."
+    },
+    {
+      "num": 9,
+      "pregunta": "En una sesión FTP, si un cliente transfiere 4 archivos, ¿cuántas conexiones TCP totales se establecen?",
+      "opciones": [
+        "5 conexiones (1 de control + 4 de datos)",
+        "4 conexiones",
+        "3 conexiones",
+        "1 conexión",
+        "2 conexiones"
+      ],
+      "correcta": 0,
+      "explicacion": "FTP utiliza 1 conexión de control fija que dura toda la sesión y 1 conexión de datos independiente por cada archivo transferido: 1 + 4 = 5 conexiones TCP."
+    },
+    {
+      "num": 10,
+      "pregunta": "Los servidores FTP se caracterizan por conexiones rápidas, uso de comandos estandarizados, capacidad de subida/bajada y compatibilidad con cualquier SO.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: FTP es un protocolo de estándar abierto multiplataforma diseñado específicamente para transferir archivos mediante comandos de control y flujo de datos."
+    },
+    {
+      "num": 11,
+      "pregunta": "¿Cómo se controla de manera integral la congestión en las redes de datos?",
+      "opciones": [
+        "Se controla mediante asignación de ancho de banda, regulación de la tasa de transmisión y cuestiones de medios inalámbricos.",
+        "Se controla solamente mediante la asignación estática de ancho de banda.",
+        "Solo se controla descartando paquetes en los conmutadores.",
+        "No requiere mecanismos activos de regulación."
+      ],
+      "correcta": 0,
+      "explicacion": "Existen mecanismos de control de congestión terminal a terminal y asistido por la red, combinados con regulación de tasa, control de flujo y algoritmos de gestión de colas."
+    },
+    {
+      "num": 12,
+      "pregunta": "¿Qué capas del modelo de red intervienen en la problemática y control de la congestión?",
+      "opciones": [
+        "Son dos: Transporte (controla la carga ofrecida) y Red (donde se experimenta la congestión en los routers).",
+        "Hay solamente una capa responsable: la de transporte.",
+        "Únicamente la capa de enlace de datos.",
+        "Solo la capa de aplicación."
+      ],
+      "correcta": 0,
+      "explicacion": "La congestión se sufre en la capa de red (colas de enrutadores saturadas), mientras que la capa de transporte (como TCP) es la que reacciona reduciendo la carga ofrecida."
+    },
+    {
+      "num": 13,
+      "pregunta": "Sobre Weighted Fair Queuing (WFQ) en capa de enlace: ¿funciona como un Round Robin con prioridad absoluta estricta?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: WFQ asigna un peso wᵢ a cada clase y le otorga una fracción proporcional wᵢ/Σwⱼ de servicio, repartiendo el ancho de banda proporcionalmente sin conceder prioridad absoluta."
+    },
+    {
+      "num": 14,
+      "pregunta": "En un servicio orientado a la conexión, ¿cuáles son las primitivas que invoca el CLIENTE?",
+      "opciones": [
+        "Connect, Send, Receive, Disconnect",
+        "Listen, Receive, Send, Disconnect",
+        "Listen, Connect, Accept",
+        "Bind, Listen, Accept"
+      ],
+      "correcta": 0,
+      "explicacion": "Listen y Accept corresponden al servidor pasivo. El cliente ejecuta Connect para iniciar la conexión, luego Send/Receive y finalmente Disconnect."
+    },
+    {
+      "num": 15,
+      "pregunta": "En un servicio orientado a la conexión, ¿cuáles son las primitivas que invoca el SERVIDOR?",
+      "opciones": [
+        "Listen, Accept/Receive, Send, Disconnect",
+        "Connect, Send, Receive",
+        "Solo Connect y Disconnect",
+        "Send exclusivamente"
+      ],
+      "correcta": 0,
+      "explicacion": "El servidor se configura a la escucha con Listen y recibe solicitudes con Accept/Receive, además de Send y Disconnect. Connect es propia del cliente."
+    },
+    {
+      "num": 16,
+      "pregunta": "¿Cómo se clasifican teóricamente los algoritmos de enrutamiento según Kurose-Ross?",
+      "opciones": [
+        "Globales vs. descentralizados, estáticos vs. dinámicos, y sensibles vs. insensibles a la carga.",
+        "Únicamente cliente vs. servidor y punto a punto.",
+        "Solo orientados a conexión y no orientados a conexión.",
+        "De capa física y de capa de aplicación."
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: Globales (visión total de topología) vs descentralizados (vecinos); estáticos (cambios lentos) vs dinámicos (reacción rápida); sensibles o insensibles a la carga de tráfico."
+    },
+    {
+      "num": 17,
+      "pregunta": "¿Cuáles son las familias de algoritmos de enrutamiento efectivamente implementadas en Internet?",
+      "opciones": [
+        "Estado de enlaces (global dinámico) y vector de distancias (descentralizado dinámico).",
+        "Todos los modelos teóricos posibles de manera indistinta.",
+        "Únicamente algoritmos estáticos basados en tablas fijas.",
+        "Algoritmos de flooding exclusivamente."
+      ],
+      "correcta": 0,
+      "explicacion": "En la práctica de Internet se utilizan dos familias principales: estado de enlaces (Link-State, como OSPF) y vector de distancias (Distance Vector, como BGP/RIP)."
+    },
+    {
+      "num": 18,
+      "pregunta": "En una red de datagramas (como IP), ¿con qué dirección obligatoria debe marcarse cada paquete para su encaminamiento?",
+      "opciones": [
+        "Dirección del sistema terminal de destino.",
+        "Dirección del sistema terminal de origen exclusivamente.",
+        "Identificador de circuito virtual local.",
+        "Número de secuencia del puerto."
+      ],
+      "correcta": 0,
+      "explicacion": "La dirección de destino es el elemento mínimo e indispensable para que los enrutadores tomen decisiones de reenvío en cada salto."
+    },
+    {
+      "num": 19,
+      "pregunta": "¿En qué entidades de la red se implementan los protocolos de la capa de transporte (TCP y UDP)?",
+      "opciones": [
+        "Únicamente en los sistemas terminales (hosts clientes y servidores).",
+        "En todos los routers y conmutadores intermedios.",
+        "Exclusivamente en los switches de capa de enlace.",
+        "En los servidores DNS centrales únicamente."
+      ],
+      "correcta": 0,
+      "explicacion": "La capa de transporte es de extremo a extremo y reside exclusivamente en los sistemas terminales (hosts). Los routers intermedios operan hasta la capa de red (capa 3)."
+    },
+    {
+      "num": 20,
+      "pregunta": "¿Cuál es la función del protocolo ICMP en la capa de red?",
+      "opciones": [
+        "Intercambia información de diagnóstico y control entre elementos de red (reporte de errores como host inalcanzable y echo request/reply).",
+        "Enruta paquetes de datos de usuario a alta velocidad sustituyendo a IP.",
+        "Establece circuitos virtuales permanentes.",
+        "Realiza compresión de carga útil en el transporte."
+      ],
+      "correcta": 0,
+      "explicacion": "ICMP es usado por hosts y routers para comunicar información de nivel de red: mensajes de error y utilidades de diagnóstico como ping (echo request/reply)."
+    },
+    {
+      "num": 21,
+      "pregunta": "Respecto a la diferencia conceptual entre Reenvío (Forwarding) y Enrutamiento (Routing):",
+      "opciones": [
+        "Reenvío traslada paquetes del enlace de entrada al de salida apropiado; Enrutamiento determina la ruta global calculada por algoritmos.",
+        "Enrutamiento es la acción local de mover un paquete de la interfaz de entrada a la de salida.",
+        "Son términos completamente sinónimos e intercambiables.",
+        "El reenvío calcula caminos de costo mínimo."
+      ],
+      "correcta": 0,
+      "explicacion": "El enrutamiento (plano de control) calcula rutas de origen a destino. El reenvío (plano de datos) transfiere localmente el paquete al puerto de salida según la tabla de reenvío."
+    },
+    {
+      "num": 22,
+      "pregunta": "¿Cuáles de los siguientes campos forman parte del encabezado de un segmento TCP?",
+      "opciones": [
+        "Número de secuencia, Número de puerto de origen, y Número de acuse de recibo (ACK).",
+        "Dirección IP de origen y Dirección IP de destino.",
+        "Dirección MAC de origen y MAC de destino.",
+        "TTL y Longitud total del datagrama."
+      ],
+      "correcta": 0,
+      "explicacion": "Las direcciones IP pertenecen al encabezado de la capa de red (IP), mientras que puertos, número de secuencia y ACK pertenecen al encabezado TCP."
+    },
+    {
+      "num": 23,
+      "pregunta": "En la API de sockets Berkeley, ¿qué acción realiza la primitiva `bind`?",
+      "opciones": [
+        "Asocia una dirección y puerto local con un socket ya creado.",
+        "Crea un nuevo punto final de comunicación.",
+        "Envía datos a través de la conexión activa.",
+        "Cierra la conexión existente."
+      ],
+      "correcta": 0,
+      "explicacion": "`socket()` crea el endpoint. `bind()` le asocia la dirección IP y el número de puerto local al socket."
+    },
+    {
+      "num": 24,
+      "pregunta": "Internet opera como una red de datagramas sin conexión a nivel de red, mientras que ATM y Frame Relay emplean circuitos virtuales orientados a conexión.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: El protocolo IP de Internet no establece conexión previa por circuito, a diferencia de ATM y Frame Relay basados en circuitos virtuales."
+    },
+    {
+      "num": 25,
+      "pregunta": "En el modelo cliente-servidor, ¿un proceso servidor solicita y recibe servicios de un proceso cliente?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: Es el proceso cliente el que solicita y recibe los servicios provistos por el servidor."
+    },
+    {
+      "num": 26,
+      "pregunta": "OSPF es un protocolo de enrutamiento inter-dominio (exterior/inter-AS).",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: OSPF es un protocolo intra-AS (interior). El protocolo de enrutamiento exterior/inter-AS de Internet es BGP."
+    },
+    {
+      "num": 27,
+      "pregunta": "¿Cuáles son las 3 fases secuenciales en la operación de una red de circuitos virtuales?",
+      "opciones": [
+        "Configuración del CV, Transferencia de datos, y Terminación del CV.",
+        "Determinación del camino, Encaminamiento, y Llamada.",
+        "Envío sin conexión, Acuse de recibo, y Cierre.",
+        "Handshake SYN, Datos, y Handshake FIN."
+      ],
+      "correcta": 0,
+      "explicacion": "Los circuitos virtuales requieren primero configuración/establecimiento (setup), luego transferencia de datos y finalmente liberación/terminación (teardown)."
+    },
+    {
+      "num": 28,
+      "pregunta": "El bloqueo de cabeza de línea (HOL blocking) es un protocolo de capa de red que demora paquetes.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: HOL blocking es un fenómeno de contención en las colas de entrada de los enrutadores/conmutadores, no un protocolo."
+    },
+    {
+      "num": 29,
+      "pregunta": "La capa de red de TCP/IP (IP) ofrece únicamente un servicio orientado a la conexión.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: IP es un protocolo de datagramas no orientado a conexión (connectionless)."
+    },
+    {
+      "num": 30,
+      "pregunta": "En la arquitectura Cliente-Servidor, ¿el tiempo de distribución de archivos disminuye a medida que aumenta el número de pares/clientes?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: En cliente-servidor el servidor debe enviar una copia a cada cliente, saturando su ancho de banda de subida; el tiempo disminuye con más pares en redes P2P."
+    },
+    {
+      "num": 31,
+      "pregunta": "¿Qué tipo de servicio ofrece la capa de red de Internet (IP)?",
+      "opciones": [
+        "Servicio de mejor esfuerzo (best-effort): no garantiza temporización, orden ni entrega.",
+        "Servicio confiable con temporización y orden garantizados.",
+        "Servicio de circuito virtual con ancho de banda reservado.",
+        "Servicio orientado a conexión con control de flujo estricto."
+      ],
+      "correcta": 0,
+      "explicacion": "IP provee un servicio de mejor esfuerzo: hace su mejor intento por entregar datagramas, pero no garantiza entrega, orden ni latencia."
+    },
+    {
+      "num": 32,
+      "pregunta": "La arquitectura TCP/IP provee un protocolo de transporte de extremo a extremo, no orientado a conexión y no confiable llamado UDP.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: UDP (User Datagram Protocol) es no orientado a conexión y no confiable, a diferencia de TCP."
+    },
+    {
+      "num": 33,
+      "pregunta": "El sistema DNS permite resolver la dirección IP a partir de un nombre de host, y también obtener el nombre de host a partir de una IP (resolución inversa).",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: DNS realiza resolución directa (nombre a IP con registros A/AAAA) y resolución inversa (IP a nombre con registros PTR)."
+    },
+    {
+      "num": 34,
+      "pregunta": "En gestión de redes, ¿cuáles son las áreas funcionales estándar (modelo FCAPS)?",
+      "opciones": [
+        "Gestión de Fallos, Configuración, Cuentas/Contabilidad, Rendimiento y Seguridad.",
+        "Detección de fallos, monitorización de hosts, tráfico y cambios de tablas (estas son herramientas).",
+        "Gestión de correos y servidores web únicamente.",
+        "Capa física y capa de enlace exclusivamente."
+      ],
+      "correcta": 0,
+      "explicacion": "El estándar ISO/FCAPS define cinco áreas funcionales: Fault, Configuration, Accounting, Performance, Security."
+    },
+    {
+      "num": 35,
+      "pregunta": "En sistemas criptográficos: el cifrado simétrico emplea claves idénticas y secretas, mientras que el asimétrico (clave pública) usa un par de claves donde una es pública y la otra privada.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: En criptografía simétrica la clave secreta es compartida; en clave pública, la clave pública es conocida por todos y la privada solo por su propietario."
+    },
+    {
+      "num": 36,
+      "pregunta": "En aplicaciones cliente-servidor ejecutadas en modo Localhost, ¿el proceso cliente y el proceso servidor se ejecutan sobre la misma computadora física?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: En modo localhost (interfaz de loopback 127.0.0.1) ambos extremos residen en la misma máquina."
+    },
+    {
+      "num": 37,
+      "pregunta": "¿Cuáles son las dos grandes categorías de algoritmos de cifrado simétrico?",
+      "opciones": [
+        "Cifrado de bloque y cifrado de flujo.",
+        "Cifrado simétrico y cifrado cuántico.",
+        "Cifrado de paquete y cifrado de cabecera.",
+        "Cifrado público y cifrado privado."
+      ],
+      "correcta": 0,
+      "explicacion": "Los algoritmos de cifrado simétrico se dividen en cifrados de bloque (operan sobre bloques fijos de bits, como AES/DES) y cifrados de flujo (cifran bit a bit o byte a byte)."
+    },
+    {
+      "num": 38,
+      "pregunta": "¿El texto 'en claro' (plaintext) es el resultado de cifrar un mensaje con un algoritmo criptográfico?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: El texto en claro es el mensaje original sin procesar. El resultado de cifrar se denomina texto cifrado (ciphertext)."
+    },
+    {
+      "num": 39,
+      "pregunta": "¿Por qué 3DES (Triple DES) es un algoritmo de clave simétrica más seguro que DES estándar?",
+      "opciones": [
+        "Aplica el algoritmo DES tres veces consecutivas con claves independientes, aumentando significativamente la longitud efectiva de la clave.",
+        "Cifra 2 veces con 3 claves distintas.",
+        "Es un algoritmo asimétrico de clave pública.",
+        "No utiliza claves criptográficas."
+      ],
+      "correcta": 0,
+      "explicacion": "DES es vulnerable a fuerza bruta debido a sus claves de 56 bits. 3DES aplica tres operaciones consecutivas aumentando el espacio de búsqueda de claves."
+    },
+    {
+      "num": 40,
+      "pregunta": "¿Cuál es la función del protocolo SNMP en comparación con SMI?",
+      "opciones": [
+        "SNMP transmite comandos e información entre la estación gestora y el agente en el dispositivo; SMI es el lenguaje de definición de datos de la MIB.",
+        "SNMP es el lenguaje de definición y SMI el protocolo de transporte.",
+        "SNMP cifra paquetes de transporte TCP.",
+        "SNMP sustituye a ICMP en la capa de red."
+      ],
+      "correcta": 0,
+      "explicacion": "SMI define las reglas formales de sintaxis para los objetos; SNMP es el protocolo de aplicación que intercambia dichos datos entre administradores y agentes."
+    },
+    {
+      "num": 41,
+      "pregunta": "Los objetos gestionados en un dispositivo de red tienen atributos de información formalmente recopilados en una MIB y accesibles a través de agentes.",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: La MIB (Management Information Base) es la base de datos jerárquica de variables y objetos gestionados en cada equipo de red."
+    },
+    {
+      "num": 42,
+      "pregunta": "¿Cuál es el rol de una Autoridad de Certificación (CA) en la infraestructura de clave pública (PKI)?",
+      "opciones": [
+        "Valida la identidad de las entidades y emite certificados digitales que asocian dicha identidad con su clave pública, firmándolos digitalmente.",
+        "Almacena las contraseñas privadas de los usuarios de internet.",
+        "Enruta paquetes de forma segura en los routers centrales.",
+        "Asigna direcciones IP privadas a los hosts."
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: La CA es un tercero de confianza que certifica que una clave pública pertenece a la entidad nombrada en el certificado."
+    },
+    {
+      "num": 43,
+      "pregunta": "¿Cualquier usuario o empresa puede registrar y crear sus propias variables en la MIB bajo la rama `private/enterprises`?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: La rama `iso.org.dod.internet.private.enterprises` (1.3.6.1.4.1) está asignada por IANA para que cada fabricante defina sus variables MIB propietarias."
+    },
+    {
+      "num": 44,
+      "pregunta": "En una firma digital: una vez transmitido el mensaje firmado, ¿el emisor no puede repudiar la autoría de su contenido?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 0,
+      "explicacion": "Verdadero: Dado que la firma digital se genera con la clave privada exclusiva del emisor, proporciona autenticidad de origen y garantía de no repudio."
+    },
+    {
+      "num": 45,
+      "pregunta": "En el esquema básico de firma digital, ¿la firma permite que el transmisor verifique la identidad del receptor?",
+      "opciones": [
+        "Verdadero",
+        "Falso"
+      ],
+      "correcta": 1,
+      "explicacion": "Falso: La firma digital autentica al transmisor frente al receptor, demostrando quién originó el mensaje, no la identidad de quien lo recibe."
+    },
+    {
+      "num": 46,
+      "pregunta": "¿Cuál es el protocolo de transporte preferido y el puerto por defecto utilizado por SNMP para comunicarse con los agentes?",
+      "opciones": [
+        "Transporte UDP y puerto 161.",
+        "Transporte TCP y puerto 161.",
+        "Transporte UDP y puerto 25.",
+        "Transporte TCP y puerto 80."
+      ],
+      "correcta": 0,
+      "explicacion": "SNMP opera habitualmente sobre UDP en el puerto 161 (para consultas y comandos al agente) y puerto 162 (para traps enviadas por el agente al gestor)."
+    }
+  ]
+}
