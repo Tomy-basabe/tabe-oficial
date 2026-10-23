@@ -4,7 +4,8 @@ import {
   Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X,
   Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio, Compass,
   MessageSquare, Target, LayoutGrid, Flame, Plus, ChevronDown, Check,
-  Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal, Square
+  Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal, Square,
+  Copy, History, Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -231,11 +232,11 @@ export default function AIAssistant() {
     // Tras 2.4s se disuelve suavemente y revela fluidamente el resto de la interfaz.
     const t1 = setTimeout(() => {
       setWelcomeIntroVisible(false);
-    }, 2400);
+    }, 3700);
 
     const t2 = setTimeout(() => {
       setWelcomeContentReady(true);
-    }, 2900);
+    }, 4200);
 
     return () => {
       clearTimeout(t1);
@@ -1024,13 +1025,6 @@ export default function AIAssistant() {
     } else if (message.startsWith("[Think: ")) {
       const thoughtQuery = message.replace(/^\[Think:\s*/, "").replace(/\]$/, "");
       finalPrompt = `🧠 [Modo Pensamiento Profundo / Razonamiento Académico]: ${thoughtQuery}`;
-    } else if (message.startsWith("[Image: ")) {
-      const imageQuery = message.replace(/^\[Image:\s*/, "").replace(/\]$/, "");
-      const seed = Math.floor(Math.random() * 900000) + 100000;
-      finalPrompt = `🎨 [Modo Imagen / Generación Visual con Flux]: Crea una imagen artística y detallada de nivel profesional sobre "${imageQuery}".
-Obligatorio: Inserta en tu respuesta la imagen en Markdown utilizando el motor Flux sin marca de agua:
-![${imageQuery}](https://image.pollinations.ai/prompt/${encodeURIComponent(imageQuery + ", 8k, photorealistic, highly detailed, clean masterpiece")}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true&enhance=true)
-Y añade una breve explicación o análisis didáctico de la ilustración en español.`;
     } else if (message.startsWith("[Canvas: ")) {
       const canvasQuery = message.replace(/^\[Canvas:\s*/, "").replace(/\]$/, "");
       finalPrompt = `🎨 [Modo Canvas / Esquema Estructurado]: ${canvasQuery}`;
@@ -1063,15 +1057,22 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
   const renderContent = (content: string, role: "user" | "assistant") => {
     if (!content) {
       return (
-        <AIThinkingIndicator
-          personaName={activePersona?.name}
-          statusText="Analizando contexto, materias y apuntes..."
-        />
+        <div className="py-2">
+          <AIThinkingIndicator personaName={activePersona?.name} />
+        </div>
       );
     }
 
     if (role === "user") {
-      return content.split("\n").map((line, i) => <div key={i} className="text-black leading-relaxed font-bold">{line}</div>);
+      // Limpiar prefijos internos de búsqueda/tags para que el usuario solo vea su texto limpio
+      const cleanText = content
+        .replace(/^\[(?:Search|Think|Image|Canvas):\s*([\s\S]*?)\]$/i, "$1")
+        .replace(/^🔍\s*\[Búsqueda e Investigación Web\]:\s*/i, "")
+        .replace(/^🧠\s*\[Modo Pensamiento Profundo.*?\]:\s*/i, "")
+        .replace(/^🎨\s*\[Modo Imagen.*?\]:\s*/i, "")
+        .trim();
+
+      return <div className="whitespace-pre-wrap break-words">{cleanText}</div>;
     }
 
     return <ChatMessageContent content={content} />;
@@ -1148,6 +1149,26 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
         <header className="shrink-0 px-3 py-2 md:px-6 md:py-2.5 border-b border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-between gap-2 z-20">
           {/* Left: Back + TABE AI Brand */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              className={cn(
+                "flex items-center gap-1.5 h-8 px-2.5 rounded-xl border transition-all cursor-pointer shadow-2xs select-none",
+                isSidebarOpen
+                  ? "bg-zinc-200 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-foreground font-semibold"
+                  : "border-border/70 bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground font-medium"
+              )}
+              title="Abrir historial de conversaciones y configuración"
+            >
+              <History className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-xs">Historial</span>
+              {sessions && sessions.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-700 text-foreground font-bold">
+                  {sessions.length}
+                </span>
+              )}
+            </Button>
             <Link
               to="/dashboard"
               className="group inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-2xs hover:shadow-xs select-none"
@@ -1440,92 +1461,53 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                     .filter((m) => !m.id?.startsWith("init"))
                     .map((message) => {
                       const isThinking = message.role === "assistant" && !message.content;
+                      
+                      if (message.role === "user") {
+                        return (
+                          <div key={message.id} className="flex justify-end my-4 select-text">
+                            <div className="max-w-[85%] sm:max-w-[70%] rounded-3xl px-5 py-3 bg-[#f4f4f4] dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 text-[15px] leading-relaxed shadow-2xs">
+                              {renderContent(message.content, message.role)}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Mensaje del Asistente estilo ChatGPT auténtico: fluido, limpio, sin recuadros toscos
                       return (
-                        <div
-                          key={message.id}
-                          className={cn(
-                            "flex gap-3 group items-start",
-                            message.role === "user" ? "flex-row-reverse" : "flex-row"
-                          )}
-                        >
-                          {/* Avatar estilo Notion / ChatGPT */}
+                        <div key={message.id} className="flex gap-4 my-6 items-start group select-text">
+                          {/* Avatar mínimo de TABE AI */}
                           <div className="shrink-0 mt-0.5 select-none">
-                            {message.role === "assistant" ? (
-                              activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-card border border-border/70 flex items-center justify-center text-sm shadow-2xs">
-                                  {activePersona.avatar_emoji}
-                                </div>
-                              ) : (
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-card border border-border/70 flex items-center justify-center shadow-2xs p-1">
-                                  <TabeAIIcon size={20} animate={isThinking} withGlow={isThinking} />
-                                </div>
-                              )
+                            {activePersona?.avatar_emoji && activePersona.avatar_emoji !== "🤖" ? (
+                              <div className="w-7 h-7 rounded-full bg-card border border-border/80 flex items-center justify-center text-sm shadow-2xs">
+                                {activePersona.avatar_emoji}
+                              </div>
                             ) : (
-                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-border/50 flex items-center justify-center shadow-2xs">
-                                <User className="w-3.5 h-3.5" strokeWidth={2} />
+                              <div className="w-7 h-7 rounded-full bg-card border border-border/80 flex items-center justify-center p-1 shadow-2xs">
+                                <TabeAIIcon size={18} animate={isThinking} withGlow={isThinking} />
                               </div>
                             )}
                           </div>
 
-                          {/* Bubble / Text Stream estilo Apple / Notion / GPT */}
-                          <div
-                            className={cn(
-                              "transition-all",
-                              message.role === "user"
-                                ? "max-w-[85%] sm:max-w-[76%] rounded-3xl rounded-tr-md px-4.5 py-3 bg-zinc-100 dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 border border-zinc-200/70 dark:border-white/5 font-normal text-sm sm:text-[15px] leading-relaxed shadow-2xs overflow-hidden"
-                                : isThinking
-                                  ? "flex-1 min-w-0 py-1 bg-transparent border-none shadow-none flex items-center"
-                                  : "flex-1 min-w-0 bg-transparent border-none shadow-none px-0 py-0.5 text-foreground text-sm sm:text-[15px] font-normal leading-relaxed"
-                            )}
-                          >
-                            {/* Model badge for assistant */}
-                            {message.role === "assistant" && message.id !== "init" && message.content && (
-                              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-medium text-muted-foreground/80 select-none">
-                                <span className="text-foreground/90 font-semibold truncate">
-                                  {message.modelName || selectedModel.shortName}
-                                </span>
-                                <span className="text-muted-foreground/40">•</span>
-                                <span className="text-[10px] text-muted-foreground/60 shrink-0">
-                                  {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </div>
-                            )}
-
-                            {message.imageUrl && (
-                              <div className="mb-2">
-                                <img
-                                  src={message.imageUrl}
-                                  alt="Imagen adjunta"
-                                  className="max-h-72 max-w-full rounded-2xl border border-border/60 shadow-xs object-contain bg-black/5 dark:bg-white/5"
-                                />
-                              </div>
-                            )}
-
-                            <div className="leading-relaxed break-words font-normal">
+                          {/* Contenido de respuesta */}
+                          <div className="flex-1 min-w-0">
+                            <div className="leading-relaxed text-[15px] text-zinc-900 dark:text-zinc-100">
                               {renderContent(message.content, message.role)}
                             </div>
 
-                            {/* Acciones al pie de la respuesta del asistente (copiar) */}
-                            {message.role === "assistant" && message.content && (
-                              <div className="flex items-center gap-2 mt-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity select-none">
+                            {/* Botón copiar sutil estilo ChatGPT */}
+                            {!isThinking && message.content && (
+                              <div className="flex items-center gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity select-none">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     navigator.clipboard.writeText(message.content);
                                     toast.success("Copiado al portapapeles");
                                   }}
-                                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors cursor-pointer"
-                                  title="Copiar texto"
+                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                                  title="Copiar respuesta"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
-                                  <span>Copiar</span>
                                 </button>
-                              </div>
-                            )}
-
-                            {message.role === "user" && (
-                              <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-muted-foreground/70 select-none">
-                                {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </div>
                             )}
                           </div>
@@ -1545,17 +1527,7 @@ Y añade una breve explicación o análisis didáctico de la ilustración en esp
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={(msg, files) => {
-                  if (files && files.length > 0) {
-                    handlePromptBoxSend(msg, files);
-                  } else {
-                    executeSendMessage(
-                      msg,
-                      attachedImage
-                        ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
-                        : undefined,
-                      attachedImage?.preview
-                    );
-                  }
+                  handlePromptBoxSend(msg, files);
                 }}
                 isLoading={isStreaming || isUploading}
                 placeholder={

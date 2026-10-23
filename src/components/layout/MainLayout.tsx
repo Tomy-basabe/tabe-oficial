@@ -9,11 +9,15 @@ import {
   PanelLeftOpen, 
   ChevronDown, 
   ChevronRight,
-  Folder
+  Folder,
+  Sun,
+  Moon,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget";
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
@@ -35,7 +39,6 @@ import { isSuperAdmin } from "@/lib/adminAuth";
 
 import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
-import { ComicAudio } from "@/components/comic/ComicAudio";
 import { preloadRoute } from "@/lib/routePreload";
 import { performGlobalCalendarSync, isWednesdaySyncDay } from "@/lib/globalCalendarSync";
 
@@ -66,7 +69,8 @@ export function MainLayout() {
   const isApuntesPage = lowerPath.startsWith("/apuntes") || lowerPath.startsWith("/notion");
   const isTabetalkPage = lowerPath.startsWith("/tabetalk") || lowerPath.startsWith("/discord");
   const isFullScreenPage = isAIPage || isApuntesPage || isTabetalkPage;
-  const { user, isGuest, profile } = useAuth();
+  const { user, isGuest, profile, signOut } = useAuth();
+  const { toggleTheme, resolvedTheme } = useTheme();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   // Global admin shortcut: Ctrl + Shift + Ñ
@@ -281,7 +285,7 @@ export function MainLayout() {
 
   const toggleCollapse = () => {
     try {
-      ComicAudio.playPop();
+      
     } catch (e) {}
     setIsCollapsed(prev => {
       const next = !prev;
@@ -295,7 +299,7 @@ export function MainLayout() {
 
   const toggleCategory = (catId: string) => {
     try {
-      ComicAudio.playPop();
+      
     } catch (e) {}
     setHoveredCategory(null);
     if (hoverTimeoutRef.current) {
@@ -361,7 +365,7 @@ export function MainLayout() {
         {!isFullScreenPage && (
           <aside
             className={cn(
-              "hidden lg:flex fixed top-0 left-0 h-full border-r border-zinc-200/80 dark:border-zinc-800/80 transition-all duration-200 flex-col bg-[#F7F7F5] dark:bg-[#212121] z-40",
+              "hidden lg:flex fixed top-0 left-0 h-full border-r border-zinc-300 dark:border-zinc-700 transition-all duration-200 flex-col bg-[#F7F7F5] dark:bg-[#212121] z-40",
               isCollapsed ? "w-16" : "w-60"
             )}
           >
@@ -370,7 +374,7 @@ export function MainLayout() {
             <button
               aria-label={isCollapsed ? "Desplegar panel lateral" : "Plegar / guardar panel lateral"}
               title={isCollapsed ? "Desplegar panel lateral" : "Plegar / guardar panel lateral"}
-              className="h-6 w-6 rounded-md bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors cursor-pointer"
+              className="h-6 w-6 rounded-md bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors cursor-pointer"
               onClick={toggleCollapse}
             >
               {isCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
@@ -378,7 +382,7 @@ export function MainLayout() {
           </div>
 
           {/* Logo Header */}
-          <div className={cn("h-14 flex items-center border-b border-zinc-200/80 dark:border-zinc-800/80 flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-between px-4 gap-2")}>
+          <div className={cn("h-14 flex items-center border-b border-zinc-300 dark:border-zinc-700 flex-shrink-0 transition-all overflow-hidden", isCollapsed ? "justify-center px-0" : "justify-between px-4 gap-2")}>
             <div className="flex items-center gap-2.5 min-w-0">
               <TabeLogo size={32} className="shrink-0" />
               {!isCollapsed && (
@@ -433,25 +437,18 @@ export function MainLayout() {
                       <button
                         type="button"
                         onClick={() => {
-                          ComicAudio.playPop();
+                          
                           toggleCategory(item.id);
                         }}
                         className={cn(
-                          "w-full flex items-center rounded-lg transition-colors select-none justify-center p-2 cursor-pointer",
+                          "w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 select-none mx-auto cursor-pointer",
                           hasActiveChild || isHovered
-                            ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/70 dark:bg-zinc-800"
-                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100"
+                            ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/80 dark:bg-zinc-800 font-semibold"
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
                         )}
                         aria-label={item.label}
                       >
-                        <div className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors border",
-                          hasActiveChild 
-                            ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 font-semibold" 
-                            : "bg-transparent text-zinc-500 border-transparent hover:text-zinc-800 dark:hover:text-zinc-200"
-                        )}>
-                          <Icon className="w-4 h-4 stroke-[2]" />
-                        </div>
+                        <Icon className={cn("w-5 h-5 transition-transform group-hover/cat:scale-105 flex-shrink-0", hasActiveChild ? "stroke-[2.2]" : "stroke-[2]")} />
                       </button>
 
                       {/* Floating Category Menu on Hover (Apple / Notion clean flyout) */}
@@ -479,7 +476,7 @@ export function MainLayout() {
                       key={item.id}
                       to={path}
                       onClick={() => {
-                        ComicAudio.playPop();
+                        
                         setHoveredCategory(null);
                       }}
                       onMouseEnter={() => preloadRoute(path)}
@@ -514,22 +511,21 @@ export function MainLayout() {
                   <div key={item.id} className="relative group/navitem">
                     <Link
                       to={path}
-                      onClick={() => ComicAudio.playPop()}
                       onMouseEnter={() => preloadRoute(path)}
                       onTouchStart={() => preloadRoute(path)}
                       onFocus={() => preloadRoute(path)}
                       className={cn(
-                        "flex items-center rounded-xl transition-all duration-150 group relative border-2 select-none justify-center p-2.5",
+                        "w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 group relative select-none mx-auto cursor-pointer",
                         isActive
-                          ? "bg-zinc-200/70 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100"
+                          ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold"
+                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
                       )}
                       aria-label={item.label}
                     >
                       <Icon
                         className={cn(
-                          "w-5 h-5 transition-transform group-hover:scale-110 flex-shrink-0",
-                          isActive ? "stroke-[2.5]" : ""
+                          "w-5 h-5 transition-transform group-hover/navitem:scale-105 flex-shrink-0",
+                          isActive ? "stroke-[2.2]" : "stroke-[2]"
                         )}
                       />
                     </Link>
@@ -605,10 +601,10 @@ export function MainLayout() {
                           )}
                         >
                           <div className={cn(
-                            "w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors border",
+                            "w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors",
                             hasActiveChild 
-                              ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 font-semibold" 
-                              : "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60"
+                              ? "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold" 
+                              : "bg-zinc-200/40 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400"
                           )}>
                             <Icon className="w-3.5 h-3.5 stroke-[2]" />
                           </div>
@@ -630,7 +626,6 @@ export function MainLayout() {
                     <Link
                       key={item.id}
                       to={path}
-                      onClick={() => ComicAudio.playPop()}
                       onMouseEnter={() => preloadRoute(path)}
                       onTouchStart={() => preloadRoute(path)}
                       onFocus={() => preloadRoute(path)}
@@ -668,6 +663,107 @@ export function MainLayout() {
             </nav>
           </ScrollArea>
         )}
+
+          {/* Footer: Botones compactos para cambiar tema y cerrar sesión */}
+          <div className={cn(
+            "mt-auto border-t border-zinc-200/80 dark:border-zinc-800/80 shrink-0 transition-all select-none",
+            isCollapsed ? "py-3 px-2 flex flex-col items-center gap-1.5" : "py-2.5 px-3 flex items-center justify-between gap-1"
+          )}>
+            {isCollapsed ? (
+              <>
+                {/* Cambiar tema (Colapsado) */}
+                <div className="relative group/foot-theme">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      
+                      toggleTheme();
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                    aria-label={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                  >
+                    {resolvedTheme === "dark" ? (
+                      <Sun className="w-5 h-5 text-amber-400 stroke-[2.2]" />
+                    ) : (
+                      <Moon className="w-5 h-5 text-zinc-600 stroke-[2.2]" />
+                    )}
+                  </button>
+                  <div className="hidden group-hover/foot-theme:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1 shadow-md items-center whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+                    <span className="font-medium text-xs tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {resolvedTheme === "dark" ? "Modo Claro" : "Modo Oscuro"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cerrar sesión (Colapsado) */}
+                <div className="relative group/foot-logout">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      
+                      await signOut();
+                      navigate("/login");
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                    aria-label="Cerrar sesión"
+                  >
+                    <LogOut className="w-5 h-5 stroke-[2.2]" />
+                  </button>
+                  <div className="hidden group-hover/foot-logout:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1 shadow-md items-center whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+                    <span className="font-medium text-xs tracking-tight text-red-600 dark:text-red-400">
+                      Cerrar sesión
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="w-6 h-6 rounded-md bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs font-semibold shrink-0">
+                    {user?.email?.charAt(0).toUpperCase() || "T"}
+                  </div>
+                  <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate">
+                    {user?.email?.split("@")[0] || "Mi cuenta"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Cambiar tema (Expandido) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      
+                      toggleTheme();
+                    }}
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                    title={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                    aria-label={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                  >
+                    {resolvedTheme === "dark" ? (
+                      <Sun className="w-4 h-4 text-amber-400 stroke-[2.2]" />
+                    ) : (
+                      <Moon className="w-4 h-4 text-zinc-600 stroke-[2.2]" />
+                    )}
+                  </button>
+
+                  {/* Cerrar sesión (Expandido) */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      
+                      await signOut();
+                      navigate("/login");
+                    }}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                    title="Cerrar sesión"
+                    aria-label="Cerrar sesión"
+                  >
+                    <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
         </aside>
       )}

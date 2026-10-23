@@ -75,7 +75,7 @@ export function moveToTrash(doc: {
       title: doc.titulo || "Sin título",
       parentId: doc.parent_id || null,
       subjectId: doc.subject_id || null,
-      emoji: doc.emoji || "📝",
+      emoji: doc.emoji || "book",
       deletedAt: now,
       expiresAt: now + GRACE_PERIOD_MS,
     };

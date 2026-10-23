@@ -207,10 +207,9 @@ const getSuggestionItems = (): CommandItem[] => [
     shortcut: "Ctrl+M",
     keywords: ["math", "formula", "latex", "ecuacion", "sigma", "matematica", "matematicas"],
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setMath({ formula: "" }).run();
-      // Dispatch event to open the menu at the new node's position
+      editor.chain().focus().deleteRange(range).setMath({ formula: "E = mc^2" }).run();
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('notion-open-math-menu'));
+        window.dispatchEvent(new CustomEvent('notion-trigger-math-edit'));
       }, 50);
     },
   },

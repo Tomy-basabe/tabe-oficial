@@ -4,7 +4,6 @@ import {
   Paperclip,
   Globe,
   BrainCog,
-  ImageIcon,
   Mic,
   ArrowUp,
   Square,
@@ -151,7 +150,6 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
 }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [showThink, setShowThink] = useState(false);
-  const [showImage, setShowImage] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -164,21 +162,16 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
     textareaRef.current.style.height = `${nextHeight}px`;
   }, [value]);
 
-  const handleToggleMode = (mode: "search" | "think" | "image") => {
+  const handleToggleMode = (mode: "search" | "think") => {
     if (mode === "search") {
       setShowSearch((prev) => !prev);
       setShowThink(false);
-      setShowImage(false);
     } else if (mode === "think") {
       const next = !showThink;
       setShowThink(next);
       setShowSearch(false);
-      setShowImage(false);
       onSelectPowerLevel(next ? "alto" : "medio");
-    } else if (mode === "image") {
-      setShowImage((prev) => !prev);
-      setShowSearch(false);
-      setShowThink(false);
+
     }
   };
 
@@ -188,14 +181,12 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
     let prefix = "";
     if (showSearch) prefix = "[Search: ";
     else if (showThink) prefix = "[Think: ";
-    else if (showImage) prefix = "[Image: ";
 
     const finalMessage = prefix ? `${prefix}${value}]` : value;
     onSend(finalMessage);
 
     setShowSearch(false);
     setShowThink(false);
-    setShowImage(false);
   };
 
 
@@ -421,8 +412,6 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
               ? "Buscar en la web académica..."
               : showThink
               ? "Razonar problema complejo paso a paso..."
-              : showImage
-              ? "Describe la imagen, ilustración o esquema que deseas generar..."
               : placeholder
           }
           disabled={isLoading || isRecordingVoice}
@@ -540,21 +529,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
             <span className="hidden sm:inline text-[11px]">Pensar</span>
           </button>
 
-          {/* 3. Image Generation Mode */}
-          <button
-            type="button"
-            onClick={() => handleToggleMode("image")}
-            className={cn(
-              "inline-flex items-center gap-1 h-7 px-2 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer border",
-              showImage
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
-                : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
-            )}
-            title="Modo Generar Imágenes con IA"
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[11px]">Imágenes</span>
-          </button>
+
         </div>
 
 

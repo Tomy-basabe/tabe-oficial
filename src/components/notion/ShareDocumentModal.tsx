@@ -24,6 +24,7 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TabeIconRenderer } from "./TabeIcons";
 
 interface ShareDocumentModalProps {
   isOpen: boolean;
@@ -178,7 +179,9 @@ export function ShareDocumentModal({
         <div className="space-y-4 pt-2">
           {/* Document Summary Card */}
           <div className="p-3 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/60 rounded-xl flex items-center gap-3">
-            <span className="text-2xl shrink-0">{document.emoji || "📝"}</span>
+            <div className="shrink-0 flex items-center justify-center">
+              <TabeIconRenderer iconId={document.emoji || "book"} size={24} />
+            </div>
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
                 {document.titulo || "Sin título"}

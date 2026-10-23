@@ -21,6 +21,7 @@ interface ManualStudyDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   subjects: { id: string; nombre: string; año?: number }[];
+  initialDate?: string;
 }
 
 const PRESET_DURATIONS = [
@@ -32,10 +33,10 @@ const PRESET_DURATIONS = [
   { label: "3h 00m", sub: "Profundo", h: "3", m: "0" },
 ];
 
-export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: ManualStudyDialogProps) {
+export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects, initialDate }: ManualStudyDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [fecha, setFecha] = useState(toLocalDateStr(new Date()));
+  const [fecha, setFecha] = useState(initialDate || toLocalDateStr(new Date()));
   const [horas, setHoras] = useState("1");
   const [minutos, setMinutos] = useState("0");
   const [subjectId, setSubjectId] = useState("");
@@ -43,12 +44,12 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects }: M
 
   useEffect(() => {
     if (open) {
-      setFecha(toLocalDateStr(new Date()));
+      setFecha(initialDate || toLocalDateStr(new Date()));
       setHoras("1");
       setMinutos("0");
       setSubjectId("");
     }
-  }, [open]);
+  }, [open, initialDate]);
 
   const years = [...new Set(subjects.filter(s => s.año).map(s => s.año!))].sort((a, b) => a - b);
 

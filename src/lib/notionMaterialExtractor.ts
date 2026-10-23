@@ -61,7 +61,7 @@ export async function fetchUserNotionDocs(
     return docs.map((d) => ({
       id: d.id,
       title: d.titulo || "Apunte sin título",
-      emoji: d.emoji || "📝",
+      emoji: d.emoji || "book",
       subject_id: d.subject_id,
       parent_id: d.parent_id,
       updated_at: d.updated_at,

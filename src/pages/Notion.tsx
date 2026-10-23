@@ -8,11 +8,11 @@ import {
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
   Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
   GraduationCap, ChevronRight, Share2, Play, Pause,
-  Layers, HelpCircle, Brain, Zap, FlaskConical
+  Layers, HelpCircle, Brain, Zap, FlaskConical,
+  PanelLeft, Lock, Unlock, Type, Maximize
 } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
-import { ComicAudio } from "@/components/comic/ComicAudio";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 const AdvancedNotionEditor = lazy(() => import("@/components/notion/AdvancedNotionEditor").then(m => ({ default: m.AdvancedNotionEditor })));
 import { EmojiPicker } from "@/components/notion/EmojiPicker";
+import { NotionSidebar } from "@/components/notion/NotionSidebar";
+import { NotionCoverPickerModal } from "@/components/notion/NotionCoverPickerModal";
 import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 import { TipTapPDFExporter } from "@/components/notion/TipTapPDFExporter";
 import { ImportDocumentModal } from "@/components/notion/ImportDocumentModal";
@@ -101,6 +103,7 @@ const GalleryCard = ({
   onImportFriendDoc,
   onShare,
   friendsList,
+  onToggleFavorite,
 }: { 
   doc: NotionDocument; 
   userSubjects?: Subject[]; 
@@ -113,6 +116,7 @@ const GalleryCard = ({
   onImportFriendDoc?: (doc: NotionDocument) => void;
   onShare?: (doc: NotionDocument) => void;
   friendsList?: { user_id: string; nombre: string | null; username: string | null; avatar_url: string | null }[];
+  onToggleFavorite?: (doc: NotionDocument) => void;
 }) => {
   const hasCover = !!doc.cover_url;
   
@@ -148,6 +152,30 @@ const GalleryCard = ({
     >
       {/* Top Area: Cover Image or Clean Tabe Logo */}
       <div className={cn("h-40 w-full relative border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/40 overflow-hidden", !hasCover && "p-5")}>
+        {/* Favorite Button on Card */}
+        {onToggleFavorite && (
+          <div className={cn(
+            "absolute top-2 left-2 z-10 transition-all",
+            doc.is_favorite ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(doc);
+              }}
+              className={cn(
+                "p-1.5 rounded-lg border backdrop-blur-md shadow-xs transition-all cursor-pointer",
+                doc.is_favorite
+                  ? "bg-amber-500/20 text-amber-500 border-amber-500/40 hover:bg-amber-500/30"
+                  : "bg-white/90 dark:bg-zinc-800/90 border-zinc-200/80 dark:border-zinc-700/80 text-zinc-500 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+              )}
+              title={doc.is_favorite ? "Quitar de favoritos" : "Marcar como favorito"}
+            >
+              <Star className="w-3.5 h-3.5" fill={doc.is_favorite ? "currentColor" : "none"} />
+            </button>
+          </div>
+        )}
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
           <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -334,6 +362,49 @@ export default function Notion() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeDocument, setActiveDocument] = useState<NotionDocument | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [showCoverPickerModal, setShowCoverPickerModal] = useState(false);
+  const [notionFont, setNotionFont] = useState<"sans" | "serif" | "mono">(() => {
+    return (localStorage.getItem("tabe_notion_font") as "sans" | "serif" | "mono") || "sans";
+  });
+  const [notionFullWidth, setNotionFullWidth] = useState<boolean>(() => {
+    return localStorage.getItem("tabe_notion_fullwidth") === "true";
+  });
+  const [notionSmallText, setNotionSmallText] = useState<boolean>(() => {
+    return localStorage.getItem("tabe_notion_smalltext") === "true";
+  });
+  const [notionLocked, setNotionLocked] = useState<boolean>(false);
+
+  // Shortcut Ctrl+\ to toggle Notion sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleUpdateCover = useCallback(async (url: string | null) => {
+    if (!activeDocument) return;
+    const isOwner = activeDocument.user_id === user?.id;
+    const canEdit = isOwner ||
+      (activeDocument.is_shared && activeDocument.share_permission === "edit") ||
+      activeDocument.user_permission === "edit" ||
+      (activeDocument.is_collaborator && activeDocument.share_permission === "edit");
+    if (!canEdit) {
+      toast.error("Solo el propietario o editores autorizados pueden modificar la portada");
+      return;
+    }
+    try {
+      await updateDocument(activeDocument.id, { cover_url: url });
+      setActiveDocument((prev) => (prev ? { ...prev, cover_url: url } : null));
+      toast.success(url ? "Portada actualizada" : "Portada eliminada");
+    } catch {
+      toast.error("Error al actualizar la portada");
+    }
+  }, [activeDocument, updateDocument, user?.id]);
   
   // Título dinámico para la pestaña con el nombre del apunte abierto
   usePageTitle(activeDocument ? (activeDocument.titulo || "Nuevo Apunte") : null);
@@ -361,12 +432,12 @@ export default function Notion() {
 
       try {
         let sourceContent = await fetchDocumentContent(copyFromPageId);
-        let sourceEmoji = "📝";
+        let sourceEmoji = "book";
         let sourceTitle = title || "Sin título";
 
         const existingDoc = documents.find((d) => d.id === copyFromPageId);
         if (existingDoc) {
-          sourceEmoji = existingDoc.emoji || "📝";
+          sourceEmoji = existingDoc.emoji || "book";
           if (!title || title === "Sin título") {
             sourceTitle = existingDoc.titulo || "Sin título";
           }
@@ -377,7 +448,7 @@ export default function Notion() {
             .eq("id", copyFromPageId)
             .maybeSingle();
           if (data) {
-            sourceEmoji = data.emoji || "📝";
+            sourceEmoji = data.emoji || "book";
             if (!title || title === "Sin título") {
               sourceTitle = data.titulo || "Sin título";
             }
@@ -990,7 +1061,7 @@ export default function Notion() {
                 titulo: subDoc?.titulo || "Sub-página",
                 parent_id: docToSave.id,
                 subject_id: docToSave.subject_id,
-                emoji: subDoc?.emoji || "📝"
+                emoji: subDoc?.emoji || "book"
               });
             }
 
@@ -1291,6 +1362,11 @@ export default function Notion() {
     // Stop previous audiobook playback on doc switch
     audioBook.stop();
     setShowAudioBookPlayer(false);
+
+    // Guardar apunte activo en sessionStorage para no perderlo si el usuario recarga la página
+    try {
+      sessionStorage.setItem("tabe_active_doc_id", doc.id);
+    } catch (e) {}
 
     // 3. Add to tabs if not already present
     setOpenTabs(prev => {
@@ -1599,6 +1675,22 @@ export default function Notion() {
     };
   }, [user, location.search, openDocument, setDocuments]);
 
+  // Restaurar automáticamente el apunte abierto al recargar la página
+  const restoredDocIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeDocument || loading || documents.length === 0) return;
+    try {
+      const savedDocId = sessionStorage.getItem("tabe_active_doc_id");
+      if (savedDocId && savedDocId !== restoredDocIdRef.current) {
+        restoredDocIdRef.current = savedDocId;
+        const targetDoc = documents.find((d) => d.id === savedDocId);
+        if (targetDoc) {
+          openDocument(targetDoc);
+        }
+      }
+    } catch {}
+  }, [activeDocument, loading, documents, openDocument]);
+
   const closeDocument = useCallback(() => {
     if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
       if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
@@ -1879,16 +1971,48 @@ export default function Notion() {
   }, [docToDelete, activeDocument, deleteDocument, documents, openDocument, updateDocument, restoreDocument]);
 
   const handleToggleFavorite = useCallback(
-    async (doc: NotionDocument) => {
-      await updateDocument(doc.id, { is_favorite: !doc.is_favorite });
+    (doc: NotionDocument) => {
+      const nextFavorite = !doc.is_favorite;
+
+      // 1. Actualización optimista inmediata en activeDocument
       if (activeDocument?.id === doc.id) {
         setActiveDocument((prev) =>
-          prev ? { ...prev, is_favorite: !prev.is_favorite } : null
+          prev ? { ...prev, is_favorite: nextFavorite } : null
         );
       }
-      refetch();
+
+      // 2. Actualización optimista inmediata en documents
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === doc.id ? { ...d, is_favorite: nextFavorite } : d))
+      );
+
+      // 3. Actualización optimista en openTabs
+      setOpenTabs((prev) =>
+        prev.map((t) => (t.id === doc.id ? { ...t, is_favorite: nextFavorite } : t))
+      );
+
+      // 4. Feedback instantáneo
+      toast.success(
+        nextFavorite ? "⭐ Añadido a Favoritos" : "Quitado de Favoritos",
+        { duration: 1500 }
+      );
+
+      // 5. Persistencia en Supabase en segundo plano sin bloquear la UI
+      updateDocument(doc.id, { is_favorite: nextFavorite }).catch((err) => {
+        console.error("Error al actualizar favorito:", err);
+        // Revertir en caso improbable de error
+        if (activeDocument?.id === doc.id) {
+          setActiveDocument((prev) =>
+            prev ? { ...prev, is_favorite: !nextFavorite } : null
+          );
+        }
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === doc.id ? { ...d, is_favorite: !nextFavorite } : d))
+        );
+        toast.error("No se pudo guardar el favorito");
+      });
     },
-    [updateDocument, activeDocument, refetch]
+    [updateDocument, activeDocument]
   );
 
   const handleEmojiUpdate = useCallback(
@@ -1943,7 +2067,7 @@ export default function Notion() {
       }
 
       const clonedTitle = title || "Sin título";
-      const clonedEmoji = emoji || "📝";
+      const clonedEmoji = emoji || "book";
       const clonedContent = content ? JSON.parse(JSON.stringify(content)) : { type: "doc", content: [{ type: "paragraph" }] };
 
       const newDoc = await createDocument(subjectId, clonedTitle);
@@ -1971,7 +2095,7 @@ export default function Notion() {
                   idMapping[child.id] = newChild.id;
                   await updateDocument(newChild.id, {
                     contenido: child.contenido ? JSON.parse(JSON.stringify(child.contenido)) : undefined,
-                    emoji: child.emoji || "📝",
+                    emoji: child.emoji || "book",
                     cover_url: child.cover_url || null,
                   });
                 }
@@ -2031,6 +2155,16 @@ export default function Notion() {
       return a.nombre.localeCompare(b.nombre);
     });
   }, [subjects, modalYear]);
+  const isOwnerOrCanEdit = useMemo(() => {
+    if (!activeDocument) return false;
+    return (
+      activeDocument.user_id === user?.id ||
+      (activeDocument.is_shared && activeDocument.share_permission === "edit") ||
+      activeDocument.user_permission === "edit" ||
+      (activeDocument.is_collaborator && activeDocument.share_permission === "edit")
+    );
+  }, [activeDocument, user?.id]);
+
   const selectedDocSubject = useMemo(
     () => (newDocSubjectId ? subjects.find((s) => s.id === newDocSubjectId) : null),
     [subjects, newDocSubjectId]
@@ -2068,9 +2202,11 @@ export default function Notion() {
       });
     }
 
-    // Filter by owner
+    // Filter by owner / favorites tab
     if (filterOwner === "mine") {
       result = result.filter(doc => user?.id ? doc.user_id === user.id : (doc.user_id === "guest" || !doc.user_id));
+    } else if (filterOwner === "favorites") {
+      result = result.filter(doc => Boolean(doc.is_favorite));
     } else if (filterOwner === "collaborative") {
       result = result.filter(doc => doc.user_id !== user?.id && (doc.is_shared || doc.is_collaborator));
     } else if (filterOwner === "friends") {
@@ -2154,226 +2290,198 @@ export default function Notion() {
 
   return (
     <div className="notion-app">
+      {/* Notion Sidebar (Clon de navegación lateral Notion) */}
+      <NotionSidebar
+        documents={documents}
+        subjects={subjects}
+        activeDocId={activeDocument?.id || null}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onSelectDocument={(doc) => openDocument(doc)}
+        onNewDocument={handleSidebarNewDoc}
+        onNewSubPage={handleNewSubPage}
+        onDeleteDocument={(doc) => {
+          setDocToDelete(doc);
+          setShowDeleteModal(true);
+        }}
+        onToggleFavorite={handleToggleFavorite}
+        onHoverDocument={(doc) => prefetchDocumentContent(doc.id)}
+        currentUserId={user?.id}
+        friends={friendsList}
+      />
 
       {/* Main area */}
       <div className="notion-main">
         {/* Top bar */}
         {/* Unified Topbar */}
-        <div className="notion-topbar">
-          <div className="notion-topbar-left flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden mr-2">
-            {/* Back link */}
-            {activeDocument ? (
+        <div className="notion-topbar h-11 px-3 border-b border-border/40 bg-background/95 backdrop-blur-md flex items-center justify-between text-sm select-none shrink-0">
+          <div className="notion-topbar-left flex items-center gap-1 min-w-0 flex-1 overflow-hidden mr-2">
+            {/* Notion Sidebar toggle button */}
+            {activeDocument && (
               <button
                 type="button"
-                onClick={() => {
-                  try {
-                    ComicAudio.playPop();
-                  } catch {}
-                  closeDocument();
-                }}
-                className="flex items-center justify-center md:gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shrink-0 group mr-1 cursor-pointer shadow-2xs"
-                title="Volver a la selección de apuntes"
-                aria-label="Volver a la selección de apuntes"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0 mr-1 cursor-pointer"
+                title={sidebarCollapsed ? "Mostrar barra lateral (Ctrl+\\)" : "Ocultar barra lateral (Ctrl+\\)"}
+                aria-label="Alternar barra lateral"
               >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                <span className="hidden md:inline">Apuntes</span>
+                <PanelLeft className="w-3.5 h-3.5" />
               </button>
+            )}
+
+            {/* Breadcrumb Path */}
+            {activeDocument ? (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    
+                    closeDocument();
+                  }}
+                  className="h-7 px-1.5 rounded-md inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0 cursor-pointer"
+                  title="Volver a todos los apuntes"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+                  <span className="font-medium hidden sm:inline">Apuntes</span>
+                </button>
+
+                {activeDocument.subject && (
+                  <>
+                    <span className="text-muted-foreground/30 select-none">/</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        
+                        closeDocument();
+                      }}
+                      className="h-7 px-1.5 rounded-md inline-flex items-center text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0 max-w-[130px] truncate cursor-pointer"
+                      title={`Materia: ${activeDocument.subject.nombre || activeDocument.subject.codigo}`}
+                    >
+                      <span className="truncate">{activeDocument.subject.codigo || activeDocument.subject.nombre}</span>
+                    </button>
+                  </>
+                )}
+
+                <span className="text-muted-foreground/30 select-none">/</span>
+
+                <div className="h-7 px-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-foreground shrink-0 max-w-[180px] sm:max-w-[240px] truncate">
+                  <TabeIconRenderer iconId={activeDocument.emoji || "book"} size={14} />
+                  <span className="truncate">{localTitle || activeDocument.titulo || "Sin título"}</span>
+                </div>
+
+                {/* Inline Tabs */}
+                {openTabs.length > 1 && (
+                  <div className="hidden xl:flex items-center gap-1 ml-2 pl-2 border-l border-border/40 overflow-x-auto no-scrollbar py-0.5">
+                    {openTabs
+                      .filter((tab, index, self) => self.findIndex(t => t.id === tab.id) === index)
+                      .map(tab => {
+                        const isActive = activeDocument?.id === tab.id;
+                        return (
+                          <div
+                            key={tab.id}
+                            className={cn(
+                              "group relative flex items-center gap-1.5 h-6.5 px-2 rounded-md text-xs cursor-pointer transition-colors shrink-0 max-w-[130px]",
+                              isActive
+                                ? "bg-muted text-foreground font-medium"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50 font-normal"
+                            )}
+                            onClick={() => handleTabClick(tab.id)}
+                            title={tab.title}
+                          >
+                            <span className="shrink-0 flex items-center">
+                              {tab.emoji ? (
+                                <TabeIconRenderer iconId={tab.emoji} size={12} />
+                              ) : (
+                                <FileText className="w-3 h-3" />
+                              )}
+                            </span>
+                            <span className="truncate">
+                              {isActive ? (localTitle || tab.title || "Sin título") : (tab.title || "Sin título")}
+                            </span>
+                            <button
+                              type="button"
+                              className="rounded p-0.5 transition-all ml-0.5 shrink-0 hover:bg-destructive/15 hover:text-destructive opacity-0 group-hover:opacity-100"
+                              onClick={(e) => closeTab(tab.id, e)}
+                              title="Cerrar pestaña"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
             ) : (
               <Link
                 to="/dashboard"
                 onClick={() => {
-                  try {
-                    ComicAudio.playPop();
-                  } catch {}
+                  
                 }}
-                className="flex items-center justify-center md:gap-1.5 h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shrink-0 group mr-1 shadow-2xs"
-                title="Volver al Dashboard"
-                aria-label="Volver al Dashboard"
+                className="h-7 px-2 rounded-md inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0"
               >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                <span className="hidden md:inline">Volver</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="font-semibold text-foreground">Apuntes</span>
               </Link>
-            )}
-
-            {activeDocument ? (
-              <>
-                {/* Subject badge (Click to return to subject notes) */}
-                {activeDocument.subject?.codigo && (
-                  <button
-                    type="button"
-                    onClick={closeDocument}
-                    className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100/70 dark:bg-zinc-800/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-800 dark:text-zinc-200 transition-colors shrink-0 max-w-[140px] truncate"
-                    title={`Materia: ${activeDocument.subject.nombre || activeDocument.subject.codigo} (clic para ver todos los apuntes)`}
-                  >
-                    <GraduationCap className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                    <span className="truncate">{activeDocument.subject.codigo}</span>
-                  </button>
-                )}
-
-                {/* Subpage crumb if parentDoc is different from activeDoc and not already in tabs */}
-                {(() => {
-                  const parentDoc = (activeDocument.parent_id && activeDocument.parent_id !== activeDocument.id)
-                    ? documents.find(d => d.id === activeDocument.parent_id)
-                    : null;
-                  if (!parentDoc || parentDoc.id === activeDocument.id) return null;
-
-                  // Evitar duplicación: Si el apunte padre ya está abierto en las pestañas a la derecha, no mostrar el crumb redundante
-                  const isParentAlreadyInTabs = openTabs.some(t => t.id === parentDoc.id);
-                  if (isParentAlreadyInTabs) return null;
-
-                  // Evitar duplicación si el título del padre es idéntico a la materia que ya se muestra en el badge
-                  const subjectNameNorm = (activeDocument.subject?.nombre || "").toLowerCase().trim();
-                  const parentTitleNorm = (parentDoc.titulo || "").toLowerCase().trim();
-                  if (subjectNameNorm && parentTitleNorm === subjectNameNorm) return null;
-
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => openDocument(parentDoc)}
-                      className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 max-w-[120px] truncate"
-                      title={`Apunte principal: ${parentDoc.titulo}`}
-                    >
-                      <TabeIconRenderer iconId={parentDoc.emoji || "book"} size={13} />
-                      <span className="truncate">{parentDoc.titulo}</span>
-                      <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0 ml-0.5" />
-                    </button>
-                  );
-                })()}
-
-                <div className="h-4 w-px bg-border/80 mx-1 shrink-0 hidden sm:block" />
-
-                {/* Inline Tabs inside the same unified bar */}
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
-                  {openTabs
-                    .filter((tab, index, self) => self.findIndex(t => t.id === tab.id) === index)
-                    .map(tab => {
-                    const isActive = activeDocument?.id === tab.id;
-                    return (
-                      <div
-                        key={tab.id}
-                        className={cn(
-                          "group relative flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs cursor-pointer transition-colors shrink-0 max-w-[180px]",
-                          isActive
-                            ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium border border-zinc-200/80 dark:border-zinc-700 shadow-2xs"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border border-transparent font-normal"
-                        )}
-                        onClick={() => handleTabClick(tab.id)}
-                        title={tab.title}
-                      >
-                        <span className="shrink-0 flex items-center">
-                          {tab.emoji ? (
-                            <TabeIconRenderer iconId={tab.emoji} size={13} />
-                          ) : (
-                            <FileText className="w-3.5 h-3.5" />
-                          )}
-                        </span>
-                        <span className="truncate">
-                          {isActive ? (localTitle || tab.title || "Sin título") : (tab.title || "Sin título")}
-                        </span>
-                        <button
-                          type="button"
-                          className={cn(
-                            "rounded p-0.5 transition-all ml-0.5 shrink-0 hover:bg-destructive/15 hover:text-destructive",
-                            isActive ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
-                          )}
-                          onClick={(e) => closeTab(tab.id, e)}
-                          title="Cerrar pestaña"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <span className="font-semibold text-sm md:text-base text-foreground">
-                Apuntes
-              </span>
             )}
           </div>
 
-          <div className="notion-topbar-right flex items-center gap-1.5 shrink-0">
+          <div className="notion-topbar-right flex items-center gap-1 shrink-0">
             {activeDocument ? (
               <>
+                {/* Auto-save indicator */}
+                <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground/70 px-1 select-none">
+                  {saveError ? (
+                    <span className="flex items-center gap-1 text-destructive font-medium" title={saveError}>
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Error
+                    </span>
+                  ) : isOpeningDoc ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                      Cargando...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1" title="Guardado automáticamente">
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      Guardado
+                    </span>
+                  )}
+                </div>
+
                 {/* Save indicator on error */}
                 {saveError && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-destructive/10 text-destructive rounded-md animate-in fade-in duration-300" title={saveError}>
                     <AlertCircle className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-medium hidden sm:inline uppercase tracking-wider">Error</span>
                   </div>
                 )}
 
-                {/* Global Study Timer Display & Controls */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isStudyTimerActive && !isStudyTimerPaused) {
-                      pauseStudyTimer();
-                    } else if (isStudyTimerPaused) {
-                      resumeStudyTimer();
-                    } else if (activeDocument) {
-                      startStudyTimer(activeDocument.subject_id || null, activeDocument.id, activeDocument.titulo);
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 h-8 px-2.5 rounded-lg transition-colors text-xs font-medium border select-none shadow-2xs",
-                    isStudyTimerActive && !isStudyTimerPaused && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-                    isStudyTimerPaused && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-                    !isStudyTimerActive && "bg-white dark:bg-zinc-900/80 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
-                  )}
-                  title={
-                    isStudyTimerActive && !isStudyTimerPaused
-                      ? "Pausar cronómetro de estudio (guarda tu tiempo)"
-                      : isStudyTimerPaused
-                      ? "Reanudar cronómetro de estudio"
-                      : "Iniciar cronómetro de estudio"
-                  }
-                >
-                  {isStudyTimerActive && !isStudyTimerPaused ? (
-                    <Pause className="w-3.5 h-3.5 shrink-0 fill-current animate-pulse text-emerald-500" />
-                  ) : isStudyTimerPaused ? (
-                    <Play className="w-3.5 h-3.5 shrink-0 fill-current text-amber-500" />
-                  ) : (
-                    <Clock className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
-                  )}
-                  <span className="font-mono tabular-nums font-semibold">
-                    {formatStudyTime(studyTimerSeconds)}
-                  </span>
-                </button>
-
                 {/* Favorite */}
                 <button
                   type="button"
                   className={cn(
-                    "h-8 w-8 inline-flex items-center justify-center rounded-lg border border-transparent hover:border-zinc-200/80 dark:hover:border-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors",
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors",
                     activeDocument.is_favorite && "text-amber-500 hover:text-amber-600"
                   )}
                   onClick={() => handleToggleFavorite(activeDocument)}
-                  title={
-                    activeDocument.is_favorite
-                      ? "Quitar de favoritos"
-                      : "Agregar a favoritos"
-                  }
+                  title={activeDocument.is_favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
                 >
-                  <Star
-                    className="w-4 h-4"
-                    fill={activeDocument.is_favorite ? "currentColor" : "none"}
-                  />
+                  <Star className="w-3.5 h-3.5" fill={activeDocument.is_favorite ? "currentColor" : "none"} />
                 </button>
 
                 {/* Audio Book */}
                 <button
                   type="button"
                   className={cn(
-                    "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-colors border shadow-2xs",
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors",
                     audioBook.isPlaying
-                      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+                      ? "text-emerald-500 bg-emerald-500/10"
                       : audioBook.isPaused
-                      ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30"
+                      ? "text-amber-500 bg-amber-500/10"
                       : showAudioBookPlayer
-                      ? "text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-white dark:bg-zinc-900/80 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      ? "text-foreground bg-muted"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
                   )}
                   onClick={() => {
                     if (!showAudioBookPlayer) {
@@ -2391,30 +2499,24 @@ export default function Notion() {
                       }
                     }
                   }}
-                  title={
-                    audioBook.isPlaying
-                      ? "Pausar audio libro"
-                      : audioBook.isPaused
-                      ? "Reanudar audio libro"
-                      : "Escuchar audio libro"
-                  }
+                  title={audioBook.isPlaying ? "Pausar audio libro" : audioBook.isPaused ? "Reanudar audio libro" : "Escuchar audio libro"}
                 >
                   {audioBook.isPlaying ? (
-                    <Pause className="w-4 h-4 fill-current" />
+                    <Pause className="w-3.5 h-3.5 fill-current" />
                   ) : (
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-3.5 h-3.5" />
                   )}
                 </button>
 
-                {/* AI Generation */}
+                {/* Tabe AI Action con Logo oficial adaptado al tema */}
                 <button
                   type="button"
-                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs shadow-2xs transition-colors"
+                  className="h-7 px-2 inline-flex items-center gap-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-foreground transition-all cursor-pointer border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 group"
                   onClick={() => setShowAIModal(true)}
-                  title="Generar Flashcards o Cuestionarios con IA a partir de este apunte"
+                  title="Tabe AI (Generar Flashcards y Cuestionarios)"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400 dark:text-purple-600" />
-                  <span className="hidden sm:inline font-medium">Tabe AI</span>
+                  <TabeLogo variant="ai" size={18} className="w-4.5 h-4.5 object-contain transition-transform group-hover:scale-105 shrink-0" />
+                  <span className="hidden sm:inline font-semibold text-xs text-foreground/90 group-hover:text-foreground">Tabe AI</span>
                 </button>
 
                 {/* PDF Export */}
@@ -2431,15 +2533,15 @@ export default function Notion() {
 
                 {/* Active Collaborators Presence */}
                 {activeCollaborators.length > 0 && (
-                  <div className="flex items-center -space-x-2 mr-1">
+                  <div className="flex items-center -space-x-1.5 mx-0.5">
                     {activeCollaborators.slice(0, 4).map((collab) => {
                       const isCurrentPage = !collab.currentPageId || collab.currentPageId === activeDocument?.id;
                       return (
                         <div
                           key={collab.user_id}
                           className={cn(
-                            "w-7 h-7 rounded-full border-2 text-white font-semibold text-[11px] flex items-center justify-center overflow-hidden shadow-xs shrink-0 transition-all",
-                            !isCurrentPage ? "opacity-60 grayscale-[30%]" : "ring-2 ring-background"
+                            "w-6 h-6 rounded-full border text-white font-semibold text-[10px] flex items-center justify-center overflow-hidden shrink-0 transition-all",
+                            !isCurrentPage ? "opacity-60 grayscale-[30%]" : "ring-1 ring-background"
                           )}
                           style={{
                             backgroundColor: collab.color || "#3B82F6",
@@ -2456,28 +2558,28 @@ export default function Notion() {
                       );
                     })}
                     {activeCollaborators.length > 4 && (
-                      <div className="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-[10px] flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-[10px] flex items-center justify-center shrink-0">
                         +{activeCollaborators.length - 4}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Badge persistente de EDICIÓN COLABORATIVA visible en ambos clientes */}
+                {/* Badge persistente de EDICIÓN COLABORATIVA */}
                 {isCollabActive && (
                   <div
-                    className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium text-xs select-none shrink-0 animate-in fade-in duration-300"
+                    className="h-6 px-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium text-[11px] select-none shrink-0"
                     title={
                       activeCollaborators.length > 1
                         ? `Edición colaborativa en vivo (${activeCollaborators.length} usuarios conectados)`
-                        : "Edición colaborativa activa - Listo para recibir colaboradores"
+                        : "Edición colaborativa activa"
                     }
                   >
-                    <span className="relative flex h-2 w-2">
+                    <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                     </span>
-                    <span className="hidden sm:inline">Edición colaborativa</span>
+                    <span className="hidden sm:inline">Colaborativa</span>
                   </div>
                 )}
 
@@ -2488,13 +2590,13 @@ export default function Notion() {
                     setDocToShare(activeDocument);
                     setShowShareModal(true);
                   }}
-                  className="h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shadow-2xs"
+                  className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 font-medium text-xs transition-colors cursor-pointer"
                   title="Compartir apunte cooperativo"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Compartir</span>
                   {activeDocument.is_shared && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                   )}
                 </button>
 
@@ -2503,13 +2605,118 @@ export default function Notion() {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-2xs"
+                      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer"
                       title="Más opciones"
                     >
-                      <MoreHorizontal className="w-4 h-4" />
+                      <MoreHorizontal className="w-3.5 h-3.5" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
+                  <DropdownMenuContent align="end" className="w-60 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
+                    {/* Notion Font Style Picker */}
+                    <div className="px-2 py-1.5">
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                        Estilo de letra
+                      </span>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotionFont("sans");
+                            localStorage.setItem("tabe_notion_font", "sans");
+                          }}
+                          className={cn(
+                            "px-2 py-1.5 rounded-md text-xs font-sans text-center border transition-all cursor-pointer",
+                            notionFont === "sans"
+                              ? "bg-primary/10 border-primary text-primary font-semibold"
+                              : "border-border/60 hover:bg-muted/70 text-muted-foreground"
+                          )}
+                        >
+                          Sans
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotionFont("serif");
+                            localStorage.setItem("tabe_notion_font", "serif");
+                          }}
+                          className={cn(
+                            "px-2 py-1.5 rounded-md text-xs font-serif text-center border transition-all cursor-pointer",
+                            notionFont === "serif"
+                              ? "bg-primary/10 border-primary text-primary font-semibold"
+                              : "border-border/60 hover:bg-muted/70 text-muted-foreground"
+                          )}
+                        >
+                          Serif
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotionFont("mono");
+                            localStorage.setItem("tabe_notion_font", "mono");
+                          }}
+                          className={cn(
+                            "px-2 py-1.5 rounded-md text-xs font-mono text-center border transition-all cursor-pointer",
+                            notionFont === "mono"
+                              ? "bg-primary/10 border-primary text-primary font-semibold"
+                              : "border-border/60 hover:bg-muted/70 text-muted-foreground"
+                          )}
+                        >
+                          Mono
+                        </button>
+                      </div>
+                    </div>
+
+                    <DropdownMenuSeparator className="my-1 bg-border/40" />
+
+                    {/* Notion Layout Toggles */}
+                    <DropdownMenuItem
+                      className="flex items-center justify-between text-xs cursor-pointer py-1.5"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const next = !notionSmallText;
+                        setNotionSmallText(next);
+                        localStorage.setItem("tabe_notion_smalltext", String(next));
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Type className="w-3.5 h-3.5 text-muted-foreground" />
+                        Texto pequeño
+                      </span>
+                      {notionSmallText && <Check className="w-3.5 h-3.5 text-primary" />}
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      className="flex items-center justify-between text-xs cursor-pointer py-1.5"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const next = !notionFullWidth;
+                        setNotionFullWidth(next);
+                        localStorage.setItem("tabe_notion_fullwidth", String(next));
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Maximize className="w-3.5 h-3.5 text-muted-foreground" />
+                        Ancho completo
+                      </span>
+                      {notionFullWidth && <Check className="w-3.5 h-3.5 text-primary" />}
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      className="flex items-center justify-between text-xs cursor-pointer py-1.5"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setNotionLocked(!notionLocked);
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        {notionLocked ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : <Unlock className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {notionLocked ? "Página bloqueada" : "Bloquear página"}
+                      </span>
+                      {notionLocked && <Check className="w-3.5 h-3.5 text-amber-500" />}
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="my-1 bg-border/40" />
+
                     {activeDocument.user_id === user?.id && (
                       <DropdownMenuItem
                         className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
@@ -2639,44 +2846,213 @@ export default function Notion() {
                 )}
                 <AdvancedNotionEditor
                   key={`${activeDocument.id}_${isCollabActive ? "collab" : "local"}`}
+                  isFullWidth={notionFullWidth}
+                  fontFamilyPreference={notionFont}
+                  smallTextPreference={notionSmallText}
                   headerContent={
                     <>
-                      {/* Cover */}
-                      {activeDocument.cover_url && (
-                        <div className="notion-cover">
-                          <img src={activeDocument.cover_url} alt="cover" />
+                      {/* Notion Cover Hero */}
+                      {activeDocument.cover_url ? (
+                        <div className="notion-cover-hero group rounded-xl my-2">
+                          <img src={activeDocument.cover_url} alt="Portada" />
+                          {isOwnerOrCanEdit && (
+                            <div className="notion-cover-actions">
+                              <button
+                                type="button"
+                                onClick={() => setShowCoverPickerModal(true)}
+                                className="h-7 px-2.5 rounded-md bg-black/60 hover:bg-black/80 text-white text-xs font-medium backdrop-blur-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <ImageIcon className="w-3.5 h-3.5" />
+                                Cambiar portada
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCover(null)}
+                                className="h-7 px-2 rounded-md bg-black/60 hover:bg-black/80 text-white text-xs font-medium backdrop-blur-xs flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Quitar portada"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ) : null}
 
-                      {/* Title area */}
-                      <div className="notion-title-area">
-                        <EmojiPicker
-                          value={activeDocument.emoji}
-                          onChange={handleEmojiUpdate}
-                        />
+                      <div className="notion-page-header pt-2">
+                        {/* Notion Hover Actions (Add Icon, Add Cover) solo si el usuario tiene permiso */}
+                        {isOwnerOrCanEdit && (!activeDocument.cover_url || !activeDocument.emoji) && (
+                          <div className="notion-page-header-actions">
+                            {!activeDocument.emoji && (
+                              <button
+                                type="button"
+                                onClick={() => handleEmojiUpdate("book")}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                              >
+                                <Smile className="w-3.5 h-3.5" />
+                                Añadir icono
+                              </button>
+                            )}
+                            {!activeDocument.cover_url && (
+                              <button
+                                type="button"
+                                onClick={() => setShowCoverPickerModal(true)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                              >
+                                <ImageIcon className="w-3.5 h-3.5" />
+                                Añadir portada
+                              </button>
+                            )}
+                          </div>
+                        )}
 
-                        <textarea
-                          ref={titleTextareaRef}
-                          value={localTitle}
-                          onChange={(e) => {
-                            handleTitleChange(e.target.value);
-                            // Auto-resize
-                            e.target.style.height = "auto";
-                            e.target.style.height = e.target.scrollHeight + "px";
-                          }}
-                          className={cn("notion-title-input", activeDocument.user_id !== user?.id && "cursor-default select-none")}
-                          placeholder="Sin título"
-                          rows={1}
-                          readOnly={activeDocument.user_id !== user?.id}
-                          style={{ overflow: "hidden" }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const editor = document.querySelector(".ProseMirror") as HTMLElement;
-                              editor?.focus();
-                            }
-                          }}
-                        />
+                        {/* Notion Icon */}
+                        {activeDocument.emoji && (
+                          <div className={activeDocument.cover_url ? "notion-floating-icon" : "mb-2 inline-block"}>
+                            {isOwnerOrCanEdit ? (
+                              <EmojiPicker
+                                value={activeDocument.emoji}
+                                onChange={handleEmojiUpdate}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center p-1 select-none pointer-events-none">
+                                <TabeIconRenderer iconId={activeDocument.emoji} size={activeDocument.cover_url ? 40 : 36} />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Title area */}
+                        <div className="notion-title-area mt-1 mb-2">
+                          <textarea
+                            ref={titleTextareaRef}
+                            value={localTitle}
+                            onChange={(e) => {
+                              handleTitleChange(e.target.value);
+                              // Auto-resize
+                              e.target.style.height = "auto";
+                              e.target.style.height = e.target.scrollHeight + "px";
+                            }}
+                            className={cn(
+                              "notion-title-input text-3xl sm:text-4xl font-bold tracking-tight text-foreground border-none outline-none bg-transparent placeholder:text-muted-foreground/30 w-full resize-none leading-tight",
+                              (activeDocument.user_id !== user?.id || notionLocked) && "cursor-default select-none"
+                            )}
+                            placeholder="Sin título"
+                            rows={1}
+                            readOnly={activeDocument.user_id !== user?.id || notionLocked}
+                            style={{ overflow: "hidden" }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const editor = document.querySelector(".ProseMirror") as HTMLElement;
+                                editor?.focus();
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Notion Properties Bar */}
+                        <div className="notion-properties-bar">
+                          {/* Materia */}
+                          <div className="notion-prop-row">
+                            <div className="notion-prop-label">
+                              <GraduationCap className="w-3.5 h-3.5" />
+                              Materia
+                            </div>
+                            <div className="notion-prop-value">
+                              {activeDocument.user_id === user?.id ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDocToChangeSubject(activeDocument);
+                                    setModalYear(null);
+                                    setShowChangeSubjectModal(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-xs font-medium text-foreground transition-colors cursor-pointer border border-border/40"
+                                >
+                                  <span>{activeDocument.subject?.nombre || activeDocument.subject?.codigo || "Sin materia asignada"}</span>
+                                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                                </button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  {activeDocument.subject?.nombre || activeDocument.subject?.codigo || "Sin materia"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Last modified */}
+                          <div className="notion-prop-row">
+                            <div className="notion-prop-label">
+                              <Clock className="w-3.5 h-3.5" />
+                              Última edición
+                            </div>
+                            <div className="notion-prop-value text-xs text-muted-foreground">
+                              {activeDocument.updated_at
+                                ? new Date(activeDocument.updated_at).toLocaleDateString("es-ES", {
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "Reciente"}
+                            </div>
+                          </div>
+
+                          {/* Study time (Sincronizado al 100% con StudyTimerContext) */}
+                          <div className="notion-prop-row">
+                            <div className="notion-prop-label">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                              Estudio
+                            </div>
+                            <div className="notion-prop-value flex items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isStudyTimerActive && !isStudyTimerPaused) {
+                                    pauseStudyTimer();
+                                  } else if (isStudyTimerPaused) {
+                                    resumeStudyTimer();
+                                  } else {
+                                    startStudyTimer(activeDocument.subject_id || null, activeDocument.id, activeDocument.titulo);
+                                  }
+                                }}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer border select-none shadow-2xs",
+                                  isStudyTimerActive && !isStudyTimerPaused
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                    : isStudyTimerPaused
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
+                                )}
+                                title={
+                                  isStudyTimerActive && !isStudyTimerPaused
+                                    ? "Pausar cronómetro de estudio (guarda tu tiempo)"
+                                    : isStudyTimerPaused
+                                    ? "Reanudar cronómetro de estudio"
+                                    : "Iniciar cronómetro de estudio"
+                                }
+                              >
+                                {isStudyTimerActive && !isStudyTimerPaused ? (
+                                  <Pause className="w-3 h-3 fill-current text-emerald-500 animate-pulse" />
+                                ) : isStudyTimerPaused ? (
+                                  <Play className="w-3 h-3 fill-current text-amber-500" />
+                                ) : (
+                                  <Play className="w-3 h-3 fill-current text-muted-foreground" />
+                                )}
+                                <span>{formatStudyTime(studyTimerSeconds)}</span>
+                                <span className="text-[10px] font-sans font-medium text-muted-foreground ml-0.5">
+                                  {isStudyTimerActive && !isStudyTimerPaused ? "Pausar" : isStudyTimerPaused ? "Reanudar" : "Iniciar"}
+                                </span>
+                              </button>
+
+                              {(activeDocument.total_time_seconds || 0) > 0 && (
+                                <span className="text-[11px] text-muted-foreground/70" title="Tiempo acumulado previamente en este apunte">
+                                  (Acumulado: {formatStudyTime(activeDocument.total_time_seconds)})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Author / Collaboration indicator in editor (visible en ambos clientes) */}
@@ -2738,12 +3114,13 @@ export default function Notion() {
                   onUpdate={handleContentUpdate}
                   documentId={activeDocument?.id}
                   readOnly={
-                    activeDocument?.user_id !== user?.id &&
+                    notionLocked ||
+                    (activeDocument?.user_id !== user?.id &&
                     !(
                       (activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
                       activeDocument?.user_permission === "edit" ||
                       (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit")
-                    )
+                    ))
                   }
                   ydoc={isCollabActive ? ydoc : null}
                   provider={isCollabActive ? collabProvider : null}
@@ -2758,11 +3135,11 @@ export default function Notion() {
                       // Si proviene de una copia (copyFromPageId) y aún no tiene nuevo pageId asignado (o coincide con copyFromPageId):
                       if (copyFromPageId && (!pageId || pageId === copyFromPageId)) {
                         let sourceContent = await fetchDocumentContent(copyFromPageId);
-                        let sourceEmoji = "📝";
+                        let sourceEmoji = "book";
                         let sourceTitle = pageTitle || "Sin título";
                         const existingDoc = documents.find(d => d.id === copyFromPageId);
                         if (existingDoc) {
-                          sourceEmoji = existingDoc.emoji || "📝";
+                          sourceEmoji = existingDoc.emoji || "book";
                           if (!pageTitle || pageTitle === "Sin título") {
                             sourceTitle = existingDoc.titulo || "Sin título";
                           }
@@ -2941,6 +3318,7 @@ export default function Notion() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
                       { id: "all", label: "Todos" },
+                      { id: "favorites", label: "⭐ Favoritos" },
                       { id: "mine", label: "Mis Apuntes" },
                       { id: "collaborative", label: "Compartidos" },
                       { id: "friends", label: "De Amigos" }
@@ -3039,6 +3417,7 @@ export default function Notion() {
                         doc={doc}
                         userSubjects={subjects}
                         onClick={openDocument}
+                        onToggleFavorite={handleToggleFavorite}
                         onRename={(d) => {
                           setDocToRename(d);
                           setNewTitle(d.titulo || "");
@@ -3556,7 +3935,7 @@ export default function Notion() {
                     className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/40 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors gap-2"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <span className="text-lg shrink-0">{item.emoji || "📝"}</span>
+                      <span className="text-lg shrink-0">{item.emoji || "book"}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{item.title}</p>
                         <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-mono">
@@ -3612,7 +3991,7 @@ export default function Notion() {
           <DialogHeader className="space-y-1.5 pb-2 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-purple-500" />
+                <TabeLogo variant="ai" size={24} className="w-6 h-6 object-contain" />
               </div>
               <div>
                 <DialogTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -3757,8 +4136,7 @@ export default function Notion() {
               </div>
 
               {/* Informative box */}
-              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80">
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Tabe AI procesará el texto de este apunte y creará el material en tu sección de{" "}
                   <span className="text-zinc-900 dark:text-zinc-100 font-medium">{aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionarios'}</span>, vinculado automáticamente a esta materia.
@@ -3789,8 +4167,7 @@ export default function Notion() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-1 text-purple-400 dark:text-purple-600" />
-                  Hacer Magia
+                  Generar {aiGenType === 'flashcards' ? 'Flashcards' : 'Cuestionario'}
                 </>
               )}
             </button>
@@ -3809,6 +4186,14 @@ export default function Notion() {
         mySubjects={subjects}
         onImport={handleImportFriendNote}
         preselectedNote={preselectedFriendNote}
+      />
+
+      {/* Notion Cover Picker Modal */}
+      <NotionCoverPickerModal
+        open={showCoverPickerModal}
+        onOpenChange={setShowCoverPickerModal}
+        currentCoverUrl={activeDocument?.cover_url}
+        onSelectCover={handleUpdateCover}
       />
 
       {/* Share Document Modal */}

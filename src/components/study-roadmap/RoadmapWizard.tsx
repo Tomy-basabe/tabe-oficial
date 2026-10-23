@@ -30,6 +30,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TabeIconRenderer } from "@/components/notion/TabeIcons";
 
 interface RoadmapWizardProps {
   userId?: string;
@@ -619,7 +620,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
                           </div>
 
                           <div className="w-7 h-7 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center text-sm shrink-0">
-                            {doc.emoji || "📝"}
+                            <TabeIconRenderer iconId={doc.emoji || "book"} size={16} />
                           </div>
 
                           <div className="min-w-0 space-y-0.5">

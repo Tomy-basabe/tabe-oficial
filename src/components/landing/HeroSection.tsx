@@ -99,7 +99,7 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="mt-14 max-w-5xl mx-auto"
         >
-          <div className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-2xl p-2 sm:p-4">
+          <div className="rounded-3xl border-2 border-zinc-300 dark:border-zinc-700 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-2xl p-2 sm:p-4">
             
             {/* Top Toolbar / Tab Switcher */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 mb-4">
@@ -140,7 +140,7 @@ export function HeroSection() {
             </div>
 
             {/* Inner Interactive Card Screen */}
-            <div className="min-h-[340px] sm:min-h-[420px] rounded-2xl bg-zinc-50/70 dark:bg-[#151515] border border-zinc-200/50 dark:border-zinc-800/50 p-6 flex flex-col justify-center">
+            <div className="min-h-[340px] sm:min-h-[420px] rounded-2xl bg-zinc-50/70 dark:bg-[#151515] border border-zinc-300/80 dark:border-zinc-700/80 p-6 flex flex-col justify-center">
               {activeTab === "notion" && (
                 <div className="max-w-2xl mx-auto space-y-4 text-left animate-in fade-in duration-300">
                   <div className="flex items-center gap-2 text-zinc-400 text-xs">

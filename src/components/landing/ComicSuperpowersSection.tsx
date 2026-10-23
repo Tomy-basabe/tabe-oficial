@@ -78,7 +78,7 @@ export function ComicSuperpowersSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.06 }}
-                className="group relative p-6 sm:p-7 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                className="group relative p-6 sm:p-7 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-5">

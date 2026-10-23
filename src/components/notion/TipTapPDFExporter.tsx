@@ -7,7 +7,6 @@ import jsPDF from "jspdf";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { ComicBadge } from "@/components/comic/ComicBadge";
-import { ComicAudio } from "@/components/comic/ComicAudio";
 import { sanitizeMermaidCode, runInMermaidQueue } from "./extensions/CodeBlockExtension";
 import { getIconById, TabeIconRenderer } from "./TabeIcons";
 
@@ -1985,7 +1984,7 @@ export function TipTapPDFExporter({
     });
 
     setExporting(true);
-    ComicAudio.playPop();
+    
 
     try {
       const renderer = new PDFRenderer({
@@ -2047,7 +2046,7 @@ export function TipTapPDFExporter({
           setShowOverwriteDialog(true);
           if (shouldDownload) {
             doc.save(`${fileName}.pdf`);
-            ComicAudio.playPowerUp();
+            
           }
           setBackgroundTask((prev) =>
             prev
@@ -2070,7 +2069,7 @@ export function TipTapPDFExporter({
       // ACCIÓN PRINCIPAL Y POR DEFECTO: Descargar el archivo al equipo del usuario
       if (shouldDownload) {
         doc.save(`${fileName}.pdf`);
-        ComicAudio.playPowerUp();
+        
       }
 
       setBackgroundTask({
@@ -2147,7 +2146,7 @@ export function TipTapPDFExporter({
         {/* Options trigger button: OPENS COMIC EXPORT MODAL */}
         <button
           onClick={() => {
-            ComicAudio.playPop();
+            
             setShowExportModal(true);
           }}
           disabled={exporting && !backgroundTask?.active}

@@ -12,7 +12,7 @@ declare module '@tiptap/core' {
       /**
        * Set a math node
        */
-      setMath: (attributes: { formula: string }) => ReturnType;
+      setMath: (attributes: { formula?: string; latex?: string }) => ReturnType;
     };
   }
 }
@@ -31,7 +31,7 @@ export const MathExtension = Node.create<MathOptions>({
     return {
       formula: {
         default: '',
-        parseHTML: element => element.getAttribute('data-formula'),
+        parseHTML: element => element.getAttribute('data-formula') || element.getAttribute('data-latex') || '',
         renderHTML: attributes => ({
           'data-formula': attributes.formula,
         }),
@@ -44,6 +44,12 @@ export const MathExtension = Node.create<MathOptions>({
       {
         tag: 'span[data-formula]',
       },
+      {
+        tag: 'span[data-latex]',
+      },
+      {
+        tag: 'span.notion-math-node',
+      },
     ];
   },
 
@@ -52,6 +58,7 @@ export const MathExtension = Node.create<MathOptions>({
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         class: 'notion-math-node',
+        'data-formula': node.attrs.formula,
       }),
       node.attrs.formula,
     ];
@@ -66,8 +73,31 @@ export const MathExtension = Node.create<MathOptions>({
       setMath:
         attributes =>
         ({ chain }) => {
-          return chain().insertContent({ type: this.name, attrs: attributes }).run();
+          const formula = attributes.formula ?? attributes.latex ?? 'E = mc^2';
+          return chain().insertContent({ type: this.name, attrs: { formula } }).run();
         },
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-m': () => {
+        const { state, commands } = this.editor;
+        const { from, to } = state.selection;
+        const isRange = from !== to;
+        const selectedText = isRange ? state.doc.textBetween(from, to, ' ').trim() : '';
+
+        const success = commands.insertContent({
+          type: this.name,
+          attrs: { formula: selectedText || 'E = mc^2' },
+        });
+
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('notion-trigger-math-edit'));
+        }, 50);
+
+        return success;
+      },
     };
   },
 });

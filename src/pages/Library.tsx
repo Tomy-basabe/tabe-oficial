@@ -1718,7 +1718,7 @@ export default function Library() {
             user_id: user.id,
             subject_id: file.subject_id,
             titulo: `Resumen: ${file.nombre}`,
-            emoji: "📝",
+            emoji: "book",
             contenido: tiptapContent
           });
 

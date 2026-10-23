@@ -112,7 +112,7 @@ export function useNotionDocuments() {
           subject_id: "mock",
           titulo: "Acerca de los Apuntes",
           contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "En los apuntes de Tabe puedes redactar tus ideas libres, resúmenes de clase y apuntes detallados. El editor soporta formato rico, atajos de teclado y autoguardado." }] }] },
-          emoji: "📝",
+          emoji: "book",
           cover_url: null,
           is_favorite: true,
           parent_id: null,
@@ -127,7 +127,7 @@ export function useNotionDocuments() {
           subject_id: "mock",
           titulo: "La Inteligencia Artificial",
           contenido: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "La IA de Tabe puede leer los apuntes que guardes aquí. Luego, podes pedirle desde el chat que te genere Cuestionarios o Flashcards basándose EXPRESAMENTE en lo que hayas escrito." }] }] },
-          emoji: "🤖",
+          emoji: "brain",
           cover_url: null,
           is_favorite: false,
           parent_id: null,
@@ -328,7 +328,7 @@ export function useNotionDocuments() {
     if (!user) return null;
 
     const docContent = initialContent ? JSON.parse(JSON.stringify(initialContent)) : { type: "doc", content: [{ type: "paragraph" }] };
-    const docEmoji = emoji || "📝";
+    const docEmoji = emoji || "book";
 
     const { data, error } = await supabase
       .from("notion_documents")

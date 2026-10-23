@@ -46,7 +46,7 @@ export function FaqSection() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs">
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-300 dark:border-zinc-700 p-6 sm:p-8 shadow-xs">
           <Accordion type="single" collapsible className="w-full space-y-3">
             {faqs.map((faq, index) => (
               <AccordionItem

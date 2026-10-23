@@ -1180,21 +1180,21 @@ export default function Flashcards() {
             ))}
           </div>
 
-          {selectedYear && filteredSubjects.length > 0 && (
-            <div className="w-44 sm:w-48">
+          {subjects.length > 0 && (
+            <div className="w-48 sm:w-56">
               <Select
                 value={selectedSubject || "all"}
                 onValueChange={(val) => setSelectedSubject(val === "all" ? null : val)}
               >
-                <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] px-2.5 text-xs text-zinc-900 dark:text-zinc-100 shadow-2xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600">
-                  <SelectValue placeholder="Todas las materias" />
+                <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#212121] px-2.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 shadow-2xs hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/15 transition-all cursor-pointer">
+                  <SelectValue placeholder="Todos los mazos" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-lg rounded-xl text-xs">
-                  <SelectItem value="all" className="cursor-pointer py-1.5">
-                    Todas las materias
+                <SelectContent className="bg-white dark:bg-[#1f1f1f] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl text-xs py-1.5 animate-in fade-in-50 zoom-in-95 max-h-60">
+                  <SelectItem value="all" className="cursor-pointer py-2 px-2.5 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-md my-0.5">
+                    Todos los mazos
                   </SelectItem>
                   {filteredSubjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-1.5">
+                    <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-2 px-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-md my-0.5">
                       {subject.nombre}
                     </SelectItem>
                   ))}

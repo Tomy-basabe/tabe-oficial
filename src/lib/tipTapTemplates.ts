@@ -79,7 +79,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
   {
     id: "blank",
     name: "Hoja en blanco",
-    emoji: "📄",
+    emoji: "book",
     iconName: "FileText",
     description: "Comenzá desde cero con un documento limpio y vacío",
     content: {
@@ -95,7 +95,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
   {
     id: "class-summary",
     name: "Resumen de Clase",
-    emoji: "📚",
+    emoji: "book",
     iconName: "BookOpen",
     description: "Apuntes completos con estructura profesional para cada clase",
     content: {
@@ -203,7 +203,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
   {
     id: "exam-prep",
     name: "Preparación de Examen",
-    emoji: "📖",
+    emoji: "target",
     iconName: "GraduationCap",
     description: "Planificación y estudio organizado para tus exámenes",
     content: {
@@ -345,7 +345,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
   {
     id: "lab-notes",
     name: "Notas de Laboratorio",
-    emoji: "🔬",
+    emoji: "flask",
     iconName: "FlaskConical",
     description: "Informe completo para prácticas y experimentos",
     content: {
@@ -488,7 +488,7 @@ export const tipTapTemplates: TipTapTemplate[] = [
   {
     id: "cornell",
     name: "Método Cornell",
-    emoji: "🎓",
+    emoji: "brain",
     iconName: "Layers",
     description: "Sistema probado de toma de notas para estudio efectivo",
     content: {

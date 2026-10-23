@@ -6,7 +6,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all hover:border-zinc-300 dark:hover:border-zinc-700",
+      "rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:border-zinc-400 dark:hover:border-zinc-600",
       className
     )}
     {...props}
@@ -16,7 +16,7 @@ Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-5 border-b border-zinc-100 dark:border-zinc-800/60", className)} {...props} />
+    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-5 border-b border-zinc-200 dark:border-zinc-700/80", className)} {...props} />
   ),
 );
 CardHeader.displayName = "CardHeader";
@@ -42,7 +42,7 @@ CardContent.displayName = "CardContent";
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex items-center p-5 pt-0 border-t border-zinc-100 dark:border-zinc-800/60 mt-4", className)} {...props} />
+    <div ref={ref} className={cn("flex items-center p-5 pt-0 border-t border-zinc-200 dark:border-zinc-700/80 mt-4", className)} {...props} />
   ),
 );
 CardFooter.displayName = "CardFooter";

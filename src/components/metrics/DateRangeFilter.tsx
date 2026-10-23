@@ -6,10 +6,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,7 +141,7 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-xl p-1"
+          className="w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-xl p-1 z-50"
         >
           {presets.map((preset) => {
             const isSelected = value.label === preset.label;
@@ -161,68 +163,87 @@ export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
           })}
           <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
           <DropdownMenuItem
-            onClick={() => setIsCustomOpen(true)}
-            className="text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+            onSelect={(e) => {
+              e.preventDefault();
+              setCustomFrom(value.from);
+              setCustomTo(value.to);
+              setIsCustomOpen(true);
+            }}
+            className="text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
           >
             Personalizado...
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Custom Date Range Popover */}
-      <Popover open={isCustomOpen} onOpenChange={setIsCustomOpen}>
-        <PopoverTrigger asChild>
-          <span className="hidden" />
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-auto p-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl overflow-hidden"
-          align="end"
+      {/* Custom Date Range Dialog Modal - Robusto y estable */}
+      <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
+        <DialogContent
+          className="w-auto max-w-[calc(100vw-2rem)] p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl z-50 text-foreground"
         >
-          <div className="p-4 space-y-4">
-            <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 tracking-tight">Seleccionar rango</h4>
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-base text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-primary" />
+              Seleccionar Rango de Fechas Personalizado
+            </DialogTitle>
+          </DialogHeader>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-zinc-500">Desde</p>
-                <Calendar
-                  mode="single"
-                  selected={customFrom}
-                  onSelect={setCustomFrom}
-                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 pointer-events-auto"
-                  locale={es}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-zinc-500">Hasta</p>
-                <Calendar
-                  mode="single"
-                  selected={customTo}
-                  onSelect={setCustomTo}
-                  disabled={(date) => customFrom ? date < customFrom : false}
-                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 pointer-events-auto"
-                  locale={es}
-                />
-              </div>
+          <div className="flex flex-col sm:flex-row gap-5 my-2">
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Fecha Desde</p>
+              <Calendar
+                mode="single"
+                selected={customFrom}
+                onSelect={(d) => {
+                  setCustomFrom(d);
+                  if (customTo && d && d > customTo) {
+                    setCustomTo(d);
+                  }
+                }}
+                className="rounded-xl border border-zinc-200 dark:border-zinc-800 pointer-events-auto p-3"
+                locale={es}
+              />
             </div>
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Fecha Hasta</p>
+              <Calendar
+                mode="single"
+                selected={customTo}
+                onSelect={setCustomTo}
+                disabled={(date) => (customFrom ? date < customFrom : false)}
+                className="rounded-xl border border-zinc-200 dark:border-zinc-800 pointer-events-auto p-3"
+                locale={es}
+              />
+            </div>
+          </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500">
-                {customFrom && customTo
-                  ? `${format(customFrom, "dd MMM yyyy", { locale: es })} - ${format(customTo, "dd MMM yyyy", { locale: es })}`
-                  : "Selecciona ambas fechas"}
-              </p>
+          <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+            <p className="text-xs text-zinc-500 font-medium">
+              {customFrom && customTo
+                ? `${format(customFrom, "dd MMM yyyy", { locale: es })}  ➜  ${format(customTo, "dd MMM yyyy", { locale: es })}`
+                : "Selecciona ambas fechas"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCustomOpen(false)}
+                className="text-xs h-8 px-3 rounded-lg"
+              >
+                Cancelar
+              </Button>
               <Button
                 size="sm"
                 onClick={handleCustomApply}
                 disabled={!customFrom || !customTo}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 rounded-lg text-xs font-medium px-3 h-8 shadow-xs"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 rounded-lg text-xs font-medium px-4 h-8 shadow-xs"
               >
-                Aplicar
+                Aplicar Rango
               </Button>
             </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

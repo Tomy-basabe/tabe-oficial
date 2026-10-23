@@ -22,8 +22,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  Highlighter,
-  Palette,
   Search,
   Maximize,
   Minimize,
@@ -34,13 +32,10 @@ import {
   Heading2,
   Heading3,
   Sigma,
-  PieChart,
   Lightbulb,
   Minus as DividerIcon,
   ChevronDown,
-  Sparkles,
   Keyboard,
-  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,6 +47,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ColorPicker } from './ColorPicker';
+import { cn } from '@/lib/utils';
 
 interface WordToolbarProps {
   editor: Editor | null;
@@ -64,49 +61,12 @@ interface WordToolbarProps {
   onInsertSubpage?: () => void;
 }
 
-const STRONG_HIGHLIGHT_COLORS = [
-  { name: 'Amarillo Neón',   color: '#facc15' },
-  { name: 'Verde Eléctrico', color: '#22c55e' },
-  { name: 'Azul Eléctrico',  color: '#3b82f6' },
-  { name: 'Celeste Flúor',   color: '#06b6d4' },
-  { name: 'Rosa Neón',       color: '#ec4899' },
-  { name: 'Naranja Vivo',    color: '#f97316' },
-  { name: 'Rojo Intenso',    color: '#ef4444' },
-  { name: 'Violeta Neón',    color: '#a855f7' },
-];
-
-const PASTEL_HIGHLIGHT_COLORS = [
-  { name: 'Amarillo apunte', color: 'rgba(254, 240, 138, 0.75)' },
-  { name: 'Verde menta',     color: 'rgba(187, 247, 208, 0.75)' },
-  { name: 'Azul pastel',     color: 'rgba(191, 219, 254, 0.75)' },
-  { name: 'Celeste pastel',  color: 'rgba(186, 230, 253, 0.75)' },
-  { name: 'Lavanda suave',   color: 'rgba(233, 213, 255, 0.75)' },
-  { name: 'Rosa coral',      color: 'rgba(254, 205, 211, 0.75)' },
-  { name: 'Naranja suave',   color: 'rgba(254, 215, 170, 0.75)' },
-];
-
-const TEXT_COLORS = [
-  { name: 'Por defecto', color: '' },
-  { name: 'Negro intenso', color: '#000000' },
-  { name: 'Azul eléctrico', color: '#1d4ed8' },
-  { name: 'Verde esmeralda', color: '#15803d' },
-  { name: 'Rojo vivo', color: '#dc2626' },
-  { name: 'Púrpura intenso', color: '#7e22ce' },
-  { name: 'Naranja fuerte', color: '#ea580c' },
-  { name: 'Dorado intenso', color: '#d97706' },
-];
-
-const FONT_SIZES = ['10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'];
-
 export const WordToolbar: React.FC<WordToolbarProps> = ({
   editor,
-  fontFamily,
-  onFontFamilyChange,
   isZenMode,
   onToggleZenMode,
   onToggleFindReplace,
   onOpenShortcutsGuide,
-  onInsertSubpage,
 }) => {
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false);
 
@@ -118,606 +78,420 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
     if (editor.isActive('heading', { level: 3 })) return 'Título 3';
     if (editor.isActive('blockquote')) return 'Cita';
     if (editor.isActive('codeBlock')) return 'Código';
-    return 'Párrafo';
-  };
-
-  const getCurrentFontSize = () => {
-    const size = editor.getAttributes('textStyle')?.fontSize;
-    if (!size) return '16';
-    return size.replace('px', '').replace('pt', '');
-  };
-
-  const handleSetFontSize = (size: string) => {
-    editor.chain().focus().setFontSize(`${size}px`).run();
-  };
-
-  const increaseFontSize = () => {
-    const current = parseInt(getCurrentFontSize(), 10) || 16;
-    const sizes = [10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
-    const next = sizes.find(s => s > current) || current + 2;
-    editor.chain().focus().setFontSize(`${next}px`).run();
-  };
-
-  const decreaseFontSize = () => {
-    const current = parseInt(getCurrentFontSize(), 10) || 16;
-    const sizes = [10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
-    const prev = [...sizes].reverse().find(s => s < current) || Math.max(8, current - 2);
-    editor.chain().focus().setFontSize(`${prev}px`).run();
+    if (editor.isActive('bulletList')) return 'Lista con viñetas';
+    if (editor.isActive('orderedList')) return 'Lista numerada';
+    if (editor.isActive('taskList')) return 'Lista de tareas';
+    return 'Texto';
   };
 
   const isTableActive = editor.isActive('table');
 
   return (
     <TooltipProvider delayDuration={150}>
-      <header className="sticky top-0 z-30 border-b border-border/70 bg-card/95 backdrop-blur-md px-2.5 py-1 shadow-xs select-none transition-all print:hidden">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
+      <header className="sticky top-0 z-30 h-9 px-2.5 border-b border-border/40 bg-background/90 backdrop-blur-md select-none transition-all print:hidden flex items-center">
+        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar w-full">
           {/* UNDO / REDO */}
           <div className="flex items-center gap-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                   onClick={() => editor.chain().focus().undo().run()}
                   disabled={!editor.can().undo()}
                 >
-                  <Undo className="w-4 h-4" />
-                </Button>
+                  <Undo className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Deshacer (Ctrl+Z)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Deshacer (Ctrl+Z)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                   onClick={() => editor.chain().focus().redo().run()}
                   disabled={!editor.can().redo()}
                 >
-                  <Redo className="w-4 h-4" />
-                </Button>
+                  <Redo className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Rehacer (Ctrl+Y)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Rehacer (Ctrl+Y)</TooltipContent>
             </Tooltip>
           </div>
 
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
 
-          {/* BLOCK TYPE SELECTOR */}
+          {/* NOTION BLOCK TYPE SELECTOR */}
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2.5 text-xs font-medium gap-1.5 border border-border/50 bg-background/50 hover:bg-accent"
+                  <button
+                    type="button"
+                    className="h-7 px-2 text-xs font-medium text-foreground/85 hover:text-foreground hover:bg-muted/70 rounded-md inline-flex items-center gap-1.5 transition-colors border-0"
                   >
                     <span>{getCurrentBlockLabel()}</span>
-                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                  </Button>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground/70" />
+                  </button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Estilo de texto / Título</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Tipo de bloque / Título</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="start" className="w-44">
+            <DropdownMenuContent align="start" className="w-48 p-1 shadow-lg border-border/60">
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().setParagraph().run()}
-                className={editor.isActive('paragraph') ? 'bg-accent' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive('paragraph') && 'bg-muted font-medium')}
               >
-                <Type className="w-4 h-4 mr-2 text-muted-foreground" />
+                <Type className="w-3.5 h-3.5 text-muted-foreground" />
                 Texto normal
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                className={editor.isActive('heading', { level: 1 }) ? 'bg-accent font-bold' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer font-semibold", editor.isActive('heading', { level: 1 }) && 'bg-muted text-primary')}
               >
-                <Heading1 className="w-4 h-4 mr-2 text-primary" />
-                Título Principal
+                <Heading1 className="w-3.5 h-3.5 text-primary" />
+                Título 1 (Grande)
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                className={editor.isActive('heading', { level: 2 }) ? 'bg-accent font-semibold' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer font-medium", editor.isActive('heading', { level: 2 }) && 'bg-muted text-primary')}
               >
-                <Heading2 className="w-4 h-4 mr-2 text-primary" />
-                Sección
+                <Heading2 className="w-3.5 h-3.5 text-primary" />
+                Título 2 (Mediano)
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                className={editor.isActive('heading', { level: 3 }) ? 'bg-accent font-medium' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive('heading', { level: 3 }) && 'bg-muted text-primary')}
               >
-                <Heading3 className="w-4 h-4 mr-2 text-primary" />
-                Subsección
+                <Heading3 className="w-3.5 h-3.5 text-primary" />
+                Título 3 (Pequeño)
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="my-1" />
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive('bulletList') && 'bg-muted font-medium')}
+              >
+                <List className="w-3.5 h-3.5 text-muted-foreground" />
+                Lista con viñetas
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive('orderedList') && 'bg-muted font-medium')}
+              >
+                <ListOrdered className="w-3.5 h-3.5 text-muted-foreground" />
+                Lista numerada
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editor.chain().focus().toggleTaskList().run()}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive('taskList') && 'bg-muted font-medium')}
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                Lista de tareas
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                className={editor.isActive('blockquote') ? 'bg-accent italic' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer italic", editor.isActive('blockquote') && 'bg-muted font-medium')}
               >
-                <Quote className="w-4 h-4 mr-2 text-amber-500" />
+                <Quote className="w-3.5 h-3.5 text-amber-500" />
                 Cita destacada
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                className={editor.isActive('codeBlock') ? 'bg-accent font-mono' : ''}
+                className={cn("text-xs gap-2 py-1.5 cursor-pointer font-mono", editor.isActive('codeBlock') && 'bg-muted font-medium')}
               >
-                <Code className="w-4 h-4 mr-2 text-emerald-500" />
+                <Code className="w-3.5 h-3.5 text-emerald-500" />
                 Bloque de código
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* FONT FAMILY SELECTOR */}
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs font-medium gap-1 border border-border/50 bg-background/50 hover:bg-accent"
-                  >
-                    <span className="truncate max-w-[75px] sm:max-w-[90px]">
-                      {fontFamily === 'sans' ? 'Moderna' : fontFamily === 'serif' ? 'Académica' : 'Código'}
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Fuente tipográfica</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent align="start" className="w-40">
-              <DropdownMenuItem
-                onClick={() => onFontFamilyChange('sans')}
-                className={fontFamily === 'sans' ? 'bg-accent font-bold' : ''}
-              >
-                Moderna (Inter)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onFontFamilyChange('serif')}
-                className={`font-serif ${fontFamily === 'serif' ? 'bg-accent font-bold' : ''}`}
-              >
-                Académica (Serif)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onFontFamilyChange('mono')}
-                className={`font-mono text-xs ${fontFamily === 'mono' ? 'bg-accent font-bold' : ''}`}
-              >
-                Técnica (Monospace)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
 
-          {/* FONT SIZE SELECTOR (WORD STYLE) */}
-          <div className="flex items-center gap-0.5">
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-xs font-mono font-medium gap-1 border border-border/50 bg-background/50 hover:bg-accent min-w-[42px]"
-                    >
-                      <span>{getCurrentFontSize()}</span>
-                      <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Tamaño de fuente (pt)</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="start" className="w-20 max-h-56 overflow-y-auto">
-                {FONT_SIZES.map((size) => (
-                  <DropdownMenuItem
-                    key={size}
-                    onClick={() => handleSetFontSize(size)}
-                    className={`font-mono text-xs cursor-pointer ${getCurrentFontSize() === size ? 'bg-accent font-bold' : ''}`}
-                  >
-                    {size}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* A+ & A- Buttons */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-7 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-accent"
-                  onClick={increaseFontSize}
-                >
-                  <span className="flex items-center leading-none">
-                    A<span className="text-[9px] font-extrabold ml-0.5">+</span>
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Aumentar tamaño de letra</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-7 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-accent"
-                  onClick={decreaseFontSize}
-                >
-                  <span className="flex items-center leading-none">
-                    A<span className="text-[9px] font-extrabold ml-0.5">-</span>
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Disminuir tamaño de letra</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
-
-          {/* TEXT FORMATTING */}
+          {/* TEXT FORMATTING MARKS */}
           <div className="flex items-center gap-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('bold') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md font-bold text-xs transition-colors",
+                    editor.isActive('bold')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleBold().run()}
                 >
-                  <Bold className="w-4 h-4" />
-                </Button>
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Negrita (Ctrl+B)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Negrita (Ctrl+B)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('italic') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md italic text-xs transition-colors",
+                    editor.isActive('italic')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleItalic().run()}
                 >
-                  <Italic className="w-4 h-4" />
-                </Button>
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Cursiva (Ctrl+I)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Cursiva (Ctrl+I)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('underline') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors",
+                    editor.isActive('underline')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleUnderline().run()}
                 >
-                  <Underline className="w-4 h-4" />
-                </Button>
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Subrayado (Ctrl+U)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Subrayado (Ctrl+U)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('strike') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors",
+                    editor.isActive('strike')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleStrike().run()}
                 >
-                  <Strikethrough className="w-4 h-4" />
-                </Button>
+                  <Strikethrough className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Tachado</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Tachado</TooltipContent>
             </Tooltip>
 
-            {/* Subscript & Superscript */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 hidden xl:inline-flex ${editor.isActive('subscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md font-mono text-xs transition-colors",
+                    editor.isActive('code')
+                      ? "bg-muted text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                  onClick={() => editor.chain().focus().toggleCode().run()}
+                >
+                  <Code className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Código en línea (Ctrl+E)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors hidden xl:inline-flex",
+                    editor.isActive('subscript')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleSubscript().run()}
                 >
-                  <Subscript className="w-4 h-4" />
-                </Button>
+                  <Subscript className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Subíndice (H₂O)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Subíndice (H₂O)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 hidden xl:inline-flex ${editor.isActive('superscript') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors hidden xl:inline-flex",
+                    editor.isActive('superscript')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={() => editor.chain().focus().toggleSuperscript().run()}
                 >
-                  <Superscript className="w-4 h-4" />
-                </Button>
+                  <Superscript className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Superíndice (x²)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Superíndice (x²)</TooltipContent>
             </Tooltip>
           </div>
 
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
 
-          {/* COLORS & HIGHLIGHT */}
-          <div className="flex items-center gap-0.5">
-            {/* Highlighter with Strong & Pastel colors */}
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                    >
-                      <Highlighter className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Resaltador (Colores fuertes y suaves)</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="center" className="p-2.5 w-60">
-                {/* Colores Fuertes / Flúor */}
-                <DropdownMenuLabel className="text-[11px] font-bold text-foreground flex items-center justify-between pb-1">
-                  <span>Colores Fuertes / Flúor</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Alta visibilidad</span>
-                </DropdownMenuLabel>
-                <div className="grid grid-cols-7 gap-1 pb-2">
-                  {STRONG_HIGHLIGHT_COLORS.map((h, i) => (
-                    <button
-                      key={`strong-${i}`}
-                      type="button"
-                      onClick={() => {
-                        editor.chain().focus().setBackgroundColor(h.color).run();
-                        try { localStorage.setItem('tabe_last_highlight_color', h.color); } catch (_) {}
-                      }}
-                      className="h-6 w-6 rounded border border-border/80 hover:scale-115 transition-transform shadow-xs"
-                      style={{ backgroundColor: h.color }}
-                      title={h.name}
-                    />
-                  ))}
-                </div>
-
-                {/* Colores Pasteles de Estudio */}
-                <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground pt-1 pb-1">
-                  Colores Suaves de Estudio
-                </DropdownMenuLabel>
-                <div className="grid grid-cols-6 gap-1 pb-2">
-                  {PASTEL_HIGHLIGHT_COLORS.map((h, i) => (
-                    <button
-                      key={`pastel-${i}`}
-                      type="button"
-                      onClick={() => {
-                        editor.chain().focus().setBackgroundColor(h.color).run();
-                        try { localStorage.setItem('tabe_last_highlight_color', h.color); } catch (_) {}
-                      }}
-                      className="h-6 w-6 rounded border border-border/60 hover:scale-115 transition-transform"
-                      style={{ backgroundColor: h.color }}
-                      title={h.name}
-                    />
-                  ))}
-                </div>
-
-                {/* Quitar resaltado de la selección */}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    editor.chain().focus().unsetBackgroundColor().run();
-                  }}
-                  className="text-xs cursor-pointer flex items-center justify-between font-medium text-destructive focus:bg-destructive/10"
-                >
-                  <span>Quitar resaltado</span>
-                  <kbd className="text-[10px] font-mono opacity-80">Ctrl+Q</kbd>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Text Color with Strong Tones */}
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    >
-                      <Palette className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Color de letra</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="center" className="p-2.5 w-52">
-                <DropdownMenuLabel className="text-xs font-bold text-foreground">
-                  Color de texto intenso
-                </DropdownMenuLabel>
-                <div className="grid grid-cols-4 gap-1.5 pt-1 pb-1">
-                  {TEXT_COLORS.map((c, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        if (!c.color) {
-                          editor.chain().focus().unsetColor().run();
-                        } else {
-                          editor.chain().focus().setColor(c.color).run();
-                        }
-                      }}
-                      className="h-7 rounded-md border border-border/70 flex items-center justify-center hover:scale-110 transition-transform font-bold text-xs bg-muted/30"
-                      style={{ color: c.color || 'inherit' }}
-                      title={c.name}
-                    >
-                      A
-                    </button>
-                  ))}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {/* NOTION COLOR PICKER */}
+          <div className="flex items-center">
+            <ColorPicker editor={editor} type="toolbar" />
           </div>
 
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
 
-          {/* ALIGNMENT DROPDOWN */}
+          {/* LISTS & INDENT */}
+          <div className="flex items-center gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors",
+                    editor.isActive('bulletList')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Lista con viñetas</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors",
+                    editor.isActive('orderedList')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Lista numerada</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md text-xs transition-colors",
+                    editor.isActive('taskList')
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                  onClick={() => editor.chain().focus().toggleTaskList().run()}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Lista de tareas</TooltipContent>
+            </Tooltip>
+
+            {/* Indent / Outdent */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors hidden md:inline-flex"
+                  onClick={() => editor.commands.outdent?.()}
+                >
+                  <Outdent className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Reducir sangría (Shift+Tab)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors hidden md:inline-flex"
+                  onClick={() => editor.commands.indent?.()}
+                >
+                  <Indent className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Aumentar sangría (Tab)</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
+
+          {/* ALIGNMENT */}
           <div className="flex items-center">
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    <button
+                      type="button"
+                      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
                     >
                       {editor.isActive({ textAlign: 'center' }) ? (
-                        <AlignCenter className="w-4 h-4 text-primary" />
+                        <AlignCenter className="w-3.5 h-3.5 text-foreground" />
                       ) : editor.isActive({ textAlign: 'right' }) ? (
-                        <AlignRight className="w-4 h-4 text-primary" />
+                        <AlignRight className="w-3.5 h-3.5 text-foreground" />
                       ) : editor.isActive({ textAlign: 'justify' }) ? (
-                        <AlignJustify className="w-4 h-4 text-primary" />
+                        <AlignJustify className="w-3.5 h-3.5 text-foreground" />
                       ) : (
-                        <AlignLeft className="w-4 h-4" />
+                        <AlignLeft className="w-3.5 h-3.5" />
                       )}
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Alineación del texto</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Alineación del texto</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-44 p-1 shadow-lg border-border/60">
                 <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                  className={editor.isActive({ textAlign: 'left' }) ? 'bg-accent font-semibold' : ''}
+                  className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive({ textAlign: 'left' }) && 'bg-muted font-medium')}
                 >
-                  <AlignLeft className="w-4 h-4 mr-2" />
+                  <AlignLeft className="w-3.5 h-3.5 mr-1" />
                   Alinear a la izquierda
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                  className={editor.isActive({ textAlign: 'center' }) ? 'bg-accent font-semibold' : ''}
+                  className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive({ textAlign: 'center' }) && 'bg-muted font-medium')}
                 >
-                  <AlignCenter className="w-4 h-4 mr-2" />
+                  <AlignCenter className="w-3.5 h-3.5 mr-1" />
                   Centrar
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                  className={editor.isActive({ textAlign: 'right' }) ? 'bg-accent font-semibold' : ''}
+                  className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive({ textAlign: 'right' }) && 'bg-muted font-medium')}
                 >
-                  <AlignRight className="w-4 h-4 mr-2" />
+                  <AlignRight className="w-3.5 h-3.5 mr-1" />
                   Alinear a la derecha
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-                  className={editor.isActive({ textAlign: 'justify' }) ? 'bg-accent font-semibold' : ''}
+                  className={cn("text-xs gap-2 py-1.5 cursor-pointer", editor.isActive({ textAlign: 'justify' }) && 'bg-muted font-medium')}
                 >
-                  <AlignJustify className="w-4 h-4 mr-2" />
+                  <AlignJustify className="w-3.5 h-3.5 mr-1" />
                   Justificar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
-
-          {/* LISTS & INDENT */}
-          <div className="flex items-center gap-0.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('bulletList') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Lista con viñetas</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('orderedList') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                >
-                  <ListOrdered className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Lista numerada</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${editor.isActive('taskList') ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
-                  onClick={() => editor.chain().focus().toggleTaskList().run()}
-                >
-                  <CheckSquare className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Lista de tareas pendientes</TooltipContent>
-            </Tooltip>
-
-            {/* Indent / Outdent */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hidden md:inline-flex text-muted-foreground hover:text-foreground"
-                  onClick={() => editor.commands.outdent?.()}
-                >
-                  <Outdent className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Reducir sangría (Shift+Tab)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hidden md:inline-flex text-muted-foreground hover:text-foreground"
-                  onClick={() => editor.commands.indent?.()}
-                >
-                  <Indent className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Aumentar sangría (Tab)</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="h-4 w-px bg-border/80 mx-0.5" />
+          <div className="h-3.5 w-px bg-border/50 mx-1 shrink-0" />
 
           {/* QUICK INSERTS: TABLE, MATH, CALLOUT, DIVIDER */}
           <div className="flex items-center gap-0.5">
@@ -726,52 +500,57 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-8 w-8 ${isTableActive ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    <button
+                      type="button"
+                      className={cn(
+                        "h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors",
+                        isTableActive
+                          ? "bg-muted text-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                      )}
                     >
-                      <TableIcon className="w-4 h-4" />
-                    </Button>
+                      <TableIcon className="w-3.5 h-3.5" />
+                    </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Herramientas de Tabla</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Herramientas de Tabla</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="start" className="w-52">
-                <DropdownMenuLabel className="text-xs font-medium">Tabla de datos</DropdownMenuLabel>
+              <DropdownMenuContent align="start" className="w-48 p-1 shadow-lg border-border/60">
+                <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">Tabla de datos</DropdownMenuLabel>
                 {!isTableActive ? (
                   <DropdownMenuItem
                     onClick={() => {
                       editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
                     }}
+                    className="text-xs gap-2 py-1.5 cursor-pointer"
                   >
-                    <Plus className="w-4 h-4 mr-2 text-primary" />
+                    <Plus className="w-3.5 h-3.5 mr-1 text-primary" />
                     Insertar tabla 3x3
                   </DropdownMenuItem>
                 ) : (
                   <>
-                    <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
-                      <Plus className="w-3.5 h-3.5 mr-2 text-emerald-500" />
+                    <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()} className="text-xs gap-2 py-1.5 cursor-pointer">
+                      <Plus className="w-3.5 h-3.5 mr-1 text-emerald-500" />
                       Añadir fila debajo
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                      <Plus className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                    <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()} className="text-xs gap-2 py-1.5 cursor-pointer">
+                      <Plus className="w-3.5 h-3.5 mr-1 text-blue-500" />
                       Añadir columna a la derecha
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
-                      <Minus className="w-3.5 h-3.5 mr-2 text-amber-500" />
+                    <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()} className="text-xs gap-2 py-1.5 cursor-pointer">
+                      <Minus className="w-3.5 h-3.5 mr-1 text-amber-500" />
                       Eliminar fila actual
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
-                      <Minus className="w-3.5 h-3.5 mr-2 text-amber-500" />
+                    <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()} className="text-xs gap-2 py-1.5 cursor-pointer">
+                      <Minus className="w-3.5 h-3.5 mr-1 text-amber-500" />
                       Eliminar columna actual
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="my-1" />
                     <DropdownMenuItem
-                      className="text-destructive focus:bg-destructive/10"
+                      className="text-destructive focus:bg-destructive/10 text-xs gap-2 py-1.5 cursor-pointer"
                       onClick={() => editor.chain().focus().deleteTable().run()}
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
                       Eliminar toda la tabla
                     </DropdownMenuItem>
                   </>
@@ -782,32 +561,34 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
             {/* Math KaTeX */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors hidden sm:inline-flex"
                   onClick={() => {
+                    const { from, to } = editor.state.selection;
+                    const isRange = from !== to;
+                    const selectedText = isRange ? editor.state.doc.textBetween(from, to, ' ').trim() : '';
                     editor.chain().focus().insertContent({
                       type: 'math',
-                      attrs: { latex: 'f(x) = \\int_{-\\infty}^{\\infty} e^{-x^2} dx' },
+                      attrs: { formula: selectedText || 'E = mc^2' },
                     }).run();
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('notion-trigger-math-edit'));
+                    }, 50);
                   }}
                 >
-                  <Sigma className="w-4 h-4 text-primary/80" />
-                </Button>
+                  <Sigma className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Fórmula matemática (KaTeX)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Fórmula matemática (Ctrl+M)</TooltipContent>
             </Tooltip>
 
             {/* Callout box */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors hidden sm:inline-flex"
                   onClick={() => {
                     editor.chain().focus().insertContent({
                       type: 'callout',
@@ -815,79 +596,76 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                     }).run();
                   }}
                 >
-                  <Lightbulb className="w-4 h-4 text-amber-500" />
-                </Button>
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Caja destacada / Nota de estudio</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Nota destacada / Callout</TooltipContent>
             </Tooltip>
 
             {/* Divider */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors hidden sm:inline-flex"
                   onClick={() => editor.chain().focus().setHorizontalRule().run()}
                 >
-                  <DividerIcon className="w-4 h-4" />
-                </Button>
+                  <DividerIcon className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Línea separadora horizontal</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Línea divisoria</TooltipContent>
             </Tooltip>
           </div>
 
           <div className="flex-1" />
 
-          {/* RIGHT SIDE: SHORTCUTS GUIDE, FIND & REPLACE & ZEN MODE */}
+          {/* RIGHT SIDE: FIND & REPLACE, SHORTCUTS, ZEN MODE */}
           <div className="flex items-center gap-0.5 shrink-0">
             {onOpenShortcutsGuide && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
                     onClick={onOpenShortcutsGuide}
                   >
-                    <Keyboard className="w-4 h-4 text-primary" />
-                  </Button>
+                    <Keyboard className="w-3.5 h-3.5" />
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Guía y atajos de teclado (Ctrl + /)</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Atajos de teclado (Ctrl + /)</TooltipContent>
               </Tooltip>
             )}
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
                   onClick={onToggleFindReplace}
                 >
-                  <Search className="w-4 h-4" />
-                </Button>
+                  <Search className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Buscar y reemplazar en el apunte (Ctrl+F)</TooltipContent>
+              <TooltipContent side="bottom" className="text-xs">Buscar y reemplazar (Ctrl+F)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${isZenMode ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors",
+                    isZenMode
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
                   onClick={onToggleZenMode}
                 >
-                  {isZenMode ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                </Button>
+                  {isZenMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {isZenMode ? 'Salir del Modo Zen' : 'Modo Zen (concentración sin distracciones)'}
+              <TooltipContent side="bottom" className="text-xs">
+                {isZenMode ? 'Salir del Modo Zen' : 'Modo Zen (concentración)'}
               </TooltipContent>
             </Tooltip>
           </div>

@@ -724,12 +724,9 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
      * - **Progreso de carrera:** [X]/[Total] materias aprobadas ([pct]%)
      * - **Materias aprobadas con nota:** listadas ordenadamente con sub-viñetas ("  - Nombre (X° año): **Nota**").
    - Si no tiene materias con nota numérica registrada aún, explicaselo con calidez.
-10. GENERACIÓN DE IMÁGENES O ILUSTRACIONES (MODELO FLUX): Si el usuario solicita generar, dibujar, ilustrar o crear una imagen/diagrama (o si el mensaje inicia con [Modo Imagen / Generación Visual]):
-- Traduce y enriquece el prompt a inglés cinematográfico/profesional de alta calidad (ej: "photorealistic, 8k, highly detailed, dramatic lighting, clean sharp focus" o "modern minimalist vector graphic, clean lines, high resolution").
-- Usa EXCLUSIVAMENTE el motor Flux sin marca de agua (\`model=flux&nologo=true&enhance=true\`):
-\`![Descripción en español](https://image.pollinations.ai/prompt/{prompt_en_ingles_detallado}?model=flux&width=1024&height=1024&seed={numero_aleatorio}&nologo=true&enhance=true)\`
-- Donde {prompt_en_ingles_detallado} esté completamente codificado con \`%20\` sin espacios y {numero_aleatorio} sea un entero entre 1000 y 999999.
-- Acompaña SIEMPRE la imagen con un texto breve explicativo o académico en español.
+10. POLÍTICA ESTRICTA SOBRE IMÁGENES: Eres un asistente académico enfocado en el estudio, materias, exámenes y organización universitaria. NO eres una IA que genera imágenes y NO tienes la capacidad de crear, dibujar ni ilustrar imágenes o archivos gráficos.
+    Si el estudiante te solicita crear, generar, dibujar, pintar o ilustrar una imagen, foto o arte visual, responde con amabilidad y total claridad diciendo textualmente que eres un asistente académico y que NO eres una IA que genera imágenes, ofreciéndole en su lugar estructurar la explicación en texto, crear resúmenes, esquemas conceptuales en Markdown, cuestionarios o flashcards de estudio.
+    NUNCA devuelvas enlaces markdown con imágenes ni intentes invocar motores de generación visual.
 11. RESÚMENES DE CLASES Y AUDIOS: Si el estudiante te comparte un audio, grabación o transcripción de clase para resumir, genera un resumen estructurado didáctico con: Puntos Clave, Conceptos y Definiciones Importantes, y Fechas/Entregas/Exámenes Mencionados (destacados con ⚠️).
 12. En cualquier otra consulta o saludo, responde de forma amigable y fluida sin añadir bloques de acción innecesarios.
 13. ACCESO A INTERACCIONES, PROFESORES Y GRUPOS DE ESTUDIO (FOROS Y CHATS):
@@ -939,42 +936,8 @@ export async function streamAIChat(params: {
     return false;
   };
 
-  // Para voz en vivo y respuestas de ultra baja latencia (powerLevel === "bajo"), priorizar NVIDIA proxy directo
-  if (powerLevel === "bajo" && !image) {
-    const candidateModels = NVIDIA_MODELS_PRIORITY.bajo;
-    for (const nvModel of candidateModels) {
-      success = await runTier((delta) =>
-        streamFromNvidiaProxy({
-          modelId: nvModel,
-          systemPrompt,
-          messages,
-          powerLevel,
-          onDelta: delta,
-        })
-      );
-      if (success) {
-        break;
-      }
-    }
-  }
-
-  // Tier 1: Supabase Edge Function (ai-assistant-stream with Groq Llama/Qwen & Gemini)
-  if (!success) {
-    success = await runTier((delta) =>
-      streamFromLocal({
-        messages,
-        systemPrompt,
-        onDelta: delta,
-        requestedModelId: "tabe-ai",
-        requestedProvider: "local",
-        powerLevel,
-        image,
-      })
-    );
-  }
-
-  // Tier 2: Clúster NVIDIA NIM (si no se ejecutó previamente)
-  if (!success && !image && powerLevel !== "bajo") {
+  // Tier 1: Clúster NVIDIA NIM (Prioridad 1 para todos los niveles de potencia y modelos de última generación)
+  if (!success && !image) {
     const candidateModels = NVIDIA_MODELS_PRIORITY[powerLevel] || NVIDIA_MODELS_PRIORITY.medio;
     for (const nvModel of candidateModels) {
       success = await runTier((delta) =>
@@ -990,6 +953,21 @@ export async function streamAIChat(params: {
         break;
       }
     }
+  }
+
+  // Tier 2: Supabase Edge Function (Groq Llama/Qwen & Gemini como respaldo automático)
+  if (!success) {
+    success = await runTier((delta) =>
+      streamFromLocal({
+        messages,
+        systemPrompt,
+        onDelta: delta,
+        requestedModelId: "tabe-ai",
+        requestedProvider: "local",
+        powerLevel,
+        image,
+      })
+    );
   }
 
   // Tier 3: Google Gemini (if client key available)

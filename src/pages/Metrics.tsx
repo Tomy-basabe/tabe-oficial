@@ -54,6 +54,8 @@ export default function Metrics() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedDeleteDate, setSelectedDeleteDate] = useState<string | undefined>();
   const [selectedDeleteSubjectId, setSelectedDeleteSubjectId] = useState<string | undefined>();
+  const [selectedChartDate, setSelectedChartDate] = useState<string | null>(null);
+  const [manualDialogDate, setManualDialogDate] = useState<string | undefined>();
 
   const fetchData = useCallback(async (isInitial = false) => {
     if (!user && !isGuest) {
@@ -266,11 +268,14 @@ export default function Metrics() {
     }
   };
 
-  // Calculate subject progress
+  // Calculate subject progress (filtrado por da seleccionado si existe)
   const getSubjectProgress = (): SubjectStudyData[] => {
     const subjectMap: Record<string, { total_seconds: number; sessions_count: number }> = {};
+    const relevantSessions = selectedChartDate
+      ? sessions.filter(s => s.fecha === selectedChartDate || (s.fecha && s.fecha.startsWith(selectedChartDate)))
+      : sessions;
 
-    sessions.forEach(session => {
+    relevantSessions.forEach(session => {
       const subId = session.subject_id || "unassigned";
       if (!subjectMap[subId]) {
         subjectMap[subId] = { total_seconds: 0, sessions_count: 0 };
@@ -554,7 +559,7 @@ export default function Metrics() {
                                   {item.flashcards > 0 ? `${item.flashcards} flash` : ""}
                                 </span>
                               )}
-                              <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-normal">Clic para ajustar</span>
+                              <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-normal">Clic para seleccionar e inspeccionar</span>
                               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 dark:bg-zinc-100 rotate-45"></div>
                             </div>
                           )}
@@ -569,38 +574,120 @@ export default function Metrics() {
                 )}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-zinc-500 font-medium">Promedio diario</p>
-                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                    {formatHours(totalHours / totalDays)}
-                  </p>
+              {/* Barra contextual si hay un da seleccionado */}
+              {selectedChartDate ? (
+                <div className="mt-5 p-3.5 bg-zinc-50 dark:bg-[#1a1a1a] border border-primary/30 dark:border-primary/20 rounded-xl flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-200 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <span>{chartData.find(d => d.date === selectedChartDate)?.label} ({chartData.find(d => d.date === selectedChartDate)?.sublabel})</span>
+                        <span className="text-[11px] font-normal text-zinc-500">
+                           {formatHours(chartData.find(d => d.date === selectedChartDate)?.hours || 0)} estudiadas
+                        </span>
+                      </p>
+                      <p className="text-[10px] text-zinc-400">Viendo materias de este da a la derecha</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualDialogDate(selectedChartDate);
+                        setShowManualDialog(true);
+                      }}
+                      className="text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 px-3 py-1.5 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Aadir tiempo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDeleteDate(selectedChartDate);
+                        setSelectedDeleteSubjectId("all");
+                        setShowDeleteDialog(true);
+                      }}
+                      className="text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Eliminar tiempo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChartDate(null)}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 px-2 py-1.5 transition-colors cursor-pointer"
+                      title="Volver a ver todo el perodo"
+                    >
+                      Deseleccionar
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDeleteDate(toLocalDateStr(new Date()));
-                    setSelectedDeleteSubjectId("all");
-                    setShowDeleteDialog(true);
-                  }}
-                  className="text-xs font-medium text-zinc-500 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700/80 hover:border-red-200 dark:hover:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Ajustar horas
-                </button>
-              </div>
+              ) : (
+                <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-zinc-500 font-medium">Promedio diario</p>
+                    <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {formatHours(totalHours / totalDays)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualDialogDate(toLocalDateStr(new Date()));
+                        setShowManualDialog(true);
+                      }}
+                      className="text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 px-3 py-1.5 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Aadir tiempo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDeleteDate(toLocalDateStr(new Date()));
+                        setSelectedDeleteSubjectId("all");
+                        setShowDeleteDialog(true);
+                      }}
+                      className="text-xs font-medium text-zinc-500 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700/80 hover:border-red-200 dark:hover:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Ajustar horas
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Subject Progress */}
             <div className="neo-bento-card p-6 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
-                    Por Materia
-                  </h3>
-                  <span className="text-[10px] font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
-                    Clic p/ ajustar
-                  </span>
+                  <div>
+                    <h3 className="font-semibold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
+                      Por Materia
+                    </h3>
+                    {selectedChartDate && (
+                      <p className="text-[11px] text-primary font-medium mt-0.5">
+                        Da: {chartData.find(d => d.date === selectedChartDate)?.label} ({chartData.find(d => d.date === selectedChartDate)?.sublabel})
+                      </p>
+                    )}
+                  </div>
+                  {selectedChartDate ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChartDate(null)}
+                      className="text-[10px] font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 transition-colors"
+                    >
+                      Ver todo el perodo ?
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
+                      Toca un da p/ filtrar
+                    </span>
+                  )}
                 </div>
 
                 {loading && subjects.length === 0 ? (
@@ -720,13 +807,13 @@ export default function Metrics() {
                   return (
                     <div
                       key={key}
-                      className="p-4 rounded-xl bg-zinc-50/70 dark:bg-zinc-850/40 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                      className="p-4 rounded-xl bg-zinc-50/90 dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-2xs"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center">
                           <Icon className={cn("w-4 h-4", meta.iconColor)} />
                         </div>
-                        <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md">
+                        <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md">
                           {formatHours(data.seconds / 3600)}
                         </span>
                       </div>
@@ -744,6 +831,7 @@ export default function Metrics() {
             onOpenChange={setShowManualDialog}
             onSuccess={fetchData}
             subjects={subjects}
+            initialDate={manualDialogDate}
           />
           <DeleteStudyTimeDialog
             open={showDeleteDialog}

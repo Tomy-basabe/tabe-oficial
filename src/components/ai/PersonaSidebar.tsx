@@ -116,9 +116,9 @@ export function PersonaSidebar({
                                 )}
                             </div>
                             {activePersona?.id === persona.id && (
-                                <div className="w-2 h-2 rounded-full bg-black flex-shrink-0 border-2 border-black" />
+                                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 shadow-xs" />
                             )}
-                            <div className="flex bg-card rounded-md shadow-[2px_2px_0_0_hsl(var(--foreground))] border-2 border-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                            <div className="flex bg-card rounded-md border border-zinc-200 dark:border-zinc-700 shadow-2xs opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -154,91 +154,64 @@ export function PersonaSidebar({
             </div>
 
             {/* Chat sessions section */}
-            <div className="p-4 border-b border-zinc-200/80 dark:border-zinc-800/80 flex gap-2">
+            <div className="p-3 border-b border-border/50">
                 <Button
                     onClick={onNewChat}
-                    className="flex-1 justify-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg font-medium text-xs h-9 shadow-2xs transition-colors"
+                    className="w-full justify-between px-3.5 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-xl font-medium text-xs h-10 shadow-xs transition-all cursor-pointer"
                 >
-                    <Plus className="w-4 h-4 !text-black" strokeWidth={3} /> Nuevo Chat
+                    <span className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> Nuevo chat
+                    </span>
+                    <span className="text-[10px] opacity-70 border border-current/30 px-1.5 py-0.2 rounded">Ctrl + K</span>
                 </Button>
-                {sessions.length > 0 && onClearAllSessions && (
-                    <Button
-                        onClick={onClearAllSessions}
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-foreground border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] rounded-xl hover:bg-[#FF5C5C] hover:!text-black hover:translate-y-[-2px]"
-                        title="Borrar todo el historial"
-                    >
-                        <Eraser className="w-4 h-4" strokeWidth={2.5} />
-                    </Button>
-                )}
             </div>
 
-            <div className="flex-1 px-3 py-3 overflow-y-auto overflow-x-hidden space-y-2">
+            {/* Lista de Historial estilo ChatGPT */}
+            <div className="flex-1 px-2.5 py-3 overflow-y-auto overflow-x-hidden space-y-1">
+                <div className="px-2 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Recientes</span>
+                    {sessions.length > 0 && onClearAllSessions && (
+                        <button
+                            onClick={onClearAllSessions}
+                            className="text-[10px] text-zinc-400 hover:text-red-500 transition-colors lowercase cursor-pointer"
+                            title="Borrar todo"
+                        >
+                            limpiar
+                        </button>
+                    )}
+                </div>
+
                 {sessions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
-                        <MessageCircle className="w-10 h-10" strokeWidth={1.5} />
-                        <span className="text-sm font-black uppercase">Sin historial</span>
+                    <div className="py-8 text-center text-xs text-zinc-400 font-normal">
+                        No hay conversaciones previas
                     </div>
                 ) : (
                     sessions.map((session) => (
                         <div
                             key={session.id}
                             className={cn(
-                                "flex items-center justify-between gap-2 p-2 rounded-xl text-sm border-2 transition-all w-full select-none",
+                                "group flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition-colors w-full select-none cursor-pointer",
                                 currentSessionId === session.id
-                                    ? "bg-[#BFFF00] text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                                    : "bg-background text-foreground hover:bg-muted border-foreground/40 hover:border-foreground shadow-xs"
+                                    ? "bg-zinc-200/80 dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 font-medium"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100"
                             )}
+                            onClick={() => onSelectSession(session.id)}
                         >
-                            {/* Clickable area to switch chat */}
+                            <span className="truncate flex-1 text-left">
+                                {session.title || "Nueva conversación"}
+                            </span>
+
                             <button
                                 type="button"
-                                onClick={() => onSelectSession(session.id)}
-                                className="flex items-center gap-2 flex-1 min-w-0 text-left py-1 cursor-pointer"
-                                title={session.title}
-                            >
-                                <MessageSquare
-                                    className={cn(
-                                        "w-4 h-4 shrink-0",
-                                        currentSessionId === session.id
-                                            ? "text-black"
-                                            : "text-muted-foreground"
-                                    )}
-                                    strokeWidth={2.5}
-                                />
-                                <span className={cn(
-                                    "truncate text-xs md:text-sm block font-black",
-                                    currentSessionId === session.id ? "text-black" : "text-foreground"
-                                )}>
-                                    {session.title}
-                                </span>
-                            </button>
-
-                            {/* Prominent, always-visible delete button */}
-                            <div
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    e.preventDefault();
+                                    onDeleteSession(session.id);
                                 }}
-                                className="shrink-0"
+                                className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 rounded transition-all shrink-0 cursor-pointer"
+                                title="Eliminar chat"
                             >
-                                <HoldButton
-                                    size="icon-sm"
-                                    radius={8}
-                                    backgroundColor="#ffffff"
-                                    fillColor="#FF5C5C"
-                                    textColor="#dc2626"
-                                    fillTextColor="#ffffff"
-                                    holdTime={1200}
-                                    icon={<Trash2 className="w-3.5 h-3.5 text-red-600" strokeWidth={2.5} />}
-                                    doneIcon={<Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />}
-                                    doneLabel=""
-                                    onHold={() => onDeleteSession(session.id)}
-                                    className="border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
-                                    title="Mantené presionado para eliminar este chat"
-                                />
-                            </div>
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     ))
                 )}

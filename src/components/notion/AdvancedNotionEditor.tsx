@@ -94,6 +94,9 @@ interface AdvancedNotionEditorProps {
   ydoc?: Y.Doc | null;
   provider?: any | null;
   collabUser?: { name: string; color: string; avatarUrl?: string | null } | null;
+  isFullWidth?: boolean;
+  fontFamilyPreference?: 'sans' | 'serif' | 'mono';
+  smallTextPreference?: boolean;
 }
 
 // Bubble menu button
@@ -128,6 +131,9 @@ export function AdvancedNotionEditor({
   ydoc,
   provider,
   collabUser,
+  isFullWidth = false,
+  fontFamilyPreference,
+  smallTextPreference = false,
 }: AdvancedNotionEditorProps) {
   const lastLoadedDocumentIdRef = useRef<string | undefined>(undefined);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -839,14 +845,27 @@ export function AdvancedNotionEditor({
             return;
         }
 
-        // Strikethrough: Ctrl+Shift+S
-        // This shortcut is now removed to free up Ctrl+S for color.
-        // If strikethrough is still needed, assign a new shortcut here.
-        // if (e.key.toLowerCase() === "s") {
-        //   e.preventDefault();
-        //   editor.chain().focus().toggleStrike().run();
-        //   return;
-        // }
+        // Strikethrough: Ctrl+Shift+S o Ctrl+Shift+X
+        if (e.key.toLowerCase() === "s" || e.key.toLowerCase() === "x") {
+          e.preventDefault();
+          editor.chain().focus().toggleStrike().run();
+          return;
+        }
+        // Formula matematica: Ctrl+Shift+M
+        if (e.key.toLowerCase() === "m") {
+          e.preventDefault();
+          const { from, to } = editor.state.selection;
+          const isRange = from !== to;
+          const selectedText = isRange ? editor.state.doc.textBetween(from, to, ' ').trim() : '';
+          editor.chain().focus().insertContent({
+            type: 'math',
+            attrs: { formula: selectedText || 'E = mc^2' },
+          }).run();
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('notion-trigger-math-edit'));
+          }, 50);
+          return;
+        }
         // Highlight: Ctrl+Shift+H
         if (e.key.toLowerCase() === "h") {
           e.preventDefault();
@@ -946,6 +965,52 @@ export function AdvancedNotionEditor({
 
         if (!e.shiftKey) {
           switch (e.key.toLowerCase()) {
+            case "b": {
+              e.preventDefault();
+              editor.chain().focus().toggleBold().run();
+              return;
+            }
+            case "i": {
+              e.preventDefault();
+              editor.chain().focus().toggleItalic().run();
+              return;
+            }
+            case "u": {
+              e.preventDefault();
+              editor.chain().focus().toggleUnderline().run();
+              return;
+            }
+            case "e": {
+              e.preventDefault();
+              editor.chain().focus().toggleCode().run();
+              return;
+            }
+            case "m": {
+              e.preventDefault();
+              const { from, to } = editor.state.selection;
+              const isRange = from !== to;
+              const selectedText = isRange ? editor.state.doc.textBetween(from, to, ' ').trim() : '';
+              if (selectedText) {
+                editor.chain().focus().deleteRange({ from, to }).insertContent({
+                  type: 'math',
+                  attrs: { formula: selectedText },
+                }).run();
+              } else {
+                const node = editor.state.doc.nodeAt(from);
+                if (node?.type.name === 'math') {
+                  window.dispatchEvent(new CustomEvent('notion-trigger-math-edit', { detail: { pos: from } }));
+                } else {
+                  editor.chain().focus().insertContent({
+                    type: 'math',
+                    attrs: { formula: 'E = mc^2' },
+                  }).run();
+                }
+              }
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('notion-trigger-math-edit'));
+              }, 50);
+              return;
+            }
             case "k": {
               e.preventDefault();
               const previousUrl = editor.getAttributes("link").href;
@@ -1087,9 +1152,14 @@ export function AdvancedNotionEditor({
       }
     };
 
+    const handleOpenMathMenu = () => {
+      setMathMenuOpen(true);
+    };
+    window.addEventListener("notion-open-math-menu", handleOpenMathMenu);
     document.addEventListener("keydown", handleKeyDown, true);
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
+      window.removeEventListener("notion-open-math-menu", handleOpenMathMenu);
       document.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -1361,8 +1431,9 @@ export function AdvancedNotionEditor({
         className={cn(
           "flex-1 overflow-y-auto transition-all relative",
           viewMode === 'word-a4' && "word-a4-wrapper",
-          viewMode === 'full' && "word-full-width-wrapper",
-          fontFamily === 'serif' ? 'notion-font-serif' : fontFamily === 'mono' ? 'notion-font-mono' : 'notion-font-sans'
+          (isFullWidth || viewMode === 'full') && "word-full-width-wrapper",
+          smallTextPreference && "notion-small-text",
+          (fontFamilyPreference || fontFamily) === 'serif' ? 'notion-font-serif' : (fontFamilyPreference || fontFamily) === 'mono' ? 'notion-font-mono' : 'notion-font-sans'
         )}
         style={{ zoom: zoom !== 100 ? `${zoom}%` : undefined }}
       >
@@ -1373,7 +1444,10 @@ export function AdvancedNotionEditor({
             <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} currentPageId={documentId} />
           </div>
         ) : (
-          <div className="notion-editor-wrapper relative">
+          <div className={cn(
+            "notion-editor-wrapper relative",
+            (isFullWidth || viewMode === 'full') && "notion-editor-full-width"
+          )}>
             {headerContent}
             <EditorContent editor={editor} />
             <RemoteCursorsOverlay editor={editor} remoteCursors={remoteCursors || {}} containerRef={scrollContainerRef} currentPageId={documentId} />

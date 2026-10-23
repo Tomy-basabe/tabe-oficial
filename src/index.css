@@ -146,8 +146,8 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --border: 240 5.9% 84%;
+    --input: 240 5.9% 84%;
     --ring: 240 5.9% 10%;
 
     --radius: 0.75rem;
@@ -186,7 +186,7 @@
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 220 14% 92%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 87%;
+    --sidebar-border: 220 13% 80%;
     --sidebar-ring: 240 5.9% 10%;
   }
 
@@ -218,8 +218,8 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
+    --border: 0 0% 28%;
+    --input: 0 0% 28%;
     --ring: 0 0% 98%;
 
     /* Custom Gamer Colors */
@@ -256,7 +256,7 @@
     --sidebar-primary-foreground: 240 5.9% 10%;
     --sidebar-accent: 0 0% 16%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 18%;
+    --sidebar-border: 0 0% 28%;
     --sidebar-ring: 0 0% 98%;
   }
 }
@@ -334,12 +334,12 @@
 
   /* Bento-Box Modern Clean Base Card */
   .neo-bento-card {
-    @apply bg-white dark:bg-[#212121] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 relative overflow-hidden transition-all duration-200;
+    @apply bg-white dark:bg-[#212121] rounded-xl border border-zinc-300 dark:border-zinc-700 relative overflow-hidden transition-all duration-200;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
   }
   
   .neo-bento-card:hover {
-    @apply border-zinc-300 dark:border-zinc-700;
+    @apply border-zinc-400 dark:border-zinc-600;
     box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
   }
 
@@ -1206,6 +1206,23 @@
 
 .dark [class*="hover:bg-gray-"]:hover {
   background-color: hsl(var(--secondary)) !important;
+}
+
+/* REFUERZO DE MARCOS Y BORDES DE APARTADOS (LIGHT & DARK MODE) */
+[class*="border-zinc-200/80"],
+[class*="border-zinc-200/60"] {
+  border-color: rgb(212 212 216 / 0.95);
+}
+
+.dark [class*="border-zinc-800/80"],
+.dark [class*="border-zinc-800/60"],
+.dark [class*="border-zinc-800/90"],
+.dark [class*="border-zinc-800"] {
+  border-color: rgb(63 63 70 / 0.95) !important;
+}
+
+.dark [class*="hover:border-zinc-700"]:hover {
+  border-color: rgb(82 82 91 / 0.95) !important;
 }
 
 /* ==========================================================================

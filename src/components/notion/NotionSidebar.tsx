@@ -71,7 +71,7 @@ export function NotionSidebar({
     }, [contextMenu]);
 
     const favorites = useMemo(
-        () => documents.filter((d) => d.is_favorite && !d.parent_id),
+        () => documents.filter((d) => Boolean(d.is_favorite)),
         [documents]
     );
 

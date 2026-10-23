@@ -34,6 +34,10 @@ export function CareerAnalytics() {
 
   // Ritmo de materias por año seleccionado por el estudiante (simulador)
   const [simulatedPace, setSimulatedPace] = useState<number>(6);
+  // Cantidad personalizada de materias pendientes (opcional)
+  const [customPendingCount, setCustomPendingCount] = useState<number | null>(null);
+  const [isEditingCustomPending, setIsEditingCustomPending] = useState<boolean>(false);
+  const [customPaceInput, setCustomPaceInput] = useState<string>("6");
 
   // Estadísticas fundamentales de la carrera
   const stats = useMemo(() => {
@@ -145,9 +149,10 @@ export function CareerAnalytics() {
       .sort((a, b) => b.blocksCount - a.blocksCount)
       .slice(0, 5);
 
-    // Estimación de meses para recibirse según ritmo simulado
+    // Estimación de meses para recibirse según ritmo simulado y materias faltantes personalizadas
+    const effectivePending = customPendingCount !== null ? Math.max(customPendingCount, 0) : pendingCount;
     const safePace = Math.max(simulatedPace, 1);
-    const yearsNeeded = pendingCount / safePace;
+    const yearsNeeded = effectivePending / safePace;
     const monthsNeeded = Math.ceil(yearsNeeded * 12);
     const estimatedDate = addMonths(new Date(), monthsNeeded);
 
@@ -168,7 +173,7 @@ export function CareerAnalytics() {
       estimatedDate,
       realPacePerYear: 6,
     };
-  }, [subjects, simulatedPace]);
+  }, [subjects, simulatedPace, customPendingCount]);
 
   if (loading) {
     return (
@@ -349,7 +354,7 @@ export function CareerAnalytics() {
           </div>
 
           {/* Resultado Visual del Simulador */}
-          <div className="lg:col-span-5 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-5 flex flex-col justify-center items-center text-center">
+          <div className="lg:col-span-5 bg-zinc-50/70 dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-5 flex flex-col justify-center items-center text-center">
             <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
               Proyección de Egreso
             </span>
@@ -405,7 +410,7 @@ export function CareerAnalytics() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-zinc-50 dark:bg-zinc-850/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-zinc-50 dark:bg-[#1a1a1a] rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
                 <BookOpen className="w-8 h-8 text-zinc-400 mb-2" />
                 <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Sin materias con nota numérica registrada</p>
                 <p className="text-[11px] text-zinc-400 mt-1">Carga las notas finales en tu Plan de Carrera para ver la curva de evolución.</p>
@@ -450,7 +455,7 @@ export function CareerAnalytics() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-zinc-50 dark:bg-zinc-850/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-zinc-50 dark:bg-[#1a1a1a] rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
                 <Award className="w-8 h-8 text-zinc-400 mb-2" />
                 <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Aún no hay calificaciones para graficar</p>
                 <p className="text-[11px] text-zinc-400 mt-1">A medida que apruebes materias con nota, verás tu histograma de rendimiento.</p>
@@ -518,7 +523,7 @@ export function CareerAnalytics() {
               stats.bottlenecks.map(({ subject, blocksCount }, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-zinc-50/70 dark:bg-zinc-850/40 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                  className="p-3 bg-zinc-50/70 dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                 >
                   <div className="min-w-0 pr-2">
                     <p className="font-medium text-xs text-zinc-800 dark:text-zinc-200 truncate">
