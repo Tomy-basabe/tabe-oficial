@@ -1,4 +1,4 @@
-import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Zap, Layers, ClipboardList, Library, Trophy, Shield, Users, Store, TreeDeciduous, Repeat2, Clock, Folder, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator, Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame, Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare, Search, Compass, Award } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Zap, Layers, ClipboardList, Library, Trophy, Shield, Users, Store, TreeDeciduous, Repeat2, Clock, Folder, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator, Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame, Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare, Search, Compass, Award, Bookmark } from "lucide-react";
 import { 
   UniversidadCatIcon, 
   PlanCarreraIcon, 

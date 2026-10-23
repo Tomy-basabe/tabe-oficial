@@ -13,7 +13,7 @@ import { ComicConfetti } from "./ComicConfetti";
 import { IsoCubesLoader } from "./IsoCubesLoader";
 import { MermaidRenderer } from "./MermaidRenderer";
 import { EmojiPng } from "@/components/common/EmojiPng";
-import { X, CheckCircle2, AlertCircle, ArrowRight, BookOpen, Volume2, VolumeX, FileText, Clock, RotateCcw, ChevronDown, ChevronUp, Layers, Target, Check, RefreshCw, ShieldAlert, Radio, Play, Pause, SkipForward, SkipBack, Mic, MicOff, Award, Send, MessageSquare, Flame } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, ArrowRight, BookOpen, Volume2, VolumeX, FileText, Clock, RotateCcw, ChevronDown, ChevronUp, Layers, Target, Check, RefreshCw, ShieldAlert, Radio, Play, Pause, SkipForward, SkipBack, Mic, MicOff, Award, Send, MessageSquare, Flame, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
