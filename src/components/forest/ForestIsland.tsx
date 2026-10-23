@@ -8,10 +8,9 @@ import { IslandUnderhang, IslandSurfaceDetails } from "./ForestIslandDetails";
 import { ForestIslandScenery } from "./ForestIslandScenery";
 import { IslandAmbientLife } from "./IslandAmbientLife";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import {
-  Sun,
+import { Sun,
   Moon,
-  Sparkles,
+  
   Compass,
   Info,
   Trees,
@@ -24,8 +23,7 @@ import {
   Plus,
   CheckCircle2,
   Shield,
-  Layers,
-} from "lucide-react";
+  Layers, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TimeRange = "today" | "week" | "month" | "year" | "all";
@@ -159,7 +157,7 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
 
           <div className="flex items-center gap-2 self-start sm:self-center">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{currentIsland.tagline}</span>
             </span>
           </div>
@@ -353,7 +351,7 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
 
           {/* Badge de Tasa de Supervivencia */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 dark:bg-black/80 text-white border border-zinc-700 rounded-xl text-xs font-medium backdrop-blur-md shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
             <span>Supervivencia: {successRate}%</span>
           </div>
         </div>

@@ -2,14 +2,12 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import FolderFloat from "@/components/ui/FolderFloat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  FileText, Image, Link as LinkIcon, Upload, Plus,
+import { FileText, Image, Link as LinkIcon, Upload, Plus,
   Trash2, ExternalLink, FolderOpen, Folder, FolderPlus, FolderUp,
   ChevronRight, ArrowLeft, X, Eye, Filter, GraduationCap, ShoppingBag, Edit2,
   CheckCircle2, Square, CheckSquare, Repeat2, Clock, Volume2, Loader2,
-  ShieldCheck, Check, Search, LayoutGrid, List, MoreHorizontal, Sparkles,
-  UploadCloud, Layers, BookOpen, Copy, Download
-} from "lucide-react";
+  ShieldCheck, Check, Search, LayoutGrid, List, MoreHorizontal, 
+  UploadCloud, Layers, BookOpen, Copy, Download } from "lucide-react";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
@@ -2708,7 +2706,7 @@ export default function Library() {
                                   onClick={() => handleGenerateContent(file, 'summary')}
                                   className="text-xs flex items-center gap-2 cursor-pointer"
                                 >
-                                  <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                                  <FileText className="w-3.5 h-3.5 text-zinc-500" />
                                   <span>Resumir con IA</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -2904,7 +2902,7 @@ export default function Library() {
                                       className="p-1 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                                       title="Resumir con IA"
                                     >
-                                      <Sparkles className="w-4 h-4" />
+                                      <FileText className="w-4 h-4" />
                                     </button>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
@@ -3839,7 +3837,7 @@ export default function Library() {
                       : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                   )}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Layers className="w-3.5 h-3.5 text-amber-500" />
                   <span>{generating === 'flashcards' ? "Generando..." : "Flashcards"}</span>
                 </button>
 
@@ -4028,7 +4026,7 @@ export default function Library() {
                   : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-700"
               )}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Layers className="w-3.5 h-3.5 text-amber-500" />
               <span>{generating === 'flashcards' ? "Generando..." : "Flashcards"}</span>
             </button>
 

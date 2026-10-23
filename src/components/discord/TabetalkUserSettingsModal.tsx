@@ -1,20 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { 
-  X, 
-  Mic, 
-  Volume2, 
-  Video, 
-  User, 
-  Sliders, 
-  Camera, 
-  Sparkles, 
-  Check, 
-  VolumeX, 
-  Keyboard,
-  ShieldCheck,
-  Upload
-} from "lucide-react";
+import { X, Mic, Volume2, Video, User, Sliders, Camera, Check, VolumeX, Keyboard, ShieldCheck, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

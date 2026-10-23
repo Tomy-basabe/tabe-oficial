@@ -1,17 +1,15 @@
 import React from "react";
-import {
-  Trophy,
+import { Trophy,
   CheckCircle2,
   Lock,
-  Sparkles,
+  
   ChevronRight,
   Calendar,
   MoreHorizontal,
   Info,
   Share2,
   Copy,
-  ExternalLink,
-} from "lucide-react";
+  ExternalLink, Zap } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 import {
   achievementIconMap,
@@ -135,7 +133,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50"
             }`}
           >
-            <Sparkles className="w-3 h-3 text-amber-500" />
+            <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
             <span>+{achievement.xp_reward} XP</span>
           </div>
 

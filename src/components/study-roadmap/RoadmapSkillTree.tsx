@@ -1,18 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { RoadmapLevel } from "@/types/studyRoadmap";
-import {
-  Lock,
-  Check,
-  Clock,
-  BookOpen,
-  Radio,
-  ChevronRight,
-  Sparkles,
-  LayoutGrid,
-  GitBranch,
-  Mic,
-  Target,
-} from "lucide-react";
+import { Lock, Check, Clock, BookOpen, Radio, ChevronRight, LayoutGrid, GitBranch, Mic, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RoadmapSkillTreeProps {
@@ -218,7 +206,7 @@ export const RoadmapSkillTree: React.FC<RoadmapSkillTreeProps> = ({
                   {/* Badge de Nivel Activo */}
                   {isCurrent && (
                     <div className="mb-2 px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/25 rounded-full text-[10px] font-semibold flex items-center gap-1 shadow-xs animate-pulse">
-                      <Sparkles className="w-3 h-3" />
+                      <Target className="w-3 h-3" />
                       <span>Nivel en curso</span>
                     </div>
                   )}

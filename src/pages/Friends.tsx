@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  Users,
+import { Users,
   UserPlus,
   Trophy,
   Clock,
@@ -22,11 +21,10 @@ import {
   Loader2,
   BookOpen,
   X,
-  Sparkles,
+  
   ShieldCheck,
   AtSign,
-  Share2,
-} from "lucide-react";
+  Share2 } from "lucide-react";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameRoom } from "@/hooks/useGameRoom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -263,8 +261,8 @@ export default function Friends() {
     const profile = friendship.friend;
     return Boolean(
       profile.nombre?.toLowerCase().includes(normalizedSearchQuery) ||
-        profile.username?.toLowerCase().includes(normalizedSearchQuery) ||
-        profile.display_id.toString().includes(normalizedSearchQuery)
+      profile.username?.toLowerCase().includes(normalizedSearchQuery) ||
+      profile.display_id.toString().includes(normalizedSearchQuery)
     );
   });
 
@@ -574,10 +572,10 @@ export default function Friends() {
                             position === 1
                               ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                               : position === 2
-                              ? "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600"
-                              : position === 3
-                              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30"
-                              : "text-zinc-400 font-mono"
+                                ? "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600"
+                                : position === 3
+                                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30"
+                                  : "text-zinc-400 font-mono"
                           )}
                         >
                           {position === 1 ? (
@@ -1137,9 +1135,8 @@ export default function Friends() {
                             handleSendChatMessage();
                           }
                         }}
-                        placeholder={`Escribe un mensaje a ${
-                          activeChatFriend.nombre || activeChatFriend.username
-                        }...`}
+                        placeholder={`Escribe un mensaje a ${activeChatFriend.nombre || activeChatFriend.username
+                          }...`}
                         className="flex-1 bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-zinc-400 h-10"
                       />
                       <Button
@@ -1313,7 +1310,7 @@ export default function Friends() {
             <div className="md:col-span-12 p-5 rounded-2xl bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Flame className="w-4 h-4 text-amber-500" />
                   <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
                     Estadísticas de tu Pase Estudiantil
                   </span>

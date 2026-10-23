@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { BookOpen, Lock, Clock, RotateCcw, Check, Sparkles } from "lucide-react";
+import { BookOpen, Lock, Clock, RotateCcw, Check } from "lucide-react";
 
 export type SubjectStatus = "aprobada" | "regular" | "cursable" | "bloqueada" | "recursar";
 

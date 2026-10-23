@@ -1,10 +1,4 @@
-import {
-  Trophy, GraduationCap, Star, Clock, BookOpen, Flame,
-  Layers, Compass, FilePlus, Library, Lock, Sparkles,
-  Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar,
-  Gamepad2, Swords, ShoppingBag, Award, Mic, Flag, Crown, CheckCircle2,
-  LucideIcon
-} from "lucide-react";
+import { Trophy, GraduationCap, Star, Clock, BookOpen, Flame, Layers, Compass, FilePlus, Library, Lock, Target, Users, MessageCircle, FolderOpen, Sprout, Brain, Calendar, Gamepad2, Swords, ShoppingBag, Award, Mic, Flag, Crown, CheckCircle2, LucideIcon } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 
 export const achievementIconMap: Record<string, LucideIcon> = {

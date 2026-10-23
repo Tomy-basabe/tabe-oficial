@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Joyride, { Step, CallBackProps, STATUS, TooltipRenderProps } from "react-joyride";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
-import { Sparkles, X, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Compass } from "lucide-react";
 
 function ModernTourTooltip({
     index,
@@ -60,7 +60,7 @@ function ModernTourTooltip({
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs border border-zinc-200/60 dark:border-zinc-700/60">
-                            <Sparkles className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                            <Compass className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                             Guía T.A.B.E.
                         </span>
                         {size > 1 && (

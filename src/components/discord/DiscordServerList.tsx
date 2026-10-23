@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Compass, Trash2, LogOut, Home, Server, KeyRound, Sparkles } from "lucide-react";
+import { Plus, Compass, Trash2, LogOut, Home, Server, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -300,7 +300,7 @@ export function DiscordServerList({
         <DialogContent className="bg-card dark:bg-[#111827] border border-border dark:border-white/10 text-foreground dark:text-slate-100 w-[94vw] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl p-0 gap-0 shadow-2xl">
           <DialogHeader className="p-5 sm:p-6 pb-4 text-center bg-[#FFE600]/10 border-b-2 border-black">
             <div className="w-12 h-12 rounded-2xl bg-[#FFE600] border-2 border-black flex items-center justify-center mx-auto mb-2 text-black shadow-[3px_3px_0px_#000]">
-              <Sparkles className="w-6 h-6 stroke-[2.5]" />
+              <Compass className="w-6 h-6 stroke-[2.5]" />
             </div>
             <DialogTitle className="text-lg sm:text-xl font-black uppercase text-foreground tracking-wide">
               Comunidad Tabetalk

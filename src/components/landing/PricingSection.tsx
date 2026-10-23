@@ -1,4 +1,4 @@
-import { CheckCircle2, Sparkles, Megaphone } from "lucide-react";
+import { CheckCircle2, Megaphone, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function PricingSection() {
@@ -15,7 +15,7 @@ export function PricingSection() {
             <div className="container mx-auto px-4 md:px-6 max-w-4xl">
                 <div className="text-center mb-14">
                     <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/20 text-sm font-extrabold text-[#1475e5] mb-6">
-                        <Sparkles className="w-4 h-4 text-[#1475e5]" />
+                        <Zap className="w-4 h-4 text-[#1475e5]" />
                         <span>Nueva Era TABE</span>
                     </span>
                     <h2 className="text-3xl md:text-5xl font-black mb-5">

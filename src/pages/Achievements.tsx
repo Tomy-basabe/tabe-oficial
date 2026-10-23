@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Trophy,
-  Sparkles,
+import { Trophy,
+  
   Search,
   X,
   LayoutGrid,
@@ -15,8 +14,7 @@ import {
   Check,
   SlidersHorizontal,
   ArrowDownAZ,
-  TrendingUp,
-} from "lucide-react";
+  TrendingUp, Zap } from "lucide-react";
 import { useAchievements, Achievement } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { Button } from "@/components/ui/button";
@@ -50,7 +48,7 @@ type SortOption = "default" | "xp-desc" | "xp-asc" | "name" | "recent";
 
 const SORT_LABELS: Record<SortOption, { label: string; icon: any }> = {
   default: { label: "Orden predeterminado", icon: SlidersHorizontal },
-  "xp-desc": { label: "Mayor XP (+XP)", icon: Sparkles },
+  "xp-desc": { label: "Mayor XP (+XP)", icon: Zap },
   "xp-asc": { label: "Menor XP", icon: TrendingUp },
   name: { label: "Alfabético (A - Z)", icon: ArrowDownAZ },
   recent: { label: "Desbloqueados primero", icon: CheckCircle2 },
@@ -220,7 +218,7 @@ export default function Achievements() {
 
           {/* XP Badge Pill */}
           <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-1.5 shadow-2xs h-9">
-            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
             <span className="text-xs font-semibold">{stats.totalXP}</span>
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400">XP</span>
           </div>
@@ -310,7 +308,7 @@ export default function Achievements() {
 
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                   Experiencia total ganada
                 </span>
                 <span className="font-semibold text-amber-600 dark:text-amber-400">

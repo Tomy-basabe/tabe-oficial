@@ -13,37 +13,7 @@ import { ComicConfetti } from "./ComicConfetti";
 import { IsoCubesLoader } from "./IsoCubesLoader";
 import { MermaidRenderer } from "./MermaidRenderer";
 import { EmojiPng } from "@/components/common/EmojiPng";
-import {
-  X,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  BookOpen,
-  Volume2,
-  VolumeX,
-  FileText,
-  Clock,
-  RotateCcw,
-  ChevronDown,
-  ChevronUp,
-  Layers,
-  Target,
-  Sparkles,
-  Check,
-  RefreshCw,
-  ShieldAlert,
-  Radio,
-  Play,
-  Pause,
-  SkipForward,
-  SkipBack,
-  Mic,
-  MicOff,
-  Award,
-  Send,
-  MessageSquare,
-  Flame,
-} from "lucide-react";
+import { X, CheckCircle2, AlertCircle, ArrowRight, BookOpen, Volume2, VolumeX, FileText, Clock, RotateCcw, ChevronDown, ChevronUp, Layers, Target, Check, RefreshCw, ShieldAlert, Radio, Play, Pause, SkipForward, SkipBack, Mic, MicOff, Award, Send, MessageSquare, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -1617,7 +1587,7 @@ export const LevelStudyModal: React.FC<LevelStudyModalProps> = ({
                           >
                             {evaluatingOral ? (
                               <>
-                                <Sparkles className="w-4 h-4 animate-spin" />
+                                <Brain className="w-4 h-4 animate-pulse" />
                                 <span>Evaluando respuesta...</span>
                               </>
                             ) : (

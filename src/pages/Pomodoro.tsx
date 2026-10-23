@@ -1,20 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Play,
+import { Play,
   Pause,
   RotateCcw,
   Settings,
   Coffee,
   BookOpen,
-  Sparkles,
+  
   Save,
   CheckSquare,
   PictureInPicture2,
   X,
   Timer,
   BellOff,
-  Keyboard,
-} from "lucide-react";
+  Keyboard } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +59,7 @@ const modeConfig = {
   longBreak: {
     label: "Descanso Largo",
     fullLabel: "Pausa Extendida",
-    icon: Sparkles,
+    icon: Coffee,
     strokeColor: "#f59e0b", // amber-500
     activeBadge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   },

@@ -6,22 +6,7 @@ import { DiscordServerList } from "@/components/discord/DiscordServerList";
 import { DiscordChannelSidebar } from "@/components/discord/DiscordChannelSidebar";
 import { DiscordTextChannel } from "@/components/discord/DiscordTextChannel";
 import { DiscordVoiceChannel } from "@/components/discord/DiscordVoiceChannel";
-import { 
-  ArrowLeft, 
-  Hash, 
-  Volume2, 
-  Plus, 
-  Video, 
-  MonitorUp, 
-  Users, 
-  Sparkles, 
-  Zap, 
-  Flame, 
-  Radio, 
-  CheckCircle2, 
-  MessageSquare,
-  KeyRound
-} from "lucide-react";
+import { ArrowLeft, Hash, Volume2, Plus, Video, MonitorUp, Users, Zap, Flame, Radio, CheckCircle2, MessageSquare, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {

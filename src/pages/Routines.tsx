@@ -2,13 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { format, addDays, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import {
-    ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
-    CheckCircle2, XCircle, CalendarDays, Flame,
-    TrendingUp, RotateCcw, Clock, StopCircle, BookOpen,
-    Filter, Check, Percent, LayoutGrid, Calendar, List,
-    Sparkles, AlertTriangle, Layers
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, CheckCircle2, XCircle, CalendarDays, Flame, TrendingUp, RotateCcw, Clock, StopCircle, BookOpen, Filter, Check, Percent, LayoutGrid, Calendar, List, AlertTriangle, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";

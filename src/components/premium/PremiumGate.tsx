@@ -1,7 +1,7 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, ArrowRight, Lock, Sparkles, ShieldCheck } from "lucide-react";
+import { Crown, ArrowRight, Lock, ShieldCheck, Flame } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface PremiumGateProps {
@@ -81,7 +81,7 @@ export function PremiumGate({ children, feature }: PremiumGateProps) {
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-cyan to-neon-purple" />
                                     <div className="absolute top-3 right-3">
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30">
-                                            <Sparkles className="w-2.5 h-2.5" />
+                                            <Flame className="w-2.5 h-2.5" />
                                             Más elegido
                                         </span>
                                     </div>

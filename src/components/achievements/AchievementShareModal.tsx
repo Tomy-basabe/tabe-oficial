@@ -6,14 +6,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Trophy,
-  Sparkles,
+import { Trophy,
+  
   Check,
   Copy,
   Share2,
-  Calendar,
-} from "lucide-react";
+  Calendar, Zap } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 import { achievementIconMap, categoryThemes } from "./achievementUtils";
 import { toast } from "sonner";
@@ -107,7 +105,7 @@ export function AchievementShareModal({
                 <span>{unlockDate || "Desbloqueado recientemente"}</span>
               </div>
               <div className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
                 <span>+{achievement.xp_reward} XP</span>
               </div>
             </div>

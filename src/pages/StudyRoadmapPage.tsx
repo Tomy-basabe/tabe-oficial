@@ -11,20 +11,18 @@ import { RoadmapWizard } from "@/components/study-roadmap/RoadmapWizard";
 import { RoadmapSkillTree } from "@/components/study-roadmap/RoadmapSkillTree";
 import { LevelStudyModal } from "@/components/study-roadmap/LevelStudyModal";
 import { Link } from "react-router-dom";
-import {
-  Calendar,
+import { Calendar,
   Plus,
   ArrowLeft,
   Flame,
   FileText,
-  Sparkles,
+  
   Trash2,
   AlertTriangle,
   X,
   BookOpen,
   Check,
-  Compass,
-} from "lucide-react";
+  Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import HoldButton from "@/components/ui/HoldButton";
@@ -239,7 +237,7 @@ export default function StudyRoadmapPage() {
                   {(activeRoadmap.study_preference ||
                     activeRoadmap.roadmap_data.study_preference) && (
                     <span className="px-2.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-medium border border-border/40 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5 text-primary" />
+                      <Compass className="w-2.5 h-2.5 text-primary" />
                       Modo:{" "}
                       {activeRoadmap.study_preference ||
                         activeRoadmap.roadmap_data.study_preference}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Mic, MicOff, PhoneOff, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Volume2, VolumeX,  Radio } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TabeVoiceVisualizer, VisualizerState } from "./TabeVoiceVisualizer";
 import { cn } from "@/lib/utils";
@@ -153,7 +153,7 @@ export const VoiceLiveModal: React.FC<VoiceLiveModalProps> = ({
                 <span className="text-zinc-500 text-[11px]">Finalizando conversación...</span>
               ) : isAiSpeaking ? (
                 <div className="flex items-center gap-1.5 text-emerald-400">
-                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  <Radio className="w-3.5 h-3.5 animate-pulse" />
                   <span className="text-[11px] font-medium">{personaName} está hablando...</span>
                 </div>
               ) : (

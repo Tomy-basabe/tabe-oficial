@@ -1,33 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Gamepad2, 
-  Trophy, 
-  Flame, 
-  Zap, 
-  Target, 
-  Swords, 
-  Clock, 
-  ChevronRight, 
-  Users, 
-  Bot, 
-  Gauge, 
-  Bomb, 
-  Crown, 
-  Goal, 
-  GraduationCap, 
-  Search, 
-  LayoutGrid, 
-  Sparkles, 
-  Play, 
-  KeyRound, 
-  Check, 
-  Minus, 
-  X,
-  Shield,
-  Layers,
-  ArrowRight
-} from "lucide-react";
+import { Gamepad2, Trophy, Flame, Zap, Target, Swords, Clock, ChevronRight, Users, Bot, Gauge, Bomb, Crown, Goal, GraduationCap, Search, LayoutGrid, Play, KeyRound, Check, Minus, X, Shield, Layers, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

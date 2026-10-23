@@ -1,28 +1,26 @@
 import { useMemo, useState, useEffect } from "react";
 import { useCalendarEvents, CalendarEvent, isExamType } from "@/hooks/useCalendarEvents";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  GraduationCap, 
-  LayoutPanelLeft, 
-  List as ListIcon, 
-  CheckCircle2, 
-  BookOpen, 
+import { Calendar as CalendarIcon,
+  Clock,
+  GraduationCap,
+  LayoutPanelLeft,
+  List as ListIcon,
+  CheckCircle2,
+  BookOpen,
   Timer,
   ChevronLeft,
   Search,
   Plus,
   X,
   RotateCcw,
-  Sparkles,
+  
   ArrowRight,
   ArrowLeft,
   ChevronRight,
   Bot,
   Flame,
-  AlertCircle
-} from "lucide-react";
+  AlertCircle } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,8 +55,8 @@ export default function Exams() {
   const navigate = useNavigate();
   const { events, loading, createEvent, updateEvent, deleteEvent } = useCalendarEvents();
   const { rawSubjects: subjects } = useSubjects();
-  
-  const [searchQuery, setSearchQuery] = useState<string>("" );
+
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -90,7 +88,7 @@ export default function Exams() {
     return events
       .filter((e) => {
         if (!isExamType(e.tipo_examen)) return false;
-        
+
         const eventDate = parseLocalDate(e.fecha);
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= today.getTime();
@@ -239,10 +237,10 @@ export default function Exams() {
 
   const hasActiveFilters = Boolean(
     searchQuery.trim() ||
-      selectedYear !== "all" ||
-      selectedSubject !== "all" ||
-      selectedType !== "all" ||
-      quickFilter !== "all"
+    selectedYear !== "all" ||
+    selectedSubject !== "all" ||
+    selectedType !== "all" ||
+    quickFilter !== "all"
   );
 
   const resetFilters = () => {
@@ -348,7 +346,6 @@ export default function Exams() {
             to="/tabe-ai/examenes"
             className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
           >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span className="hidden sm:inline">Rutas con IA</span>
             <span className="sm:hidden">Rutas</span>
           </Link>
@@ -387,8 +384,8 @@ export default function Exams() {
                       closestDays === 0
                         ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60"
                         : closestDays === 1
-                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
-                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                          : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                     )}
                   >
                     {closestDays === 0 ? "¡Hoy!" : closestDays === 1 ? "Mañana" : `En ${closestDays} días`}
@@ -454,7 +451,7 @@ export default function Exams() {
         <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
             <span>Herramientas de Estudio</span>
-            <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+            <GraduationCap className="w-3.5 h-3.5 text-zinc-400" />
           </div>
           <div className="mt-2.5 flex items-center gap-2">
             <Link
@@ -747,8 +744,8 @@ export default function Exams() {
                         isToday
                           ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60 animate-pulse"
                           : isUrgent
-                          ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
-                          : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                            ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                            : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                       )}
                     >
                       {isToday ? "¡Rindes hoy!" : daysRemaining === 1 ? "Mañana" : `Faltan ${daysRemaining}d`}
@@ -873,8 +870,8 @@ export default function Exams() {
                                 isToday
                                   ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60"
                                   : isUrgent
-                                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
-                                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60"
+                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                               )}
                             >
                               {isToday ? "¡Hoy!" : `${daysRemaining}d`}

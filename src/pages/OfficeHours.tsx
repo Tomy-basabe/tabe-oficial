@@ -5,32 +5,7 @@ import { useSubjects } from "@/hooks/useSubjects";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
-import {
-  Clock,
-  Plus,
-  Trash2,
-  X,
-  User,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Pencil,
-  GraduationCap,
-  Search,
-  RotateCcw,
-  CalendarDays,
-  LayoutGrid,
-  Check,
-  Calendar,
-  BookOpen,
-  Copy,
-  ExternalLink,
-  MapPin,
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
+import { Clock, Plus, Trash2, X, User, ChevronLeft, ChevronRight, Loader2, Pencil, GraduationCap, Search, RotateCcw, CalendarDays, LayoutGrid, Check, Calendar, BookOpen, Copy, ExternalLink, MapPin, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,

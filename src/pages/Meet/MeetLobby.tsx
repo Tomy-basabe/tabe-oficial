@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Video, Mic, MicOff, VideoOff, ArrowRight, Copy, Check, Users, ShieldCheck, Sparkles, Settings2, Camera, RefreshCw } from 'lucide-react';
+import { Video, Mic, MicOff, VideoOff, ArrowRight, Copy, Check, Users, ShieldCheck,  Settings2, Camera, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -580,7 +580,7 @@ export const MeetLobby: React.FC<MeetLobbyProps> = ({ onJoinRoom }) => {
       <main className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center my-auto py-10">
         <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-xs text-neutral-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Video className="w-3.5 h-3.5 text-primary" />
             <span>Videollamadas P2P seguras en tiempo real</span>
           </div>
 

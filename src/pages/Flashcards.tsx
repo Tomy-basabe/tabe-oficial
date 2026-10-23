@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Layers, Plus, Sparkles, GraduationCap,
-  BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check,
-  AlertTriangle, Loader2, Search, ArrowRight, Save
-} from "lucide-react";
+import { Layers, Plus, GraduationCap, BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check, AlertTriangle, Loader2, Search, ArrowRight, Save } from "lucide-react";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -1118,12 +1114,9 @@ export default function Flashcards() {
         </div>
 
         <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 flex items-center gap-3.5 shadow-2xs col-span-2 lg:col-span-1">
-          <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">Racha de estudio</p>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">Repasa a diario para consolidar</p>
+            <p className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">FlashCards</p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">De los mejores metodos para practicar la memoria del estudiante</p>
           </div>
         </div>
       </div>
@@ -1699,7 +1692,6 @@ export default function Flashcards() {
         <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl p-5 sm:p-6 max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800/80">
             <DialogTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
               <span className="truncate">Importar a "{importTargetDeck?.nombre}"</span>
             </DialogTitle>
           </DialogHeader>
@@ -2095,7 +2087,7 @@ export default function Flashcards() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Layers className="w-3.5 h-3.5" />
                   Confirmar Combinación
                 </>
               )}

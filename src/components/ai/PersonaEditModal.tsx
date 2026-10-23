@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AIPersona } from "@/hooks/useAIPersonas";
@@ -37,7 +37,7 @@ export function PersonaEditModal({ persona, onComplete, onCancel }: PersonaEditM
             <div className="bg-card text-foreground border-4 border-foreground rounded-xl p-6 max-w-md w-full shadow-[8px_8px_0_0_hsl(var(--foreground))] animate-in fade-in zoom-in-95 duration-300">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 rounded-xl bg-[#00E5FF] border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                        <Sparkles className="w-5 h-5 !text-black" strokeWidth={2.5} />
+                        <Bot className="w-5 h-5 !text-black" strokeWidth={2.5} />
                     </div>
                     <div>
                         <h2 className="text-xl font-black uppercase text-foreground">Editar IA</h2>

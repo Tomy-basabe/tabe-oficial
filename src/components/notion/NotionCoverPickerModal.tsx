@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NOTION_DEFAULT_COVERS, NotionCoverOption } from "@/data/notionCovers";
-import { Trash2, Link2, Check, Sparkles } from "lucide-react";
+import { Trash2, Link2, Check, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -69,7 +69,7 @@ export function NotionCoverPickerModal({
         <DialogHeader className="pb-3 border-b border-border/50">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
+              <Image className="w-4 h-4 text-primary" />
               Elegir portada de Notion
             </DialogTitle>
             {currentCoverUrl && (

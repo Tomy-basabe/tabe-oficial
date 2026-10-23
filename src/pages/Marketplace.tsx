@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Search, Download, Star, User, Eye, ChevronLeft, ChevronRight,
-  Layers, Upload, X, GraduationCap, FileText, Folder, Loader2,
-  HelpCircle, ShieldCheck, Check, ArrowUpDown, Sparkles, Filter, Info,
-  BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw
-} from "lucide-react";
+import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
 import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
 import { useAuth } from "@/contexts/AuthContext";

@@ -9,21 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import {
-  Keyboard,
-  Search,
-  Type,
-  List,
-  Table as TableIcon,
-  Sigma,
-  Sparkles,
-  AlignLeft,
-  FileText,
-  Sliders,
-  Maximize2,
-  Printer,
-  Compass,
-} from 'lucide-react';
+import { Keyboard, Search, Type, List, Table as TableIcon, Sigma, AlignLeft, FileText, Sliders, Maximize2, Printer, Compass, Lightbulb } from "lucide-react";
 
 interface ShortcutItem {
   title: string;
@@ -481,7 +467,7 @@ export const ShortcutsGuideModal: React.FC<ShortcutsGuideModalProps> = ({
         {/* Footer tip */}
         <footer className="p-3 px-5 border-t border-border/60 bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
             <span>Tip: También puedes escribir <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-background border border-border">/ayuda</kbd> en el editor para abrir esta guía.</span>
           </div>
           <span className="text-[11px] opacity-75">Presiona Esc para cerrar</span>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Hash, Users, Send, PlusCircle, Gift, Sticker, Smile, Bell, Pin, Search, HelpCircle, Sparkles } from "lucide-react";
+import { Hash, Users, Send, PlusCircle, Gift, Sticker, Smile, Bell, Pin, Search, HelpCircle,  Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -174,7 +174,7 @@ export function DiscordTextChannel({
           {Object.keys(groupedMessages).length === 0 ? (
             <div className="flex flex-col justify-end h-full pb-8 select-none">
               <div className="w-16 h-16 bg-cyan-300/10 rounded-2xl border border-cyan-300/20 flex items-center justify-center mb-4">
-                <Sparkles className="w-8 h-8 text-cyan-300" />
+                <Bot className="w-8 h-8 text-cyan-300" />
               </div>
               <p className="text-xs uppercase tracking-[.22em] text-cyan-300/80 mb-2">Inicio del canal</p>
               <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2">Bienvenido a #{channel.name}</h3>

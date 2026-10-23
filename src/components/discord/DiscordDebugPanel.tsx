@@ -2,7 +2,7 @@ import { useDiscordVoice } from "@/contexts/DiscordVoiceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Mic, Video, HeadphoneOff, Monitor, Sparkles } from "lucide-react";
+import { Users, Mic, Video, HeadphoneOff, Monitor, Activity } from "lucide-react";
 
 export function DiscordDebugPanel() {
     const { user } = useAuth();
@@ -42,7 +42,7 @@ export function DiscordDebugPanel() {
                     className="bg-zinc-950/90 text-emerald-400 border border-emerald-500/30 hover:bg-zinc-900 text-xs shadow-xl backdrop-blur-md flex items-center gap-1.5"
                     onClick={() => setIsVisible(!isVisible)}
                 >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Activity className="w-3.5 h-3.5" />
                     {isVisible ? "Ocultar Diagnóstico" : "Diagnóstico y Simulación"}
                 </Button>
             </div>

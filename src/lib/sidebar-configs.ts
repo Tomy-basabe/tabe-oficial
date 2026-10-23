@@ -1,28 +1,4 @@
-import { 
-  LayoutDashboard, 
-  GraduationCap, 
-  Calendar, 
-  Timer, 
-  BarChart3, 
-  Bot, 
-  Settings, 
-  Zap, 
-  Layers, 
-  ClipboardList, 
-  Library, 
-  Trophy, 
-  Shield, 
-  Users, 
-  Store, 
-  TreeDeciduous, 
-  Repeat2, 
-  Clock,
-  Folder,
-  Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame,
-  Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare,
-  Search, Compass, Sparkles, Award
-} from "lucide-react";
+import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Zap, Layers, ClipboardList, Library, Trophy, Shield, Users, Store, TreeDeciduous, Repeat2, Clock, Folder, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator, Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame, Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare, Search, Compass, Award } from "lucide-react";
 import { 
   UniversidadCatIcon, 
   PlanCarreraIcon, 
@@ -62,7 +38,7 @@ export interface CustomSidebarItem {
 export const ICON_MAP: Record<string, any> = {
   GraduationCap, LayoutDashboard, Clock, FileText: ClipboardList, Layers, ClipboardList, Store, Library, Calendar, Award,
   Trophy, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator,
-  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap, Sparkles,
+  Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap, Bookmark,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
   ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
   Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,

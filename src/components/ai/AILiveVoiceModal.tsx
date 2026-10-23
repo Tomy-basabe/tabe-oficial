@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  X, Mic, MicOff, Video, VideoOff, SwitchCamera, Monitor, MonitorOff,
-  Volume2, VolumeX, Sparkles, Radio, ChevronDown, ChevronUp, Send,
-  Zap, Volume1, CheckCircle2, Square
-} from "lucide-react";
+import { X, Mic, MicOff, Video, VideoOff, SwitchCamera, Monitor, MonitorOff,
+  Volume2, VolumeX,  Radio, ChevronDown, ChevronUp, Send,
+  Zap, Volume1, CheckCircle2, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AIPersona } from "@/hooks/useAIPersonas";
@@ -1176,7 +1174,7 @@ export function AILiveVoiceModal({
             )}
             {liveState === "thinking" && (
               <div className="flex flex-col items-center gap-1.5">
-                <Sparkles className="w-10 h-10 text-white animate-spin" />
+                <Radio className="w-10 h-10 text-white animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-200">
                   Pensando...
                 </span>

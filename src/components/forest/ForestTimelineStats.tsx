@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { Trophy, TrendingUp, Clock, Flame, Skull, Sparkles, Award, Trash2, AlertCircle, Trees } from "lucide-react";
+import { Trophy, TrendingUp, Clock, Flame, Skull, Award, Trash2, AlertCircle, Trees } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ForestTimelineStatsProps {

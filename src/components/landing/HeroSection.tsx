@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Sparkles, CheckCircle2, BookOpen, Layers, Bot, Zap, Compass, Check } from "lucide-react";
+import { ArrowRight, CheckCircle2, BookOpen, Layers, Bot, Zap, Compass, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -232,7 +232,7 @@ export function HeroSection() {
                   </div>
                   <div className="p-3.5 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
                     <div className="flex items-center gap-1.5 text-blue-500 text-[11px] font-semibold mb-1">
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Bot className="w-3.5 h-3.5" />
                       <span>TABE AI TUTOR</span>
                     </div>
                     <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">

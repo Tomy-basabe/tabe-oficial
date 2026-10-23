@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Clock, BookOpen, Sparkles, Coins, Calendar, Check, Zap, CheckCircle2, Loader2 } from "lucide-react";
+import { Clock, BookOpen, Coins, Calendar, Check, Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { toLocalDateStr } from "@/lib/utils";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
@@ -353,7 +353,7 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects, ini
           {/* Live Rewards Estimate Card */}
           <div className="bg-zinc-50 dark:bg-zinc-850/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-3 flex items-center justify-between">
             <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
               Recompensas calculadas:
             </span>
             <div className="flex items-center gap-2">

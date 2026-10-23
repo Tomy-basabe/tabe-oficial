@@ -1,7 +1,7 @@
 import { SplineScene } from "@/components/ui/splite";
 import { Card } from "@/components/ui/card";
 import { Spotlight } from "@/components/ui/spotlight";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight, Move3d } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -22,7 +22,7 @@ export function SplineShowcase() {
                 ✦ 3D INTERACTIVO
               </span>
               <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" /> Arrastrá la escena 3D
+                <Move3d className="w-3.5 h-3.5 text-[#00E5FF]" /> Arrastrá la escena 3D
               </span>
             </div>
 

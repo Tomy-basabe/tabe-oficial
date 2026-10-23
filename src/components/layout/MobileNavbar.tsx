@@ -1,31 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  GraduationCap, 
-  Calendar, 
-  Timer, 
-  BarChart3, 
-  Bot, 
-  Settings, 
-  Layers, 
-  ClipboardList, 
-  Library, 
-  Trophy, 
-  Users, 
-  Store, 
-  TreeDeciduous, 
-  Repeat2, 
-  Clock, 
-  Gamepad2, 
-  Compass, 
-  LayoutGrid, 
-  X, 
-  ChevronUp,
-  CheckSquare,
-  MessageSquare,
-  Sparkles
-} from "lucide-react";
+import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Layers, ClipboardList, Library, Trophy, Users, Store, TreeDeciduous, Repeat2, Clock, Gamepad2, Compass, LayoutGrid, X, ChevronUp, CheckSquare, MessageSquare } from "lucide-react";
 import { ApuntesIcon } from "@/components/icons/NotionIcon";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { ComunidadIcon } from "@/components/icons/ComunidadIcon";

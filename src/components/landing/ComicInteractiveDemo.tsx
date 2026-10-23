@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, RotateCw, Trophy, Zap, Sparkles, BookOpen, ChevronRight, Check } from "lucide-react";
+import { CheckCircle2, RotateCw, Trophy, Zap, BookOpen, ChevronRight, Check } from "lucide-react";
 
 const IA_TIPS = [
   "La técnica Pomodoro con bloques de 25 minutos incrementa la retención activa hasta un 40%.",

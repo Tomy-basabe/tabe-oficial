@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import {
-  Send, Bot, User, Sparkles, BookOpen, FileQuestion, Calendar, Menu, Mic, X,
+import { Send, Bot, User,  BookOpen, FileQuestion, Calendar, Menu, Mic, X,
   Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio, Compass,
   MessageSquare, Target, LayoutGrid, Flame, Plus, ChevronDown, Check,
   Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal, Square,
-  Copy, History, Globe
-} from "lucide-react";
+  Copy, History, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -47,7 +45,7 @@ const quickActions = [
   { id: "quiz", label: "Simulacro", icon: FileQuestion, prompt: "Hazme un simulacro de examen de " },
   { id: "plan", label: "Plan de estudio", icon: Calendar, prompt: "Genera un plan de estudio para " },
   { id: "schedule", label: "Agendar", icon: Calendar, prompt: "Agendame " },
-  { id: "progress", label: "Mi progreso", icon: Sparkles, prompt: "Analizá mi progreso académico y dame recomendaciones" },
+  { id: "progress", label: "Mi progreso", icon: Target, prompt: "Analizá mi progreso académico y dame recomendaciones" },
 ];
 
 export interface ProactiveContext {

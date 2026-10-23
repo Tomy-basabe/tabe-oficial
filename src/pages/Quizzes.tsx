@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-    ClipboardList, Plus, Sparkles, GraduationCap,
+import { ClipboardList, Plus,  GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle, Filter, Timer, ListChecks
-} from "lucide-react";
+    Edit, AlertCircle, Filter, Timer, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1319,7 +1317,7 @@ export default function Quizzes() {
 
                     {answered && currentQ.explicacion && (
                         <div className="p-4 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl mt-6 flex gap-3 text-sm">
-                            <Sparkles className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                            <BookOpen className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs mb-1">Explicación</h4>
                                 <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-normal">{currentQ.explicacion}</p>
@@ -1687,7 +1685,7 @@ export default function Quizzes() {
                                 </div>
                                 {q.explicacion && (
                                     <div className="mt-3 ml-8.5 p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex gap-2 items-start text-xs text-zinc-500 dark:text-zinc-400 font-normal">
-                                        <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
+                                        <BookOpen className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
                                         <p>{q.explicacion}</p>
                                     </div>
                                 )}

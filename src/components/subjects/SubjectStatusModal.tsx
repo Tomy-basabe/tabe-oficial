@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubjectWithStatus, SubjectStatus, PartialGrades } from "@/hooks/useSubjects";
-import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2, Sparkles, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2,  AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartialGradesSection } from "./PartialGradesSection";
 import { ComicAudio } from "@/components/comic/ComicAudio";
@@ -274,7 +274,7 @@ export function SubjectStatusModal({
             {!readOnly && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                  <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                   <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     Cambiar estado de la materia
                   </label>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, LogIn, ChevronDown, ChevronUp, Cloud, Trophy, Smartphone, AlertCircle } from "lucide-react";
+import { LogIn, ChevronDown, ChevronUp, Cloud, Trophy, Smartphone, AlertCircle, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -121,7 +121,7 @@ export function GuestModeBanner() {
               to="/registro?mode=signup"
               className="px-4 py-1.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-xs font-medium transition-colors shadow-2xs flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 dark:text-amber-500" />
+              <UserPlus className="w-3.5 h-3.5 text-amber-400 dark:text-amber-500" />
               <span>Crear Cuenta</span>
             </Link>
           </div>

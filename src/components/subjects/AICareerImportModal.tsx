@@ -7,9 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Sparkles,
-  Upload,
+import { Upload,
   FileSpreadsheet,
   FileText,
   Image as ImageIcon,
@@ -20,8 +18,7 @@ import {
   Loader2,
   BookOpen,
   ArrowLeft,
-  X,
-} from "lucide-react";
+  X, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import {
@@ -207,7 +204,7 @@ export function AICareerImportModal({
             </span>
           </div>
           <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2 mt-1">
-            <Sparkles className="w-4 h-4 text-zinc-500" />
+            <BookOpen className="w-4 h-4 text-zinc-500" />
             Cargar plan de carrera con IA
           </DialogTitle>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -537,7 +534,7 @@ export function AICareerImportModal({
                 disabled={files.length === 0}
                 className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium rounded-lg h-auto py-2 px-3.5 shadow-2xs transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                <FileUp className="w-3.5 h-3.5 mr-1.5" />
                 Analizar con IA ({files.length})
               </Button>
             </>

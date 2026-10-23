@@ -8,18 +8,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Trophy,
+import { Trophy,
   CheckCircle2,
   Lock,
-  Sparkles,
+  
   Share2,
   ArrowRight,
   Calendar,
   Check,
   Target,
-  Lightbulb,
-} from "lucide-react";
+  Lightbulb, Zap } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 import {
   achievementIconMap,
@@ -117,7 +115,7 @@ export function AchievementDetailModal({
 
             {/* Recompensa XP Pill */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-sm font-semibold shadow-2xs">
-              <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span>+{achievement.xp_reward} XP</span>
             </div>
           </div>

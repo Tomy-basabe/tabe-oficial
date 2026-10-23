@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Clock, Trophy, BarChart2, Calendar, RefreshCw, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { BookOpen, Clock, Trophy, BarChart2, Calendar, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -196,7 +196,7 @@ export function SubjectStudyStats() {
                 Horas de Estudio por Materia
               </h3>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60">
-                <Sparkles className="w-3 h-3 text-amber-500" />
+                <Clock className="w-3 h-3 text-amber-500" />
                 Historial Real
               </span>
             </div>

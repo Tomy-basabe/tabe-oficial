@@ -7,13 +7,12 @@ import { ForestFocusStage } from "@/components/forest/ForestFocusStage";
 import { ForestSpeciesNursery } from "@/components/forest/ForestSpeciesNursery";
 import { ForestTimelineStats } from "@/components/forest/ForestTimelineStats";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import {
-  TreeDeciduous,
+import { TreeDeciduous,
   Sprout,
   Compass,
   BarChart3,
   Plus,
-  Sparkles,
+  
   Flame,
   Info,
   Trees,
@@ -22,8 +21,7 @@ import {
   Orbit,
   Layers,
   Clock,
-  Check,
-} from "lucide-react";
+  Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -155,7 +153,7 @@ export default function Forest() {
             label: currentPlant ? `Árbol Activo (${currentPlant.growth_percentage}%)` : "Árbol Activo",
             icon: Sprout,
           },
-          { id: "nursery", label: "Vivero de Especies", icon: Sparkles },
+          { id: "nursery", label: "Vivero de Especies", icon: Sprout },
           { id: "stats", label: "Estadísticas y Registro", icon: BarChart3 },
         ].map((tab) => {
           const isActive = activeTab === tab.id;

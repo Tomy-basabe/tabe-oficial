@@ -1,4 +1,4 @@
-import { FunctionSquare, Atom, Zap, Lightbulb, Sparkles } from "lucide-react";
+import { FunctionSquare, Atom, Zap, Lightbulb, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function SpecializationSection() {
@@ -10,7 +10,7 @@ export function SpecializationSection() {
                         whileHover={{ scale: 1.05, y: -2 }}
                         className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1475e5]/10 border-2 border-[#1475e5]/30 text-xs font-black text-[#1475e5] uppercase mb-4 shadow-[2px_2px_0_0_#1475e5] cursor-pointer"
                     >
-                        <Sparkles className="w-3.5 h-3.5" />
+                        <GraduationCap className="w-3.5 h-3.5" />
                         <span>Especialización Académica</span>
                     </motion.div>
                     <h2 className="text-3xl md:text-5xl font-black mb-4">

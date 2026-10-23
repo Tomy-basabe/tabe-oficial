@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, Sparkles } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 export default function EmailVerified() {
   const navigate = useNavigate();
@@ -52,9 +52,9 @@ export default function EmailVerified() {
             Tu cuenta en <span className="font-semibold text-foreground">T.A.B.E.</span> ha sido verificada exitosamente.
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/60">
-            <Sparkles className="w-4 h-4 text-neon-gold" />
+            <CheckCircle className="w-4 h-4 text-neon-gold" />
             <span>Ya podés iniciar sesión y empezar a estudiar</span>
-            <Sparkles className="w-4 h-4 text-neon-gold" />
+            <CheckCircle className="w-4 h-4 text-neon-gold" />
           </div>
         </div>
 

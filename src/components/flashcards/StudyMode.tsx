@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, Clock, Check, X, Zap, Volume2, VolumeX, RotateCw, Sparkles, FastForward } from "lucide-react";
+import { ChevronLeft, Clock, Check, X, Zap, Volume2, VolumeX, RotateCw, FastForward } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { cn } from "@/lib/utils";
 import { TabeLogo } from "@/components/ui/TabeLogo";

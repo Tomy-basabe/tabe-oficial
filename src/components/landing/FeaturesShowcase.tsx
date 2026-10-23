@@ -1,10 +1,5 @@
 import { useState, useCallback } from "react";
-import {
-    LayoutDashboard, GraduationCap, FileText, Layers, ClipboardList,
-    ShoppingBag, BookOpen, CalendarDays, Timer, BarChart3,
-    TreePine, Trophy, Users, Bot, Settings,
-    ChevronDown, ChevronUp, Sparkles, X, Search
-} from "lucide-react";
+import { LayoutDashboard, GraduationCap, FileText, Layers, ClipboardList, ShoppingBag, BookOpen, CalendarDays, Timer, BarChart3, TreePine, Trophy, Users, Bot, Settings, ChevronDown, ChevronUp, X, Search, Zap } from "lucide-react";
 
 interface FeaturePhoto { src: string; label: string; }
 interface FeatureSection {
@@ -66,7 +61,7 @@ function FeatureCard({ section, index, onImageClick }: { section: FeatureSection
                         <button onClick={() => setExpanded(!expanded)}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-extrabold transition-all duration-200 hover:-translate-y-0.5"
                             style={{ borderColor: section.color + "40", backgroundColor: section.color + "10", color: section.color }}>
-                            <Sparkles className="w-4 h-4" />
+                            <Layers className="w-4 h-4" />
                             {expanded ? "Ocultar" : `Ver ${section.features.length} funciones`}
                             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
@@ -102,7 +97,7 @@ function FeatureCard({ section, index, onImageClick }: { section: FeatureSection
                             </div>
                             <div className="p-3">
                                 <p className="text-xs font-bold text-muted-foreground flex items-start gap-1.5">
-                                    <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: section.color }} />
+                                    <Zap className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: section.color }} />
                                     {feat.label}
                                 </p>
                             </div>

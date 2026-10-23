@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Loader2, Library, ChevronDown, FileText, Sparkles, Check, Settings2, BookOpen, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, Loader2, Library, ChevronDown, FileText, Check, Settings2, BookOpen, X, AlertCircle, CheckCircle2, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JSONContent } from "@tiptap/core";
@@ -2198,7 +2198,7 @@ export function TipTapPDFExporter({
               {coverUrl && (
                 <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer bg-white dark:bg-zinc-900/30">
                   <div className="flex items-center gap-2.5">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <Image className="w-4 h-4 text-purple-500" />
                     <div>
                       <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">Incluir portada del apunte</p>
                       <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Añade la imagen de portada al inicio del PDF</p>

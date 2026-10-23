@@ -2,15 +2,13 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Menu, Star, Clock, Trash2, Loader2, Save, RotateCcw,
+import { Menu, Star, Clock, Trash2, Loader2, Save, RotateCcw,
   MoreHorizontal, FileUp, Smile, ImageIcon, Keyboard,
   Search, Filter, ArrowUpDown, FileText, AlertCircle,
-  Sparkles, Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
+   Volume2, Square, X, BookOpen, Check, Copy, Users, ArrowLeft,
   GraduationCap, ChevronRight, Share2, Play, Pause,
   Layers, HelpCircle, Brain, Zap, FlaskConical,
-  PanelLeft, Lock, Unlock, Type, Maximize
-} from "lucide-react";
+  PanelLeft, Lock, Unlock, Type, Maximize } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -57,7 +55,7 @@ interface Subject {
 
 const extractFullText = (content: any): string => {
   if (!content) return '';
-  
+
   try {
     let parsedContent = content;
     if (typeof content === 'string') {
@@ -91,11 +89,11 @@ const extractFullText = (content: any): string => {
 };
 
 // Memoized Gallery Card component for performance
-const GalleryCard = ({ 
-  doc, 
-  userSubjects = [], 
-  onClick, 
-  onRename, 
+const GalleryCard = ({
+  doc,
+  userSubjects = [],
+  onClick,
+  onRename,
   onChangeSubject,
   onDelete,
   onHover,
@@ -104,11 +102,11 @@ const GalleryCard = ({
   onShare,
   friendsList,
   onToggleFavorite,
-}: { 
-  doc: NotionDocument; 
-  userSubjects?: Subject[]; 
+}: {
+  doc: NotionDocument;
+  userSubjects?: Subject[];
   onClick: (doc: NotionDocument) => void;
-  onRename: (doc: NotionDocument) => void; 
+  onRename: (doc: NotionDocument) => void;
   onChangeSubject: (doc: NotionDocument) => void;
   onDelete: (doc: NotionDocument) => void;
   onHover?: (doc: NotionDocument) => void;
@@ -119,7 +117,7 @@ const GalleryCard = ({
   onToggleFavorite?: (doc: NotionDocument) => void;
 }) => {
   const hasCover = !!doc.cover_url;
-  
+
   const isOwner = !currentUserId || doc.user_id === currentUserId;
 
   const effectiveOwner = useMemo(() => {
@@ -144,9 +142,9 @@ const GalleryCard = ({
     () => resolveDocSubject(doc, userSubjects),
     [doc, userSubjects]
   );
-  
+
   return (
-    <div 
+    <div
       onClick={() => onClick(doc)}
       className="group flex flex-col bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm h-[300px]"
     >
@@ -179,61 +177,61 @@ const GalleryCard = ({
         {/* Card Actions Overlay (Dropdown) - ONLY FOR OWNER */}
         {isOwner && (
           <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-           <DropdownMenu>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                 <button
-                   className="p-1.5 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-xs hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-all"
-                   onClick={(e) => e.stopPropagation()}
-                 >
-                    <MoreHorizontal className="w-4 h-4" />
-                 </button>
+                <button
+                  className="p-1.5 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-xs hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5 min-w-[160px]">
-                 <DropdownMenuItem
-                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
-                    onClick={(e) => {
-                       e.stopPropagation();
-                       onShare && onShare(doc);
-                    }}
-                 >
-                    <Share2 className="w-4 h-4 mr-2 text-zinc-500" />
-                    Compartir
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
-                 <DropdownMenuItem
-                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
-                    onClick={(e) => {
-                       e.stopPropagation();
-                       onRename(doc);
-                    }}
-                 >
-                    <FileText className="w-4 h-4 mr-2 text-zinc-500" />
-                    Renombrar
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
-                 <DropdownMenuItem
-                    className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
-                    onClick={(e) => {
-                       e.stopPropagation();
-                       onChangeSubject(doc);
-                    }}
-                 >
-                    <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
-                    Cambiar Materia
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
-                 <DropdownMenuItem
-                    className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium text-xs cursor-pointer rounded-lg"
-                    onClick={(e) => {
-                       e.stopPropagation();
-                       onDelete(doc);
-                    }}
-                 >
-                    <Trash2 className="w-4 h-4 mr-2 text-red-500" />
-                    Eliminar
-                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShare && onShare(doc);
+                  }}
+                >
+                  <Share2 className="w-4 h-4 mr-2 text-zinc-500" />
+                  Compartir
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                <DropdownMenuItem
+                  className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRename(doc);
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2 text-zinc-500" />
+                  Renombrar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                <DropdownMenuItem
+                  className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChangeSubject(doc);
+                  }}
+                >
+                  <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
+                  Cambiar Materia
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
+                <DropdownMenuItem
+                  className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium text-xs cursor-pointer rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(doc);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2 text-red-500" />
+                  Eliminar
+                </DropdownMenuItem>
               </DropdownMenuContent>
-           </DropdownMenu>
+            </DropdownMenu>
           </div>
         )}
 
@@ -254,26 +252,26 @@ const GalleryCard = ({
           </div>
         )}
 
-      {hasCover ? (
-        <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <TabeLogo size={52} className="opacity-40 group-hover:opacity-85 group-hover:scale-110 transition-all duration-300 drop-shadow-sm select-none" />
-        </div>
-      )}
+        {hasCover ? (
+          <img src={doc.cover_url!} alt="Cover" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <TabeLogo size={52} className="opacity-40 group-hover:opacity-85 group-hover:scale-110 transition-all duration-300 drop-shadow-sm select-none" />
+          </div>
+        )}
       </div>
-      
+
       {/* Info Area */}
       <div className="p-4 flex flex-col flex-1 bg-transparent">
         <div className="flex items-center gap-3 mb-2">
-           <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shrink-0 transition-transform group-hover:scale-105">
-              {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={22} /> : <FileText className="w-5 h-5" />}
-           </div>
-           <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate tracking-tight flex-1" title={doc.titulo}>
-              {doc.titulo || "Sin título"}
-           </h3>
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shrink-0 transition-transform group-hover:scale-105">
+            {doc.emoji ? <TabeIconRenderer iconId={doc.emoji} size={22} /> : <FileText className="w-5 h-5" />}
+          </div>
+          <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate tracking-tight flex-1" title={doc.titulo}>
+            {doc.titulo || "Sin título"}
+          </h3>
         </div>
-        
+
         {/* Badges de Materia y Año */}
         <div className="flex mt-auto pt-2 gap-2 flex-wrap items-center">
           {resolvedSubject ? (
@@ -306,16 +304,16 @@ const GalleryCard = ({
         {!isOwner && (
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 px-2 py-1 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg min-w-0">
-               {effectiveOwner?.avatar_url ? (
-                 <img src={effectiveOwner.avatar_url} className="w-5 h-5 rounded-full border border-zinc-300 dark:border-zinc-600 shrink-0" alt="" />
-               ) : (
-                 <div className="w-5 h-5 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center text-[10px] font-medium shrink-0">
-                    {(effectiveOwner?.nombre || effectiveOwner?.username || "A").charAt(0)}
-                 </div>
-               )}
-               <span className="text-[11px] text-zinc-700 dark:text-zinc-300 font-medium truncate">
-                  De: {effectiveOwner?.nombre || effectiveOwner?.username || "Amigo"}
-               </span>
+              {effectiveOwner?.avatar_url ? (
+                <img src={effectiveOwner.avatar_url} className="w-5 h-5 rounded-full border border-zinc-300 dark:border-zinc-600 shrink-0" alt="" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center text-[10px] font-medium shrink-0">
+                  {(effectiveOwner?.nombre || effectiveOwner?.username || "A").charAt(0)}
+                </div>
+              )}
+              <span className="text-[11px] text-zinc-700 dark:text-zinc-300 font-medium truncate">
+                De: {effectiveOwner?.nombre || effectiveOwner?.username || "Amigo"}
+              </span>
             </div>
             {onImportFriendDoc && (
               <button
@@ -405,10 +403,10 @@ export default function Notion() {
       toast.error("Error al actualizar la portada");
     }
   }, [activeDocument, updateDocument, user?.id]);
-  
+
   // Título dinámico para la pestaña con el nombre del apunte abierto
   usePageTitle(activeDocument ? (activeDocument.titulo || "Nuevo Apunte") : null);
-  
+
   // Trash modal & items state (30 min recovery grace period)
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [trashItems, setTrashItems] = useState<TrashItem[]>(() => getTrashItems());
@@ -507,7 +505,7 @@ export default function Notion() {
   const [openTabs, setOpenTabs] = useState<TabItem[]>([]);
   const tabContentCacheRef = useRef<Map<string, any>>(new Map());
   const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  
+
   // Rename Modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [docToRename, setDocToRename] = useState<NotionDocument | null>(null);
@@ -853,7 +851,7 @@ export default function Notion() {
 
   const handleGenerateAI = async () => {
     if (!user || !activeDocument) return;
-    
+
     setIsGeneratingAI(true);
     const toastId = toast.loading(`Generando ${aiGenType === 'flashcards' ? 'flashcards' : 'cuestionario'} con IA...`);
 
@@ -975,7 +973,7 @@ export default function Notion() {
     ): Promise<boolean> => {
       const docToSave = explicitDoc || activeDocumentRef.current;
       if (!docToSave) return true;
-      
+
       // Safety check: Don't try to save documents that don't belong to the user unless they have edit permission
       const canEditShared = Boolean(
         docToSave.is_shared && docToSave.share_permission === "edit"
@@ -984,14 +982,14 @@ export default function Notion() {
       if (user && docToSave.user_id !== user.id && !canEditShared) {
         return true;
       }
-      
+
       const isCurrentActive = docToSave.id === activeDocumentRef.current?.id;
 
       if (saveInProgressRef.current) {
         if (isCurrentActive) {
           pendingSaveRef.current = true;
         }
-        return true; 
+        return true;
       }
 
       const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
@@ -1004,9 +1002,9 @@ export default function Notion() {
       if (isCurrentActive) {
         editorContentRef.current = contentToSave;
       }
-      
-      const currentTitle = explicitTitle !== undefined 
-        ? explicitTitle 
+
+      const currentTitle = explicitTitle !== undefined
+        ? explicitTitle
         : (isCurrentActive ? localTitleRef.current : docToSave.titulo);
       const titleChanged = currentTitle !== docToSave.titulo;
 
@@ -1024,8 +1022,8 @@ export default function Notion() {
         return false;
       }
 
-      const contentChanged = isCurrentActive 
-        ? contentStr !== lastSavedContentRef.current 
+      const contentChanged = isCurrentActive
+        ? contentStr !== lastSavedContentRef.current
         : true;
 
       if (!contentChanged && !titleChanged) {
@@ -1075,7 +1073,7 @@ export default function Notion() {
         if (titleChanged) updates.titulo = currentTitle;
 
         let success = await updateDocument(docToSave.id, updates);
-        
+
         // Automatic retry once after 1.2s if network or gateway had a temporary hiccup
         if (!success) {
           await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -1155,7 +1153,7 @@ export default function Notion() {
       forceSaveTimerRef.current = window.setTimeout(() => {
         saveDocument(true);
         forceSaveTimerRef.current = null;
-      }, forceSaveMs); 
+      }, forceSaveMs);
     }
   }, [saveDocument, isCollabActive]);
 
@@ -1168,8 +1166,8 @@ export default function Notion() {
       setDocToRename(null);
       setNewTitle("");
       if (activeDocument?.id === docToRename.id) {
-         setActiveDocument({ ...activeDocument, titulo: newTitle.trim() } as NotionDocument);
-         setLocalTitle(newTitle.trim());
+        setActiveDocument({ ...activeDocument, titulo: newTitle.trim() } as NotionDocument);
+        setLocalTitle(newTitle.trim());
       }
       // Sync tab title
       setOpenTabs(prev => prev.map(t => t.id === docToRename.id ? { ...t, title: newTitle.trim() } : t));
@@ -1186,8 +1184,8 @@ export default function Notion() {
       setShowChangeSubjectModal(false);
       setDocToChangeSubject(null);
       if (activeDocument?.id === docToChangeSubject.id) {
-         const newSubject = subjects.find(s => s.id === newSubjectId);
-         setActiveDocument({ ...activeDocument, subject_id: newSubjectId, subject: newSubject } as NotionDocument);
+        const newSubject = subjects.find(s => s.id === newSubjectId);
+        setActiveDocument({ ...activeDocument, subject_id: newSubjectId, subject: newSubject } as NotionDocument);
       }
       refetch();
     } else {
@@ -1343,7 +1341,7 @@ export default function Notion() {
         tabContentCacheRef.current.set(prevDoc.id, currentDocContent);
         try {
           sessionStorage.setItem(`tabe_doc_content_${prevDoc.id}`, JSON.stringify(currentDocContent));
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (isDirtyRef.current) {
@@ -1366,7 +1364,7 @@ export default function Notion() {
     // Guardar apunte activo en sessionStorage para no perderlo si el usuario recarga la página
     try {
       sessionStorage.setItem("tabe_active_doc_id", doc.id);
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Add to tabs if not already present
     setOpenTabs(prev => {
@@ -1385,7 +1383,7 @@ export default function Notion() {
           rawContent = JSON.parse(stored);
           tabContentCacheRef.current.set(doc.id, rawContent);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (rawContent) {
@@ -1428,7 +1426,7 @@ export default function Notion() {
         try {
           const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
           if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
-        } catch {}
+        } catch { }
       }
       return;
     }
@@ -1503,7 +1501,7 @@ export default function Notion() {
       try {
         const scrollEl = document.querySelector('.notion-editor-wrapper') || document.querySelector('.word-a4-page') || document.querySelector('.word-a4-wrapper');
         if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'instant' });
-      } catch {}
+      } catch { }
     }
 
     // Check for base64 images and migrate them in the background (non-blocking)
@@ -1535,7 +1533,7 @@ export default function Notion() {
     // Limpiar URL sin recargar para evitar re-ejecuciones accidentales
     try {
       window.history.replaceState({}, "", window.location.pathname);
-    } catch {}
+    } catch { }
 
     let isCancelled = false;
 
@@ -1605,7 +1603,7 @@ export default function Notion() {
               user_id: user.id,
               permission: sharedDoc.share_permission || "edit",
             }, { onConflict: "document_id,user_id" })
-            .catch(() => {});
+            .catch(() => { });
         }
 
         const mappedDoc: NotionDocument = {
@@ -1688,7 +1686,7 @@ export default function Notion() {
           openDocument(targetDoc);
         }
       }
-    } catch {}
+    } catch { }
   }, [activeDocument, loading, documents, openDocument]);
 
   const closeDocument = useCallback(() => {
@@ -1700,7 +1698,7 @@ export default function Notion() {
     handleSaveOnExit();
     try {
       sessionStorage.removeItem("tabe_active_doc_id");
-    } catch (e) {}
+    } catch (e) { }
     setActiveDocument(null);
     setEditorContent(null);
     editorContentRef.current = null;
@@ -1814,7 +1812,7 @@ export default function Notion() {
             tiptapEditorInstance.commands.setContent(parsed, false);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     window.addEventListener("focus", onWindowFocus);
@@ -1825,7 +1823,7 @@ export default function Notion() {
   useEffect(() => {
     try {
       sessionStorage.removeItem("tabe_active_doc_id");
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const handleCreateDocument = useCallback(
@@ -1884,7 +1882,7 @@ export default function Notion() {
       if (!isPremium && !canUse('apuntes')) {
         return;
       }
-      
+
       const newDoc = await createDocument(parentDoc.subject_id || "", "Sin título", parentDoc.id);
       if (newDoc) {
         const fullDoc = { ...newDoc, parent_id: parentDoc.id };
@@ -1915,7 +1913,7 @@ export default function Notion() {
     tabContentCacheRef.current.delete(deletedId);
     try {
       sessionStorage.removeItem(`tabe_doc_content_${deletedId}`);
-    } catch (e) {}
+    } catch (e) { }
 
     setOpenTabs(prev => prev.filter(t => t.id !== deletedId));
     setShowDeleteModal(false);
@@ -1993,7 +1991,7 @@ export default function Notion() {
 
       // 4. Feedback instantáneo
       toast.success(
-        nextFavorite ? "⭐ Añadido a Favoritos" : "Quitado de Favoritos",
+        nextFavorite ? "Añadido a Favoritos" : "Quitado de Favoritos",
         { duration: 1500 }
       );
 
@@ -2196,7 +2194,7 @@ export default function Notion() {
         if (eff?.id === filterSubject) return true;
         if (selectedSubject && eff) {
           return normalizeSubjectName(eff.nombre) === normalizeSubjectName(selectedSubject.nombre) ||
-                 (eff.codigo && selectedSubject.codigo && eff.codigo.toLowerCase() === selectedSubject.codigo.toLowerCase());
+            (eff.codigo && selectedSubject.codigo && eff.codigo.toLowerCase() === selectedSubject.codigo.toLowerCase());
         }
         return false;
       });
@@ -2216,7 +2214,7 @@ export default function Notion() {
     // Filter by search query (accent-insensitive)
     if (searchQuery.trim() !== "") {
       const q = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      result = result.filter(doc => 
+      result = result.filter(doc =>
         (doc.titulo || "Sin título").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(q)
       );
     }
@@ -2335,7 +2333,7 @@ export default function Notion() {
                 <button
                   type="button"
                   onClick={() => {
-                    
+
                     closeDocument();
                   }}
                   className="h-7 px-1.5 rounded-md inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0 cursor-pointer"
@@ -2351,7 +2349,7 @@ export default function Notion() {
                     <button
                       type="button"
                       onClick={() => {
-                        
+
                         closeDocument();
                       }}
                       className="h-7 px-1.5 rounded-md inline-flex items-center text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0 max-w-[130px] truncate cursor-pointer"
@@ -2416,7 +2414,7 @@ export default function Notion() {
               <Link
                 to="/dashboard"
                 onClick={() => {
-                  
+
                 }}
                 className="h-7 px-2 rounded-md inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors shrink-0"
               >
@@ -2478,10 +2476,10 @@ export default function Notion() {
                     audioBook.isPlaying
                       ? "text-emerald-500 bg-emerald-500/10"
                       : audioBook.isPaused
-                      ? "text-amber-500 bg-amber-500/10"
-                      : showAudioBookPlayer
-                      ? "text-foreground bg-muted"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                        ? "text-amber-500 bg-amber-500/10"
+                        : showAudioBookPlayer
+                          ? "text-foreground bg-muted"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
                   )}
                   onClick={() => {
                     if (!showAudioBookPlayer) {
@@ -2731,7 +2729,7 @@ export default function Notion() {
                       </DropdownMenuItem>
                     )}
 
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg"
                       onClick={() => setShowImportModal(true)}
                     >
@@ -2989,11 +2987,11 @@ export default function Notion() {
                             <div className="notion-prop-value text-xs text-muted-foreground">
                               {activeDocument.updated_at
                                 ? new Date(activeDocument.updated_at).toLocaleDateString("es-ES", {
-                                    day: "numeric",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                                 : "Reciente"}
                             </div>
                           </div>
@@ -3021,15 +3019,15 @@ export default function Notion() {
                                   isStudyTimerActive && !isStudyTimerPaused
                                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                                     : isStudyTimerPaused
-                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-                                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
+                                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                      : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
                                 )}
                                 title={
                                   isStudyTimerActive && !isStudyTimerPaused
                                     ? "Pausar cronómetro de estudio (guarda tu tiempo)"
                                     : isStudyTimerPaused
-                                    ? "Reanudar cronómetro de estudio"
-                                    : "Iniciar cronómetro de estudio"
+                                      ? "Reanudar cronómetro de estudio"
+                                      : "Iniciar cronómetro de estudio"
                                 }
                               >
                                 {isStudyTimerActive && !isStudyTimerPaused ? (
@@ -3074,8 +3072,8 @@ export default function Notion() {
                               {activeDocument.user_id === user?.id
                                 ? "Tu apunte cooperativo"
                                 : activeDocument.is_collaborator || activeDocument.is_shared
-                                ? `Apunte colaborativo${activeDocOwner?.nombre ? ` de ${activeDocOwner.nombre}` : ""}`
-                                : `Apunte de ${activeDocOwner?.nombre || activeDocOwner?.username || "un amigo"}`}
+                                  ? `Apunte colaborativo${activeDocOwner?.nombre ? ` de ${activeDocOwner.nombre}` : ""}`
+                                  : `Apunte de ${activeDocOwner?.nombre || activeDocOwner?.username || "un amigo"}`}
                             </span>
                             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full ml-1 bg-emerald-600 text-white flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -3116,11 +3114,11 @@ export default function Notion() {
                   readOnly={
                     notionLocked ||
                     (activeDocument?.user_id !== user?.id &&
-                    !(
-                      (activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
-                      activeDocument?.user_permission === "edit" ||
-                      (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit")
-                    ))
+                      !(
+                        (activeDocument?.is_shared && activeDocument?.share_permission === "edit") ||
+                        activeDocument?.user_permission === "edit" ||
+                        (activeDocument?.is_collaborator && activeDocument?.share_permission === "edit")
+                      ))
                   }
                   ydoc={isCollabActive ? ydoc : null}
                   provider={isCollabActive ? collabProvider : null}
@@ -3128,112 +3126,38 @@ export default function Notion() {
                   onEditorReady={handleEditorReady}
                   onActivity={() => lastActivityRef.current = Date.now()}
                   onSubPageClick={async (pageId, pageTitle, blockId, copyFromPageId) => {
-                      const parent = activeDocumentRef.current;
-                      const parentId = parent?.id || null;
-                      const subjectId = parent?.subject_id || "";
+                    const parent = activeDocumentRef.current;
+                    const parentId = parent?.id || null;
+                    const subjectId = parent?.subject_id || "";
 
-                      // Si proviene de una copia (copyFromPageId) y aún no tiene nuevo pageId asignado (o coincide con copyFromPageId):
-                      if (copyFromPageId && (!pageId || pageId === copyFromPageId)) {
-                        let sourceContent = await fetchDocumentContent(copyFromPageId);
-                        let sourceEmoji = "book";
-                        let sourceTitle = pageTitle || "Sin título";
-                        const existingDoc = documents.find(d => d.id === copyFromPageId);
-                        if (existingDoc) {
-                          sourceEmoji = existingDoc.emoji || "book";
-                          if (!pageTitle || pageTitle === "Sin título") {
-                            sourceTitle = existingDoc.titulo || "Sin título";
-                          }
-                        }
-
-                        const clonedContent = sourceContent
-                          ? JSON.parse(JSON.stringify(sourceContent))
-                          : { type: "doc", content: [{ type: "paragraph" }] };
-
-                        const newDoc = await createDocument(
-                          subjectId,
-                          sourceTitle,
-                          parentId,
-                          clonedContent,
-                          sourceEmoji
-                        );
-
-                        if (newDoc) {
-                          document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                            detail: { oldTitle: sourceTitle, oldPageId: copyFromPageId, newPageId: newDoc.id, blockId },
-                          }));
-                          await new Promise(resolve => setTimeout(resolve, 50));
-                          if (parent && isDirtyRef.current) {
-                            await saveDocument(true);
-                          }
-                          const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
-                          const fullDoc: NotionDocument = {
-                            ...newDoc,
-                            parent_id: parentId,
-                            contenido: clonedContent,
-                            is_shared: isParentCollab ? (parent.is_shared ?? true) : newDoc.is_shared,
-                            is_collaborator: isParentCollab ? (parent.is_collaborator ?? true) : newDoc.is_collaborator,
-                            share_permission: isParentCollab ? (parent.share_permission || "edit") : newDoc.share_permission,
-                            share_token: isParentCollab ? parent.share_token : newDoc.share_token,
-                          };
-                          openDocument(fullDoc);
-                          return;
+                    // Si proviene de una copia (copyFromPageId) y aún no tiene nuevo pageId asignado (o coincide con copyFromPageId):
+                    if (copyFromPageId && (!pageId || pageId === copyFromPageId)) {
+                      let sourceContent = await fetchDocumentContent(copyFromPageId);
+                      let sourceEmoji = "book";
+                      let sourceTitle = pageTitle || "Sin título";
+                      const existingDoc = documents.find(d => d.id === copyFromPageId);
+                      if (existingDoc) {
+                        sourceEmoji = existingDoc.emoji || "book";
+                        if (!pageTitle || pageTitle === "Sin título") {
+                          sourceTitle = existingDoc.titulo || "Sin título";
                         }
                       }
 
-                      // 1. Si pageId es provisto (es un apunte existente o fue movido con Ctrl+X)
-                      if (pageId && pageId !== parentId) {
-                        // Si estaba en la papelera (por haber sido cortado con Ctrl+X o borrado temporalmente), recuperarlo
-                        restoreFromTrash(pageId);
+                      const clonedContent = sourceContent
+                        ? JSON.parse(JSON.stringify(sourceContent))
+                        : { type: "doc", content: [{ type: "paragraph" }] };
 
-                        let target = documents.find(d => d.id === pageId);
-                        if (!target) {
-                          const { data } = await supabase
-                            .from("notion_documents")
-                            .select(`
-                              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
-                              owner:profiles(nombre, avatar_url, username),
-                              subject:subjects(id, nombre, codigo, año)
-                            `)
-                            .eq("id", pageId)
-                            .maybeSingle();
-                          if (data) {
-                            target = {
-                              ...data,
-                              subject: data.subject ? {
-                                id: (data.subject as any).id,
-                                nombre: (data.subject as any).nombre,
-                                codigo: (data.subject as any).codigo,
-                                year: (data.subject as any).año,
-                              } : undefined
-                            } as NotionDocument;
-                          }
-                        }
+                      const newDoc = await createDocument(
+                        subjectId,
+                        sourceTitle,
+                        parentId,
+                        clonedContent,
+                        sourceEmoji
+                      );
 
-                        if (target && target.id !== parentId) {
-                          const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
-                          if (parent && isParentCollab) {
-                            target.is_shared = parent.is_shared ?? true;
-                            target.is_collaborator = parent.is_collaborator ?? true;
-                            target.share_permission = parent.share_permission || "edit";
-                            target.share_token = parent.share_token;
-                          }
-                          // Si se pegó en otro apunte padre (ej. vía Ctrl+X y pegar), asociarlo a este padre si correspondía
-                          if (target.parent_id && target.parent_id !== parentId) {
-                            updateDocument(target.id, { parent_id: parentId } as any).catch(() => {});
-                            target = { ...target, parent_id: parentId };
-                          }
-                          openDocument(target);
-                          return;
-                        }
-                      }
-
-                      // 2. Si no tiene pageId válido, o el documento apuntado fue eliminado, o pertenecía a otro padre:
-                      // CREAR SIEMPRE UNA NUEVA SUBPÁGINA LIMPIA Y EXCLUSIVA PARA ESTE PADRE.
-                      // NUNCA buscar ni reutilizar documentos existentes por título en la base de datos o en otros apuntes!
-                      const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
                       if (newDoc) {
                         document.dispatchEvent(new CustomEvent("notion-subpage-created", {
-                          detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: newDoc.id, blockId },
+                          detail: { oldTitle: sourceTitle, oldPageId: copyFromPageId, newPageId: newDoc.id, blockId },
                         }));
                         await new Promise(resolve => setTimeout(resolve, 50));
                         if (parent && isDirtyRef.current) {
@@ -3243,14 +3167,88 @@ export default function Notion() {
                         const fullDoc: NotionDocument = {
                           ...newDoc,
                           parent_id: parentId,
-                          contenido: { type: "doc", content: [{ type: "paragraph" }] },
+                          contenido: clonedContent,
                           is_shared: isParentCollab ? (parent.is_shared ?? true) : newDoc.is_shared,
                           is_collaborator: isParentCollab ? (parent.is_collaborator ?? true) : newDoc.is_collaborator,
                           share_permission: isParentCollab ? (parent.share_permission || "edit") : newDoc.share_permission,
                           share_token: isParentCollab ? parent.share_token : newDoc.share_token,
                         };
                         openDocument(fullDoc);
+                        return;
                       }
+                    }
+
+                    // 1. Si pageId es provisto (es un apunte existente o fue movido con Ctrl+X)
+                    if (pageId && pageId !== parentId) {
+                      // Si estaba en la papelera (por haber sido cortado con Ctrl+X o borrado temporalmente), recuperarlo
+                      restoreFromTrash(pageId);
+
+                      let target = documents.find(d => d.id === pageId);
+                      if (!target) {
+                        const { data } = await supabase
+                          .from("notion_documents")
+                          .select(`
+                              id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at,
+                              owner:profiles(nombre, avatar_url, username),
+                              subject:subjects(id, nombre, codigo, año)
+                            `)
+                          .eq("id", pageId)
+                          .maybeSingle();
+                        if (data) {
+                          target = {
+                            ...data,
+                            subject: data.subject ? {
+                              id: (data.subject as any).id,
+                              nombre: (data.subject as any).nombre,
+                              codigo: (data.subject as any).codigo,
+                              year: (data.subject as any).año,
+                            } : undefined
+                          } as NotionDocument;
+                        }
+                      }
+
+                      if (target && target.id !== parentId) {
+                        const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
+                        if (parent && isParentCollab) {
+                          target.is_shared = parent.is_shared ?? true;
+                          target.is_collaborator = parent.is_collaborator ?? true;
+                          target.share_permission = parent.share_permission || "edit";
+                          target.share_token = parent.share_token;
+                        }
+                        // Si se pegó en otro apunte padre (ej. vía Ctrl+X y pegar), asociarlo a este padre si correspondía
+                        if (target.parent_id && target.parent_id !== parentId) {
+                          updateDocument(target.id, { parent_id: parentId } as any).catch(() => { });
+                          target = { ...target, parent_id: parentId };
+                        }
+                        openDocument(target);
+                        return;
+                      }
+                    }
+
+                    // 2. Si no tiene pageId válido, o el documento apuntado fue eliminado, o pertenecía a otro padre:
+                    // CREAR SIEMPRE UNA NUEVA SUBPÁGINA LIMPIA Y EXCLUSIVA PARA ESTE PADRE.
+                    // NUNCA buscar ni reutilizar documentos existentes por título en la base de datos o en otros apuntes!
+                    const newDoc = await createDocument(subjectId, pageTitle || "Sin título", parentId);
+                    if (newDoc) {
+                      document.dispatchEvent(new CustomEvent("notion-subpage-created", {
+                        detail: { oldTitle: pageTitle, oldPageId: pageId, newPageId: newDoc.id, blockId },
+                      }));
+                      await new Promise(resolve => setTimeout(resolve, 50));
+                      if (parent && isDirtyRef.current) {
+                        await saveDocument(true);
+                      }
+                      const isParentCollab = Boolean(parent && (parent.is_shared || parent.is_collaborator || parent.share_token));
+                      const fullDoc: NotionDocument = {
+                        ...newDoc,
+                        parent_id: parentId,
+                        contenido: { type: "doc", content: [{ type: "paragraph" }] },
+                        is_shared: isParentCollab ? (parent.is_shared ?? true) : newDoc.is_shared,
+                        is_collaborator: isParentCollab ? (parent.is_collaborator ?? true) : newDoc.is_collaborator,
+                        share_permission: isParentCollab ? (parent.share_permission || "edit") : newDoc.share_permission,
+                        share_token: isParentCollab ? parent.share_token : newDoc.share_token,
+                      };
+                      openDocument(fullDoc);
+                    }
                   }}
                 />
 
@@ -3277,13 +3275,13 @@ export default function Notion() {
               <div className="flex flex-col gap-5 px-6 md:px-10 py-6 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#171717] text-foreground">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Tus Apuntes</h1>
-                  
+
                   <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     {/* Search */}
                     <div className="relative flex-1 sm:flex-none">
                       <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="Buscar apunte..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -3318,7 +3316,7 @@ export default function Notion() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
                       { id: "all", label: "Todos" },
-                      { id: "favorites", label: "⭐ Favoritos" },
+                      { id: "favorites", label: "Favoritos" },
                       { id: "mine", label: "Mis Apuntes" },
                       { id: "collaborative", label: "Compartidos" },
                       { id: "friends", label: "De Amigos" }
@@ -3328,8 +3326,8 @@ export default function Notion() {
                         onClick={() => setFilterOwner(tab.id as any)}
                         className={cn(
                           "px-3 py-1.5 font-medium text-xs rounded-lg transition-colors",
-                          filterOwner === tab.id 
-                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs" 
+                          filterOwner === tab.id
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
                             : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                         )}
                       >
@@ -3364,8 +3362,8 @@ export default function Notion() {
                         {filterSubjectOptions
                           .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
                           .map(sub => (
-                          <SelectItem key={sub.id} value={sub.id} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">{sub.name}</SelectItem>
-                        ))}
+                            <SelectItem key={sub.id} value={sub.id} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">{sub.name}</SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
 
@@ -3392,7 +3390,7 @@ export default function Notion() {
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
                   </div>
                 ) : filteredAndSortedDocuments.length === 0 ? (
-                   <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
+                  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
                     <p className="text-sm">No hay apuntes que coincidan con la búsqueda o filtros seleccionados.</p>
                     {(filterYear !== "all" || filterSubject !== "all" || filterOwner !== "all" || searchQuery.trim() !== "") && (
                       <button
@@ -3412,7 +3410,7 @@ export default function Notion() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {filteredAndSortedDocuments.map((doc) => (
-                      <MemoizedGalleryCard 
+                      <MemoizedGalleryCard
                         key={doc.id}
                         doc={doc}
                         userSubjects={subjects}
@@ -3473,32 +3471,32 @@ export default function Notion() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-3">
-             <div className="space-y-2">
-                <input
-                  autoFocus
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Título del apunte..."
-                  onKeyDown={(e) => {
-                     if (e.key === "Enter") handleRenameSubmit();
-                  }}
-                  className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200/80 dark:border-zinc-800 font-normal text-sm focus:border-zinc-400 dark:focus:border-zinc-600 transition-all outline-none placeholder:text-zinc-400"
-                />
-             </div>
+            <div className="space-y-2">
+              <input
+                autoFocus
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Título del apunte..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRenameSubmit();
+                }}
+                className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-lg border border-zinc-200/80 dark:border-zinc-800 font-normal text-sm focus:border-zinc-400 dark:focus:border-zinc-600 transition-all outline-none placeholder:text-zinc-400"
+              />
+            </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-3">
-             <button
-               onClick={() => setShowRenameModal(false)}
-               className="flex-1 px-4 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-             >
-               Cancelar
-             </button>
-             <button
-               onClick={handleRenameSubmit}
-               className="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium text-xs shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
-             >
-               Guardar cambios
-             </button>
+            <button
+              onClick={() => setShowRenameModal(false)}
+              className="flex-1 px-4 py-2 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleRenameSubmit}
+              className="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium text-xs shadow-2xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+            >
+              Guardar cambios
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3631,8 +3629,8 @@ export default function Notion() {
                                 isApproved
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
                                   : isSelected
-                                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
-                                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                               )}>
                                 {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
                               </span>
@@ -3750,7 +3748,7 @@ export default function Notion() {
                 disabled={!newDocSubjectId}
                 className="flex-1 px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium text-xs sm:text-sm shadow-2xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
+                <FileText className="w-4 h-4" />
                 {`Crear con "${selectedTemplate.name}"`}
               </button>
             </div>
@@ -3827,8 +3825,8 @@ export default function Notion() {
                           isApproved
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
                             : isSelected
-                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
-                            : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
+                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
                         )}>
                           {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
                         </span>

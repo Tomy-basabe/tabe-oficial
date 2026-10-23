@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { PLANT_TYPES, PlantType, Plant } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { Sprout, Sparkles, Check, Info, Trophy, Lock, Clock, Award, Layers } from "lucide-react";
+import { Sprout, Check, Info, Trophy, Lock, Clock, Award, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ForestSpeciesNurseryProps {

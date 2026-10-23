@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  Plus,
+import { Plus,
   Paperclip,
   Globe,
   BrainCog,
@@ -14,9 +13,8 @@ import {
   AudioWaveform,
   Search,
   Zap,
-  Sparkles,
-  Brain,
-} from "lucide-react";
+  
+  Brain, Bot } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +37,7 @@ export const powerConfig: Record<
   },
   medio: {
     name: "Equilibrado",
-    icon: Sparkles,
+    icon: Bot,
   },
   alto: {
     name: "Pensar",

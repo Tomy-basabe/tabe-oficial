@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  Layers, Target, Clock, Brain, 
-  CheckCircle2, XCircle, Sparkles, ChevronRight,
-  Flame, Plus, ArrowUpRight
-} from "lucide-react";
+import { Layers, Target, Clock, Brain, CheckCircle2, XCircle, ChevronRight, Flame, Plus, ArrowUpRight, Lightbulb, Trophy } from "lucide-react";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { useFlashcardStats } from "@/hooks/useFlashcardStats";
 import { DateRange } from "@/components/metrics/DateRangeFilter";
@@ -451,7 +447,7 @@ export function FlashcardStats({ dateRange }: FlashcardStatsProps) {
               {selectedDeckData.difficult_cards > 0 ? (
                 <div className="p-3 bg-purple-500/10 border border-purple-500/20 text-purple-900 dark:text-purple-200 rounded-xl">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-semibold">Recomendación de repaso</p>
                       <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
@@ -463,7 +459,7 @@ export function FlashcardStats({ dateRange }: FlashcardStatsProps) {
               ) : selectedDeckData.accuracy >= 80 ? (
                 <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200 rounded-xl">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <Trophy className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-semibold">¡Mazo dominado!</p>
                       <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">

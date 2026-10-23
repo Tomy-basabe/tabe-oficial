@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { Zap, Sparkles, Trophy, Brain, Flame, Target } from "lucide-react";
+import { Zap, Trophy, Brain, Flame, Target, Compass } from "lucide-react";
 
 const TICKER_ITEMS = [
   { text: "+350 Estudiantes universitarios", icon: Target },
   { text: "Técnica Pomodoro & Seguimiento", icon: Zap },
-  { text: "Mapas de Correlatividades Vivos", icon: Sparkles },
+  { text: "Mapas de Correlatividades Vivos", icon: Compass },
   { text: "Flashcards con Repetición Espaciada", icon: Brain },
   { text: "Quizzes y Resúmenes con IA", icon: Flame },
   { text: "100% Gratuito y Accesible", icon: Trophy },

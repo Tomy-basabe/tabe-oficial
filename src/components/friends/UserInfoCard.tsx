@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Loader2, Sparkles, Move } from "lucide-react";
+import { Loader2, Move } from "lucide-react";
 
 // Precarga: el chunk de three.js empieza a descargarse al cargar Friends, no al abrir la pestaña
 const loadLanyard = () => import("@/components/Lanyard/Lanyard.jsx");

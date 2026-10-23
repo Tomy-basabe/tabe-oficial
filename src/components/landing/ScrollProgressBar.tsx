@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import { ArrowUp, Compass, Sparkles, BookOpen, Brain, Zap, HelpCircle } from "lucide-react";
+import { ArrowUp, Compass, BookOpen, Brain, Zap, HelpCircle, Home } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { useSmoothScroll } from "./SmoothScrollProvider";
 
@@ -11,7 +11,7 @@ interface SectionAnchor {
 }
 
 const SECTIONS: SectionAnchor[] = [
-  { id: "hero", label: "Inicio", icon: Sparkles },
+  { id: "hero", label: "Inicio", icon: Home },
   { id: "showcase", label: "Módulos", icon: Compass },
   { id: "superpoderes", label: "Poderes", icon: Zap },
   { id: "demo-interactiva", label: "Demo", icon: Brain },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
-import { Sparkles, MessageSquare } from "lucide-react";
+import { MessageSquare, Zap } from "lucide-react";
 
 const DemoOne = () => {
   const [lastSubmission, setLastSubmission] = useState<{
@@ -25,7 +25,7 @@ const DemoOne = () => {
         {/* Header Preview */}
         <div className="text-center space-y-2 text-white drop-shadow-md">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/30 backdrop-blur-md text-xs font-semibold tracking-wide uppercase">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <Zap className="w-3.5 h-3.5 text-amber-300" />
             TABE AI Prompt Box Demo
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white drop-shadow">

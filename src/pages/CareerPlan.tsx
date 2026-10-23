@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, Sparkles, FileUp, AlertTriangle } from "lucide-react";
+import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, FileUp, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,

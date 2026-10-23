@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Building2, BookOpen, ArrowRight, Loader2, Sparkles, FileUp } from "lucide-react";
+import { GraduationCap, Building2, BookOpen, ArrowRight, Loader2, FileUp, Sliders } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,7 +196,7 @@ export function CareerPlanOnboardingModal() {
           <DialogHeader className="text-left space-y-2">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px] font-medium border border-zinc-200/60 dark:border-zinc-700/60">
-                <Sparkles className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                <Sliders className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
                 Configuración inicial
               </span>
             </div>

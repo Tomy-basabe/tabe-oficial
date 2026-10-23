@@ -12,19 +12,7 @@ import {
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { TaskListView } from "@/components/tasks/TaskListView";
 import { TaskModal } from "@/components/tasks/TaskModal";
-import { 
-  CheckSquare, 
-  Kanban, 
-  ListTodo, 
-  Plus, 
-  Filter, 
-  Search, 
-  Timer, 
-  Zap, 
-  CheckCircle2, 
-  Clock,
-  Sparkles
-} from "lucide-react";
+import { CheckSquare, Kanban, ListTodo, Plus, Filter, Search, Timer, Zap, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";

@@ -1,4 +1,4 @@
-import { Loader2, Users, Bot, User, X, Sparkles, GraduationCap } from "lucide-react";
+import { Loader2, Users, Bot, User, X, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 

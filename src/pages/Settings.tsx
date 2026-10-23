@@ -1,39 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  Bell, 
-  Calendar, 
-  LogOut, 
-  Moon, 
-  Sun, 
-  ChevronRight, 
-  ChevronDown, 
-  Star, 
-  Monitor, 
-  MessageSquare, 
-  Send,
-  Zap,
-  Sparkles,
-  Volume2,
-  VolumeX,
-  CheckCircle2,
-  Check,
-  Loader2,
-  Unlink,
-  GraduationCap,
-  Copy,
-  ExternalLink,
-  Shield,
-  FileText,
-  Cookie,
-  AlertOctagon,
-  User,
-  Clock,
-  Palette,
-  Minus,
-  Plus,
-  Radio,
-  CheckCheck
-} from "lucide-react";
+import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
@@ -735,7 +701,7 @@ export default function Settings() {
                           <div className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] space-y-2.5">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-amber-500" />
+                                <Bell className="w-4 h-4 text-amber-500" />
                                 <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">
                                   Recordatorios Proactivos de TABE AI
                                 </h4>
@@ -754,7 +720,7 @@ export default function Settings() {
                                 disabled={testingProactive}
                                 className="h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                               >
-                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <Bell className="w-3.5 h-3.5 text-amber-500" />
                                 <span>{testingProactive ? "Enviando..." : "Enviar recordatorio de prueba a mi celular 📲"}</span>
                               </button>
                             </div>
@@ -844,7 +810,7 @@ export default function Settings() {
                   <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4" />
+                        <Zap className="w-4 h-4" />
                       </div>
                       <div>
                         <h4 className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Partículas y animaciones</h4>

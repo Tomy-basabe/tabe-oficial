@@ -6,8 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Copy,
+import { Copy,
   Check,
   ExternalLink,
   Upload,
@@ -16,11 +15,10 @@ import {
   AlertCircle,
   Zap,
   Unlink,
-  Sparkles,
+  
   ChevronDown,
   ChevronUp,
-  ShieldCheck,
-} from "lucide-react";
+  ShieldCheck, Calendar } from "lucide-react";
 import { useCalendarFeed } from "@/hooks/useCalendarFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarEvent, CreateEventData } from "@/hooks/useCalendarEvents";
@@ -316,7 +314,7 @@ export function GoogleCalendarSyncModal({
               >
                 <div>
                   <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>Limpiar duplicados</span>
                   </p>
                   <p className="text-[11px] text-zinc-400">Remover copias</p>

@@ -1,17 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  Copy, 
-  Check, 
-  Link, 
-  Settings, 
-  Trash2, 
-  ShieldAlert, 
-  Sparkles, 
-  Users, 
-  X, 
-  LogOut,
-  Image as ImageIcon 
-} from "lucide-react";
+import { Copy, Check, Link, Settings, Trash2, ShieldAlert, Users, X, LogOut, Image as ImageIcon, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -225,7 +213,7 @@ export function DiscordServerSettingsModal({
                 : "bg-neutral-200/80 hover:bg-neutral-200 text-neutral-600 border-b-2 border-b-black"
             )}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <UserPlus className="w-3.5 h-3.5" />
             Invitación
           </button>
           {isOwner ? (

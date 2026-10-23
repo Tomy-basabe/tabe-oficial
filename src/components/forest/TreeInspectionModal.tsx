@@ -3,18 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import {
-  Calendar,
+import { Calendar,
   Clock,
-  Sparkles,
+  
   Trophy,
   Trash2,
   Award,
   AlertCircle,
   Sprout,
   CheckCircle2,
-  X,
-} from "lucide-react";
+  X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeInspectionModalProps {
@@ -157,7 +155,7 @@ export const TreeInspectionModal: React.FC<TreeInspectionModalProps> = ({
 
         {/* Lore Note */}
         <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-xs text-zinc-600 dark:text-zinc-300 italic flex items-start gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+          <Award className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
           <span>"{typeInfo.lore}"</span>
         </div>
 

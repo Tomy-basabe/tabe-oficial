@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trophy, Clock, Target, CheckCircle2, RotateCcw, ArrowRight, Sparkles } from "lucide-react";
+import { Trophy, Clock, Target, CheckCircle2, RotateCcw, ArrowRight, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompletionScreenProps {
@@ -102,7 +102,7 @@ export function CompletionScreen({
         {/* XP o reconocimiento sutil */}
         {isExcellent && (
           <div className="flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/50 text-amber-700 dark:text-amber-300 text-xs font-medium mb-6 mx-auto w-fit">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Zap className="w-3.5 h-3.5" />
             <span>+{correctCount * 10} XP ganados</span>
           </div>
         )}

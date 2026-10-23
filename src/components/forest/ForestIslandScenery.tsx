@@ -1,6 +1,6 @@
 import React from "react";
 import { IslandId } from "@/hooks/forestIslandsData";
-import { Sparkles, Feather, Radio, Diamond } from "lucide-react";
+import { Feather, Radio, Diamond } from "lucide-react";
 
 interface SceneryProps {
   islandId: IslandId;
@@ -281,7 +281,7 @@ export const ForestIslandScenery: React.FC<SceneryProps> = ({
             <div className="w-9 h-13 bg-gradient-to-t from-[#A855F7] via-[#C084FC] to-[#38BDF8] border-2 border-stone-800 shadow-md [clip-path:polygon(50%_0%,100%_35%,80%_100%,20%_100%,0%_35%)] flex items-center justify-center">
               <div className="w-2 h-6 bg-white/70 rounded-full" />
             </div>
-            <Sparkles className="w-4 h-4 text-purple-300 animate-pulse" />
+            <Radio className="w-4 h-4 text-purple-300 animate-pulse" />
           </div>
 
           {/* Mini Rover espacial en esquina inferior */}

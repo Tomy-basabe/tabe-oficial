@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
 import { ForestTreeArtwork, getTreeStage, getStageLabel } from "./ForestTreeArtwork";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import {
-  Sprout,
+import { Sprout,
   Sun,
   Droplets,
   Clock,
@@ -11,15 +10,14 @@ import {
   TrendingUp,
   XCircle,
   Play,
-  Sparkles,
+  
   Flame,
   Award,
   CheckCircle2,
   AlertCircle,
   Timer,
   Shield,
-  ArrowRight,
-} from "lucide-react";
+  ArrowRight, Zap } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -159,7 +157,7 @@ export const ForestFocusStage: React.FC<ForestFocusStageProps> = ({
           title="Toca para cambiar de frase"
           className="px-3.5 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 rounded-full text-xs text-zinc-600 dark:text-zinc-300 transition-colors flex items-center gap-2 cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
           <span>"{MOTIVATIONAL_PHRASES[sloganIdx]}"</span>
         </button>
       </div>
@@ -477,7 +475,7 @@ export const ForestFocusStage: React.FC<ForestFocusStageProps> = ({
 
               {hasActiveFertilizer && (
                 <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" /> Bonus x2 de Fertilizante aplicado
+                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Bonus x2 de Fertilizante aplicado
                 </p>
               )}
 

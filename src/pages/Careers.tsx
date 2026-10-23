@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  GraduationCap,
+import { GraduationCap,
   ChevronRight,
   BookOpen,
   Clock,
@@ -12,10 +11,9 @@ import {
   Building2,
   Calendar,
   Layers,
-  Sparkles,
+  
   Check,
-  Compass,
-} from "lucide-react";
+  Compass } from "lucide-react";
 import { motion } from "framer-motion";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
@@ -622,7 +620,7 @@ export default function Careers() {
               { icon: Layers, label: "Correlatividades", val: "Árbol Interactivo" },
               { icon: Clock, label: "Productividad", val: "Pomodoro Focus" },
               { icon: Target, label: "Seguimiento", val: "Métricas & Notas" },
-              { icon: Sparkles, label: "Apoyo Académico", val: "Tutor IA Rioplatense" },
+              { icon: GraduationCap, label: "Apoyo Académico", val: "Tutor IA Rioplatense" },
             ].map((item, i) => (
               <div
                 key={i}

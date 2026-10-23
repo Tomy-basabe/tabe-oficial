@@ -5,15 +5,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Trophy,
-  Sparkles,
+import { Trophy,
+  
   Award,
   CheckCircle2,
   Lock,
   ChevronRight,
-  TrendingUp,
-} from "lucide-react";
+  TrendingUp, Zap } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 import {
   calculateUserRank,
@@ -54,7 +52,7 @@ export function AchievementRankModal({
               Prestigio y Progresión
             </span>
             <div className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{totalXP} XP acumulados</span>
             </div>
           </div>

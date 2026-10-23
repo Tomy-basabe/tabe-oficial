@@ -2,20 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Mail,
-  Lock,
-  User,
-  Eye,
-  EyeOff,
-  Loader2,
-  ArrowRight,
-  Sparkles,
-  Check,
-  Compass,
-  BookOpen,
-  Zap,
-} from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Loader2, ArrowRight, Check, Compass, BookOpen, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginSchema, signupSchema, resetPasswordSchema, checkRateLimit, resetRateLimit, RATE_LIMITS } from "@/lib/security";

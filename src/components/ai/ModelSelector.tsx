@@ -4,7 +4,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Zap, Sparkles, Brain, Check } from "lucide-react";
+import { ChevronDown, Zap,  Brain, Check } from "lucide-react";
 import {
   AIModelOption,
   PowerEffort,
@@ -34,7 +34,7 @@ export const powerConfig: Record<
   },
   medio: {
     name: "Equilibrado",
-    icon: Sparkles,
+    icon: Brain,
   },
   alto: {
     name: "Pensar",

@@ -1,14 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  Maximize2, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  Eye, 
-  Layers
-} from 'lucide-react';
+import { Maximize2, X, ChevronLeft, ChevronRight, Eye, Layers } from 'lucide-react';
 import { CircularCarousel, CircularCarouselHandle, CarouselItem } from '@/components/ui/CircularCarousel';
 
 export interface TabeShowcaseItem extends CarouselItem {

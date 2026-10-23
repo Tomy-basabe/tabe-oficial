@@ -9,25 +9,7 @@ import { fetchUserNotionDocs } from "@/lib/notionMaterialExtractor";
 import { computeLevelPlan } from "@/lib/roadmapHeuristics";
 import { IsoCubesLoader } from "./IsoCubesLoader";
 import {
-  BookOpen,
-  Calendar,
-  Upload,
-  FileText,
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Flame,
-  Zap,
-  Clock,
-  Radio,
-  PenTool,
-  Check,
-  X,
-  CalendarCheck,
-  Layers,
-  Loader2,
-  Search,
-  GitBranch,
+  BookOpen, Calendar, Upload, FileText, ArrowRight, ArrowLeft, Flame, Zap, Clock, Radio, PenTool, Check, X, CalendarCheck, Layers, Loader2, Search, GitBranch, Brain, Compass
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TabeIconRenderer } from "@/components/notion/TabeIcons";
@@ -499,7 +481,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
             <div className="space-y-3.5 animate-in fade-in duration-150">
               <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1">
                 <div className="flex items-center gap-1.5 text-primary text-xs font-medium">
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Brain className="w-3.5 h-3.5" />
                   <span>Extracción Inteligente</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -746,7 +728,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
           <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1.5">
             <div className="flex items-center justify-between flex-wrap gap-1">
               <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-primary" />
+                <Compass className="w-3 h-3 text-primary" />
                 Material consolidado:
               </span>
               <div className="flex items-center gap-1 text-[11px]">
@@ -785,7 +767,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
             onClick={wizard.processMaterialAndGenerate}
             className="w-full py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
+            <Compass className="w-4 h-4" />
             <span>
               {hasMaterial
                 ? "Generar ruta de estudio con IA"
@@ -907,7 +889,7 @@ export const RoadmapWizard: React.FC<RoadmapWizardProps> = ({ userId, onComplete
             onClick={wizard.finalizeRoadmap}
             className="w-full py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
+            <Compass className="w-4 h-4" />
             <span>Crear mapa de niveles</span>
           </button>
         </div>

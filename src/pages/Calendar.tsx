@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  ChevronLeft,
+import { ChevronLeft,
   ChevronRight,
   Plus,
   Calendar as CalendarIcon,
@@ -13,13 +12,12 @@ import {
   Repeat,
   GraduationCap,
   Zap,
-  Sparkles,
+  
   Edit2,
   MapPin,
   Clock,
   BookOpen,
-  Filter,
-} from "lucide-react";
+  Filter, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
@@ -619,7 +617,7 @@ export default function Calendar() {
             {isCleaningDuplicates ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              <Calendar className="w-3.5 h-3.5 text-purple-500" />
             )}
             <span className="hidden md:inline">Limpiar</span>
           </button>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Pause, RotateCcw, SkipForward, BellOff, ExternalLink, X, BookOpen, Coffee, Sparkles } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, BellOff, ExternalLink, X, BookOpen, Coffee } from "lucide-react";
 import { usePomodoro } from "@/contexts/PomodoroContext";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ export function PomodoroPipWidget({ pipWindow }: PomodoroPipWidgetProps) {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              <Sparkles className="w-3 h-3" /> Pausa Larga
+              <Coffee className="w-3 h-3" /> Pausa Larga
             </span>
           )}
         </div>

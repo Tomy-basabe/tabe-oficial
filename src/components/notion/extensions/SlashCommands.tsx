@@ -4,53 +4,7 @@ import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from "@tiptap/sug
 import tippy, { Instance } from "tippy.js";
 import { forwardRef, useEffect, useImperativeHandle, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Type,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  CheckSquare,
-  Quote,
-  Code,
-  Minus,
-  Image,
-  Table,
-  AlertCircle,
-  ChevronRight,
-  FileText,
-  Lightbulb,
-  AlertTriangle,
-  Info,
-  Sparkles,
-  Palette,
-  PaintBucket,
-  Youtube,
-  Twitter,
-  Music,
-  Video,
-  ExternalLink,
-  Columns,
-  Bookmark,
-  Smile,
-  LayoutGrid,
-  FileText as FileTextIcon,
-  FileAudio,
-  Paperclip,
-  Link2,
-  LayoutDashboard,
-  Kanban,
-  GalleryHorizontalEnd,
-  ListFilter,
-  AtSign,
-  Calendar,
-  Calculator,
-  BarChart3,
-  Sigma,
-  Keyboard,
-  HelpCircle,
-} from "lucide-react";
+import { Type, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Code, Minus, Image, Table, AlertCircle, ChevronRight, FileText, Lightbulb, AlertTriangle, Info, Palette, PaintBucket, Youtube, Twitter, Music, Video, ExternalLink, Columns, Bookmark, Smile, LayoutGrid, FileText as FileTextIcon, FileAudio, Paperclip, Link2, LayoutDashboard, Kanban, GalleryHorizontalEnd, ListFilter, AtSign, Calendar, Calculator, BarChart3, Sigma, Keyboard, HelpCircle, Bot } from "lucide-react";
 import { toast } from "sonner";
 import {
   NOTION_TEXT_COLORS,
@@ -256,7 +210,7 @@ const getSuggestionItems = (): CommandItem[] => [
   {
     title: "Éxito",
     description: "Callout de éxito verde",
-    icon: <Sparkles className="w-4 h-4 text-green-400" />,
+    icon: <Bot className="w-4 h-4 text-green-400" />,
     category: "Estructural",
     keywords: ["success", "exito", "verde", "logro", "completado"],
     command: ({ editor, range }) => {

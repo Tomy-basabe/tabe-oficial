@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Zap, Users, Copy, Check, Swords, Bot, KeyRound, Sparkles, Send, ArrowLeft, ArrowRight, User } from "lucide-react";
+import { Zap, Users, Copy, Check, Swords, Bot, KeyRound, Send, ArrowLeft, ArrowRight, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useFriends } from "@/hooks/useFriends";
@@ -264,7 +264,7 @@ export function GameModeModal({
             {friends.length > 0 && (
               <div className="space-y-2.5">
                 <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <UserPlus className="w-3.5 h-3.5 text-primary" />
                   <span className="text-xs font-medium text-foreground">Invitar a un amigo en línea:</span>
                 </div>
                 <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
