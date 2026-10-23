@@ -957,6 +957,11 @@ export default function AIAssistant() {
       async (result) => {
         if (result.event_created) toast.success("Evento agregado");
         if (result.flashcards_created) toast.success("Flashcards creadas");
+        if (result.quiz_created) {
+          const qCount = result.quiz_created.questions_count ?? 0;
+          const qName = result.quiz_created.deck?.nombre || "Cuestionario";
+          toast.success(`¡Cuestionario "${qName}" creado con éxito! (${qCount} preguntas)`);
+        }
 
         const finalSaved = cleanAIResponse(result.content || fullContent);
         setMessages((prev) =>

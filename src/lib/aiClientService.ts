@@ -814,41 +814,40 @@ async function executeActionBlock(
     cleanedContent = cleanedContent.replace(fcRegex, "").trim();
   }
 
-  // 3. Quiz action (soporte robusto de hasta 80 preguntas con batch insert y fallbacks)
+  // 3. Quiz action con autoreparación de truncamiento (soporta hasta 80 preguntas)
   let quizData: any = null;
-  const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)\s*```/;
-  const quizMatch = content.match(quizRegex);
+  let matchedSnippet = "";
 
+  // A. Bloque ```tabe-action:quiz (cerrado o abierto)
+  const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)(?:```|$)/;
+  const quizMatch = content.match(quizRegex);
   if (quizMatch && quizMatch[1]) {
-    try {
-      quizData = JSON.parse(quizMatch[1].trim());
-      cleanedContent = cleanedContent.replace(quizRegex, "").trim();
-    } catch (e) {
-      console.warn("Failed to parse tabe-action:quiz:", e);
-    }
+    quizData = repairAndParseQuizJson(quizMatch[1]);
+    if (quizData) matchedSnippet = quizMatch[0];
   }
 
-  // Fallback 1: Si el modelo volcó el JSON en bloque ```json o similar
+  // B. Bloque ```json con quiz_name o questions
   if (!quizData) {
-    const jsonBlockRegex = /```(?:json)?\s*(\{\s*"quiz_name"[\s\S]*?"questions"\s*:\s*\[[\s\S]*?\]\s*\})\s*```/;
+    const jsonBlockRegex = /```(?:json)?\s*(\{\s*"quiz_name"[\s\S]*?)(?:```|$)/;
     const jsonMatch = content.match(jsonBlockRegex);
     if (jsonMatch && jsonMatch[1]) {
-      try {
-        quizData = JSON.parse(jsonMatch[1].trim());
-        cleanedContent = cleanedContent.replace(jsonBlockRegex, "").trim();
-      } catch {}
+      quizData = repairAndParseQuizJson(jsonMatch[1]);
+      if (quizData) matchedSnippet = jsonMatch[0];
     }
   }
 
-  // Fallback 2: Objeto JSON crudo embebido en el texto de respuesta
+  // C. Objeto JSON crudo embebido en el texto de respuesta (incluso si se cortó por max_tokens)
   if (!quizData) {
-    const rawJsonMatch = content.match(/\{\s*"quiz_name"\s*:\s*"[^"]+"\s*,\s*(?:"subject_name"\s*:\s*"[^"]*"\s*,\s*)?"questions"\s*:\s*\[[\s\S]*?\}\s*\]\s*\}/);
-    if (rawJsonMatch) {
-      try {
-        quizData = JSON.parse(rawJsonMatch[0]);
-        cleanedContent = cleanedContent.replace(rawJsonMatch[0], "").trim();
-      } catch {}
+    const rawStart = content.indexOf('{"quiz_name"');
+    if (rawStart !== -1) {
+      const rawSlice = content.slice(rawStart);
+      quizData = repairAndParseQuizJson(rawSlice);
+      if (quizData) matchedSnippet = rawSlice;
     }
+  }
+
+  if (matchedSnippet) {
+    cleanedContent = cleanedContent.replace(matchedSnippet, "").trim();
   }
 
   if (quizData && quizData.quiz_name && Array.isArray(quizData.questions) && quizData.questions.length > 0) {
