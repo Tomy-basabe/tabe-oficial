@@ -26,6 +26,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/amigos": "Amigos",
   "/configuracion": "Configuración",
   "/settings": "Configuración",
+  "/tabe-admin": "Administración",
   "/admin": "Administración",
   "/bosque": "Bosque",
   "/rutinas": "Rutinas",

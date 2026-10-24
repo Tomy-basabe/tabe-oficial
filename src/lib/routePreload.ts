@@ -18,6 +18,7 @@ const routeLoaders: Record<string, () => Promise<any>> = {
   "/examenes": () => import("@/pages/Exams"),
   "/amigos": () => import("@/pages/Friends"),
   "/configuracion": () => import("@/pages/Settings"),
+  "/tabe-admin": () => import("@/pages/AdminPanel"),
   "/admin": () => import("@/pages/AdminPanel"),
   "/bosque": () => import("@/pages/Forest"),
   "/rutinas": () => import("@/pages/Routines"),

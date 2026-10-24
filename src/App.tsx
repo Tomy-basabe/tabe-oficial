@@ -7,7 +7,8 @@ import { GlobalDiscordVoiceWidget } from "@/components/discord/GlobalDiscordVoic
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
+import { Shield } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -126,14 +127,47 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
   if (loading) {
     return <LoadingScreen fullScreen message="Verificando acceso..." submessage="Validando permisos de administrador..." />;
   }
 
-  if (!user || !isSuperAdmin(user)) {
-    return <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return <Navigate to="/iniciar-sesion?redirect=/tabe-admin" replace />;
+  }
+
+  if (!isSuperAdmin(user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+        <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+            <Shield className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Acceso Restringido</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              La cuenta actual (<strong>{user.email || "invitado"}</strong>) no cuenta con permisos de administrador en T.A.B.E.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Iniciar sesión con otra cuenta
+            </button>
+            <Link
+              to="/dashboard"
+              className="w-full py-2 px-3 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Volver al Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -205,7 +239,8 @@ const AppRoutes = () => (
       <Route path="/amigos" element={<Friends />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/settings" element={<Navigate to="/configuracion" replace />} />
-      <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+      <Route path="/tabe-admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+      <Route path="/admin" element={<Navigate to="/tabe-admin" replace />} />
       <Route path="/bosque" element={<Forest />} />
       <Route path="/rutinas" element={<Routines />} />
       <Route path="/tabetalk" element={<Tabetalk />} />

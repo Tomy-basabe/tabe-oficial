@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ClipboardList, Plus,  GraduationCap,
@@ -120,27 +121,62 @@ interface QuizDeckItemProps {
     onPractice: (deck: QuizDeck) => void;
 }
 
-function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckItemProps) {
-    const [mounted, setMounted] = useState(false);
+const getYearAccent = (year?: number) => {
+  switch (year) {
+    case 1:
+      return {
+        badge: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200/60 dark:border-sky-800/60",
+        icon: "text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 border-sky-200/60 dark:border-sky-800/60",
+      };
+    case 2:
+      return {
+        badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60",
+        icon: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/60",
+      };
+    case 3:
+      return {
+        badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60",
+        icon: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/60",
+      };
+    case 4:
+      return {
+        badge: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/60",
+        icon: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200/60 dark:border-purple-800/60",
+      };
+    case 5:
+      return {
+        badge: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60",
+        icon: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-800/60",
+      };
+    default:
+      return {
+        badge: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60",
+        icon: "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60",
+      };
+  }
+};
 
-    useEffect(() => {
-        const timer = setTimeout(() => setMounted(true), Math.min(index * 35, 300));
-        return () => clearTimeout(timer);
-    }, [index]);
+function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckItemProps) {
+    const accent = getYearAccent(deck.subject?.año);
 
     return (
-        <div
-            className={cn(
-                "transition-all duration-200 flex flex-col",
-                mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
+        <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.38, delay: Math.min(index * 0.04, 0.24), ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col h-full"
         >
             <div className="bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-2xl p-5 shadow-xs hover:shadow-sm transition-all group flex flex-col flex-1 h-full">
                 <div className="flex items-start justify-between mb-3.5">
                     <div className="flex items-start gap-3.5 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                        <motion.div
+                            initial={{ scale: 0.85, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.08 + Math.min(index * 0.03, 0.2), duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                            className={cn("w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs transition-colors", accent.icon)}
+                        >
                             <ClipboardList className="w-5 h-5" />
-                        </div>
+                        </motion.div>
                         <div className="min-w-0">
                             <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">{deck.nombre}</h3>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{deck.total_questions} {deck.total_questions === 1 ? 'pregunta' : 'preguntas'}</p>
@@ -156,8 +192,8 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
                 </div>
 
                 {deck.subject ? (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 mb-4 mt-auto w-fit">
-                        <GraduationCap className="w-3.5 h-3.5 text-zinc-500" />
+                    <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border mb-4 mt-auto w-fit", accent.badge)}>
+                        <GraduationCap className="w-3.5 h-3.5" />
                         <span>Año {deck.subject.año} · {deck.subject.nombre}</span>
                     </div>
                 ) : (
@@ -191,7 +227,7 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
                     </button>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 

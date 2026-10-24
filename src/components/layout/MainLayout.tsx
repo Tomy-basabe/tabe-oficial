@@ -41,6 +41,8 @@ import { MobileNavbar } from "@/components/layout/MobileNavbar";
 import { ComicEffectsProvider } from "@/components/comic/ComicEffectsProvider";
 import { preloadRoute } from "@/lib/routePreload";
 import { performGlobalCalendarSync, isWednesdaySyncDay } from "@/lib/globalCalendarSync";
+import { motion, AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 interface UserStats {
   xp_total: number;
@@ -403,7 +405,7 @@ export function MainLayout() {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
                 if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
-                if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
+                if ((targetPath === "/tabe-admin" || targetPath === "/admin") && !isSuperAdmin(user)) return null;
                 const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                 
                 if (!baseItem && item.type === "item") return null;
@@ -472,8 +474,13 @@ export function MainLayout() {
                 // Single link inside category flyout
                 if (isInsideCategory) {
                   return (
-                    <Link
+                    <motion.div
                       key={item.id}
+                      initial={isInsideCategory ? { opacity: 0, x: -6 } : false}
+                      animate={isInsideCategory ? { opacity: 1, x: 0 } : undefined}
+                      transition={isInsideCategory ? { duration: 0.2, delay: index * 0.03 } : undefined}
+                    >
+                    <Link
                       to={path}
                       onClick={() => {
                         
@@ -503,6 +510,7 @@ export function MainLayout() {
                         <span className="ml-auto w-1 h-1 rounded-full bg-zinc-900 dark:bg-zinc-100 shrink-0" />
                       )}
                     </Link>
+                    </motion.div>
                   );
                 }
 
@@ -555,7 +563,7 @@ export function MainLayout() {
                 const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                   const targetPath = item.path || (item.type === "item" ? item.id : null);
                   if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
-                  if (targetPath === "/admin" && !isSuperAdmin(user)) return null;
+                  if ((targetPath === "/tabe-admin" || targetPath === "/admin") && !isSuperAdmin(user)) return null;
                   const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                   
                   if (!baseItem && item.type === "item") return null;
@@ -613,18 +621,33 @@ export function MainLayout() {
                         </button>
 
                         {/* Regular expanded category list in normal sidebar */}
-                        {isVisible && item.items && (
-                          <div className="space-y-0.5 ml-2 border-l border-zinc-200/80 dark:border-zinc-800/80 pl-2 my-1">
-                            {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
-                          </div>
-                        )}
+                        <AnimatePresence initial={false}>
+                          {isVisible && item.items && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <div className="space-y-0.5 ml-2 border-l border-zinc-200/80 dark:border-zinc-800/80 pl-2 my-1">
+                                {item.items.map((subItem: any, subIndex: number) => renderNavItem(subItem, true, subIndex))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     );
                   }
 
                   return (
-                    <Link
+                    <motion.div
                       key={item.id}
+                      initial={isInsideCategory ? { opacity: 0, x: -6 } : false}
+                      animate={isInsideCategory ? { opacity: 1, x: 0 } : undefined}
+                      transition={isInsideCategory ? { duration: 0.2, delay: index * 0.03 } : undefined}
+                    >
+                    <Link
                       to={path}
                       onMouseEnter={() => preloadRoute(path)}
                       onTouchStart={() => preloadRoute(path)}
@@ -655,6 +678,7 @@ export function MainLayout() {
                         <span className="ml-auto w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 shrink-0" />
                       )}
                     </Link>
+                    </motion.div>
                   );
                 };
 
@@ -775,7 +799,9 @@ export function MainLayout() {
           ? "w-full p-0 m-0" 
           : cn("pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
-        <Outlet />
+        <PageTransition className="w-full h-full">
+          <Outlet />
+        </PageTransition>
       </main>
 
       {/* Global Widgets */}

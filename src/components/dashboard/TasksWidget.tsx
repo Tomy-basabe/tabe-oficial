@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format, isToday, isTomorrow } from "date-fns";
 import { es } from "date-fns/locale";
+import { motion } from "framer-motion";
 
 const priorityConfig = {
   alta: {
@@ -62,21 +63,22 @@ export function TasksWidget() {
         return next;
       });
 
-      const ok = await updateTaskStatus(task.id, "done");
-      if (ok) {
-        toast.success(`Tarea completada: "${task.titulo}"`, {
-          icon: "✅",
-        });
+      try {
+        await updateTaskStatus(task.id, "done");
+        toast.success("Tarea completada");
+      } catch {
+        toast.error("Error al actualizar la tarea");
+        loadTasks();
       }
-    }, 280);
+    }, 400);
   };
 
-  const formatDueDate = (dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     try {
-      const d = new Date(dateStr + "T00:00:00");
+      const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
       if (isToday(d)) return "Hoy";
       if (isTomorrow(d)) return "Mañana";
-      return format(d, "d MMM", { locale: es });
+      return format(d, "EEE, d MMM", { locale: es });
     } catch {
       return dateStr;
     }
@@ -88,7 +90,7 @@ export function TasksWidget() {
     <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-5 shadow-2xs">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+          <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-700 dark:text-zinc-300 shadow-2xs">
             <CheckSquare className="w-4 h-4" />
           </div>
           <h2 className="font-semibold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">Tus Tareas</h2>
@@ -124,7 +126,7 @@ export function TasksWidget() {
         </div>
       ) : (
         <div className="space-y-2">
-          {displayedTasks.map((task) => {
+          {displayedTasks.map((task, idx) => {
             const isCompleting = completingIds.has(task.id);
             const prio = priorityConfig[task.prioridad] || priorityConfig.media;
             const isUrgent =
@@ -132,8 +134,11 @@ export function TasksWidget() {
               (task.fecha_limite ? isToday(new Date(task.fecha_limite + "T00:00:00")) : false);
 
             return (
-              <div
+              <motion.div
                 key={task.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 + idx * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
                   "group flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-800/30 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all",
                   isCompleting && "opacity-40 scale-[0.98] transition-all duration-300"
@@ -158,49 +163,43 @@ export function TasksWidget() {
                     <Link
                       to="/tareas"
                       className={cn(
-                        "block font-medium text-xs text-zinc-900 dark:text-zinc-100 truncate hover:underline",
-                        isCompleting && "line-through text-zinc-400 dark:text-zinc-500"
+                        "font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 hover:underline truncate block",
+                        isCompleting && "line-through text-zinc-400"
                       )}
                     >
                       {task.titulo}
                     </Link>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {task.subjects?.nombre && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.2 rounded border bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60 truncate max-w-[120px]">
-                          {task.subjects.nombre}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={cn(
+                        "text-[10px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                        prio.badgeClass
+                      )}>
+                        {prio.label}
+                      </span>
                       {task.fecha_limite && (
-                        <span
-                          className={cn(
-                            "flex items-center gap-1 text-[10px] font-normal",
-                            isUrgent ? "text-rose-600 dark:text-rose-400 font-medium" : "text-zinc-400 dark:text-zinc-500"
-                          )}
-                        >
-                          <Clock className="w-2.5 h-2.5" />
-                          {formatDueDate(task.fecha_limite)}
+                        <span className={cn(
+                          "flex items-center gap-1 text-[11px] font-normal",
+                          isUrgent ? "text-rose-600 dark:text-rose-400 font-medium" : "text-zinc-400 dark:text-zinc-500"
+                        )}>
+                          <Clock className="w-3 h-3" />
+                          {formatDate(task.fecha_limite)}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="shrink-0 flex items-center">
-                  <span className={cn("text-[10px] font-medium px-1.5 py-0.2 rounded border", prio.badgeClass)}>
-                    {prio.label}
-                  </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {task.subjects?.nombre && (
+                    <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200/60 dark:border-zinc-700/60 truncate max-w-[100px]">
+                      {task.subjects.nombre}
+                    </span>
+                  )}
+                  <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors" />
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-
-          <Link
-            to="/tareas"
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
-          >
-            <Plus className="w-3 h-3" />
-            Nueva tarea
-          </Link>
         </div>
       )}
     </div>

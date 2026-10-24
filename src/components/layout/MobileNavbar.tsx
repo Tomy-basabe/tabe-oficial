@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Layers, ClipboardList, Library, Trophy, Users, Store, TreeDeciduous, Repeat2, Clock, Gamepad2, Compass, LayoutGrid, X, ChevronUp, CheckSquare, MessageSquare } from "lucide-react";
 import { ApuntesIcon } from "@/components/icons/NotionIcon";
@@ -242,45 +243,52 @@ export function MobileNavbar() {
                   </div>
 
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {sec.items.map(item => {
+                    {sec.items.map((item, idx) => {
                       const isActive = location.pathname === item.path;
                       const Icon = item.icon;
 
                       return (
-                        <Link
+                        <motion.div
                           key={item.path}
-                          to={item.path}
-                          onClick={() => {
-                            ComicAudio.playPop();
-                            setSheetOpen(false);
-                          }}
-                          onMouseEnter={() => preloadRoute(item.path)}
-                          onTouchStart={() => preloadRoute(item.path)}
-                          className={cn(
-                            "flex flex-col items-center justify-center p-2.5 rounded-xl border transition-colors text-center group relative",
-                            isActive
-                              ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100"
-                              : "bg-zinc-50/60 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                          )}
+                          initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: idx * 0.03, ease: [0.16, 1, 0.3, 1] }}
                         >
-                          {item.badge && (
-                            <span className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full text-[8px] font-black bg-[#FF2E93] text-white border border-black shadow-xs">
-                              {item.badge}
+                          <Link
+                            to={item.path}
+                            onClick={() => {
+                              ComicAudio.playPop();
+                              setSheetOpen(false);
+                            }}
+                            onMouseEnter={() => preloadRoute(item.path)}
+                            onTouchStart={() => preloadRoute(item.path)}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-2.5 rounded-xl border transition-colors text-center group relative w-full",
+                              isActive
+                                ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                                : "bg-zinc-50/60 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                            )}
+                          >
+                            {item.badge && (
+                              <span className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full text-[8px] font-black bg-[#FF2E93] text-white border border-black shadow-xs">
+                                {item.badge}
+                              </span>
+                            )}
+                            <div className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                              isActive ? "bg-zinc-200 dark:bg-zinc-700" : "bg-zinc-100 dark:bg-zinc-800",
+                              item.color
+                            )}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <span className={cn(
+                              "text-xs font-medium mt-1.5 leading-tight truncate w-full",
+                              isActive ? "text-zinc-900 dark:text-zinc-100 font-semibold" : "text-zinc-700 dark:text-zinc-300"
+                            )}>
+                              {item.label}
                             </span>
-                          )}
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center transition-transform",
-                            isActive ? "bg-black/15 text-inherit" : "bg-muted text-foreground"
-                          )}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <span className={cn(
-                            "text-xs font-medium mt-1.5 leading-tight truncate w-full",
-                            isActive ? "text-inherit" : "text-foreground"
-                          )}>
-                            {item.label}
-                          </span>
-                        </Link>
+                          </Link>
+                        </motion.div>
                       );
                     })}
                   </div>

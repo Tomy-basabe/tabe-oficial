@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Layers, Play, Plus, Trash2, MoreVertical, BookOpen, Check, X, Zap, ShoppingBag, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +30,41 @@ interface FlashcardDeckProps {
   index: number;
 }
 
+const getYearAccent = (year?: number) => {
+  switch (year) {
+    case 1:
+      return {
+        badge: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200/60 dark:border-sky-800/60",
+        icon: "text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 border-sky-200/60 dark:border-sky-800/60",
+      };
+    case 2:
+      return {
+        badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60",
+        icon: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/60",
+      };
+    case 3:
+      return {
+        badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60",
+        icon: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/60",
+      };
+    case 4:
+      return {
+        badge: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/60",
+        icon: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200/60 dark:border-purple-800/60",
+      };
+    case 5:
+      return {
+        badge: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60",
+        icon: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-800/60",
+      };
+    default:
+      return {
+        badge: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60",
+        icon: "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60",
+      };
+  }
+};
+
 export function FlashcardDeck({
   deck,
   onStartStudy,
@@ -47,26 +83,33 @@ export function FlashcardDeck({
     return () => clearTimeout(timer);
   }, [index]);
 
+  const accent = getYearAccent(deck.subject?.año);
+
   return (
-    <div
-      className={cn(
-        "relative group cursor-pointer transition-all duration-200 h-full flex flex-col",
-        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 14, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.38, delay: Math.min(index * 0.04, 0.24), ease: [0.16, 1, 0.3, 1] }}
+      className="relative group cursor-pointer h-full flex flex-col"
       onClick={() => onManageCards(deck)}
     >
       {/* Tarjeta refinada estilo Notion / ChatGPT */}
-      <div className="relative bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700/90 rounded-xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-[border-color,box-shadow,transform] duration-150 flex flex-col justify-between flex-1">
+      <div className="relative bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700/90 rounded-xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-[border-color,box-shadow] duration-150 flex flex-col justify-between flex-1">
         <div>
           {/* Cabecera de la tarjeta */}
           <div className="flex items-start justify-between mb-3">
-            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center shrink-0 transition-colors shadow-2xs">
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.08 + Math.min(index * 0.03, 0.2), duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className={cn("w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 transition-colors shadow-2xs", accent.icon)}
+            >
               <Layers className="w-4 h-4" />
-            </div>
+            </motion.div>
 
             <div className="flex items-center gap-1.5">
               {deck.subject?.año ? (
-                <span className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 text-[11px] font-mono px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 font-medium">
+                <span className={cn("text-[11px] font-mono px-2 py-0.5 rounded-md border font-medium", accent.badge)}>
                   {deck.subject.año}° Año
                 </span>
               ) : (
@@ -308,6 +351,6 @@ export function FlashcardDeck({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

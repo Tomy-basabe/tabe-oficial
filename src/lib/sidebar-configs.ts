@@ -78,6 +78,7 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/logros": "Trophy",
   "/amigos": "AmigosCustomIcon",
   "/TABEAI": "TabeAIIcon",
+  "/tabe-admin": "Shield",
   "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "ExamenesIcon",
@@ -193,7 +194,7 @@ export const baseNavItems: NavItem[] = [
   { icon: Settings, label: "Configuración", path: "/configuracion", tourClass: "tour-sidebar-configuracion" },
 ];
 
-export const adminNavItem = { icon: Shield, label: "Admin", path: "/admin" };
+export const adminNavItem = { icon: Shield, label: "Admin", path: "/tabe-admin" };
 
 export const ALL_AVAILABLE_ITEMS: NavItem[] = [
   ...baseNavItems,

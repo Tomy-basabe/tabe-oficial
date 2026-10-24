@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { BookOpen, Lock, Clock, RotateCcw, Check } from "lucide-react";
+import { motion } from "framer-motion";
 
 export type SubjectStatus = "aprobada" | "regular" | "cursable" | "bloqueada" | "recursar";
 
@@ -69,13 +70,18 @@ export const SubjectCard = memo(function SubjectCard({
       {/* Top Header: Status + Year */}
       <div>
         <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span className={cn(
-            "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border",
-            config.badgeClass
-          )}>
+          <motion.span
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors",
+              config.badgeClass
+            )}
+          >
             <Icon className="w-3 h-3" />
             {config.label}
-          </span>
+          </motion.span>
           <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
             <span>{año}° Año</span>
             {numero_materia && <span>#{numero_materia}</span>}
@@ -118,11 +124,6 @@ export const SubjectCard = memo(function SubjectCard({
                 {req}
               </span>
             ))}
-            {requisitos_faltantes.length > 2 && (
-              <span className="text-[9px] text-zinc-400 self-center">
-                +{requisitos_faltantes.length - 2}
-              </span>
-            )}
           </div>
         </div>
       )}
