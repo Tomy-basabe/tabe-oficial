@@ -85,44 +85,36 @@ export function PersonaSidebar({
                             <div
                                 key={persona.id}
                                 className={cn(
-                                    "group flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border-2",
+                                    "group flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border",
                                     activePersona?.id === persona.id
-                                        ? "bg-[#00E5FF] !text-black border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]"
-                                        : "text-foreground hover:bg-muted border-transparent hover:border-foreground hover:shadow-[2px_2px_0_0_hsl(var(--foreground))]"
+                                        ? "bg-zinc-200/70 dark:bg-zinc-800/80 border-zinc-300/80 dark:border-zinc-700/80 shadow-2xs text-zinc-900 dark:text-zinc-100"
+                                        : "border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/40 text-zinc-700 dark:text-zinc-300"
                                 )}
                                 onClick={() => onSelectPersona(persona)}
                             >
                             {persona.avatar_emoji && persona.avatar_emoji !== "🤖" ? (
-                                <span className="text-2xl flex-shrink-0">{persona.avatar_emoji}</span>
+                                <span className="text-xl flex-shrink-0 select-none">{persona.avatar_emoji}</span>
                             ) : (
-                                <div className="w-7 h-7 rounded-lg bg-white text-black dark:bg-black dark:text-white p-1 flex items-center justify-center border border-foreground/50 shadow-sm shrink-0">
+                                <div className="w-6 h-6 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 p-0.5 flex items-center justify-center shadow-2xs shrink-0">
                                     <TabeAIIcon className="w-full h-full" />
                                 </div>
                             )}
                             <div className="flex-1 min-w-0">
-                                <span className={cn(
-                                    "text-sm font-black uppercase truncate block",
-                                    activePersona?.id === persona.id ? "!text-black" : "text-foreground"
-                                )}>
+                                <span className="text-xs font-semibold truncate block text-zinc-900 dark:text-zinc-100">
                                     {persona.name}
                                 </span>
                                 {persona.description && (
-                                    <span className={cn(
-                                        "text-[10px] font-bold truncate block",
-                                        activePersona?.id === persona.id ? "!text-black/80" : "text-muted-foreground"
-                                    )}>
+                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate block">
                                         {persona.description}
                                     </span>
                                 )}
                             </div>
                             {activePersona?.id === persona.id && (
-                                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 shadow-xs" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
                             )}
-                            <div className="flex bg-card rounded-md border border-zinc-200 dark:border-zinc-700 shadow-2xs opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="w-7 h-7 md:w-6 md:h-6 hover:bg-[#BFFF00] text-foreground hover:!text-black rounded-none rounded-l-md flex-shrink-0 border-r-2 border-foreground"
+                            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                                <button
+                                    className="w-6 h-6 rounded-md hover:bg-zinc-300/60 dark:hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors cursor-pointer"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEditPersona(persona);
@@ -130,13 +122,11 @@ export function PersonaSidebar({
                                     title="Editar IA"
                                     aria-label="Editar IA"
                                 >
-                                    <Pencil className="w-3.5 h-3.5 md:w-3 md:h-3" strokeWidth={3} />
-                                </Button>
+                                    <Pencil className="w-3 h-3" />
+                                </button>
                                 {!persona.is_default && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="w-7 h-7 md:w-6 md:h-6 hover:bg-[#FF5C5C] text-foreground hover:!text-black rounded-none rounded-r-md flex-shrink-0"
+                                    <button
+                                        className="w-6 h-6 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950/40 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onDeletePersona(persona.id);
@@ -144,8 +134,8 @@ export function PersonaSidebar({
                                         title="Eliminar IA"
                                         aria-label="Eliminar IA"
                                     >
-                                        <Trash2 className="w-3.5 h-3.5 md:w-3 md:h-3" strokeWidth={3} />
-                                    </Button>
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
                                 )}
                             </div>
                         </div>

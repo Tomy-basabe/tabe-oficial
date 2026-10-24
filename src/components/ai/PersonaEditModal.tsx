@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Check, Bot } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Check, X, Sparkles, Sliders } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIPersona } from "@/hooks/useAIPersonas";
 
@@ -14,98 +13,150 @@ interface PersonaEditModalProps {
     onCancel: () => void;
 }
 
-const EMOJI_OPTIONS = [
-    "🤖", "🧠", "🌙", "💪", "🎓", "🦊", "🔥", "⚡", "🌟", "💎",
-    "🎯", "🧙", "👾", "🐱", "🦉", "🌸", "☕", "🎭", "🏆", "🚀",
+const EMOJI_CATEGORIES = [
+    { label: "Estudio & Académico", emojis: ["🎓", "📚", "🧠", "✍️", "🔬", "📐"] },
+    { label: "Tecnología & IA", emojis: ["🤖", "⚡", "👾", "💻", "🚀", "💡"] },
+    { label: "Creatividad & Enfoque", emojis: ["🎯", "🔥", "☕", "🌟", "💎", "🎨"] },
+    { label: "Compañeros & Mentores", emojis: ["🦉", "🦊", "🧙", "🌙", "🌸", "🏆"] },
 ];
+
+const ALL_EMOJIS = EMOJI_CATEGORIES.flatMap((c) => c.emojis);
 
 export function PersonaEditModal({ persona, onComplete, onCancel }: PersonaEditModalProps) {
     const [name, setName] = useState(persona.name);
-    const [emoji, setEmoji] = useState(persona.avatar_emoji);
+    const [emoji, setEmoji] = useState(persona.avatar_emoji || "🤖");
     const [prompt, setPrompt] = useState(persona.personality_prompt);
 
     const handleFinish = () => {
         onComplete(persona.id, {
-            name: name.trim() || "Mi IA",
+            name: name.trim() || "Mi Tutor IA",
             avatar_emoji: emoji,
-            personality_prompt: prompt,
+            personality_prompt: prompt.trim(),
         });
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card text-foreground border-4 border-foreground rounded-xl p-6 max-w-md w-full shadow-[8px_8px_0_0_hsl(var(--foreground))] animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-xl bg-[#00E5FF] border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))]">
-                        <Bot className="w-5 h-5 !text-black" strokeWidth={2.5} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="bg-white/95 dark:bg-[#18181b]/95 border border-zinc-200/80 dark:border-zinc-800/90 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col transition-all duration-300">
+                {/* Header sutil estilo Apple / Notion */}
+                <div className="px-6 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-100 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs">
+                            <Sliders className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                                Editar Agente de IA
+                            </h2>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                Personaliza su nombre, avatar y comportamiento
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-black uppercase text-foreground">Editar IA</h2>
-                        <p className="text-xs font-bold text-muted-foreground uppercase">Modificá el nombre, emoji y el prompt</p>
-                    </div>
+                    <button
+                        onClick={onCancel}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        title="Cerrar"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
 
-                <div className="space-y-5">
-                    <div>
-                        <label className="text-sm font-black text-foreground uppercase mb-1.5 block">
-                            Nombre
-                        </label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Ej: Luna, Coach, Profe..."
-                            className="w-full px-4 py-3 bg-background border-4 border-foreground rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-0 shadow-[4px_4px_0_0_hsl(var(--foreground))]"
-                            maxLength={30}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-black text-foreground uppercase mb-2 block">
-                            Emoji
-                        </label>
-                        <div className="grid grid-cols-10 gap-1.5">
-                            {EMOJI_OPTIONS.map((e) => (
-                                <button
-                                    key={e}
-                                    onClick={() => setEmoji(e)}
-                                    className={cn(
-                                        "w-9 h-9 flex items-center justify-center rounded-lg text-lg transition-all",
-                                        emoji === e
-                                            ? "bg-[#BFFF00] border-2 border-foreground shadow-[2px_2px_0_0_hsl(var(--foreground))] scale-110"
-                                            : "bg-muted border-2 border-transparent hover:border-foreground hover:scale-110 text-foreground"
-                                    )}
-                                >
-                                    {e}
-                                </button>
-                            ))}
+                {/* Contenido del Modal */}
+                <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+                    {/* Live Preview Card estilo GPT Builder */}
+                    <div className="p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 flex items-center gap-4 shadow-2xs">
+                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center text-3xl shadow-xs shrink-0 select-none transition-transform duration-200 hover:scale-105">
+                            {emoji}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-100 truncate">
+                                {name.trim() || "Nombre del Agente"}
+                            </h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                                {persona.description || "Tutor personalizado"}
+                            </p>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="text-sm font-black text-foreground uppercase mb-1.5 block">
-                            Prompt Modelo (Personalidad e Instrucciones)
-                        </label>
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Escribí cómo querés que se comporte esta IA..."
-                            className="w-full px-4 py-3 bg-background border-4 border-foreground rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-0 shadow-[4px_4px_0_0_hsl(var(--foreground))] min-h-[120px] resize-y"
-                        />
+                    {/* Inputs */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
+                                Nombre del Agente
+                            </label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Ej: Tutor de Redes, Luna, Mentor..."
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all shadow-2xs"
+                                maxLength={35}
+                            />
+                        </div>
+
+                        {/* Selector de Avatar/Emoji */}
+                        <div>
+                            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
+                                Avatar
+                            </label>
+                            <div className="grid grid-cols-8 gap-2 p-3 rounded-2xl bg-zinc-50/60 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70">
+                                {ALL_EMOJIS.map((e) => (
+                                    <button
+                                        key={e}
+                                        type="button"
+                                        onClick={() => setEmoji(e)}
+                                        className={cn(
+                                            "w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all cursor-pointer",
+                                            emoji === e
+                                                ? "bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 shadow-xs scale-110"
+                                                : "hover:bg-zinc-200/60 dark:hover:bg-zinc-800/50 hover:scale-105"
+                                        )}
+                                    >
+                                        {e}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Editor de Prompt estilo Custom GPT Instructions */}
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+                                    Instrucciones de Personalidad (System Prompt)
+                                </label>
+                                <span className="text-[11px] text-zinc-400 font-mono">
+                                    {prompt.length} caracteres
+                                </span>
+                            </div>
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Escribe las directivas de cómo quieres que se comporte esta IA..."
+                                className="w-full text-xs font-mono leading-relaxed bg-zinc-50/70 dark:bg-zinc-950/50 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-900 dark:focus:border-zinc-100 shadow-2xs resize-y min-h-[140px]"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex gap-3 mt-8">
-                    <Button variant="ghost" onClick={onCancel} className="flex-1 border-4 border-foreground font-black uppercase text-foreground hover:bg-muted">
+                {/* Footer estilo Apple */}
+                <div className="px-6 py-4 border-t border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/30 flex items-center justify-end gap-2.5">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
                         Cancelar
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                        type="button"
                         onClick={handleFinish}
                         disabled={!name.trim() || !prompt.trim()}
-                        className="flex-1 gap-2 bg-[#BFFF00] hover:bg-[#a6e600] !text-black border-4 border-foreground shadow-[4px_4px_0_0_hsl(var(--foreground))] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_0_hsl(var(--foreground))] font-black uppercase"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
-                        <Check className="w-5 h-5 !text-black" strokeWidth={3} /> Guardar Cambios
-                    </Button>
+                        <Check className="w-4 h-4" />
+                        Guardar Cambios
+                    </button>
                 </div>
             </div>
         </div>
