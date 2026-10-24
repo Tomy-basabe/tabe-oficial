@@ -45,7 +45,14 @@ export function cleanAIResponse(text: string): string {
   cleaned = cleaned.replace(/<think>[\s\S]*$/gi, "");
   cleaned = cleaned.replace(/<thought>[\s\S]*$/gi, "");
 
-  // 3. Remove leaked English reasoning preambles
+  // 3. Remove complete or partial tabe-action blocks (quiz, flashcards, calendar)
+  cleaned = cleaned.replace(/```tabe-action:[a-z_-]*[\s\S]*?(?:```|$)/gi, "");
+
+  // 4. Remove code blocks or JSON leaking internal quiz/flashcard definitions
+  cleaned = cleaned.replace(/```(?:json)?\s*\{[\s\S]*?"(?:quiz_name|deck_name|questions|preguntas)"[\s\S]*?(?:```|$)/gi, "");
+  cleaned = cleaned.replace(/\{[\s\S]*?"(?:quiz_name|deck_name)"[\s\S]*$/gi, "");
+
+  // 5. Remove leaked English reasoning preambles
   const preambleRegex = /^\s*(?:The user (?:asks|wants|requested|is asking)[\s\S]*?(?:That's it\.?|Here is the response:?|Let's produce something like:[\s\S]*?That's it\.?))\s*/i;
   cleaned = cleaned.replace(preambleRegex, "");
 
@@ -745,6 +752,144 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 /**
  * Executes TABE embedded actions (calendar, flashcards, quizzes) directly in Supabase
  */
+/**
+ * Analiza y repara JSONs de cuestionarios generados por modelos de IA (NVIDIA NIM/Groq/etc.),
+ * recuperando preguntas completas incluso ante truncamientos de tokens o diferencias de nomenclatura.
+ */
+export function repairAndParseQuizJson(rawText: string): any {
+  if (!rawText) return null;
+  let text = rawText.trim();
+
+  // Limpiar posibles fences de markdown
+  text = text.replace(/^```(?:tabe-action:quiz|json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  // 1. Parse directo
+  try {
+    const parsed = JSON.parse(text);
+    const normalized = normalizeQuizPayload(parsed);
+    if (normalized) return normalized;
+  } catch {}
+
+  // 2. Reparación por truncamiento: si el streaming cortó el JSON a mitad de camino,
+  // buscar el último cierre de pregunta '}' válido y cerrar el array y objeto.
+  const lastCloseBrace = text.lastIndexOf("}");
+  if (lastCloseBrace !== -1) {
+    const sliced = text.slice(0, lastCloseBrace + 1);
+    const candidateSuffixes = [
+      "]}",
+      "\n  ]\n}",
+      "\n]}",
+      "}]}}",
+    ];
+
+    for (const suffix of candidateSuffixes) {
+      try {
+        const candidate = sliced + suffix;
+        const parsed = JSON.parse(candidate);
+        const normalized = normalizeQuizPayload(parsed);
+        if (normalized && normalized.questions.length > 0) {
+          return normalized;
+        }
+      } catch {}
+    }
+  }
+
+  // 3. Extractor regex tolerante si la sintaxis JSON general está rota
+  try {
+    const nameMatch = text.match(/"(?:quiz_name|nombre|title|titulo|name)"\s*:\s*"([^"]+)"/i);
+    const subMatch = text.match(/"(?:subject_name|materia|subject)"\s*:\s*"([^"]+)"/i);
+
+    // Buscar preguntas con opciones
+    const questions: any[] = [];
+    const qRegex = /\{\s*"(?:pregunta|question|enunciado|texto)"\s*:\s*"([^"]+)"[\s\S]*?"(?:opciones|options|choices)"\s*:\s*\[([^\]]+)\][\s\S]*?"(?:respuesta_correcta|correct_answer|correcta)"\s*:\s*(\d+|"[a-d]"|true|false)(?:[\s\S]*?"(?:explicacion|explanation|justificacion)"\s*:\s*"([^"]*)")?[\s\S]*?\}/gi;
+
+    let match;
+    while ((match = qRegex.exec(text)) !== null) {
+      try {
+        const qText = match[1];
+        const rawOpts = JSON.parse(`[${match[2]}]`);
+        let correctIdx = 0;
+        const rawAns = match[3];
+        if (/^\d+$/.test(rawAns)) {
+          correctIdx = parseInt(rawAns, 10);
+        } else if (/^"[a-d]"$/i.test(rawAns)) {
+          const letter = rawAns.replace(/"/g, "").toLowerCase();
+          correctIdx = letter.charCodeAt(0) - 97;
+        }
+
+        questions.push({
+          pregunta: qText,
+          opciones: rawOpts,
+          respuesta_correcta: correctIdx,
+          explicacion: match[4] || "",
+        });
+      } catch {}
+    }
+
+    if (questions.length > 0) {
+      return {
+        quiz_name: nameMatch ? nameMatch[1] : "Cuestionario de Estudio",
+        subject_name: subMatch ? subMatch[1] : null,
+        questions,
+      };
+    }
+  } catch {}
+
+  return null;
+}
+
+function normalizeQuizPayload(data: any): any {
+  if (!data || typeof data !== "object") return null;
+
+  const quizName = data.quiz_name || data.nombre || data.title || data.titulo || data.name || "Cuestionario de Estudio";
+  const subjectName = data.subject_name || data.materia || data.subject || null;
+  const rawQuestions = data.questions || data.preguntas || data.items || [];
+
+  if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) return null;
+
+  const questions = rawQuestions.map((q: any) => {
+    const pregunta = q.pregunta || q.question || q.enunciado || q.texto || "Pregunta";
+    let opciones: string[] = [];
+
+    if (Array.isArray(q.opciones || q.options || q.choices)) {
+      opciones = (q.opciones || q.options || q.choices).map((o: any) =>
+        typeof o === "string" ? o : o?.texto || o?.text || String(o)
+      );
+    } else if (q.opciones && typeof q.opciones === "object") {
+      opciones = Object.values(q.opciones).map(String);
+    }
+
+    let correctIdx = 0;
+    const rawCorrect = q.respuesta_correcta ?? q.correct_answer ?? q.correcta ?? q.correctIndex ?? 0;
+    if (typeof rawCorrect === "number") {
+      correctIdx = rawCorrect;
+    } else if (typeof rawCorrect === "string") {
+      const lower = rawCorrect.trim().toLowerCase();
+      if (/^[a-d]$/.test(lower)) {
+        correctIdx = lower.charCodeAt(0) - 97;
+      } else {
+        const found = opciones.findIndex((opt) => opt.toLowerCase() === lower);
+        correctIdx = found !== -1 ? found : 0;
+      }
+    }
+
+    const explicacion = q.explicacion || q.explanation || q.justificacion || "";
+
+    return {
+      pregunta,
+      opciones,
+      respuesta_correcta: correctIdx,
+      explicacion,
+    };
+  });
+
+  return {
+    quiz_name: quizName,
+    subject_name: subjectName,
+    questions,
+  };
+}
+
 async function executeActionBlock(
   content: string,
   userId: string
@@ -754,16 +899,25 @@ async function executeActionBlock(
   let flashcards_created = null;
   let quiz_created = null;
 
+  // Resolver ID de usuario autenticado
+  let currentUserId = userId;
+  if (!currentUserId || currentUserId === "guest") {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) currentUserId = user.id;
+    } catch {}
+  }
+
   // 1. Calendar action
-  const calRegex = /```tabe-action:calendar\s*([\s\S]*?)\s*```/;
+  const calRegex = /```tabe-action:calendar\s*([\s\S]*?)(?:```|$)/;
   const calMatch = content.match(calRegex);
   if (calMatch && calMatch[1]) {
     try {
       const items = JSON.parse(calMatch[1].trim());
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(items) && items.length > 0 && currentUserId && currentUserId !== "guest") {
         for (const it of items) {
           await (supabase as any).from("calendar_events").insert({
-            user_id: userId,
+            user_id: currentUserId,
             titulo: it.titulo,
             fecha: it.fecha,
             hora: it.hora || null,
@@ -776,20 +930,20 @@ async function executeActionBlock(
     } catch (e) {
       console.warn("Failed to parse calendar action:", e);
     }
-    cleanedContent = cleanedContent.replace(calRegex, "").trim();
+    cleanedContent = cleanedContent.replace(calMatch[0], "").trim();
   }
 
   // 2. Flashcards action
-  const fcRegex = /```tabe-action:flashcards\s*([\s\S]*?)\s*```/;
+  const fcRegex = /```tabe-action:flashcards\s*([\s\S]*?)(?:```|$)/;
   const fcMatch = content.match(fcRegex);
   if (fcMatch && fcMatch[1]) {
     try {
       const data = JSON.parse(fcMatch[1].trim());
-      if (data.deck_name && Array.isArray(data.cards) && data.cards.length > 0) {
+      if (data.deck_name && Array.isArray(data.cards) && data.cards.length > 0 && currentUserId && currentUserId !== "guest") {
         const { data: deck } = await (supabase as any)
           .from("flashcard_decks")
           .insert({
-            user_id: userId,
+            user_id: currentUserId,
             nombre: data.deck_name,
             total_cards: data.cards.length,
           })
@@ -800,7 +954,7 @@ async function executeActionBlock(
           await (supabase as any).from("flashcards").insert(
             data.cards.map((c: any) => ({
               deck_id: deck.id,
-              user_id: userId,
+              user_id: currentUserId,
               pregunta: c.pregunta,
               respuesta: c.respuesta,
             }))
@@ -811,24 +965,24 @@ async function executeActionBlock(
     } catch (e) {
       console.warn("Failed to parse flashcard action:", e);
     }
-    cleanedContent = cleanedContent.replace(fcRegex, "").trim();
+    cleanedContent = cleanedContent.replace(fcMatch[0], "").trim();
   }
 
-  // 3. Quiz action con autoreparación de truncamiento (soporta hasta 80 preguntas)
+  // 3. Quiz action (soporte de hasta 80 preguntas con autoreparación de truncamiento y batch insert)
   let quizData: any = null;
   let matchedSnippet = "";
 
-  // A. Bloque ```tabe-action:quiz (cerrado o abierto)
-  const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)(?:```|$)/;
+  // A. Bloque ```tabe-action:quiz
+  const quizRegex = /```tabe-action:quiz\s*([\s\S]*?)(?:```|$)/i;
   const quizMatch = content.match(quizRegex);
   if (quizMatch && quizMatch[1]) {
     quizData = repairAndParseQuizJson(quizMatch[1]);
     if (quizData) matchedSnippet = quizMatch[0];
   }
 
-  // B. Bloque ```json con quiz_name o questions
+  // B. Bloque ```json con preguntas/cuestionario
   if (!quizData) {
-    const jsonBlockRegex = /```(?:json)?\s*(\{\s*"quiz_name"[\s\S]*?)(?:```|$)/;
+    const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?(?:quiz_name|nombre|questions|preguntas)[\s\S]*?)(?:```|$)/i;
     const jsonMatch = content.match(jsonBlockRegex);
     if (jsonMatch && jsonMatch[1]) {
       quizData = repairAndParseQuizJson(jsonMatch[1]);
@@ -836,13 +990,12 @@ async function executeActionBlock(
     }
   }
 
-  // C. Objeto JSON crudo embebido en el texto de respuesta (incluso si se cortó por max_tokens)
+  // C. JSON crudo embebido
   if (!quizData) {
-    const rawStart = content.indexOf('{"quiz_name"');
-    if (rawStart !== -1) {
-      const rawSlice = content.slice(rawStart);
-      quizData = repairAndParseQuizJson(rawSlice);
-      if (quizData) matchedSnippet = rawSlice;
+    const rawMatch = content.match(/\{[\s\S]*?"(?:quiz_name|nombre)"[\s\S]*?"(?:questions|preguntas)"[\s\S]*$/i);
+    if (rawMatch) {
+      quizData = repairAndParseQuizJson(rawMatch[0]);
+      if (quizData) matchedSnippet = rawMatch[0];
     }
   }
 
@@ -850,81 +1003,139 @@ async function executeActionBlock(
     cleanedContent = cleanedContent.replace(matchedSnippet, "").trim();
   }
 
+  // Inserción en la base de datos de Supabase si tenemos datos y usuario autenticado
   if (quizData && quizData.quiz_name && Array.isArray(quizData.questions) && quizData.questions.length > 0) {
     try {
-      let subjectId = null;
-      if (quizData.subject_name) {
-        const { data: subData } = await (supabase as any)
-          .from("subjects")
-          .select("id")
-          .ilike("nombre", `%${quizData.subject_name.trim()}%`)
-          .limit(1)
-          .maybeSingle();
-        if (subData) subjectId = subData.id;
-      }
-
       const totalQCount = Math.min(quizData.questions.length, 80);
       const safeQuestions = quizData.questions.slice(0, 80);
 
-      // 1. Crear Deck
-      const { data: deck } = await (supabase as any)
-        .from("quiz_decks")
-        .insert({
-          user_id: userId,
-          nombre: quizData.quiz_name,
-          subject_id: subjectId,
-          total_questions: totalQCount,
-        })
-        .select()
-        .single();
+      let subjectId: string | null = null;
+      if (quizData.subject_name) {
+        try {
+          const { data: subData } = await (supabase as any)
+            .from("subjects")
+            .select("id")
+            .ilike("nombre", `%${quizData.subject_name.trim()}%`)
+            .limit(1)
+            .maybeSingle();
+          if (subData?.id) subjectId = subData.id;
+        } catch {}
+      }
 
-      if (deck) {
-        // 2. Inserción masiva en lote (Batch) de las preguntas
-        const questionsPayload = safeQuestions.map((q: any) => ({
-          deck_id: deck.id,
-          user_id: userId,
-          pregunta: q.pregunta || "Pregunta sin título",
-          explicacion: q.explicacion || null,
-        }));
+      // Si no tenemos UUID de usuario, obtenerlo directamente de auth
+      if (!currentUserId || currentUserId === "guest") {
+        const { data: sessionData } = await supabase.auth.getSession();
+        currentUserId = sessionData?.session?.user?.id || "guest";
+      }
 
-        const { data: createdQuestions, error: qErr } = await (supabase as any)
-          .from("quiz_questions")
-          .insert(questionsPayload)
-          .select("id");
+      if (currentUserId && currentUserId !== "guest") {
+        let deck: any = null;
 
-        if (createdQuestions && Array.isArray(createdQuestions)) {
-          // 3. Inserción en lote de todas las opciones asociadas
-          const allOptions: any[] = [];
-          createdQuestions.forEach((qData: any, idx: number) => {
-            const originalQ = safeQuestions[idx];
-            if (originalQ && Array.isArray(originalQ.opciones)) {
-              const correctIdx = originalQ.respuesta_correcta ?? originalQ.correcta ?? 0;
-              originalQ.opciones.forEach((optText: string, oIdx: number) => {
-                allOptions.push({
-                  question_id: qData.id,
-                  texto: optText,
-                  es_correcta: oIdx === correctIdx,
-                });
-              });
-            }
-          });
+        // Intento 1: Crear mazo con subject_id si existe
+        if (subjectId) {
+          const { data: d1, error: err1 } = await (supabase as any)
+            .from("quiz_decks")
+            .insert({
+              user_id: currentUserId,
+              nombre: quizData.quiz_name,
+              subject_id: subjectId,
+              total_questions: totalQCount,
+            })
+            .select()
+            .single();
 
-          if (allOptions.length > 0) {
-            for (let i = 0; i < allOptions.length; i += 200) {
-              await (supabase as any).from("quiz_options").insert(allOptions.slice(i, i + 200));
-            }
-          }
+          if (!err1 && d1) deck = d1;
         }
 
-        quiz_created = { deck, questions_count: totalQCount };
+        // Intento 2: Crear sin subject_id (si err1 o no tenía subjectId)
+        if (!deck) {
+          const { data: d2, error: err2 } = await (supabase as any)
+            .from("quiz_decks")
+            .insert({
+              user_id: currentUserId,
+              nombre: quizData.quiz_name,
+              subject_id: null,
+              total_questions: totalQCount,
+            })
+            .select()
+            .single();
+
+          if (!err2 && d2) deck = d2;
+          else if (err2) console.error("Error inserting quiz_deck:", err2);
+        }
+
+        if (deck?.id) {
+          // 2. Inserción masiva en lote (Batch) de las preguntas
+          const questionsPayload = safeQuestions.map((q: any) => ({
+            deck_id: deck.id,
+            user_id: currentUserId,
+            pregunta: q.pregunta || "Pregunta sin título",
+            explicacion: q.explicacion || null,
+            is_multi_select: false,
+          }));
+
+          const { data: createdQuestions, error: qErr } = await (supabase as any)
+            .from("quiz_questions")
+            .insert(questionsPayload)
+            .select("id");
+
+          if (createdQuestions && Array.isArray(createdQuestions)) {
+            // 3. Inserción masiva de opciones
+            const allOptions: any[] = [];
+            createdQuestions.forEach((qData: any, idx: number) => {
+              const originalQ = safeQuestions[idx];
+              if (originalQ && Array.isArray(originalQ.opciones)) {
+                const correctIdx = originalQ.respuesta_correcta ?? 0;
+                originalQ.opciones.forEach((optText: string, oIdx: number) => {
+                  allOptions.push({
+                    question_id: qData.id,
+                    texto: optText,
+                    es_correcta: oIdx === correctIdx,
+                  });
+                });
+              }
+            });
+
+            if (allOptions.length > 0) {
+              for (let i = 0; i < allOptions.length; i += 200) {
+                await (supabase as any).from("quiz_options").insert(allOptions.slice(i, i + 200));
+              }
+            }
+          }
+
+          quiz_created = { deck, questions_count: totalQCount };
+
+          // Invalidar caché local de cuestionarios y notificar a la aplicación
+          try {
+            localStorage.removeItem("tabe_quizzes_decks");
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("tabe-quizzes-updated"));
+            }
+          } catch {}
+        }
       }
     } catch (e) {
       console.warn("Error saving batch quiz action:", e);
     }
   }
 
+  // 4. Si la IA solo mandó el bloque de código y cleanedContent quedó vacío, generar mensaje amigable
+  if (!cleanedContent.trim()) {
+    if (quiz_created) {
+      const qCount = quiz_created.questions_count ?? 0;
+      const qName = quiz_created.deck?.nombre || "Cuestionario";
+      cleanedContent = `¡Listo! Creé el cuestionario **"${qName}"** con ${qCount} preguntas. Ya podés encontrarlo en tu sección de Cuestionarios listo para practicar.`;
+    } else if (flashcards_created) {
+      const cCount = flashcards_created.cards_count ?? 0;
+      const dName = flashcards_created.deck?.nombre || "Mazo";
+      cleanedContent = `¡Listo! Creé el mazo de flashcards **"${dName}"** con ${cCount} tarjetas de estudio.`;
+    } else if (event_created) {
+      cleanedContent = "¡Listo! Agendé los eventos en tu calendario.";
+    }
+  }
+
   if (event_created || flashcards_created || quiz_created) {
-    invalidateStudentContextCache(userId);
+    if (currentUserId) invalidateStudentContextCache(currentUserId);
   }
 
   return { event_created, flashcards_created, quiz_created, cleanedContent };
@@ -954,6 +1165,13 @@ export async function streamAIChat(params: {
     let localBuffer = "";
     let isErrorResponse = false;
     let firstChunk = true;
+    let hasEmitted = false;
+
+    // Filtro en tiempo real: emite los tokens a medida que llegan filtrando <think> y bloques de código
+    const filter = new StreamingContentFilter((cleanChunk: string) => {
+      hasEmitted = true;
+      onDelta(cleanChunk);
+    });
 
     const localDelta = (chunk: string) => {
       if (firstChunk) {
@@ -965,22 +1183,20 @@ export async function streamAIChat(params: {
       }
       if (isErrorResponse) return;
       localBuffer += chunk;
+      filter.processChunk(chunk);
     };
 
     try {
       const ok = await streamFn(localDelta);
       if (ok && !isErrorResponse && localBuffer.trim().length > 0) {
-        const cleaned = cleanAIResponse(localBuffer);
-        if (onReset) onReset();
-        onDelta(cleaned);
-        finalContent = cleaned;
+        finalContent = localBuffer;
         return true;
       }
     } catch (err) {
       console.warn("[TABE AI] Tier attempt failed:", err);
     }
 
-    if (localBuffer.trim().length > 0 && onReset) {
+    if (hasEmitted && onReset) {
       onReset();
     }
     return false;
@@ -1074,14 +1290,16 @@ export async function streamAIChat(params: {
       finalContent,
       userId
     );
+    const finalCleaned = cleanedContent || cleanAIResponse(finalContent);
     onComplete({
-      content: cleanedContent || finalContent,
+      content: finalCleaned,
       event_created,
       flashcards_created,
       quiz_created,
     });
-  } catch {
-    onComplete({ content: finalContent });
+  } catch (err) {
+    console.warn('Error in executeActionBlock onComplete:', err);
+    onComplete({ content: cleanAIResponse(finalContent) });
   }
 }
 

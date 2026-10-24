@@ -963,7 +963,22 @@ export default function AIAssistant() {
           toast.success(`¡Cuestionario "${qName}" creado con éxito! (${qCount} preguntas)`);
         }
 
-        const finalSaved = cleanAIResponse(result.content || fullContent);
+        let finalCleaned = cleanAIResponse(result.content || "");
+        if (!finalCleaned.trim()) {
+          if (result.quiz_created) {
+            const qCount = result.quiz_created.questions_count ?? 0;
+            const qName = result.quiz_created.deck?.nombre || "Cuestionario";
+            finalCleaned = `¡Listo! He creado el cuestionario **"${qName}"** con ${qCount} preguntas. Ya podés encontrarlo en tu sección de Cuestionarios listo para practicar.`;
+          } else if (result.flashcards_created) {
+            const cCount = result.flashcards_created.cards_count ?? 0;
+            const dName = result.flashcards_created.deck?.nombre || "Mazo";
+            finalCleaned = `¡Listo! Creé el mazo de flashcards **"${dName}"** con ${cCount} tarjetas de estudio.`;
+          } else {
+            finalCleaned = cleanAIResponse(fullContent);
+          }
+        }
+
+        const finalSaved = finalCleaned;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId ? { ...m, content: finalSaved } : m

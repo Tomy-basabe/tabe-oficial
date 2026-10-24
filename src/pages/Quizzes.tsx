@@ -465,6 +465,14 @@ export default function Quizzes() {
         loadInitialData();
     }, [loadInitialData]);
 
+    useEffect(() => {
+        const handleQuizzesUpdate = () => {
+            fetchDecks();
+        };
+        window.addEventListener("tabe-quizzes-updated", handleQuizzesUpdate);
+        return () => window.removeEventListener("tabe-quizzes-updated", handleQuizzesUpdate);
+    }, [fetchDecks]);
+
     const fetchQuestions = async (deckId: string) => {
         setLoadingQuestions(true);
 
