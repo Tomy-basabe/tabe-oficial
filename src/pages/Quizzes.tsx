@@ -155,13 +155,23 @@ function QuizDeckItem({ deck, index, onDelete, onManage, onPractice }: QuizDeckI
                     </button>
                 </div>
 
-                {deck.subject && (
+                {deck.subject ? (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 mb-4 mt-auto w-fit">
                         <GraduationCap className="w-3.5 h-3.5 text-zinc-500" />
                         <span>Año {deck.subject.año} · {deck.subject.nombre}</span>
                     </div>
+                ) : (
+                    <div className="mb-4 mt-auto">
+                        <button
+                            onClick={() => onManage(deck)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+                            title="Haz clic para asignar una materia a este cuestionario"
+                        >
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span>+ Asignar materia</span>
+                        </button>
+                    </div>
                 )}
-                {!deck.subject && <div className="mt-auto" />}
 
                 <div className="flex gap-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
                     <button
@@ -406,11 +416,25 @@ export default function Quizzes() {
             const rawDecks = decksRes.status === "fulfilled" && decksRes.value.data ? decksRes.value.data : [];
 
             const enrichedDecks: QuizDeck[] = rawDecks.map((d: any) => {
-                const sub = loadedSubjects.find(s => s.id === d.subject_id);
+                let sub = loadedSubjects.find(s => s.id === d.subject_id);
+                // Si no tiene materia vinculada, intentar detectar si el título menciona alguna materia existente
+                if (!sub && loadedSubjects.length > 0) {
+                    const normDeck = (d.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const found = loadedSubjects.find(s => {
+                        const normSub = (s.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        return normSub.length > 3 && normDeck.includes(normSub);
+                    });
+                    if (found) {
+                        sub = found;
+                        if (user && d.id) {
+                            supabase.from("quiz_decks").update({ subject_id: found.id }).eq("id", d.id).then();
+                        }
+                    }
+                }
                 return {
                     id: d.id,
                     nombre: d.nombre,
-                    subject_id: d.subject_id,
+                    subject_id: sub?.id || d.subject_id,
                     total_questions: d.total_questions,
                     subject: sub || undefined
                 };
@@ -444,11 +468,24 @@ export default function Quizzes() {
             if (data) {
                 const subs = getCachedSubjects();
                 const enriched: QuizDeck[] = data.map((d: any) => {
-                    const sub = subs.find(s => s.id === d.subject_id);
+                    let sub = subs.find(s => s.id === d.subject_id);
+                    if (!sub && subs.length > 0) {
+                        const normDeck = (d.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const found = subs.find(s => {
+                            const normSub = (s.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            return normSub.length > 3 && normDeck.includes(normSub);
+                        });
+                        if (found) {
+                            sub = found;
+                            if (user && d.id) {
+                                supabase.from("quiz_decks").update({ subject_id: found.id }).eq("id", d.id).then();
+                            }
+                        }
+                    }
                     return {
                         id: d.id,
                         nombre: d.nombre,
-                        subject_id: d.subject_id,
+                        subject_id: sub?.id || d.subject_id,
                         total_questions: d.total_questions,
                         subject: sub || undefined
                     };

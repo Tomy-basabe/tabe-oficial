@@ -1009,23 +1009,90 @@ async function executeActionBlock(
       const totalQCount = Math.min(quizData.questions.length, 80);
       const safeQuestions = quizData.questions.slice(0, 80);
 
-      let subjectId: string | null = null;
-      if (quizData.subject_name) {
+      // Si no tenemos UUID de usuario, obtenerlo directamente de auth
+      if (!currentUserId || currentUserId === "guest") {
         try {
-          const { data: subData } = await (supabase as any)
-            .from("subjects")
-            .select("id")
-            .ilike("nombre", `%${quizData.subject_name.trim()}%`)
-            .limit(1)
-            .maybeSingle();
-          if (subData?.id) subjectId = subData.id;
+          const { data: sessionData } = await supabase.auth.getSession();
+          currentUserId = sessionData?.session?.user?.id || "guest";
         } catch {}
       }
 
-      // Si no tenemos UUID de usuario, obtenerlo directamente de auth
-      if (!currentUserId || currentUserId === "guest") {
-        const { data: sessionData } = await supabase.auth.getSession();
-        currentUserId = sessionData?.session?.user?.id || "guest";
+      // Detección y extracción inteligente de la materia
+      let rawSubjectName = (quizData.subject_name || quizData.materia || quizData.subject || "").trim();
+      if (!rawSubjectName && quizData.quiz_name) {
+        // Extraer si viene en el título (ej: "Parcial 2 - Redes de Datos" o "Redes de Datos: Parcial 2")
+        const parts = quizData.quiz_name.split(/[-–—:|]/);
+        for (const p of parts) {
+          const trimmed = p.trim();
+          if (!/^(parcial|final|recuperatorio|quiz|cuestionario|tp|examen|simulacro|\d+)/i.test(trimmed) && trimmed.length > 2) {
+            rawSubjectName = trimmed;
+            break;
+          }
+        }
+      }
+
+      let subjectId: string | null = null;
+      if (rawSubjectName && currentUserId && currentUserId !== "guest") {
+        const cleanName = rawSubjectName.trim();
+        try {
+          // A. Búsqueda exacta o parcial case-insensitive en la tabla subjects
+          const { data: subData } = await (supabase as any)
+            .from("subjects")
+            .select("id, nombre")
+            .ilike("nombre", `%${cleanName}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (subData?.id) {
+            subjectId = subData.id;
+          } else {
+            // B. Búsqueda tolerante sin acentos en las materias del usuario
+            const { data: userSubs } = await (supabase as any)
+              .from("subjects")
+              .select("id, nombre")
+              .eq("user_id", currentUserId);
+
+            if (userSubs && Array.isArray(userSubs) && userSubs.length > 0) {
+              const normTarget = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              const matched = userSubs.find((s: any) => {
+                const normSub = (s.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return normSub.includes(normTarget) || normTarget.includes(normSub);
+              });
+              if (matched?.id) subjectId = matched.id;
+            }
+          }
+
+          // C. Si la materia no existe aún en la base de datos, crearla automáticamente para el usuario
+          if (!subjectId) {
+            const subjectCode = cleanName
+              .split(" ")
+              .filter(Boolean)
+              .map((w: string) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 5) || "MAT";
+
+            const { data: createdSub, error: subCreateErr } = await (supabase as any)
+              .from("subjects")
+              .insert({
+                user_id: currentUserId,
+                nombre: cleanName,
+                codigo: subjectCode,
+                año: 1,
+                numero_materia: 1,
+              })
+              .select("id")
+              .single();
+
+            if (!subCreateErr && createdSub?.id) {
+              subjectId = createdSub.id;
+            } else if (subCreateErr) {
+              console.warn("Could not auto-create subject in DB:", subCreateErr);
+            }
+          }
+        } catch (subErr) {
+          console.warn("Error resolving or creating subject for quiz:", subErr);
+        }
       }
 
       if (currentUserId && currentUserId !== "guest") {
