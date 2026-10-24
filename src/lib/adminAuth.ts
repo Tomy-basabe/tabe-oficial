@@ -1,6 +1,7 @@
 // Centralized Super Admin Authorization
 export const SUPER_ADMIN_EMAILS = [
-  "basabetomas09@gmail.com"
+  "basabetomas09@gmail.com",
+  "tomasbasabe.utn@gmail.com"
 ];
 
 export const SUPER_ADMIN_IDS = [
