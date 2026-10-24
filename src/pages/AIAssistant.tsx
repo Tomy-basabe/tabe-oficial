@@ -18,6 +18,7 @@ import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { PersonaSidebar } from "@/components/ai/PersonaSidebar";
 import { PersonaOnboarding } from "@/components/ai/PersonaOnboarding";
 import { PersonaEditModal } from "@/components/ai/PersonaEditModal";
+import { ClearHistoryModal } from "@/components/ai/ClearHistoryModal";
 import { ModelSelector } from "@/components/ai/ModelSelector";
 import { ModelLogo } from "@/components/icons/ModelLogos";
 import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
@@ -187,6 +188,8 @@ export default function AIAssistant() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [editingPersona, setEditingPersona] = useState<AIPersona | null>(null);
+  const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
 
   // Multimodal Image & Voice
   const [attachedImage, setAttachedImage] = useState<{ preview: string; base64: string; mimeType: string; name: string } | null>(null);
@@ -380,28 +383,30 @@ export default function AIAssistant() {
     }
   };
 
-  const handleClearAllSessions = async () => {
+  const handleClearAllSessions = () => {
+    if (!activePersona || sessions.length === 0) return;
+    setShowClearHistoryModal(true);
+  };
+
+  const handleConfirmClearHistory = async () => {
     if (!activePersona) return;
-
-    const ok = await confirm({
-      title: "¿Borrar todo el historial?",
-      description: "Esta acción borrará TODAS las sesiones y conversaciones guardadas de esta IA. No se puede deshacer.",
-      confirmText: "Borrar todo",
-      cancelText: "Cancelar",
-      variant: "danger",
-    });
-    if (!ok) {
-      return;
+    try {
+      setIsClearingHistory(true);
+      const toDelete = [...sessions];
+      let count = 0;
+      for (const s of toDelete) {
+        const ok = await deleteSession(s.id);
+        if (ok) count++;
+      }
+      handleNewChat();
+      setShowClearHistoryModal(false);
+      toast.success(`${count} conversación(es) eliminadas`);
+    } catch (err) {
+      console.error("Error al limpiar historial:", err);
+      toast.error("No se pudo limpiar el historial");
+    } finally {
+      setIsClearingHistory(false);
     }
-
-    const toDelete = [...sessions];
-    let count = 0;
-    for (const s of toDelete) {
-      const ok = await deleteSession(s.id);
-      if (ok) count++;
-    }
-    handleNewChat();
-    toast.success(`${count} conversación(es) eliminadas`);
   };
 
   // ---- Multimodal Handlers (Images & Audio) ----
@@ -1142,6 +1147,15 @@ export default function AIAssistant() {
           onCancel={() => setEditingPersona(null)}
         />
       )}
+
+      <ClearHistoryModal
+        isOpen={showClearHistoryModal}
+        onClose={() => setShowClearHistoryModal(false)}
+        onConfirm={handleConfirmClearHistory}
+        sessionsCount={sessions.length}
+        personaName={activePersona?.name}
+        isDeleting={isClearingHistory}
+      />
 
       {/* Mobile Backdrop */}
       <div
