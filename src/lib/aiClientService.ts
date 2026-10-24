@@ -722,9 +722,13 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 \`\`\`
 8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto/lista de preguntas):
    - CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios masivos de hasta 80 preguntas completas. Si el usuario pide 10, 20, 40, 50 u 80 preguntas, o si te proporciona un texto o examen con 40, 50 u 80 preguntas, DEBES PROCESAR Y GENERAR LA TOTALIDAD DE LAS PREGUNTAS (hasta 80) sin recortar ni truncar.
-   - OBLIGATORIO: Incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la base de datos de Supabase. NUNCA envíes el JSON suelto como texto de conversación:
+   - VINCULACIÓN INTELIGENTE DE MATERIAS Y MANEJO DE DUDAS/AMBIGÜEDAD (MUY IMPORTANTE):
+     Revisa siempre el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS] antes de generar el cuestionario:
+     * Reconoce acrónimos y apodos comunes de inmediato: "RD" = "Redes de Datos", "BD" = "Bases de Datos", "SO" = "Sistemas Operativos", "Redes" = "Redes de Datos", "Álgebra" = "Álgebra y Geometría Analítica", "Análisis" = "Análisis Matemático", etc. Si el apodo o acrónimo apunta con claridad a una única materia de su plan, vincúlala directamente usando su nombre oficial completo en "subject_name".
+     * PREGUNTAR ANTE DUDAS O AMBIGÜEDAD: Si el estudiante menciona un término ambiguo que puede referirse a 2 o más materias de su plan (por ejemplo: dice "Datos" y cursa "Redes de Datos" y "Bases de Datos", o dice "Sistemas" y tiene "Sistemas Operativos" y "Análisis de Sistemas"): NO crees el cuestionario a ciegas ni adivines. Respóndele primero con amabilidad preguntándole a cuál de las materias candidatas desea vincular el cuestionario, listando las opciones con viñetas o números para que elija. En cuanto el estudiante elija o confirme la materia, genera inmediatamente el cuestionario vinculado con el bloque de acción.
+   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la base de datos de Supabase con el nombre oficial de la materia en "subject_name":
 \`\`\`tabe-action:quiz
-{"quiz_name": "Nombre del Quiz", "subject_name": "Materia (opcional)", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
+{"quiz_name": "Nombre del Quiz", "subject_name": "Nombre Oficial de la Materia", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
 9. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas', 'situación académica'):
    - Presentalo de manera estructurada, limpia y visualmente ordenada con viñetas Markdown:
@@ -1017,14 +1021,16 @@ async function executeActionBlock(
         } catch {}
       }
 
-      // Detección y extracción inteligente de la materia
+      // Detección y resolución inteligente de materias (acrónimos como RD, apodos como Redes, desempate y auto-creación)
       let rawSubjectName = (quizData.subject_name || quizData.materia || quizData.subject || "").trim();
-      if (!rawSubjectName && quizData.quiz_name) {
-        // Extraer si viene en el título (ej: "Parcial 2 - Redes de Datos" o "Redes de Datos: Parcial 2")
-        const parts = quizData.quiz_name.split(/[-–—:|]/);
+      const quizTitle = quizData.quiz_name || "";
+
+      if (!rawSubjectName && quizTitle) {
+        // Extraer candidato si viene en el título (ej: "Parcial 2 - Redes de Datos" o "Redes de Datos: Parcial 2")
+        const parts = quizTitle.split(/[-–—:|]/);
         for (const p of parts) {
           const trimmed = p.trim();
-          if (!/^(parcial|final|recuperatorio|quiz|cuestionario|tp|examen|simulacro|\d+)/i.test(trimmed) && trimmed.length > 2) {
+          if (!/^(parcial|final|recuperatorio|quiz|cuestionario|tp|examen|simulacro|\d+)/i.test(trimmed) && trimmed.length > 1) {
             rawSubjectName = trimmed;
             break;
           }
@@ -1032,38 +1038,98 @@ async function executeActionBlock(
       }
 
       let subjectId: string | null = null;
-      if (rawSubjectName && currentUserId && currentUserId !== "guest") {
-        const cleanName = rawSubjectName.trim();
+      if (currentUserId && currentUserId !== "guest") {
         try {
-          // A. Búsqueda exacta o parcial case-insensitive en la tabla subjects
-          const { data: subData } = await (supabase as any)
+          // Traer todas las materias del usuario
+          const { data: userSubs } = await (supabase as any)
             .from("subjects")
-            .select("id, nombre")
-            .ilike("nombre", `%${cleanName}%`)
-            .limit(1)
-            .maybeSingle();
+            .select("id, nombre, codigo, año")
+            .eq("user_id", currentUserId);
 
-          if (subData?.id) {
-            subjectId = subData.id;
-          } else {
-            // B. Búsqueda tolerante sin acentos en las materias del usuario
-            const { data: userSubs } = await (supabase as any)
-              .from("subjects")
-              .select("id, nombre")
-              .eq("user_id", currentUserId);
+          const subjectsList: Array<{ id: string; nombre: string; codigo?: string }> = Array.isArray(userSubs) ? userSubs : [];
 
-            if (userSubs && Array.isArray(userSubs) && userSubs.length > 0) {
-              const normTarget = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-              const matched = userSubs.find((s: any) => {
-                const normSub = (s.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          // Helper para normalizar texto (sin tildes, minúsculas, sin puntuación)
+          const normalize = (s: string) =>
+            s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+          const stopWords = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "con", "i", "ii", "iii", "iv", "v", "1", "2", "3"]);
+
+          // Función para calcular acrónimos de una materia (ej: "Redes de Datos" -> ["RD", "RDD"])
+          const getAcronyms = (name: string): string[] => {
+            const words = normalize(name).split(" ").filter(Boolean);
+            const meaningfulWords = words.filter((w) => !stopWords.has(w));
+            const acrMeaningful = meaningfulWords.map((w) => w[0]).join("").toUpperCase();
+            const acrAll = words.map((w) => w[0]).join("").toUpperCase();
+            return Array.from(new Set([acrMeaningful, acrAll].filter((a) => a.length >= 2)));
+          };
+
+          if (rawSubjectName && subjectsList.length > 0) {
+            const cleanTarget = rawSubjectName.trim();
+            const normTarget = normalize(cleanTarget);
+            const targetUpper = cleanTarget.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+            // 1. Coincidencia exacta por nombre
+            let matched = subjectsList.find((s) => normalize(s.nombre) === normTarget);
+
+            // 2. Coincidencia por acrónimo (ej: "RD" coincide con "Redes de Datos", "BD" con "Bases de Datos")
+            if (!matched && targetUpper.length >= 2 && targetUpper.length <= 5) {
+              const acronymMatches = subjectsList.filter((s) => {
+                const acrs = getAcronyms(s.nombre);
+                return acrs.includes(targetUpper);
+              });
+              if (acronymMatches.length === 1) {
+                matched = acronymMatches[0];
+              } else if (acronymMatches.length > 1) {
+                // Desempate si el título del quiz contiene alguna palabra de la materia
+                const normTitle = normalize(quizTitle);
+                const titleMatch = acronymMatches.find((s) =>
+                  normalize(s.nombre).split(" ").some((w) => !stopWords.has(w) && normTitle.includes(w))
+                );
+                matched = titleMatch || acronymMatches[0];
+              }
+            }
+
+            // 3. Coincidencia por subcadena / apodo (ej: "Redes" en "Redes de Datos", "Datos" en "Bases de Datos")
+            if (!matched && normTarget.length >= 3) {
+              const substringMatches = subjectsList.filter((s) => {
+                const normSub = normalize(s.nombre);
                 return normSub.includes(normTarget) || normTarget.includes(normSub);
               });
-              if (matched?.id) subjectId = matched.id;
+
+              if (substringMatches.length === 1) {
+                matched = substringMatches[0];
+              } else if (substringMatches.length > 1) {
+                // Si compiten varias (ej: "Datos" -> "Redes de Datos" y "Bases de Datos")
+                // Desempate usando el título del quiz o contexto
+                const normTitle = normalize(quizTitle);
+                const bestCandidate = substringMatches.find((s) => {
+                  const sWords = normalize(s.nombre).split(" ").filter((w) => !stopWords.has(w));
+                  return sWords.every((w) => normTitle.includes(w));
+                });
+                matched = bestCandidate || substringMatches[0];
+              }
+            }
+
+            if (matched) {
+              subjectId = matched.id;
             }
           }
 
-          // C. Si la materia no existe aún en la base de datos, crearla automáticamente para el usuario
-          if (!subjectId) {
+          // 4. Si el título del quiz contiene una materia del usuario y no teníamos match
+          if (!subjectId && quizTitle && subjectsList.length > 0) {
+            const normTitle = normalize(quizTitle);
+            const titleMatched = subjectsList.find((s) => {
+              const normSub = normalize(s.nombre);
+              return normSub.length > 3 && normTitle.includes(normSub);
+            });
+            if (titleMatched) {
+              subjectId = titleMatched.id;
+            }
+          }
+
+          // 5. Si no se encontró ninguna materia existente pero el usuario especificó un nombre legítimo, crearla
+          if (!subjectId && rawSubjectName && rawSubjectName.length >= 3) {
+            const cleanName = rawSubjectName.trim();
             const subjectCode = cleanName
               .split(" ")
               .filter(Boolean)
@@ -1086,12 +1152,10 @@ async function executeActionBlock(
 
             if (!subCreateErr && createdSub?.id) {
               subjectId = createdSub.id;
-            } else if (subCreateErr) {
-              console.warn("Could not auto-create subject in DB:", subCreateErr);
             }
           }
         } catch (subErr) {
-          console.warn("Error resolving or creating subject for quiz:", subErr);
+          console.warn("Error in smart subject resolution for quiz:", subErr);
         }
       }
 
