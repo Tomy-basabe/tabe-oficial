@@ -1238,6 +1238,7 @@ async function executeActionBlock(
 
           // Invalidar caché local de cuestionarios y notificar a la aplicación
           try {
+            localStorage.removeItem("tabe-quizzes-cache");
             localStorage.removeItem("tabe_quizzes_decks");
             if (typeof window !== "undefined") {
               window.dispatchEvent(new CustomEvent("tabe-quizzes-updated"));
