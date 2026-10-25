@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { ChevronLeft,
   ChevronRight,
@@ -17,7 +18,7 @@ import { ChevronLeft,
   MapPin,
   Clock,
   BookOpen,
-  Filter, Calendar } from "lucide-react";
+  Filter, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { useCalendarEvents, CalendarEvent, EventType, CreateEventData } from "@/hooks/useCalendarEvents";
@@ -118,6 +119,12 @@ export default function Calendar() {
   const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [forceReady, setForceReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setForceReady(true), 1800);
+    return () => clearTimeout(timer);
+  }, []);
   const [filterAcademicYear, setFilterAcademicYear] = useState<string>("all");
 
   // Años académicos disponibles de las materias cargadas
@@ -505,7 +512,7 @@ export default function Calendar() {
 
   const selectedDateEvents = selectedDate ? getFilteredEventsForDate(selectedDate) : [];
 
-  if (loading && events.length === 0) {
+  if (loading && events.length === 0 && !forceReady) {
     return <LoadingScreen message="Cargando Calendario..." submessage="Organizando eventos académicos..." />;
   }
 
@@ -617,7 +624,7 @@ export default function Calendar() {
             {isCleaningDuplicates ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />
             ) : (
-              <Calendar className="w-3.5 h-3.5 text-purple-500" />
+              <CalendarIcon className="w-3.5 h-3.5 text-purple-500" />
             )}
             <span className="hidden md:inline">Limpiar</span>
           </button>
@@ -834,16 +841,25 @@ export default function Calendar() {
 
           {selectedDateEvents.length > 0 && (
             <div className="space-y-3">
+              <AnimatePresence mode="popLayout" initial={false}>
               {selectedDateEvents.map((event) => {
                 const customStyle = event.color
                   ? { borderLeftColor: event.color }
                   : undefined;
 
                 return (
-                  <div
+                  <motion.div
+                    layout
                     key={event.id}
+                    initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                      opacity: { duration: 0.22 },
+                    }}
                     className={cn(
-                      "p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#1a1a1a] shadow-2xs transition-all hover:border-zinc-300 dark:hover:border-zinc-700 border-l-4",
+                      "p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#1a1a1a] shadow-2xs transition-colors hover:border-zinc-300 dark:hover:border-zinc-700 border-l-4",
                       !event.color && (eventTypeColors[event.tipo_examen] ? "border-l-primary" : "border-l-zinc-400")
                     )}
                     style={customStyle}
@@ -947,9 +963,10 @@ export default function Calendar() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
+              </AnimatePresence>
 
               <button
                 type="button"

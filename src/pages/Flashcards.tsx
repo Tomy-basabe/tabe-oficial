@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layers, Plus, GraduationCap, BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check, AlertTriangle, Loader2, Search, ArrowRight, Save } from "lucide-react";
@@ -1144,55 +1145,100 @@ export default function Flashcards() {
         </div>
 
         {/* Filtros de año y materia */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-            <button
-              onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
-              className={cn(
-                "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap",
-                !selectedYear
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
-                  : "bg-white dark:bg-[#212121] text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              )}
-            >
-              Todos los años
-            </button>
-            {activeYears.map(year => (
+        <div className="flex flex-col gap-2.5 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
               <button
-                key={year}
-                onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
+                onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
                 className={cn(
-                  "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap",
-                  selectedYear === year
+                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  !selectedYear
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                )}
+              >
+                {!selectedYear && (
+                  <motion.span
+                    layoutId="flashcards-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos los años</span>
+              </button>
+              {activeYears.map(year => {
+                const isSelected = selectedYear === year;
+                return (
+                  <button
+                    key={year}
+                    onClick={() => { setSelectedYear(year); setSelectedSubject(null); }}
+                    className={cn(
+                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      isSelected
+                        ? "text-white dark:text-zinc-900"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="flashcards-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">{year}° Año</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {subjects.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Materias:
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedSubject(null)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border",
+                  !selectedSubject
                     ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
                     : "bg-white dark:bg-[#212121] text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 )}
               >
-                {year}° Año
+                Todas
               </button>
-            ))}
-          </div>
-
-          {subjects.length > 0 && (
-            <div className="w-48 sm:w-56">
-              <Select
-                value={selectedSubject || "all"}
-                onValueChange={(val) => setSelectedSubject(val === "all" ? null : val)}
-              >
-                <SelectTrigger className="w-full h-8 rounded-lg border border-zinc-200/90 dark:border-zinc-800/90 bg-white dark:bg-[#212121] px-2.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 shadow-2xs hover:border-zinc-400 dark:hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/15 transition-all cursor-pointer">
-                  <SelectValue placeholder="Todos los mazos" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#1f1f1f] border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl text-xs py-1.5 animate-in fade-in-50 zoom-in-95 max-h-60">
-                  <SelectItem value="all" className="cursor-pointer py-2 px-2.5 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-md my-0.5">
-                    Todos los mazos
-                  </SelectItem>
-                  {filteredSubjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-2 px-2.5 text-xs text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-md my-0.5">
+              <AnimatePresence mode="popLayout">
+                {filteredSubjects.map(subject => {
+                  const isSubSelected = selectedSubject === subject.id;
+                  return (
+                    <motion.button
+                      layout
+                      key={subject.id}
+                      type="button"
+                      initial={{ opacity: 0, scale: 0.82, y: 6, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, scale: 0.78, y: -6, filter: "blur(4px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.7 },
+                        duration: 0.22,
+                      }}
+                      onClick={() => setSelectedSubject(isSubSelected ? null : subject.id)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border truncate max-w-[200px]",
+                        isSubSelected
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                          : "bg-white dark:bg-[#212121] text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                      )}
+                    >
                       {subject.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           )}
         </div>
@@ -1208,14 +1254,14 @@ export default function Flashcards() {
               <Layers className="w-5 h-5" />
             </div>
             <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-              {searchQuery ? "No se encontraron mazos con esta búsqueda" : "No hay mazos creados"}
+              {searchQuery || selectedYear || selectedSubject ? "No se encontraron mazos con estos filtros" : "No hay mazos creados"}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5 max-w-sm mx-auto">
-              {searchQuery
+              {searchQuery || selectedYear || selectedSubject
                 ? "Prueba con otra palabra clave o limpia los filtros activos para ver tus mazos."
                 : "Crea tu primer mazo para empezar a estudiar de forma interactiva con repetición espaciada."}
             </p>
-            {searchQuery ? (
+            {searchQuery || selectedYear || selectedSubject ? (
               <button
                 onClick={() => { setSearchQuery(""); setSelectedYear(null); setSelectedSubject(null); }}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg text-xs font-medium transition-colors border border-zinc-200/60 dark:border-zinc-700/60 cursor-pointer"
@@ -1233,25 +1279,46 @@ export default function Flashcards() {
             )}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {filteredDecks.map((deck, index) => (
-              <FlashcardDeck
-                key={deck.id}
-                deck={deck}
-                index={index}
-                onStartStudy={startStudying}
-                onAddCard={handleAddCard}
-                onDeleteDeck={handleDeleteDeckClick}
-                onManageCards={handleManageCards}
-                onEditDeck={handleEditDeck}
-                onImportCards={handleImportCards}
-                onPublishDeck={(deck) => {
-                  setPublishingDeck(deck);
-                  setShowPublishModal(true);
-                }}
-              />
-            ))}
-          </div>
+          <motion.div layout className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <AnimatePresence mode="popLayout">
+              {filteredDecks.map((deck, index) => (
+                <motion.div
+                  layout
+                  key={deck.id}
+                  initial={{ opacity: 0, scale: 0.88, y: 14, filter: "blur(5px)" }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{
+                    opacity: 0,
+                    scale: 0.84,
+                    y: -12,
+                    filter: "blur(6px)",
+                    transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] },
+                  }}
+                  transition={{
+                    layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                    duration: 0.26,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className="h-full"
+                >
+                  <FlashcardDeck
+                    deck={deck}
+                    index={index}
+                    onStartStudy={startStudying}
+                    onAddCard={handleAddCard}
+                    onDeleteDeck={handleDeleteDeckClick}
+                    onManageCards={handleManageCards}
+                    onEditDeck={handleEditDeck}
+                    onImportCards={handleImportCards}
+                    onPublishDeck={(deck) => {
+                      setPublishingDeck(deck);
+                      setShowPublishModal(true);
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
 

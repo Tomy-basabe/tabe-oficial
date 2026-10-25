@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Play,
   Pause,
   RotateCcw,
@@ -330,14 +331,21 @@ export default function Pomodoro() {
                   key={m}
                   onClick={() => changeMode(m)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap",
+                    "relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer whitespace-nowrap",
                     isCurrent
-                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                   )}
                 >
-                  <MIcon className="w-4 h-4 text-zinc-500" />
-                  <span>{mConfig.label}</span>
+                  {isCurrent && (
+                    <motion.span
+                      layoutId="pomodoro-mode-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-700 shadow-2xs"
+                    />
+                  )}
+                  <MIcon className="relative z-10 w-4 h-4 text-zinc-500" />
+                  <span className="relative z-10">{mConfig.label}</span>
                 </button>
               );
             })}
@@ -560,38 +568,55 @@ export default function Pomodoro() {
                   <button
                     onClick={() => setYearFilter("all")}
                     className={cn(
-                      "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                      "relative px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                       yearFilter === "all"
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs font-semibold"
+                        ? "text-white dark:text-zinc-900 font-semibold"
                         : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 border border-zinc-200/60 dark:border-zinc-700/50"
                     )}
                   >
-                    Todos
+                    {yearFilter === "all" && (
+                      <motion.span
+                        layoutId="pomodoro-year-pill"
+                        transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">Todos</span>
                   </button>
-                  {activeYears.map((year) => (
-                    <button
-                      key={year}
-                      onClick={() => {
-                        const val = year.toString();
-                        setYearFilter(val);
-                        if (selectedSubject) {
-                          const all = [...activeSubjects, ...approvedSubjects];
-                          const subj = all.find((s) => s.id === selectedSubject);
-                          if (subj && subj.year.toString() !== val) {
-                            setSelectedSubject(null);
+                  {activeYears.map((year) => {
+                    const isSelectedYear = yearFilter === year.toString();
+                    return (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          const val = year.toString();
+                          setYearFilter(val);
+                          if (selectedSubject) {
+                            const all = [...activeSubjects, ...approvedSubjects];
+                            const subj = all.find((s) => s.id === selectedSubject);
+                            if (subj && subj.year.toString() !== val) {
+                              setSelectedSubject(null);
+                            }
                           }
-                        }
-                      }}
-                      className={cn(
-                        "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                        yearFilter === year.toString()
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs font-semibold"
-                          : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 border border-zinc-200/60 dark:border-zinc-700/50"
-                      )}
-                    >
-                      {year}° Año
-                    </button>
-                  ))}
+                        }}
+                        className={cn(
+                          "relative px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                          isSelectedYear
+                            ? "text-white dark:text-zinc-900 font-semibold"
+                            : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 border border-zinc-200/60 dark:border-zinc-700/50"
+                        )}
+                      >
+                        {isSelectedYear && (
+                          <motion.span
+                            layoutId="pomodoro-year-pill"
+                            transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                            className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                          />
+                        )}
+                        <span className="relative z-10">{year}° Año</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

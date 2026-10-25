@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import FolderFloat from "@/components/ui/FolderFloat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -2094,24 +2095,53 @@ export default function Library() {
 
           {/* Filters: Year, Subject, Format */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Year Select */}
-            <Select
-              value={selectedYear !== null ? selectedYear.toString() : "all"}
-              onValueChange={(val) => setSelectedYear(val === "all" ? null : parseInt(val))}
-            >
-              <SelectTrigger className="h-8 px-3 text-xs bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors w-auto gap-1.5">
-                <GraduationCap className="w-3.5 h-3.5 text-zinc-500" />
-                <SelectValue placeholder="Año" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-lg">
-                <SelectItem value="all" className="text-xs">Todos los años</SelectItem>
-                {selectableYears.map(year => (
-                  <SelectItem key={year} value={year.toString()} className="text-xs">
-                    {year}° Año
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Year Pills */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => { setSelectedYear(null); setSelectedSubjectId(null); }}
+                className={cn(
+                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  selectedYear === null
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                )}
+              >
+                {selectedYear === null && (
+                  <motion.span
+                    layoutId="library-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos los años</span>
+              </button>
+              {selectableYears.map(year => {
+                const isSelected = selectedYear === year;
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => { setSelectedYear(year); setSelectedSubjectId(null); }}
+                    className={cn(
+                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      isSelected
+                        ? "text-white dark:text-zinc-900"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="library-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">{year}° Año</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Subject Select */}
             {selectedYear && (
@@ -2345,20 +2375,35 @@ export default function Library() {
                 <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400 px-1">
                   <span>Carpetas ({displayedFolders.length})</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-                  {displayedFolders.map(folder => {
-                    const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
-                    const folderSubject = subjects.find(s => s.id === folder.subject_id);
+                <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                  <AnimatePresence mode="popLayout">
+                    {displayedFolders.map(folder => {
+                      const folderFilesCount = files.filter(f => f.folder_id === folder.id).length;
+                      const folderSubject = subjects.find(s => s.id === folder.subject_id);
 
-                    return (
-                      <div
-                        key={folder.id}
-                        onClick={() => navigateToFolder(folder.id)}
-                        className={cn(
-                          "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl cursor-pointer hover:shadow-xs transition-all group relative select-none",
-                          dragOverFolderId === folder.id && "ring-2 ring-zinc-900 dark:ring-white bg-zinc-50 dark:bg-zinc-800/40",
-                          selectedIds.has(folder.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
-                        )}
+                      return (
+                        <motion.div
+                          layout
+                          key={folder.id}
+                          initial={{ opacity: 0, scale: 0.88, y: 12, filter: "blur(4px)" }}
+                          animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                          exit={{
+                            opacity: 0,
+                            scale: 0.84,
+                            y: -10,
+                            filter: "blur(5px)",
+                            transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] },
+                          }}
+                          transition={{
+                            layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                            duration: 0.24,
+                          }}
+                          onClick={() => navigateToFolder(folder.id)}
+                          className={cn(
+                            "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl cursor-pointer hover:shadow-xs transition-colors group relative select-none",
+                            dragOverFolderId === folder.id && "ring-2 ring-zinc-900 dark:ring-white bg-zinc-50 dark:bg-zinc-800/40",
+                            selectedIds.has(folder.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
+                          )}
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -2568,10 +2613,11 @@ export default function Library() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
-                </div>
+                  </AnimatePresence>
+                </motion.div>
               </div>
             )}
 
@@ -2584,19 +2630,34 @@ export default function Library() {
 
                 {viewMode === "grid" ? (
                   /* ─── GRID VIEW ─────────────────────────────────────────── */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid">
-                    {displayedFiles.map(file => {
-                      const Icon = fileTypeIcons[file.tipo] || FileText;
-                      const colors = fileTypeColors[file.tipo] || fileTypeColors.otro;
-                      const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
+                  <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 tour-library-grid">
+                    <AnimatePresence mode="popLayout">
+                      {displayedFiles.map(file => {
+                        const Icon = fileTypeIcons[file.tipo] || FileText;
+                        const colors = fileTypeColors[file.tipo] || fileTypeColors.otro;
+                        const canPreview = file.tipo === "pdf" || file.tipo === "imagen";
 
-                      return (
-                        <div
-                          key={file.id}
-                          className={cn(
-                            "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl group relative cursor-grab active:cursor-grabbing hover:shadow-xs transition-all flex flex-col justify-between",
-                            selectedIds.has(file.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
-                          )}
+                        return (
+                          <motion.div
+                            layout
+                            key={file.id}
+                            initial={{ opacity: 0, scale: 0.88, y: 12, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                            exit={{
+                              opacity: 0,
+                              scale: 0.84,
+                              y: -10,
+                              filter: "blur(5px)",
+                              transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] },
+                            }}
+                            transition={{
+                              layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                              duration: 0.24,
+                            }}
+                            className={cn(
+                              "bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 rounded-2xl group relative cursor-grab active:cursor-grabbing hover:shadow-xs transition-colors flex flex-col justify-between",
+                              selectedIds.has(file.id) && "ring-1 ring-zinc-900 dark:ring-white bg-zinc-50/70 dark:bg-zinc-800/30"
+                            )}
                           draggable
                           onDragStart={(e) => {
                             e.dataTransfer.setData("fileId", file.id);
@@ -2816,10 +2877,11 @@ export default function Library() {
                             <span className="truncate max-w-[120px]">{file.subject?.codigo || file.subject?.nombre || "General"}</span>
                             <span className="whitespace-nowrap text-[11px] font-mono">{formatFileSize(file.tamaño_bytes)}</span>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
-                  </div>
+                    </AnimatePresence>
+                  </motion.div>
                 ) : (
                   /* ─── LIST VIEW (Notion Database Table Style) ─────────────── */
                   <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl overflow-hidden shadow-xs">

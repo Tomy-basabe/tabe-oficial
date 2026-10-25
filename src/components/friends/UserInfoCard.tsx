@@ -302,7 +302,7 @@ const paintBack = (logo: HTMLImageElement | null, id: string) => {
 
 const UserInfoCard = ({ name, id }: { name: string; id: string }) => {
   const [faces, setFaces] = useState<string[] | null>(null);
-  const [finish, setFinish] = useState<"holographic" | "glossy">("holographic");
+  const [finish, setFinish] = useState<"matte" | "glossy">("matte");
 
   useEffect(() => {
     let alive = true;

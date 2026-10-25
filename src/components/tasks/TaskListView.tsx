@@ -1,4 +1,5 @@
 import { StudyTask, TaskStatus } from "@/types/tasks";
+import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, Clock, Calendar, Timer, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -45,24 +46,39 @@ export function TaskListView({
 
   return (
     <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden shadow-2xs">
-      <div className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
-        {tasks.map((task) => {
-          const isDone = task.estado === "done";
-          const formattedDueDate = task.fecha_limite
-            ? new Date(task.fecha_limite + "T12:00:00").toLocaleDateString("es-AR", {
-                day: "numeric",
-                month: "short",
-              })
-            : null;
+      <motion.div layout className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+        <AnimatePresence mode="popLayout">
+          {tasks.map((task) => {
+            const isDone = task.estado === "done";
+            const formattedDueDate = task.fecha_limite
+              ? new Date(task.fecha_limite + "T12:00:00").toLocaleDateString("es-AR", {
+                  day: "numeric",
+                  month: "short",
+                })
+              : null;
 
-          return (
-            <div
-              key={task.id}
-              className={cn(
-                "group flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors",
-                isDone && "bg-zinc-50/40 dark:bg-zinc-900/20 opacity-60"
-              )}
-            >
+            return (
+              <motion.div
+                layout
+                key={task.id}
+                initial={{ opacity: 0, scale: 0.94, y: 8, filter: "blur(3px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.9,
+                  y: -8,
+                  filter: "blur(4px)",
+                  transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] },
+                }}
+                transition={{
+                  layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                  duration: 0.22,
+                }}
+                className={cn(
+                  "group flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors",
+                  isDone && "bg-zinc-50/40 dark:bg-zinc-900/20 opacity-60"
+                )}
+              >
               {/* Left: Checkbox + Title + Subject */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
@@ -167,10 +183,11 @@ export function TaskListView({
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }

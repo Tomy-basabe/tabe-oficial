@@ -4,9 +4,12 @@ const routeLoaders: Record<string, () => Promise<any>> = {
   "/carrera": () => import("@/pages/CareerPlan"),
   "/calendario": () => import("@/pages/Calendar"),
   "/pomodoro": () => import("@/pages/Pomodoro"),
+  "/tareas": () => import("@/pages/Tasks"),
   "/metricas": () => import("@/pages/Metrics"),
   "/asistente": () => import("@/pages/AIAssistant"),
   "/TABEAI": () => import("@/pages/AIAssistant"),
+  "/tabe-ai/examenes": () => import("@/pages/StudyRoadmapPage"),
+  "/TABEAI/examenes": () => import("@/pages/StudyRoadmapPage"),
   "/flashcards": () => import("@/pages/Flashcards"),
   "/cuestionarios": () => import("@/pages/Quizzes"),
   "/marketplace": () => import("@/pages/Marketplace"),
@@ -19,7 +22,6 @@ const routeLoaders: Record<string, () => Promise<any>> = {
   "/amigos": () => import("@/pages/Friends"),
   "/configuracion": () => import("@/pages/Settings"),
   "/tabe-admin": () => import("@/pages/AdminPanel"),
-  "/admin": () => import("@/pages/AdminPanel"),
   "/bosque": () => import("@/pages/Forest"),
   "/rutinas": () => import("@/pages/Routines"),
   "/tabetalk": () => import("@/pages/Tabetalk"),
@@ -36,31 +38,43 @@ export function preloadRoute(path: string) {
   const loader = routeLoaders[path];
   if (loader) {
     preloadedRoutes.add(path);
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      window.requestIdleCallback(() => {
-        loader().catch(() => {});
-      });
-    } else {
-      setTimeout(() => {
-        loader().catch(() => {});
-      }, 0);
-    }
+    loader().catch(() => {});
   }
 }
 
-// Background preload core pages after initial load so clicking apartados is 0ms
+// Background preload all sidebar pages after initial load so clicking any apartado is 0ms
 export function preloadCoreRoutes() {
   if (typeof window === "undefined") return;
-  const core = ["/cuestionarios", "/flashcards", "/apuntes", "/TABEAI", "/calendario", "/pomodoro", "/biblioteca"];
+  const allRoutes = [
+    "/apuntes",
+    "/TABEAI",
+    "/calendario",
+    "/pomodoro",
+    "/tareas",
+    "/flashcards",
+    "/cuestionarios",
+    "/examenes",
+    "/carrera",
+    "/biblioteca",
+    "/rutinas",
+    "/metricas",
+    "/mapa",
+    "/consultas",
+    "/bosque",
+    "/logros",
+    "/amigos",
+    "/comunidad",
+    "/juegos",
+  ];
   const runner = () => {
-    core.forEach((path, idx) => {
-      setTimeout(() => preloadRoute(path), 500 + idx * 400);
+    allRoutes.forEach((path, idx) => {
+      setTimeout(() => preloadRoute(path), 150 + idx * 120);
     });
   };
 
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(runner, { timeout: 4000 });
+    window.requestIdleCallback(runner, { timeout: 2000 });
   } else {
-    setTimeout(runner, 1500);
+    setTimeout(runner, 600);
   }
 }

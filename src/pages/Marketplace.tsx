@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
 import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
@@ -321,7 +322,17 @@ export default function Marketplace() {
     const Icon = config.icon;
 
     return (
-      <div className="bg-white dark:bg-[#212121] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs transition-all duration-200 group">
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+        exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+        transition={{
+          layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+          opacity: { duration: 0.22 },
+        }}
+        className="bg-white dark:bg-[#212121] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs transition-colors duration-200 group"
+      >
         <div>
           {/* Header de la tarjeta */}
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -442,12 +453,12 @@ export default function Marketplace() {
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
   return (
-    <div className="p-4 lg:p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="tabe-page p-4 lg:p-6 max-w-[1400px] mx-auto space-y-6">
       {/* Header Notion/ChatGPT Style */}
       <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
@@ -646,7 +657,9 @@ export default function Marketplace() {
             <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
+              </AnimatePresence>
               {publicDecks.length === 0 && (
                 <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
                   <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
@@ -674,7 +687,9 @@ export default function Marketplace() {
             <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
+              </AnimatePresence>
               {publicQuizzes.length === 0 && (
                 <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
                   <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
@@ -699,7 +714,9 @@ export default function Marketplace() {
         {/* Tab Content: Apuntes */}
         <TabsContent value="apuntes" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
+            </AnimatePresence>
             {publicApuntes.length === 0 && (
               <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3">
@@ -723,7 +740,9 @@ export default function Marketplace() {
         {/* Tab Content: Archivos */}
         <TabsContent value="files" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
+            </AnimatePresence>
             {publicFiles.length === 0 && (
               <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
@@ -747,7 +766,9 @@ export default function Marketplace() {
         {/* Tab Content: Carpetas */}
         <TabsContent value="folders" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
+            </AnimatePresence>
             {publicFolders.length === 0 && (
               <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">

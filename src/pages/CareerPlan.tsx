@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Filter, GraduationCap, Search, Plus, Loader2, Zap, BookOpen, Award, FileUp, AlertTriangle } from "lucide-react";
@@ -219,7 +220,7 @@ export default function CareerPlan() {
       {/* Header */}
       <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2 border border-zinc-200/60 dark:border-zinc-700/60">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 mb-2 border border-emerald-200/60 dark:border-emerald-800/60">
             Tu progreso académico
           </span>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -302,7 +303,7 @@ export default function CareerPlan() {
       <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-4 shadow-2xs">
         <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200/70 dark:divide-zinc-800/80 gap-3 sm:gap-0">
           <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-amber-600 dark:text-amber-400 font-mono">
               {stats.promedio ? stats.promedio : "—"}
             </p>
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
@@ -310,7 +311,7 @@ export default function CareerPlan() {
             </p>
           </div>
           <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
               {stats.aprobadas}
             </p>
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
@@ -319,16 +320,16 @@ export default function CareerPlan() {
             </p>
           </div>
           <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-sky-600 dark:text-sky-400 font-mono">
               {stats.regulares}
             </p>
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
               Regulares
             </p>
           </div>
           <div className="text-center sm:px-3 py-1 flex flex-col justify-center">
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-amber-600 dark:text-amber-400 font-mono">
               {stats.cursables}
             </p>
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
@@ -369,36 +370,51 @@ export default function CareerPlan() {
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
               <span className="text-xs font-medium text-zinc-500 sm:hidden">Filtrar por año:</span>
             </div>
-            <div className="flex gap-1.5 flex-wrap">
-              <Button
+            <div className="flex gap-1.5 flex-wrap p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80">
+              <button
+                type="button"
                 onClick={() => setSelectedYear(null)}
-                variant="outline"
-                size="sm"
                 className={cn(
-                  "rounded-lg text-xs font-medium transition-colors border",
+                  "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
                   selectedYear === null
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
-                    : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
-                Todos
-              </Button>
-              {years.map((year) => (
-                <Button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "rounded-lg text-xs font-medium transition-colors border",
-                    selectedYear === year
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-transparent shadow-2xs"
-                      : "bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-800/80"
-                  )}
-                >
-                  Año {year}
-                </Button>
-              ))}
+                {selectedYear === null && (
+                  <motion.span
+                    layoutId="career-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
+              </button>
+              {years.map((year) => {
+                const isSelected = selectedYear === year;
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => setSelectedYear(year)}
+                    className={cn(
+                      "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
+                      isSelected
+                        ? "text-white dark:text-zinc-900"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="career-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">Año {year}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -488,44 +504,83 @@ export default function CareerPlan() {
       )}
 
       {/* Subjects Grid by Year */}
-      <div className="space-y-8">
-        {subjectsByYear.map(({ year, subjects: yearSubjects }) => (
-          yearSubjects.length > 0 && (
-            <div key={year}>
-              <div className="flex items-center justify-between pb-3 mb-5 border-b border-zinc-200/80 dark:border-zinc-800/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">
-                    {year}
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Año {year}</h2>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {yearSubjects.filter(s => s.status === "aprobada").length} de {yearSubjects.length} completadas
-                    </p>
+      <motion.div layout className="space-y-8">
+        <AnimatePresence mode="popLayout">
+          {subjectsByYear
+            .filter(({ subjects: yearSubjects }) => yearSubjects.length > 0)
+            .map(({ year, subjects: yearSubjects }) => (
+              <motion.div
+                layout
+                key={year}
+                initial={{ opacity: 0, scale: 0.94, y: 16, filter: "blur(5px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.9,
+                  y: -14,
+                  filter: "blur(6px)",
+                  transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] },
+                }}
+                transition={{
+                  layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.75 },
+                  duration: 0.26,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                <div className="flex items-center justify-between pb-3 mb-5 border-b border-zinc-200/80 dark:border-zinc-800/80">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 font-mono">
+                      {year}
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Año {year}</h2>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {yearSubjects.filter(s => s.status === "aprobada").length} de {yearSubjects.length} completadas
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div
-                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-              >
-                {yearSubjects.map((subject) => (
-                  <SubjectCard
-                    key={subject.id}
-                    nombre={subject.nombre}
-                    codigo={subject.codigo}
-                    status={subject.status}
-                    nota={getSubjectGrade(subject)}
-                    año={subject.año}
-                    numero_materia={subject.numero_materia}
-                    requisitos_faltantes={subject.requisitos_faltantes}
-                    onClick={() => handleSubjectClick(subject)}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-        ))}
-      </div>
+                <motion.div
+                  layout
+                  className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {yearSubjects.map((subject) => (
+                      <motion.div
+                        layout
+                        key={subject.id}
+                        initial={{ opacity: 0, scale: 0.88, y: 12, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.84,
+                          y: -10,
+                          filter: "blur(5px)",
+                          transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] },
+                        }}
+                        transition={{
+                          layout: { type: "spring", stiffness: 370, damping: 28, mass: 0.72 },
+                          duration: 0.24,
+                        }}
+                      >
+                        <SubjectCard
+                          nombre={subject.nombre}
+                          codigo={subject.codigo}
+                          status={subject.status}
+                          nota={getSubjectGrade(subject)}
+                          año={subject.año}
+                          numero_materia={subject.numero_materia}
+                          requisitos_faltantes={subject.requisitos_faltantes}
+                          onClick={() => handleSubjectClick(subject)}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </motion.div>
+            ))}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Modals */}
       {selectedSubject && (

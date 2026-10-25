@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PLANT_TYPES, PlantType, Plant } from "@/hooks/useForest";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
 import { ComicAudio } from "@/components/comic/ComicAudio";
@@ -95,13 +96,20 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                   setSelectedLevel(tab.id);
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer",
+                  "relative px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer active:scale-[0.965]",
                   isSelected
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                    ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
-                <span>{tab.label}</span>
+                {isSelected && (
+                  <motion.span
+                    layoutId="nursery-level-pill"
+                    transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                    className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-xs"
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
               </button>
             );
           })}
@@ -109,29 +117,45 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
       </div>
 
       {/* Species Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredTypes.map((type) => {
-          const isSelected = selectedSpecies === type.id;
-          const matchingPlants = plants.filter((p) => p.plant_type === type.id);
-          const isUnlocked = matchingPlants.length > 0;
-          const completedCount = matchingPlants.filter((p) => p.is_completed).length;
+      <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {filteredTypes.map((type) => {
+            const isSelected = selectedSpecies === type.id;
+            const matchingPlants = plants.filter((p) => p.plant_type === type.id);
+            const isUnlocked = matchingPlants.length > 0;
+            const completedCount = matchingPlants.filter((p) => p.is_completed).length;
 
-          return (
-            <div
-              key={type.id}
-              onClick={() => {
-                ComicAudio.playPop();
-                onSelectSpecies(type.id);
-              }}
-              className={cn(
-                "relative bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl border transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between cursor-pointer group",
-                isSelected
-                  ? "border-emerald-500/80 ring-1 ring-emerald-500 shadow-sm"
-                  : isUnlocked
-                  ? "border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 shadow-xs"
-                  : "border-zinc-200/60 dark:border-zinc-800/60 opacity-80 hover:opacity-100 hover:border-zinc-300 dark:hover:border-zinc-700"
-              )}
-            >
+            return (
+              <motion.div
+                layout
+                key={type.id}
+                initial={{ opacity: 0, scale: 0.88, y: 12, filter: "blur(4px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.82,
+                  y: -10,
+                  filter: "blur(5px)",
+                  transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] },
+                }}
+                transition={{
+                  layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                  duration: 0.24,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                onClick={() => {
+                  ComicAudio.playPop();
+                  onSelectSpecies(type.id);
+                }}
+                className={cn(
+                  "relative bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl border transition-colors p-4 sm:p-5 flex flex-col justify-between cursor-pointer group active:scale-[0.98]",
+                  isSelected
+                    ? "border-emerald-500/80 ring-1 ring-emerald-500 shadow-sm"
+                    : isUnlocked
+                    ? "border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 shadow-xs"
+                    : "border-zinc-200/60 dark:border-zinc-800/60 opacity-80 hover:opacity-100 hover:border-zinc-300 dark:hover:border-zinc-700"
+                )}
+              >
               {/* Selected Marker */}
               {isSelected && (
                 <div className="absolute top-3.5 right-3.5 w-6 h-6 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-xs z-20">
@@ -315,10 +339,11 @@ export const ForestSpeciesNursery: React.FC<ForestSpeciesNurseryProps> = ({
                   </>
                 )}
               </button>
-            </div>
-          );
-        })}
-      </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };

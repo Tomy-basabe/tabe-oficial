@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Search, Plus, ChevronRight, Star, MoreHorizontal,
     Trash2, Heart, ChevronsLeft, GraduationCap, FileText,
@@ -52,6 +53,7 @@ export function NotionSidebar({
     friends,
 }: NotionSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
+    const [sidebarYearFilter, setSidebarYearFilter] = useState<number | null>(null);
     const [openSubjects, setOpenSubjects] = useState<Set<string>>(new Set());
     const [openDocs, setOpenDocs] = useState<Set<string>>(new Set());
     const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -388,125 +390,201 @@ export function NotionSidebar({
                     {/* Pages by subject */}
                     {!searchQuery ? (
                         <div>
-                            <div className="flex items-center px-1 mb-4">
+                            <div className="flex items-center px-1 mb-3">
                                 <div className="p-1.5 rounded-md bg-primary/10 text-primary mr-2 border border-primary/20">
                                    <FileText className="w-3.5 h-3.5" />
                                 </div>
                                 <span className="text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">Materias</span>
                             </div>
 
-                            <div className="space-y-5">
-                                {Array.from(subjectsByYear.entries())
-                                    .sort(([a], [b]) => a - b)
-                                    .map(([year, yearSubjects]) => {
-                                        // Only show subjects that have docs
-                                        const subsWithDocs = yearSubjects.filter(
-                                            (s) => (docsBySubject.map.get(s.id)?.length ?? 0) > 0
-                                        );
-                                        if (subsWithDocs.length === 0) return null;
+                            {/* Filtro rápido por año en el sidebar */}
+                            {subjectsByYear.size > 1 && (
+                                <div className="flex items-center gap-1 flex-wrap mb-3.5 px-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSidebarYearFilter(null)}
+                                        className={cn(
+                                            "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer border",
+                                            sidebarYearFilter === null
+                                                ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                                                : "bg-secondary/40 text-muted-foreground border-border/50 hover:text-foreground hover:bg-secondary/80"
+                                        )}
+                                    >
+                                        Todos
+                                    </button>
+                                    {Array.from(subjectsByYear.keys())
+                                        .sort((a, b) => a - b)
+                                        .filter((yr) => {
+                                            const yrSubs = subjectsByYear.get(yr) || [];
+                                            return yrSubs.some((s) => (docsBySubject.map.get(s.id)?.length ?? 0) > 0);
+                                        })
+                                        .map((yr) => (
+                                            <button
+                                                key={yr}
+                                                type="button"
+                                                onClick={() => setSidebarYearFilter(sidebarYearFilter === yr ? null : yr)}
+                                                className={cn(
+                                                    "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer border",
+                                                    sidebarYearFilter === yr
+                                                        ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                                                        : "bg-secondary/40 text-muted-foreground border-border/50 hover:text-foreground hover:bg-secondary/80"
+                                                )}
+                                            >
+                                                {yr}°
+                                            </button>
+                                        ))}
+                                </div>
+                            )}
 
-                                        return (
-                                            <div key={year} className="relative">
-                                                {/* Left subtle guiding line */}
-                                                <div className="absolute left-[11px] top-8 bottom-2 w-px bg-gradient-to-b from-border/60 to-transparent" />
-                                                
-                                                <div className="flex items-center px-1 py-1 mb-2 relative z-10">
-                                                    <div className="w-[22px] h-[22px] rounded-full bg-background border-2 border-border/60 flex items-center justify-center mr-3 z-10 shadow-sm">
-                                                        <span className="text-[10px] font-bold text-muted-foreground">{year}</span>
+                            <motion.div layout className="space-y-5">
+                                <AnimatePresence mode="popLayout">
+                                    {Array.from(subjectsByYear.entries())
+                                        .sort(([a], [b]) => a - b)
+                                        .filter(([year]) => sidebarYearFilter === null || year === sidebarYearFilter)
+                                        .map(([year, yearSubjects]) => {
+                                            // Only show subjects that have docs
+                                            const subsWithDocs = yearSubjects.filter(
+                                                (s) => (docsBySubject.map.get(s.id)?.length ?? 0) > 0
+                                            );
+                                            if (subsWithDocs.length === 0) return null;
+
+                                            return (
+                                                <motion.div
+                                                    layout
+                                                    key={year}
+                                                    initial={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(4px)" }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.85, y: -10, filter: "blur(5px)", transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] } }}
+                                                    transition={{
+                                                        layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                                                        duration: 0.24,
+                                                    }}
+                                                    className="relative"
+                                                >
+                                                    {/* Left subtle guiding line */}
+                                                    <div className="absolute left-[11px] top-8 bottom-2 w-px bg-gradient-to-b from-border/60 to-transparent" />
+                                                    
+                                                    <div className="flex items-center px-1 py-1 mb-2 relative z-10">
+                                                        <div className="w-[22px] h-[22px] rounded-full bg-background border-2 border-border/60 flex items-center justify-center mr-3 z-10 shadow-sm">
+                                                            <span className="text-[10px] font-bold text-muted-foreground">{year}</span>
+                                                        </div>
+                                                        <span className="text-xs font-bold tracking-widest text-muted-foreground/70 uppercase">
+                                                            Año {year}
+                                                        </span>
                                                     </div>
-                                                    <span className="text-xs font-bold tracking-widest text-muted-foreground/70 uppercase">
-                                                        Año {year}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div className="space-y-1.5 mt-2">
-                                                    {subsWithDocs.map((subject) => {
-                                                        const docs = docsBySubject.map.get(subject.id) || [];
-                                                        const isOpen = openSubjects.has(subject.id);
+                                                    
+                                                    <div className="space-y-1.5 mt-2">
+                                                        {subsWithDocs.map((subject) => {
+                                                            const docs = docsBySubject.map.get(subject.id) || [];
+                                                            const isOpen = openSubjects.has(subject.id);
 
-                                                        return (
-                                                            <div key={subject.id} className="relative z-10">
-                                                                <button
-                                                                    className={cn(
-                                                                        "w-full flex items-center px-3 py-3 rounded-xl transition-all duration-300 group outline-none border",
-                                                                        isOpen ? "bg-secondary/50 border-border/50 shadow-sm" : "bg-transparent border-transparent hover:bg-white/5 hover:border-border/30"
-                                                                    )}
-                                                                    onClick={() => toggleSubject(subject.id)}
-                                                                >
-                                                                    <div className={cn(
-                                                                        "w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all duration-500",
-                                                                        isOpen ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(168,85,247,0.5)] rotate-3" : "bg-background border border-border/50 text-muted-foreground group-hover:bg-secondary group-hover:text-foreground group-hover:-rotate-3"
-                                                                    )}>
-                                                                        <GraduationCap className="w-4 h-4" />
-                                                                    </div>
-                                                                    
-                                                                    <span className={cn(
-                                                                        "text-sm font-bold transition-colors truncate tracking-wide",
-                                                                        isOpen ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-                                                                    )}>
-                                                                        {subject.codigo}
-                                                                    </span>
-
-                                                                    <div className="ml-auto flex items-center gap-2">
-                                                                        <span className="text-[10px] font-bold bg-background border border-border/50 text-muted-foreground px-2 py-0.5 rounded-full flex items-center justify-center min-w-[24px] shadow-sm">
-                                                                            {docs.length}
-                                                                        </span>
-                                                                        <ChevronRight className={cn(
-                                                                            "w-4 h-4 text-muted-foreground transition-transform duration-500", 
-                                                                            isOpen && "rotate-90 text-primary"
-                                                                        )} />
-                                                                    </div>
-                                                                </button>
-
-                                                                {isOpen && (
-                                                                    <div className="pt-2 pb-1 pl-[22px]">
-                                                                        <div className="pl-3 border-l-2 border-border/30 py-1 space-y-1 relative">
-                                                                            {/* Custom indicator line for the active subject docs */}
-                                                                            <div className="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/30 to-transparent opacity-50" />
-                                                                            
-                                                                            {(() => {
-                                                                                const isExpanded = expandedSubjects.has(subject.id);
-                                                                                const visibleDocs = isExpanded ? docs : docs.slice(0, DOCS_PER_SUBJECT_LIMIT);
-                                                                                const hasMore = !isExpanded && docs.length > DOCS_PER_SUBJECT_LIMIT;
-                                                                                return (
-                                                                                    <>
-                                                                                        {visibleDocs.map(d => renderDocItem(d))}
-                                                                                        {hasMore && (
-                                                                                            <button
-                                                                                                className="w-full mt-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-primary bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 border border-dashed border-border/50 hover:border-primary/40 flex items-center justify-center gap-2"
-                                                                                                onClick={() => setExpandedSubjects(prev => {
-                                                                                                    const next = new Set(prev);
-                                                                                                    next.add(subject.id);
-                                                                                                    return next;
-                                                                                                })}
-                                                                                            >
-                                                                                                <MoreHorizontal className="w-3.5 h-3.5" />
-                                                                                                Ver {docs.length - DOCS_PER_SUBJECT_LIMIT} apuntes más
-                                                                                            </button>
-                                                                                        )}
-                                                                                    </>
-                                                                                );
-                                                                            })()}
-                                                                            <button
-                                                                                className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300 group rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20"
-                                                                                onClick={() => onNewDocument(subject.id)}
-                                                                            >
-                                                                                <div className="bg-background shadow-sm group-hover:bg-primary/20 rounded-md p-1.5 transition-colors border border-border/50 group-hover:border-primary/40">
-                                                                                   <Plus className="w-3 h-3 group-hover:text-primary transition-colors" />
-                                                                                </div>
-                                                                                <span className="tracking-wide">Página en {subject.codigo}</span>
-                                                                            </button>
+                                                            return (
+                                                                <div key={subject.id} className="relative z-10">
+                                                                    <button
+                                                                        className={cn(
+                                                                            "w-full flex items-center px-3 py-3 rounded-xl transition-all duration-300 group outline-none border",
+                                                                            isOpen ? "bg-secondary/50 border-border/50 shadow-sm" : "bg-transparent border-transparent hover:bg-white/5 hover:border-border/30"
+                                                                        )}
+                                                                        onClick={() => toggleSubject(subject.id)}
+                                                                    >
+                                                                        <div className={cn(
+                                                                            "w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-all duration-500",
+                                                                            isOpen ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(168,85,247,0.5)] rotate-3" : "bg-background border border-border/50 text-muted-foreground group-hover:bg-secondary group-hover:text-foreground group-hover:-rotate-3"
+                                                                        )}>
+                                                                            <GraduationCap className="w-4 h-4" />
                                                                         </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
+                                                                        
+                                                                        <span className={cn(
+                                                                            "text-sm font-bold transition-colors truncate tracking-wide",
+                                                                            isOpen ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                                                                        )}>
+                                                                            {subject.codigo}
+                                                                        </span>
+
+                                                                        <div className="ml-auto flex items-center gap-2">
+                                                                            <span className="text-[10px] font-bold bg-background border border-border/50 text-muted-foreground px-2 py-0.5 rounded-full flex items-center justify-center min-w-[24px] shadow-sm">
+                                                                                {docs.length}
+                                                                            </span>
+                                                                            <ChevronRight className={cn(
+                                                                                "w-4 h-4 text-muted-foreground transition-transform duration-500", 
+                                                                                isOpen && "rotate-90 text-primary"
+                                                                            )} />
+                                                                        </div>
+                                                                    </button>
+
+                                                                    <AnimatePresence initial={false}>
+                                                                        {isOpen && (
+                                                                            <motion.div
+                                                                                initial={{ opacity: 0, height: 0, y: -4 }}
+                                                                                animate={{ opacity: 1, height: "auto", y: 0 }}
+                                                                                exit={{ opacity: 0, height: 0, y: -4, transition: { duration: 0.18 } }}
+                                                                                transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                                                                                className="pt-2 pb-1 pl-[22px] overflow-hidden"
+                                                                            >
+                                                                                <div className="pl-3 border-l-2 border-border/30 py-1 space-y-1 relative">
+                                                                                    {/* Custom indicator line for the active subject docs */}
+                                                                                    <div className="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/30 to-transparent opacity-50" />
+                                                                                    
+                                                                                    {(() => {
+                                                                                        const isExpanded = expandedSubjects.has(subject.id);
+                                                                                        const visibleDocs = isExpanded ? docs : docs.slice(0, DOCS_PER_SUBJECT_LIMIT);
+                                                                                        const hasMore = !isExpanded && docs.length > DOCS_PER_SUBJECT_LIMIT;
+                                                                                        return (
+                                                                                            <>
+                                                                                                {visibleDocs.map((d, dIdx) => (
+                                                                                                    <motion.div
+                                                                                                        key={d.id}
+                                                                                                        initial={{ opacity: 0, x: -6, y: 4, filter: "blur(3px)" }}
+                                                                                                        animate={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
+                                                                                                        transition={{ delay: Math.min(dIdx * 0.035, 0.25), duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                                                                                                    >
+                                                                                                        {renderDocItem(d)}
+                                                                                                    </motion.div>
+                                                                                                ))}
+                                                                                                {hasMore && (
+                                                                                                    <motion.button
+                                                                                                        initial={{ opacity: 0, y: 6 }}
+                                                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                                                        transition={{ delay: 0.16, duration: 0.24 }}
+                                                                                                        className="w-full mt-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-primary bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 border border-dashed border-border/50 hover:border-primary/40 flex items-center justify-center gap-2"
+                                                                                                        onClick={() => setExpandedSubjects(prev => {
+                                                                                                            const next = new Set(prev);
+                                                                                                            next.add(subject.id);
+                                                                                                            return next;
+                                                                                                        })}
+                                                                                                    >
+                                                                                                        <MoreHorizontal className="w-3.5 h-3.5" />
+                                                                                                        Ver {docs.length - DOCS_PER_SUBJECT_LIMIT} apuntes más
+                                                                                                    </motion.button>
+                                                                                                )}
+                                                                                            </>
+                                                                                        );
+                                                                                    })()}
+                                                                                    <motion.button
+                                                                                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                                                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                                        transition={{ delay: Math.min(docs.length * 0.035 + 0.04, 0.28), duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                                                                                        className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300 group rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20"
+                                                                                        onClick={() => onNewDocument(subject.id)}
+                                                                                    >
+                                                                                        <div className="bg-background shadow-sm group-hover:bg-primary/20 rounded-md p-1.5 transition-colors border border-border/50 group-hover:border-primary/40">
+                                                                                           <Plus className="w-3 h-3 group-hover:text-primary transition-colors" />
+                                                                                        </div>
+                                                                                        <span className="tracking-wide">Página en {subject.codigo}</span>
+                                                                                    </motion.button>
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                </AnimatePresence>
+                            </motion.div>
 
                             {/* Docs without subject */}
                             {docsBySubject.unlinked.length > 0 && (

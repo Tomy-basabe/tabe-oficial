@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Trophy,
   
   Search,
@@ -181,7 +182,7 @@ export default function Achievements() {
   const ActiveSortIcon = SORT_LABELS[sortOption].icon;
 
   return (
-    <div className="p-4 lg:p-7 max-w-[1500px] mx-auto space-y-6">
+    <div className="tabe-page p-4 lg:p-7 max-w-[1500px] mx-auto space-y-6">
       {/* Header Bento Style Notion/ChatGPT */}
       <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
         <div>
@@ -515,62 +516,65 @@ export default function Achievements() {
 
           {/* Segmented Control Estado */}
           <div className="bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg flex items-center border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium h-9">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`px-3 py-1 rounded-md transition-colors ${
-                statusFilter === "all"
-                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-            >
-              Todos ({achievements.length})
-            </button>
-            <button
-              onClick={() => setStatusFilter("unlocked")}
-              className={`px-3 py-1 rounded-md transition-colors ${
-                statusFilter === "unlocked"
-                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-            >
-              Desbloqueados ({stats.unlocked})
-            </button>
-            <button
-              onClick={() => setStatusFilter("locked")}
-              className={`px-3 py-1 rounded-md transition-colors ${
-                statusFilter === "locked"
-                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-            >
-              Bloqueados ({stats.total - stats.unlocked})
-            </button>
+            {([
+              { id: "all", label: `Todos (${achievements.length})` },
+              { id: "unlocked", label: `Desbloqueados (${stats.unlocked})` },
+              { id: "locked", label: `Bloqueados (${stats.total - stats.unlocked})` },
+            ] as const).map((st) => {
+              const isSelected = statusFilter === st.id;
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => setStatusFilter(st.id)}
+                  className={`relative px-3 py-1 rounded-md transition-colors cursor-pointer ${
+                    isSelected
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="achievements-status-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-md bg-white dark:bg-[#212121] shadow-2xs"
+                    />
+                  )}
+                  <span className="relative z-10">{st.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Toggle de Vista: Grid vs List */}
           <div className="bg-zinc-100 dark:bg-zinc-800/80 p-0.5 rounded-lg flex items-center border border-zinc-200/60 dark:border-zinc-700/60 h-9">
-            <button
-              onClick={() => setViewMode("grid")}
-              title="Vista cuadrícula"
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === "grid"
-                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              title="Vista lista"
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === "list"
-                  ? "bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-              }`}
-            >
-              <List className="w-3.5 h-3.5" />
-            </button>
+            {([
+              { id: "grid", icon: LayoutGrid, title: "Vista cuadrícula" },
+              { id: "list", icon: List, title: "Vista lista" },
+            ] as const).map((vm) => {
+              const VIcon = vm.icon;
+              const isSelected = viewMode === vm.id;
+              return (
+                <button
+                  key={vm.id}
+                  onClick={() => setViewMode(vm.id)}
+                  title={vm.title}
+                  className={`relative p-1.5 rounded-md transition-colors cursor-pointer ${
+                    isSelected
+                      ? "text-zinc-900 dark:text-zinc-100"
+                      : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="achievements-view-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-md bg-white dark:bg-[#212121] shadow-2xs"
+                    />
+                  )}
+                  <VIcon className="relative z-10 w-3.5 h-3.5" />
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -659,41 +663,67 @@ export default function Achievements() {
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAchievements.map((achievement) => {
-            const unlocked = isUnlocked(achievement.id);
-            const unlockDate = getUnlockDate(achievement.id);
+          <AnimatePresence mode="popLayout" initial={false}>
+            {filteredAchievements.map((achievement) => {
+              const unlocked = isUnlocked(achievement.id);
+              const unlockDate = getUnlockDate(achievement.id);
 
-            return (
-              <AchievementCard
-                key={achievement.id}
-                achievement={achievement}
-                unlocked={unlocked}
-                unlockDate={unlockDate}
-                onSelect={handleSelectAchievement}
-                onShare={handleOpenShare}
-                viewMode="grid"
-              />
-            );
-          })}
+              return (
+                <motion.div
+                  layout
+                  key={achievement.id}
+                  initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                  transition={{
+                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                    opacity: { duration: 0.22 },
+                  }}
+                >
+                  <AchievementCard
+                    achievement={achievement}
+                    unlocked={unlocked}
+                    unlockDate={unlockDate}
+                    onSelect={handleSelectAchievement}
+                    onShare={handleOpenShare}
+                    viewMode="grid"
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredAchievements.map((achievement) => {
-            const unlocked = isUnlocked(achievement.id);
-            const unlockDate = getUnlockDate(achievement.id);
+          <AnimatePresence mode="popLayout" initial={false}>
+            {filteredAchievements.map((achievement) => {
+              const unlocked = isUnlocked(achievement.id);
+              const unlockDate = getUnlockDate(achievement.id);
 
-            return (
-              <AchievementCard
-                key={achievement.id}
-                achievement={achievement}
-                unlocked={unlocked}
-                unlockDate={unlockDate}
-                onSelect={handleSelectAchievement}
-                onShare={handleOpenShare}
-                viewMode="list"
-              />
-            );
-          })}
+              return (
+                <motion.div
+                  layout
+                  key={achievement.id}
+                  initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                  transition={{
+                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                    opacity: { duration: 0.22 },
+                  }}
+                >
+                  <AchievementCard
+                    achievement={achievement}
+                    unlocked={unlocked}
+                    unlockDate={unlockDate}
+                    onSelect={handleSelectAchievement}
+                    onShare={handleOpenShare}
+                    viewMode="list"
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
 

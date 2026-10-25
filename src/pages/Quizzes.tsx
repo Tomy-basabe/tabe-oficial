@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ClipboardList, Plus,  GraduationCap,
@@ -1983,7 +1983,7 @@ export default function Quizzes() {
                             <Filter className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                             <span className="font-semibold text-xs text-zinc-700 dark:text-zinc-300">Año académico</span>
                         </div>
-                        {selectedYear !== null && (
+                        {(selectedYear !== null || selectedSubject !== null) && (
                             <button
                                 onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
                                 className="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"
@@ -1992,42 +1992,59 @@ export default function Quizzes() {
                             </button>
                         )}
                     </div>
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 w-fit">
                         <button
                             onClick={() => { setSelectedYear(null); setSelectedSubject(null); }}
                             className={cn(
-                                "px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer",
+                                "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
                                 selectedYear === null
-                                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                                    : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-800"
+                                    ? "text-white dark:text-zinc-900"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                             )}
                         >
-                            Todos
+                            {selectedYear === null && (
+                                <motion.span
+                                    layoutId="quizzes-year-pill"
+                                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+                                />
+                            )}
+                            <span className="relative z-10">Todos</span>
                         </button>
-                        {activeYears.map(y => (
-                            <button
-                                key={y}
-                                onClick={() => { setSelectedYear(y); setSelectedSubject(null); }}
-                                className={cn(
-                                    "px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer",
-                                    selectedYear === y
-                                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                                        : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-800"
-                                )}
-                            >
-                                {y}° Año
-                            </button>
-                        ))}
+                        {activeYears.map(y => {
+                            const isSelected = selectedYear === y;
+                            return (
+                                <button
+                                    key={y}
+                                    onClick={() => { setSelectedYear(y); setSelectedSubject(null); }}
+                                    className={cn(
+                                        "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
+                                        isSelected
+                                            ? "text-white dark:text-zinc-900"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                                    )}
+                                >
+                                    {isSelected && (
+                                        <motion.span
+                                            layoutId="quizzes-year-pill"
+                                            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                                            className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+                                        />
+                                    )}
+                                    <span className="relative z-10">{y}° Año</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {selectedYear !== null && (
-                    <div className="space-y-2.5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/80 animate-in fade-in">
+                {subjects.length > 0 && (
+                    <div className="space-y-2.5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/80">
                         <div className="flex items-center gap-2">
                             <GraduationCap className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                             <span className="font-semibold text-xs text-zinc-700 dark:text-zinc-300">Materia</span>
                         </div>
-                        <div className="flex gap-1.5 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap items-center">
                             <button
                                 onClick={() => setSelectedSubject(null)}
                                 className={cn(
@@ -2039,20 +2056,36 @@ export default function Quizzes() {
                             >
                                 Todas
                             </button>
-                            {subjects.filter(s => s.año === selectedYear).map(sub => (
-                                <button
-                                    key={sub.id}
-                                    onClick={() => setSelectedSubject(sub.id)}
-                                    className={cn(
-                                        "px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer",
-                                        selectedSubject === sub.id
-                                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                                            : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-800"
-                                    )}
-                                >
-                                    {sub.nombre}
-                                </button>
-                            ))}
+                            <AnimatePresence mode="popLayout">
+                                {subjects
+                                    .filter(s => selectedYear === null || s.año === selectedYear)
+                                    .map(sub => {
+                                        const isSubSelected = selectedSubject === sub.id;
+                                        return (
+                                            <motion.button
+                                                layout
+                                                key={sub.id}
+                                                type="button"
+                                                initial={{ opacity: 0, scale: 0.82, y: 6, filter: "blur(4px)" }}
+                                                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                                                exit={{ opacity: 0, scale: 0.78, y: -6, filter: "blur(4px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                                                transition={{
+                                                    layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.7 },
+                                                    duration: 0.22,
+                                                }}
+                                                onClick={() => setSelectedSubject(isSubSelected ? null : sub.id)}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer",
+                                                    isSubSelected
+                                                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
+                                                        : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-800"
+                                                )}
+                                            >
+                                                {sub.nombre}
+                                            </motion.button>
+                                        );
+                                    })}
+                            </AnimatePresence>
                         </div>
                     </div>
                 )}
@@ -2079,27 +2112,48 @@ export default function Quizzes() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {decks
-                            .filter(d => {
-                                if (selectedYear && d.subject?.año !== selectedYear) return false;
-                                if (selectedSubject && d.subject_id !== selectedSubject) return false;
-                                return true;
-                            })
-                            .map((deck, index) => (
-                                <QuizDeckItem
-                                    key={deck.id}
-                                    deck={deck}
-                                    index={index}
-                                    onDelete={(d) => setDeleteDeck(d)}
-                                    onManage={(d) => {
-                                        setManageDeck(d);
-                                        fetchQuestions(d.id);
-                                    }}
-                                    onPractice={(d) => checkStudyOptions(d)}
-                                />
-                            ))}
-                    </div>
+                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <AnimatePresence mode="popLayout">
+                            {decks
+                                .filter(d => {
+                                    if (selectedYear && d.subject?.año !== selectedYear) return false;
+                                    if (selectedSubject && d.subject_id !== selectedSubject) return false;
+                                    return true;
+                                })
+                                .map((deck, index) => (
+                                    <motion.div
+                                        layout
+                                        key={deck.id}
+                                        initial={{ opacity: 0, scale: 0.88, y: 14, filter: "blur(5px)" }}
+                                        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                                        exit={{
+                                            opacity: 0,
+                                            scale: 0.84,
+                                            y: -12,
+                                            filter: "blur(6px)",
+                                            transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] },
+                                        }}
+                                        transition={{
+                                            layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                                            duration: 0.26,
+                                            ease: [0.16, 1, 0.3, 1],
+                                        }}
+                                        className="h-full"
+                                    >
+                                        <QuizDeckItem
+                                            deck={deck}
+                                            index={index}
+                                            onDelete={(d) => setDeleteDeck(d)}
+                                            onManage={(d) => {
+                                                setManageDeck(d);
+                                                fetchQuestions(d.id);
+                                            }}
+                                            onPractice={(d) => checkStudyOptions(d)}
+                                        />
+                                    </motion.div>
+                                ))}
+                        </AnimatePresence>
+                    </motion.div>
                 )}
             </div>
 

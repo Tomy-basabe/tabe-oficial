@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
@@ -240,7 +241,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 pt-4 sm:pt-6">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+      <div className="tabe-page max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
         
         {/* Encabezado limpio estilo Notion/ChatGPT */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-zinc-200/70 dark:border-zinc-800/80">
@@ -275,14 +276,21 @@ export default function Settings() {
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left whitespace-nowrap md:whitespace-normal cursor-pointer select-none",
+                      "relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left whitespace-nowrap md:whitespace-normal cursor-pointer select-none",
                       isActive
-                        ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold shadow-2xs"
+                        ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                         : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900/40"
                     )}
                   >
-                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400")} />
-                    <div className="min-w-0">
+                    {isActive && (
+                      <motion.span
+                        layoutId="settings-tab-pill"
+                        transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                        className="absolute inset-0 rounded-xl bg-zinc-100 dark:bg-zinc-800 shadow-2xs"
+                      />
+                    )}
+                    <Icon className={cn("relative z-10 w-4 h-4 shrink-0", isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400")} />
+                    <div className="relative z-10 min-w-0">
                       <span className="block truncate">{tab.label}</span>
                       <span className="hidden lg:block text-[10px] text-zinc-400 font-normal truncate">
                         {tab.description}

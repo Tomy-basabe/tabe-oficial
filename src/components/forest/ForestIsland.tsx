@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Plant, PLANT_TYPES } from "@/hooks/useForest";
 import { FOREST_ISLANDS, IslandId } from "@/hooks/forestIslandsData";
 import { ForestTreeArtwork } from "./ForestTreeArtwork";
@@ -176,14 +177,21 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                 type="button"
                 onClick={() => handleIslandChange(island.id)}
                 className={cn(
-                  "p-3 rounded-xl border font-normal transition-all flex flex-col items-start justify-between gap-2 cursor-pointer relative text-left group",
+                  "relative p-3 rounded-xl border font-normal transition-colors flex flex-col items-start justify-between gap-2 cursor-pointer text-left group active:scale-[0.965]",
                   isSelected
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-xs"
+                    ? "border-transparent text-white dark:text-zinc-900 shadow-xs"
                     : "bg-zinc-50/50 dark:bg-zinc-800/40 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-100/60 dark:hover:bg-zinc-800"
                 )}
               >
+                {isSelected && (
+                  <motion.span
+                    layoutId="forest-island-card-pill"
+                    transition={{ type: "spring", stiffness: 480, damping: 34, mass: 0.7 }}
+                    className="absolute inset-0 rounded-xl bg-zinc-900 dark:bg-zinc-100 shadow-xs z-0"
+                  />
+                )}
                 {/* Cabecera de la tarjeta: Icono y Contador */}
-                <div className="flex items-center justify-between w-full">
+                <div className="relative z-10 flex items-center justify-between w-full">
                   <div
                     className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
@@ -207,7 +215,7 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                 </div>
 
                 {/* Nombre de la isla */}
-                <div className="w-full">
+                <div className="relative z-10 w-full">
                   <div className="text-xs sm:text-sm font-semibold truncate leading-tight">
                     {island.name}
                   </div>
@@ -243,23 +251,33 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                 { id: "year", label: "Año" },
                 { id: "all", label: "Todo" },
               ] as const
-            ).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  ComicAudio.playPop();
-                  setTimeRange(t.id);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer",
-                  timeRange === t.id
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
+            ).map((t) => {
+              const isSelected = timeRange === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    ComicAudio.playPop();
+                    setTimeRange(t.id);
+                  }}
+                  className={cn(
+                    "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-[0.965]",
+                    isSelected
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  )}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="forest-island-timerange-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-xs"
+                    />
+                  )}
+                  <span className="relative z-10">{t.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Ambience & Summary Badges */}
@@ -314,13 +332,20 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                   setSelectedLevel(f.id);
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer",
+                  "relative px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-[0.965]",
                   isSelected
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 )}
               >
-                {f.label}
+                {isSelected && (
+                  <motion.span
+                    layoutId="forest-island-level-pill"
+                    transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                    className="absolute inset-0 rounded-md bg-zinc-900 text-white dark:bg-zinc-100 shadow-xs"
+                  />
+                )}
+                <span className={cn("relative z-10", isSelected && "text-white dark:text-zinc-900 font-semibold")}>{f.label}</span>
               </button>
             );
           })}
@@ -435,7 +460,8 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                   </div>
                 </div>
               ) : (
-                <div
+                <motion.div
+                  layout
                   className={cn(
                     "grid gap-2 sm:gap-2.5 justify-items-center items-end min-h-[220px]",
                     filteredPlants.length > 60
@@ -445,53 +471,68 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                       : "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
                   )}
                 >
-                  {filteredPlants.map((plant) => {
-                    const plantInfo = PLANT_TYPES.find((t) => t.id === plant.plant_type) || PLANT_TYPES[0];
-                    return (
-                      <div
-                        key={plant.id}
-                        onClick={() => {
-                          ComicAudio.playPop();
-                          setInspectedPlant(plant);
-                        }}
-                        className="island-tree-node group relative flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-125 hover:z-30 active:scale-95"
-                      >
-                        {/* Notion Style Tooltip */}
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg border border-zinc-700 shadow-md whitespace-nowrap pointer-events-none z-50 flex flex-col items-center gap-0.5">
-                          <span>{plantInfo.name} ({plant.growth_percentage}%)</span>
-                          <span className="text-[10px] text-zinc-400 font-mono">
-                            {plantInfo.difficultyLabel} • {plantInfo.requiredMinutes}m
-                          </span>
-                        </div>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {filteredPlants.map((plant) => {
+                      const plantInfo = PLANT_TYPES.find((t) => t.id === plant.plant_type) || PLANT_TYPES[0];
+                      return (
+                        <motion.div
+                          layout
+                          key={plant.id}
+                          initial={{ opacity: 0, scale: 0.65, filter: "blur(4px)" }}
+                          animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                          exit={{
+                            opacity: 0,
+                            scale: 0.55,
+                            filter: "blur(4px)",
+                            transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] },
+                          }}
+                          transition={{
+                            layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.7 },
+                            duration: 0.22,
+                          }}
+                          onClick={() => {
+                            ComicAudio.playPop();
+                            setInspectedPlant(plant);
+                          }}
+                          className="island-tree-node group relative flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-125 hover:z-30 active:scale-95"
+                        >
+                          {/* Notion Style Tooltip */}
+                          <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg border border-zinc-700 shadow-md whitespace-nowrap pointer-events-none z-50 flex flex-col items-center gap-0.5">
+                            <span>{plantInfo.name} ({plant.growth_percentage}%)</span>
+                            <span className="text-[10px] text-zinc-400 font-mono">
+                              {plantInfo.difficultyLabel} • {plantInfo.requiredMinutes}m
+                            </span>
+                          </div>
 
-                        {/* Difficulty Dot Indicator on Tree */}
-                        <div
-                          title={plantInfo.difficultyLabel}
-                          className={cn(
-                            "absolute -top-0.5 -right-0.5 z-20 w-2.5 h-2.5 rounded-full border border-white shadow-xs select-none",
-                            plantInfo.level === 1 && "bg-lime-400",
-                            plantInfo.level === 2 && "bg-cyan-400",
-                            plantInfo.level === 3 && "bg-amber-400",
-                            plantInfo.level === 4 && "bg-orange-400",
-                            plantInfo.level === 5 && "bg-rose-400",
-                            plantInfo.level === 6 && "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.9)]"
-                          )}
-                        />
+                          {/* Difficulty Dot Indicator on Tree */}
+                          <div
+                            title={plantInfo.difficultyLabel}
+                            className={cn(
+                              "absolute -top-0.5 -right-0.5 z-20 w-2.5 h-2.5 rounded-full border border-white shadow-xs select-none",
+                              plantInfo.level === 1 && "bg-lime-400",
+                              plantInfo.level === 2 && "bg-cyan-400",
+                              plantInfo.level === 3 && "bg-amber-400",
+                              plantInfo.level === 4 && "bg-orange-400",
+                              plantInfo.level === 5 && "bg-rose-400",
+                              plantInfo.level === 6 && "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.9)]"
+                            )}
+                          />
 
-                        {/* Tree Vector Artwork */}
-                        <ForestTreeArtwork
-                          species={plant.plant_type}
-                          growth={plant.growth_percentage}
-                          isAlive={plant.is_alive}
-                          size={filteredPlants.length > 25 ? "sm" : "md"}
-                          animated={false}
-                        />
+                          {/* Tree Vector Artwork */}
+                          <ForestTreeArtwork
+                            species={plant.plant_type}
+                            growth={plant.growth_percentage}
+                            isAlive={plant.is_alive}
+                            size={filteredPlants.length > 25 ? "sm" : "md"}
+                            animated={false}
+                          />
 
-                        {/* Tree Base Shadow */}
-                        <div className="w-7 h-2 -mt-1 rounded-full bg-black/40 blur-[1px]" />
-                      </div>
-                    );
-                  })}
+                          {/* Tree Base Shadow */}
+                          <div className="w-7 h-2 -mt-1 rounded-full bg-black/40 blur-[1px]" />
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
 
                   {/* Future empty soil plots to encourage growth */}
                   {filteredPlants.length < 8 &&
@@ -508,7 +549,7 @@ export const ForestIsland: React.FC<ForestIslandProps> = ({
                         <div className="w-7 h-2 rounded-full bg-black/30 mt-1" />
                       </div>
                     ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Hanging Underhang Details */}

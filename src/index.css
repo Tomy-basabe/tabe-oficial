@@ -1640,4 +1640,328 @@
   z-index: 20;
 }
 
+/* ==========================================================================
+   T.A.B.E. 3-Stage Choreography (Ultra-Fast 60fps GPU):
+   1) Module Reveal (Neutral Structure) -> 2) Color Impact -> 3) Final Settle
+   ========================================================================== */
 
+@keyframes tabeStageModule {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.99);
+  }
+  58% {
+    opacity: 1;
+    transform: translate3d(0, -1px, 0) scale(1.001);
+    box-shadow:
+      0 8px 22px -10px rgba(var(--section-accent-rgb, 59, 130, 246), 0.14),
+      0 0 0 1px rgba(var(--section-accent-rgb, 59, 130, 246), 0.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes tabeColorElementImpact {
+  0%, 30% {
+    transform: scale(0.94);
+  }
+  68% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tabeSectionAmbientImpact {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translate3d(0, -8px, 0);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0.65;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.tabe-stage-module {
+  animation: tabeStageModule 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--module-idx, 0) * 20ms);
+  will-change: transform, opacity;
+}
+
+.tabe-color-impact-badge {
+  animation: tabeColorElementImpact 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--module-idx, 0) * 20ms + 35ms);
+}
+
+.tabe-ambient-bloom {
+  animation: tabeSectionAmbientImpact 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ==========================================================================
+   T.A.B.E. Fase 4: Apertura y Cierre de Contenido al Tocar un Botón
+   - Al Abrir:
+     1) El contenedor (Modal, Popover, Menú, Panel) se abre con resorte ágil
+     2) Sus bloques internos emergen progresivamente
+     3) Los botones/acciones dentro de ese contenido aparecen de a poco (stagger)
+   - Al Cerrar:
+     1) Los botones/acciones y secciones internas se repliegan suavemente hacia adentro
+     2) El contenedor se contrae con succión elástica (scale + translateY + opacity)
+     3) El fondo/overlay o altura colapsable se desvanece limpiamente
+   ========================================================================== */
+
+@keyframes tabeContentOpen {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.975);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -0.5px, 0) scale(1.002);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes tabeContentClose {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.945);
+  }
+}
+
+@keyframes tabeOverlayOpen {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes tabeOverlayClose {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes tabeCollapsibleOpen {
+  0% {
+    height: 0;
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+  100% {
+    height: var(--radix-collapsible-content-height, auto);
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tabeCollapsibleClose {
+  0% {
+    height: var(--radix-collapsible-content-height, auto);
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    height: 0;
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes tabeInnerSectionReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tabeInnerSectionClose {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(0.98);
+  }
+}
+
+@keyframes tabeInnerButtonCascade {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 5px, 0) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -0.5px, 0) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes tabeInnerButtonClose {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0) scale(0.93);
+  }
+}
+
+.tabe-content-open:not([data-state="closed"]) {
+  animation: tabeContentOpen 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tabe-content-open[data-state="closed"] {
+  animation: tabeContentClose 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  pointer-events: none;
+}
+
+.tabe-overlay-motion[data-state="open"] {
+  animation: tabeOverlayOpen 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tabe-overlay-motion[data-state="closed"] {
+  animation: tabeOverlayClose 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  pointer-events: none;
+}
+
+.tabe-collapsible-motion {
+  overflow: hidden;
+}
+
+.tabe-collapsible-motion[data-state="open"] {
+  animation: tabeCollapsibleOpen 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tabe-collapsible-motion[data-state="closed"] {
+  animation: tabeCollapsibleClose 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+.tabe-inner-section-reveal {
+  animation: tabeInnerSectionReveal 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(15ms + var(--sec-idx, 0) * 18ms);
+}
+
+[data-state="closed"] > .tabe-inner-section-reveal,
+[data-state="closed"] .tabe-inner-section-reveal {
+  animation: tabeInnerSectionClose 0.14s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  animation-delay: 0ms;
+}
+
+.tabe-inner-btn-cascade {
+  animation: tabeInnerButtonCascade 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(25ms + var(--btn-idx, 0) * 15ms);
+}
+
+[data-state="closed"] .tabe-inner-btn-cascade {
+  animation: tabeInnerButtonClose 0.13s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  animation-delay: 0ms;
+}
+
+/* Micro-interacción táctil universal para todos los botones (Acción de Botón) */
+@keyframes tabeButtonActionPulse {
+  0% {
+    transform: scale(0.96);
+  }
+  55% {
+    transform: scale(1.018);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 140ms;
+}
+
+button:not(:disabled):active,
+.tabe-btn-action:not(:disabled):active {
+  transform: scale(0.965);
+}
+
+.tabe-btn-clicked {
+  animation: tabeButtonActionPulse 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Cascada automática para menús desplegables, selects y popovers al abrirse y cerrarse */
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"],
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"],
+.tabe-dropdown-cascade:not([data-state="closed"]) button {
+  animation: tabeInnerButtonCascade 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(1),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(1),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(1) { animation-delay: 15ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(2),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(2),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(2) { animation-delay: 30ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(3),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(3),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(3) { animation-delay: 45ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(4),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(4),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(4) { animation-delay: 60ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(5),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(5),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(5) { animation-delay: 75ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(6),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(6),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(6) { animation-delay: 90ms; }
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="menuitem"]:nth-child(n+7),
+.tabe-dropdown-cascade:not([data-state="closed"]) [role="option"]:nth-child(n+7),
+.tabe-dropdown-cascade:not([data-state="closed"]) button:nth-child(n+7) { animation-delay: 105ms; }
+
+.tabe-dropdown-cascade[data-state="closed"] [role="menuitem"],
+.tabe-dropdown-cascade[data-state="closed"] [role="option"],
+.tabe-dropdown-cascade[data-state="closed"] button {
+  animation: tabeInnerButtonClose 0.13s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabe-stage-module,
+  .tabe-color-impact-badge,
+  .tabe-ambient-bloom,
+  .tabe-content-open,
+  .tabe-overlay-motion,
+  .tabe-collapsible-motion,
+  .tabe-inner-section-reveal,
+  .tabe-inner-btn-cascade,
+  .tabe-btn-clicked,
+  .tabe-dropdown-cascade [role="menuitem"],
+  .tabe-dropdown-cascade [role="option"],
+  .tabe-dropdown-cascade button {
+    animation: none !important;
+  }
+}

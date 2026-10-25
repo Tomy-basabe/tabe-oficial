@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCalendarEvents, CalendarEvent, isExamType } from "@/hooks/useCalendarEvents";
 import { useSubjects, Subject } from "@/hooks/useSubjects";
 import { Calendar as CalendarIcon,
@@ -366,7 +367,7 @@ export default function Exams() {
         <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
             <span>Próximo a Rendir</span>
-            <Clock className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="p-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60"><Clock className="w-3.5 h-3.5" /></span>
           </div>
           <div className="mt-2.5">
             {closestExam ? (
@@ -410,7 +411,7 @@ export default function Exams() {
         <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
             <span>Esta Semana</span>
-            <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60"><CalendarIcon className="w-3.5 h-3.5" /></span>
           </div>
           <div className="mt-2.5">
             <div className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -426,7 +427,7 @@ export default function Exams() {
         <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
             <span>Por Instancia</span>
-            <GraduationCap className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="p-1.5 rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60"><GraduationCap className="w-3.5 h-3.5" /></span>
           </div>
           <div className="mt-2.5">
             <div className="flex items-center gap-3">
@@ -451,7 +452,7 @@ export default function Exams() {
         <div className="p-4 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-zinc-400 dark:text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
             <span>Herramientas de Estudio</span>
-            <GraduationCap className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60"><GraduationCap className="w-3.5 h-3.5" /></span>
           </div>
           <div className="mt-2.5 flex items-center gap-2">
             <Link
@@ -496,20 +497,53 @@ export default function Exams() {
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-            {/* Filtro por Año */}
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[110px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium">
-                <SelectValue placeholder="Año" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs">
-                <SelectItem value="all">Todos los años</SelectItem>
-                {availableYears.map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {y}° Año
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Filtro por Año en píldoras animadas */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => { setSelectedYear("all"); setSelectedSubject("all"); }}
+                className={cn(
+                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  selectedYear === "all"
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                )}
+              >
+                {selectedYear === "all" && (
+                  <motion.span
+                    layoutId="exams-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
+              </button>
+              {availableYears.map((y) => {
+                const isSelected = selectedYear === y;
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => { setSelectedYear(y); setSelectedSubject("all"); }}
+                    className={cn(
+                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      isSelected
+                        ? "text-white dark:text-zinc-900"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="exams-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">{y}° Año</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Filtro por Materia */}
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
@@ -663,22 +697,37 @@ export default function Exams() {
           </div>
         ) : viewMode === "list" ? (
           /* List View: Apple / Notion Style Cards */
-          <div className="space-y-2.5">
-            {filteredExams.map((exam) => {
-              const daysRemaining = getDaysRemaining(exam.fecha);
-              const theme = getExamTheme(exam.tipo_examen);
-              const isToday = daysRemaining === 0;
-              const isUrgent = daysRemaining > 0 && daysRemaining <= 3;
-              const notesDisplay = cleanDisplayNotes(exam.notas);
-              const dateInfo = formatHeaderDate(exam.fecha);
+          <motion.div layout className="space-y-2.5">
+            <AnimatePresence mode="popLayout">
+              {filteredExams.map((exam) => {
+                const daysRemaining = getDaysRemaining(exam.fecha);
+                const theme = getExamTheme(exam.tipo_examen);
+                const isToday = daysRemaining === 0;
+                const isUrgent = daysRemaining > 0 && daysRemaining <= 3;
+                const notesDisplay = cleanDisplayNotes(exam.notas);
+                const dateInfo = formatHeaderDate(exam.fecha);
 
-              return (
-                <div
-                  key={exam.id}
-                  onClick={() => handleExamClick(exam)}
-                  className="group relative bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 sm:p-4 transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col sm:flex-row gap-3.5 sm:items-center justify-between"
-                  title="Clic para editar o ver detalles"
-                >
+                return (
+                  <motion.div
+                    layout
+                    key={exam.id}
+                    initial={{ opacity: 0, scale: 0.9, y: 12, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.86,
+                      y: -10,
+                      filter: "blur(5px)",
+                      transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] },
+                    }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                      duration: 0.24,
+                    }}
+                    onClick={() => handleExamClick(exam)}
+                    className="group relative bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 sm:p-4 transition-colors cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col sm:flex-row gap-3.5 sm:items-center justify-between"
+                    title="Clic para editar o ver detalles"
+                  >
                   {/* Left: Date Block + Exam Details */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                     {/* Apple Calendar Style Date Badge */}
@@ -764,10 +813,11 @@ export default function Exams() {
 
                     <ChevronRight className="w-4 h-4 text-zinc-400 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+            </AnimatePresence>
+          </motion.div>
         ) : (
           /* Kanban Board View: Notion Database Style */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
@@ -793,23 +843,38 @@ export default function Exams() {
                   </div>
 
                   {/* Cards inside column */}
-                  <div className="space-y-2 pt-0.5">
-                    {columnExams.map((exam) => {
-                      const daysRemaining = getDaysRemaining(exam.fecha);
-                      const isUrgent = daysRemaining <= 3 && col.id !== "done";
-                      const isToday = daysRemaining === 0 && col.id !== "done";
-                      const theme = getExamTheme(exam.tipo_examen);
+                  <motion.div layout className="space-y-2 pt-0.5">
+                    <AnimatePresence mode="popLayout">
+                      {columnExams.map((exam) => {
+                        const daysRemaining = getDaysRemaining(exam.fecha);
+                        const isUrgent = daysRemaining <= 3 && col.id !== "done";
+                        const isToday = daysRemaining === 0 && col.id !== "done";
+                        const theme = getExamTheme(exam.tipo_examen);
 
-                      return (
-                        <div
-                          key={exam.id}
-                          onClick={() => handleExamClick(exam)}
-                          className={cn(
-                            "bg-white dark:bg-[#1c1c1f] p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 flex flex-col gap-2 transition-all group relative cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700",
-                            isUrgent && "border-amber-300 dark:border-amber-500/40"
-                          )}
-                          title="Clic para ver o editar este examen"
-                        >
+                        return (
+                          <motion.div
+                            layout
+                            key={exam.id}
+                            initial={{ opacity: 0, scale: 0.88, y: 10, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                            exit={{
+                              opacity: 0,
+                              scale: 0.84,
+                              y: -8,
+                              filter: "blur(5px)",
+                              transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] },
+                            }}
+                            transition={{
+                              layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                              duration: 0.22,
+                            }}
+                            onClick={() => handleExamClick(exam)}
+                            className={cn(
+                              "bg-white dark:bg-[#1c1c1f] p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 flex flex-col gap-2 transition-colors group relative cursor-pointer shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700",
+                              isUrgent && "border-amber-300 dark:border-amber-500/40"
+                            )}
+                            title="Clic para ver o editar este examen"
+                          >
                           {/* Card Header */}
                           <div className="flex justify-between items-start gap-1">
                             <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 truncate max-w-[140px]">
@@ -877,16 +942,17 @@ export default function Exams() {
                               {isToday ? "¡Hoy!" : `${daysRemaining}d`}
                             </span>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
+                    </AnimatePresence>
 
                     {columnExams.length === 0 && (
                       <div className="p-4 text-center text-xs text-zinc-400 dark:text-zinc-600 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-lg font-normal">
                         Sin evaluaciones
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 </div>
               );
             })}

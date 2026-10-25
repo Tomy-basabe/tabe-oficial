@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Select, SelectContent, SelectGroup,
   SelectItem, SelectLabel, SelectTrigger, SelectValue
@@ -126,35 +127,86 @@ export function SubjectSelect({
 
       {/* Botones de Filtro por Año */}
       {showYearFilter && availableYears.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap pb-0.5">
+        <div className="flex items-center gap-1 flex-wrap p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 w-fit">
           <button
             type="button"
             onClick={() => setYearFilter("all")}
             className={cn(
-              "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+              "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
               yearFilter === "all"
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 border border-zinc-200/60 dark:border-zinc-700/40"
+                ? "text-white dark:text-zinc-900"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             )}
           >
-            Todos
+            {yearFilter === "all" && (
+              <motion.span
+                layoutId="subject-select-year-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+              />
+            )}
+            <span className="relative z-10">Todos</span>
           </button>
-          {availableYears.map((yr) => (
-            <button
-              key={yr}
-              type="button"
-              onClick={() => setYearFilter(String(yr))}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                yearFilter === String(yr)
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 border border-zinc-200/60 dark:border-zinc-700/40"
-              )}
-            >
-              {yr}° Año
-            </button>
-          ))}
+          {availableYears.map((yr) => {
+            const isSelected = yearFilter === String(yr);
+            return (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => setYearFilter(String(yr))}
+                className={cn(
+                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
+                  isSelected
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                )}
+              >
+                {isSelected && (
+                  <motion.span
+                    layoutId="subject-select-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">{yr}° Año</span>
+              </button>
+            );
+          })}
         </div>
+      )}
+
+      {/* Píldoras rápidas de materias filtradas por año con animación de salida/reacomodo */}
+      {showYearFilter && allSubjects.length > 0 && (
+        <motion.div layout className="flex items-center gap-1.5 flex-wrap max-h-28 overflow-y-auto py-0.5 pr-1">
+          <AnimatePresence mode="popLayout">
+            {[...filteredActive, ...filteredApproved].map((s) => {
+              const isSelected = selectedValue === s.id;
+              return (
+                <motion.button
+                  layout
+                  key={s.id}
+                  type="button"
+                  initial={{ opacity: 0, scale: 0.82, y: 6, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.78, y: -6, filter: "blur(4px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                  transition={{
+                    layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.7 },
+                    duration: 0.2,
+                  }}
+                  onClick={() => handleSelectChange(isSelected && allowNone ? "none" : s.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border truncate max-w-[200px]",
+                    isSelected
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  )}
+                >
+                  {s.codigo ? `${s.codigo} · ${s.nombre}` : s.nombre}
+                </motion.button>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
       )}
 
       {/* Select Estilizado */}

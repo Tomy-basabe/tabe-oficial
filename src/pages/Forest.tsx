@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useForest } from "@/hooks/useForest";
 import { FOREST_ISLANDS, IslandId } from "@/hooks/forestIslandsData";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -52,6 +53,24 @@ const MODAL_LEVEL_FILTERS = [
   { id: 6, label: "Legendario" },
 ] as const;
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.04 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.44, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
 export default function Forest() {
   const {
     plants,
@@ -102,9 +121,18 @@ export default function Forest() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="tabe-page p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8"
+    >
       {/* HEADER HERO BANNER */}
-      <div className="bg-white dark:bg-[#212121] rounded-2xl p-6 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <motion.div
+        variants={itemVariants}
+        className="neo-bento-card tabe-stage-module bg-white dark:bg-[#212121] rounded-2xl p-6 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden"
+        style={{ "--module-idx": 0 } as React.CSSProperties}
+      >
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
           <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 rounded-xl flex items-center justify-center shrink-0">
             <TreeDeciduous className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -142,10 +170,14 @@ export default function Forest() {
             <span>Plantar Semilla</span>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* NAVIGATION TABS */}
-      <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl overflow-x-auto scrollbar-none">
+      <motion.div
+        variants={itemVariants}
+        className="tabe-stage-module flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-xl overflow-x-auto scrollbar-none"
+        style={{ "--module-idx": 1 } as React.CSSProperties}
+      >
         {[
           { id: "island", label: "El Bosque (5 Islas)", icon: Compass },
           {
@@ -166,64 +198,83 @@ export default function Forest() {
                 setActiveTab(tab.id as ForestTab);
               }}
               className={cn(
-                "flex-1 min-w-[140px] sm:min-w-fit px-3.5 py-2 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
+                "relative flex-1 min-w-[140px] sm:min-w-fit px-3.5 py-2 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
                 isActive
-                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                   : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
+              {isActive && (
+                <motion.span
+                  layoutId="forest-tab-pill"
+                  transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                  className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-xs"
+                />
+              )}
+              <Icon className="relative z-10 w-3.5 h-3.5" />
+              <span className="relative z-10">{tab.label}</span>
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* TAB CONTENT VIEWS */}
-      {activeTab === "island" && (
-        <div className="tour-forest-tree">
-          <ForestIsland
-            plants={plants}
-            studyActivity={studyActivity}
-            onRemoveDeadPlant={removeDeadPlant}
-            selectedIslandId={activeIslandId}
-            onSelectIsland={setActiveIslandId}
-            onPlantNewTree={(islandId) => {
-              if (islandId) setTargetIslandForPlant(islandId as IslandId);
-              setIsPlantModalOpen(true);
-            }}
-          />
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10, scale: 0.995 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.995, transition: { duration: 0.16 } }}
+          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+          className="tabe-stage-module"
+          style={{ "--module-idx": 2 } as React.CSSProperties}
+        >
+          {activeTab === "island" && (
+            <div className="tour-forest-tree">
+              <ForestIsland
+                plants={plants}
+                studyActivity={studyActivity}
+                onRemoveDeadPlant={removeDeadPlant}
+                selectedIslandId={activeIslandId}
+                onSelectIsland={setActiveIslandId}
+                onPlantNewTree={(islandId) => {
+                  if (islandId) setTargetIslandForPlant(islandId as IslandId);
+                  setIsPlantModalOpen(true);
+                }}
+              />
+            </div>
+          )}
 
-      {activeTab === "active" && (
-        <ForestFocusStage
-          currentPlant={currentPlant}
-          studyActivity={studyActivity}
-          onPlantNewTree={() => setIsPlantModalOpen(true)}
-          onAbandonPlant={abandonPlant}
-          onRemoveDeadPlant={removeDeadPlant}
-          onWaterWithStudy={waterPlantWithStudy}
-        />
-      )}
+          {activeTab === "active" && (
+            <ForestFocusStage
+              currentPlant={currentPlant}
+              studyActivity={studyActivity}
+              onPlantNewTree={() => setIsPlantModalOpen(true)}
+              onAbandonPlant={abandonPlant}
+              onRemoveDeadPlant={removeDeadPlant}
+              onWaterWithStudy={waterPlantWithStudy}
+            />
+          )}
 
-      {activeTab === "nursery" && (
-        <ForestSpeciesNursery
-          selectedSpecies={selectedPlantType}
-          onSelectSpecies={setSelectedPlantType}
-          hasActivePlant={forestStats.hasActivePlant}
-          onConfirmPlant={() => handleConfirmPlant(selectedPlantType)}
-          plants={plants}
-        />
-      )}
+          {activeTab === "nursery" && (
+            <ForestSpeciesNursery
+              selectedSpecies={selectedPlantType}
+              onSelectSpecies={setSelectedPlantType}
+              hasActivePlant={forestStats.hasActivePlant}
+              onConfirmPlant={() => handleConfirmPlant(selectedPlantType)}
+              plants={plants}
+            />
+          )}
 
-      {activeTab === "stats" && (
-        <ForestTimelineStats
-          plants={plants}
-          studyActivity={studyActivity}
-          onRemoveDeadPlant={removeDeadPlant}
-        />
-      )}
+          {activeTab === "stats" && (
+            <ForestTimelineStats
+              plants={plants}
+              studyActivity={studyActivity}
+              onRemoveDeadPlant={removeDeadPlant}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* MODAL: PLANT NEW SEED DIALOG (NOTION / CHATGPT CLEAN STYLE) */}
       <Dialog open={isPlantModalOpen} onOpenChange={setIsPlantModalOpen}>
@@ -277,14 +328,21 @@ export default function Forest() {
                       setTargetIslandForPlant(island.id);
                     }}
                     className={cn(
-                      "px-3 py-2 rounded-lg border text-xs font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
+                      "relative px-3 py-2 rounded-lg border text-xs font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-[0.965]",
                       isSelected
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-xs"
+                        ? "text-white dark:text-zinc-900 border-transparent shadow-xs"
                         : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
                     )}
                   >
-                    <IslandIcon className="w-3.5 h-3.5" />
-                    <span className="truncate">{island.shortName}</span>
+                    {isSelected && (
+                      <motion.span
+                        layoutId="forest-modal-target-island-pill"
+                        transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100"
+                      />
+                    )}
+                    <IslandIcon className="relative z-10 w-3.5 h-3.5" />
+                    <span className="relative z-10 truncate">{island.shortName}</span>
                   </button>
                 );
               })}
@@ -304,13 +362,20 @@ export default function Forest() {
                     setModalFilterLevel(lvl.id);
                   }}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer",
+                    "relative px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer",
                     isLvlActive
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                   )}
                 >
-                  <span>{lvl.label}</span>
+                  {isLvlActive && (
+                    <motion.span
+                      layoutId="forest-modal-lvl-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-xs"
+                    />
+                  )}
+                  <span className="relative z-10">{lvl.label}</span>
                 </button>
               );
             })}
@@ -318,18 +383,27 @@ export default function Forest() {
 
           {/* Species Selector Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[48vh] overflow-y-auto pr-1">
+            <AnimatePresence mode="popLayout" initial={false}>
             {modalFilteredPlantTypes.map((type) => {
               const isSelected = selectedPlantType === type.id;
               return (
-                <button
+                <motion.button
+                  layout
                   key={type.id}
+                  initial={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.88, y: -8, filter: "blur(5px)", transition: { duration: 0.18 } }}
+                  transition={{
+                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                    opacity: { duration: 0.2 },
+                  }}
                   type="button"
                   onClick={() => {
                     ComicAudio.playPop();
                     setSelectedPlantType(type.id);
                   }}
                   className={cn(
-                    "p-3 rounded-xl border transition-all flex flex-col items-center justify-between gap-2 cursor-pointer relative text-left group",
+                    "p-3 rounded-xl border transition-colors flex flex-col items-center justify-between gap-2 cursor-pointer relative text-left group",
                     isSelected
                       ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/80 ring-1 ring-emerald-500 text-zinc-900 dark:text-zinc-100 shadow-xs"
                       : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
@@ -372,9 +446,10 @@ export default function Forest() {
                         : `${type.requiredMinutes}m`}
                     </span>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
+            </AnimatePresence>
           </div>
 
           {/* Selected Species Summary Card */}
@@ -422,6 +497,6 @@ export default function Forest() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

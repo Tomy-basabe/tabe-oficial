@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { StudyTask, TaskStatus, CreateTaskInput } from "@/types/tasks";
@@ -354,7 +355,9 @@ export default function Tasks() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200/60 dark:border-zinc-800/60">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
-            <CheckSquare className="w-6 h-6 text-zinc-900 dark:text-zinc-100 shrink-0" />
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 shrink-0">
+              <CheckSquare className="w-5 h-5" />
+            </span>
             <span>Gestor de Tareas</span>
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
@@ -384,7 +387,7 @@ export default function Tasks() {
       {/* Quick Summary Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs flex items-center gap-3">
-          <div className="p-2 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-lg">
+          <div className="p-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
             <ListTodo className="w-4 h-4" />
           </div>
           <div>
@@ -469,31 +472,48 @@ export default function Tasks() {
                   setSelectedSubjectFilter("all");
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
+                  "relative px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer select-none",
                   selectedYearFilter === "all"
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
+                    ? "text-zinc-900 dark:text-zinc-100"
                     : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
-                Todos
+                {selectedYearFilter === "all" && (
+                  <motion.span
+                    layoutId="tasks-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-md bg-white dark:bg-zinc-900 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
               </button>
-              {availableYears.map((yr) => (
-                <button
-                  key={yr}
-                  onClick={() => {
-                    setSelectedYearFilter(yr);
-                    setSelectedSubjectFilter("all");
-                  }}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
-                    selectedYearFilter === yr
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-                  )}
-                >
-                  {yr}°
-                </button>
-              ))}
+              {availableYears.map((yr) => {
+                const isSelected = selectedYearFilter === yr;
+                return (
+                  <button
+                    key={yr}
+                    onClick={() => {
+                      setSelectedYearFilter(yr);
+                      setSelectedSubjectFilter("all");
+                    }}
+                    className={cn(
+                      "relative px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer select-none",
+                      isSelected
+                        ? "text-zinc-900 dark:text-zinc-100"
+                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="tasks-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-md bg-white dark:bg-zinc-900 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">{yr}°</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 

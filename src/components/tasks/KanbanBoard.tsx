@@ -1,4 +1,5 @@
 import { StudyTask, TaskStatus } from "@/types/tasks";
+import { motion, AnimatePresence } from "framer-motion";
 import { TaskCard } from "./TaskCard";
 import { Plus, ListTodo, Zap, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,7 @@ export function KanbanBoard({
             </div>
 
             {/* Tasks Container */}
-            <div className="flex-1 space-y-2.5 overflow-y-auto">
+            <motion.div layout className="flex-1 space-y-2.5 overflow-y-auto">
               {columnTasks.length === 0 ? (
                 <div className="border border-dashed border-zinc-200 dark:border-zinc-800/80 rounded-xl p-8 text-center space-y-1.5 my-auto">
                   <p className="font-medium text-xs text-zinc-600 dark:text-zinc-400">
@@ -96,17 +97,36 @@ export function KanbanBoard({
                   </p>
                 </div>
               ) : (
-                columnTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onStatusChange={onStatusChange}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
-                ))
+                <AnimatePresence mode="popLayout">
+                  {columnTasks.map((task) => (
+                    <motion.div
+                      layout
+                      key={task.id}
+                      initial={{ opacity: 0, scale: 0.88, y: 10, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.84,
+                        y: -8,
+                        filter: "blur(5px)",
+                        transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] },
+                      }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                        duration: 0.22,
+                      }}
+                    >
+                      <TaskCard
+                        task={task}
+                        onStatusChange={onStatusChange}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
-            </div>
+            </motion.div>
 
             {/* Quick Add Button per Column (Notion Style) */}
             <button

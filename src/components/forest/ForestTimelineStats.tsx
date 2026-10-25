@@ -87,7 +87,8 @@ export const ForestTimelineStats: React.FC<ForestTimelineStatsProps> = ({
         ].map((card, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl p-4 sm:p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-3.5 transition-colors"
+            className="neo-bento-card tabe-stage-module bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl p-4 sm:p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs flex items-center gap-3.5 transition-all hover:scale-[1.01]"
+            style={{ "--module-idx": i } as React.CSSProperties}
           >
             <div className={cn("w-10 h-10 rounded-xl border flex items-center justify-center shrink-0", card.iconBg)}>
               <card.icon className={cn("w-5 h-5", card.iconColor)} />
@@ -107,7 +108,7 @@ export const ForestTimelineStats: React.FC<ForestTimelineStatsProps> = ({
       {/* Species Distribution & Lore Section */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Species Breakdown */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs p-5 sm:p-6 space-y-4">
+        <div className="neo-bento-card tabe-stage-module lg:col-span-2 bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs p-5 sm:p-6 space-y-4" style={{ "--module-idx": 4 } as React.CSSProperties}>
           <div className="flex items-center justify-between border-b border-zinc-200/80 dark:border-zinc-800/80 pb-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center">

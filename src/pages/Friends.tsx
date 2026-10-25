@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Users,
   UserPlus,
@@ -270,7 +271,7 @@ export default function Friends() {
   const myStat = friendStats.find(s => s.user_id === user?.id || (s.user_id === "guest" && !user));
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="tabe-page max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header Notion/ChatGPT Style */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-zinc-200/80 dark:border-zinc-800">
         <div className="space-y-1">
@@ -501,22 +502,32 @@ export default function Friends() {
               { key: "pomodoro", label: "Pomodoro", icon: Clock },
               { key: "study", label: "Horas de Estudio", icon: BookOpen },
               { key: "streak", label: "Racha", icon: Flame },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setLeaderboardType(key as typeof leaderboardType)}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer",
-                  leaderboardType === key
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs border border-zinc-200/80 dark:border-zinc-700/80 font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50"
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
+            ].map(({ key, label, icon: Icon }) => {
+              const isSelected = leaderboardType === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setLeaderboardType(key as typeof leaderboardType)}
+                  className={cn(
+                    "relative px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer",
+                    isSelected
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50"
+                  )}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="friends-rank-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-xs border border-zinc-200/80 dark:border-zinc-700/80"
+                    />
+                  )}
+                  <Icon className="relative z-10 w-3.5 h-3.5" />
+                  <span className="relative z-10">{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Tabla / Tarjeta de Ranking */}
@@ -548,6 +559,7 @@ export default function Friends() {
               </div>
             ) : (
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <AnimatePresence mode="popLayout" initial={false}>
                 {getSortedStats().map((stat, index) => {
                   const isMe = stat.user_id === user?.id || (stat.user_id === "guest" && !user);
                   const position = index + 1;
@@ -555,8 +567,16 @@ export default function Friends() {
                   const unread = unreadByFriend[stat.user_id] || 0;
 
                   return (
-                    <div
+                    <motion.div
+                      layout
                       key={stat.user_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 400, damping: 32, mass: 0.75 },
+                        opacity: { duration: 0.2 },
+                      }}
                       className={cn(
                         "flex items-center justify-between p-4 sm:px-6 transition-colors",
                         isMe
@@ -653,9 +673,10 @@ export default function Friends() {
                           {getStatValue(stat)}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
+                </AnimatePresence>
               </div>
             )}
           </div>
@@ -719,15 +740,24 @@ export default function Friends() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <AnimatePresence mode="popLayout" initial={false}>
               {filteredFriends.map(friendship => {
                 const stat = friendStats.find(s => s.user_id === friendship.friend.user_id);
                 const online = isUserOnline(friendship.friend.user_id);
                 const unread = unreadByFriend[friendship.friend.user_id] || 0;
 
                 return (
-                  <div
+                  <motion.div
+                    layout
                     key={friendship.id}
-                    className="p-5 rounded-2xl bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between group"
+                    initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                      opacity: { duration: 0.22 },
+                    }}
+                    className="p-5 rounded-2xl bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3 mb-4">
@@ -858,9 +888,10 @@ export default function Friends() {
                         </span>
                       )}
                     </Button>
-                  </div>
+                  </motion.div>
                 );
               })}
+              </AnimatePresence>
             </div>
           )}
 

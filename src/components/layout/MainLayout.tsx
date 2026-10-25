@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
@@ -405,7 +405,7 @@ export function MainLayout() {
               const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                 const targetPath = item.path || (item.type === "item" ? item.id : null);
                 if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
-                if ((targetPath === "/tabe-admin" || targetPath === "/admin") && !isSuperAdmin(user)) return null;
+                if (targetPath === "/tabe-admin" && !isSuperAdmin(user)) return null;
                 const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                 
                 if (!baseItem && item.type === "item") return null;
@@ -428,7 +428,7 @@ export function MainLayout() {
                       className="space-y-1.5 my-2 relative group/cat"
                       onMouseEnter={() => {
                         if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                        setHoveredCategory(item.id);
+                        setHoveredCategory(item.id); item.items?.forEach((sub: any) => preloadRoute(sub.path || sub.id));
                       }}
                       onMouseLeave={() => {
                         hoverTimeoutRef.current = setTimeout(() => {
@@ -455,7 +455,7 @@ export function MainLayout() {
 
                       {/* Floating Category Menu on Hover (Apple / Notion clean flyout) */}
                       {isHovered && item.items && (
-                        <div className="absolute left-[calc(100%+8px)] top-0 z-50 bg-white/95 dark:bg-[#1a1a1d]/95 backdrop-blur-md border border-zinc-200/90 dark:border-zinc-800/90 rounded-xl p-1.5 shadow-xl min-w-[200px] space-y-0.5 animate-in fade-in-0 zoom-in-95 duration-150">
+                        <div className="tabe-content-open tabe-dropdown-cascade absolute left-[calc(100%+8px)] top-0 z-50 bg-white/95 dark:bg-[#1a1a1d]/95 backdrop-blur-md border border-zinc-200/90 dark:border-zinc-800/90 rounded-xl p-1.5 shadow-xl min-w-[200px] space-y-0.5">
                           <div className="px-2.5 py-1.5 border-b border-zinc-100 dark:border-zinc-800/60 mb-1 flex items-center gap-2">
                             <div className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs border border-zinc-200/60 dark:border-zinc-700/60">
                               <Icon className="w-3 h-3 stroke-[2]" />
@@ -563,7 +563,7 @@ export function MainLayout() {
                 const renderNavItem = (item: any, isInsideCategory = false, index = 0) => {
                   const targetPath = item.path || (item.type === "item" ? item.id : null);
                   if (targetPath === "/tabetalk" || targetPath === "/discord") return null;
-                  if ((targetPath === "/tabe-admin" || targetPath === "/admin") && !isSuperAdmin(user)) return null;
+                  if (targetPath === "/tabe-admin" && !isSuperAdmin(user)) return null;
                   const baseItem = [...ALL_AVAILABLE_ITEMS, adminNavItem].find(b => b.path === targetPath);
                   
                   if (!baseItem && item.type === "item") return null;
@@ -588,7 +588,7 @@ export function MainLayout() {
                         className="space-y-1.5 my-2 relative"
                         onMouseEnter={() => {
                           if (!closedByClickRef.current[item.id]) {
-                            setHoveredCategory(item.id);
+                            setHoveredCategory(item.id); item.items?.forEach((sub: any) => preloadRoute(sub.path || sub.id));
                           }
                         }}
                         onMouseLeave={() => {
@@ -800,7 +800,7 @@ export function MainLayout() {
           : cn("pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
         <PageTransition className="w-full h-full">
-          <Outlet />
+          <Suspense fallback={<div className="w-full min-h-[60vh] flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>}><Outlet /></Suspense>
         </PageTransition>
       </main>
 

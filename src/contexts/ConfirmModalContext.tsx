@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, AlertCircle, Info, X, Check, Trash2 } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
-import { cn } from "@/lib/utils";
+import { cn, orchestrateContentOpen } from "@/lib/utils";
 import { HoldButton } from "@/components/ui/HoldButton";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
@@ -172,17 +173,30 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
 
-      {modalState?.isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={handleCancel}
-        >
-          <div
-            className="relative w-full max-w-md bg-[#FDFBF7] dark:bg-[#1E1E24] text-foreground border-4 border-black dark:border-white rounded-2xl shadow-[8px_8px_0px_#000] dark:shadow-[8px_8px_0px_#fff] p-6 animate-in zoom-in-95 duration-150 select-none overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {modalState?.isOpen && (
+          <motion.div
+            key="confirm-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={handleCancel}
           >
+            <motion.div
+              ref={(node) => {
+                if (node) orchestrateContentOpen(node, { skipContainerClass: true });
+              }}
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8, transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-md bg-[#FDFBF7] dark:bg-[#1E1E24] text-foreground border-4 border-black dark:border-white rounded-2xl shadow-[8px_8px_0px_#000] dark:shadow-[8px_8px_0px_#fff] p-6 select-none overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Cabecera / Badge */}
             <div className="flex items-center justify-between gap-3 border-b-4 border-black dark:border-white pb-3 mb-4">
               <div className="flex items-center gap-2">
@@ -272,9 +286,10 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </ConfirmContext.Provider>
   );
 };

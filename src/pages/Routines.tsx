@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -777,45 +778,39 @@ export default function Routines() {
                 <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
                     {/* View Switcher Tabs */}
                     <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
-                        <button
-                            type="button"
-                            onClick={() => setViewMode("both")}
-                            className={cn(
-                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                                viewMode === "both"
-                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                            )}
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Vista Completa</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewMode("grid")}
-                            className={cn(
-                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                                viewMode === "grid"
-                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                            )}
-                        >
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>Grilla</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewMode("list")}
-                            className={cn(
-                                "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                                viewMode === "list"
-                                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                            )}
-                        >
-                            <List className="w-3.5 h-3.5" />
-                            <span>Lista</span>
-                        </button>
+                        {([
+                            { id: "both", label: "Vista Completa", icon: LayoutGrid, hideLabelOnMobile: true },
+                            { id: "grid", label: "Grilla", icon: Calendar, hideLabelOnMobile: false },
+                            { id: "list", label: "Lista", icon: List, hideLabelOnMobile: false },
+                        ] as const).map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = viewMode === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setViewMode(tab.id)}
+                                    className={cn(
+                                        "relative px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer",
+                                        isActive
+                                            ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                                    )}
+                                >
+                                    {isActive && (
+                                        <motion.span
+                                            layoutId="routines-view-pill"
+                                            transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                                            className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-900 shadow-2xs"
+                                        />
+                                    )}
+                                    <Icon className="relative z-10 w-3.5 h-3.5" />
+                                    <span className={cn("relative z-10", tab.hideLabelOnMobile && "hidden sm:inline")}>
+                                        {tab.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* New Routine CTA */}
@@ -1131,18 +1126,27 @@ export default function Routines() {
                                 </span>
                             </div>
 
-                            {routines.length > 0 ? (
+                            {routines.filter(filterRoutine).length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                    {routines.map((r) => {
+                                    <AnimatePresence mode="popLayout" initial={false}>
+                                    {routines.filter(filterRoutine).map((r) => {
                                         const streak = getRoutineStreak(r.id);
                                         const cat = CATEGORIES.find((c) => c.id === r.category);
                                         const dayNames = r.days_of_week.map((d) => DAY_LABELS[d]).join(", ");
                                         const sub = r.subject_id ? subjectMap.get(r.subject_id) : null;
 
                                         return (
-                                            <div
+                                            <motion.div
+                                                layout
                                                 key={r.id}
-                                                className="bg-white dark:bg-[#18181b] rounded-2xl p-4 sm:p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between gap-3 group"
+                                                initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                                                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                                                exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                                                transition={{
+                                                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                                                    opacity: { duration: 0.22 },
+                                                }}
+                                                className="bg-white dark:bg-[#18181b] rounded-2xl p-4 sm:p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col justify-between gap-3 group"
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <div
@@ -1221,9 +1225,10 @@ export default function Routines() {
                                                         </button>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </motion.div>
                                         );
                                     })}
+                                    </AnimatePresence>
                                 </div>
                             ) : (
                                 <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center gap-3">

@@ -240,7 +240,7 @@ const AppRoutes = () => (
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/settings" element={<Navigate to="/configuracion" replace />} />
       <Route path="/tabe-admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-      <Route path="/admin" element={<Navigate to="/tabe-admin" replace />} />
+      <Route path="/admin" element={<NotFound />} />
       <Route path="/bosque" element={<Forest />} />
       <Route path="/rutinas" element={<Routines />} />
       <Route path="/tabetalk" element={<Tabetalk />} />

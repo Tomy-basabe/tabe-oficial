@@ -79,7 +79,6 @@ export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/amigos": "AmigosCustomIcon",
   "/TABEAI": "TabeAIIcon",
   "/tabe-admin": "Shield",
-  "/admin": "Shield",
   "/configuracion": "Settings",
   "/examenes": "ExamenesIcon",
   "/juegos": "Arcade",

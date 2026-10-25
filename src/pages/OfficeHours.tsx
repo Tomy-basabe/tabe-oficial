@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubjects } from "@/hooks/useSubjects";
@@ -696,26 +697,59 @@ export default function OfficeHours() {
 
           {/* Filter Dropdowns */}
           <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-            {/* Year Select */}
-            <Select
-              value={selectedYear}
-              onValueChange={(val) => {
-                setSelectedYear(val);
-                setSelectedSubjectId("all");
-              }}
-            >
-              <SelectTrigger className="h-8.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-400">
-                <SelectValue placeholder="Año" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md rounded-xl shadow-md text-xs">
-                <SelectItem value="all">Todos los años</SelectItem>
-                {years.map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}° Año
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Year Filter Pills */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear("all");
+                  setSelectedSubjectId("all");
+                }}
+                className={cn(
+                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  selectedYear === "all"
+                    ? "text-white dark:text-zinc-900"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                )}
+              >
+                {selectedYear === "all" && (
+                  <motion.span
+                    layoutId="officehours-year-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
+              </button>
+              {years.map((y) => {
+                const isSelected = selectedYear === String(y);
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => {
+                      setSelectedYear(String(y));
+                      setSelectedSubjectId("all");
+                    }}
+                    className={cn(
+                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      isSelected
+                        ? "text-white dark:text-zinc-900"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="officehours-year-pill"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-zinc-100 shadow-2xs"
+                      />
+                    )}
+                    <span className="relative z-10">{y}° Año</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Subject Select */}
             <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
@@ -820,16 +854,31 @@ export default function OfficeHours() {
               </div>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-              {filteredProfessors.map((prof) => {
-                const theme = PROFESSOR_COLOR_THEMES[prof.color_index % PROFESSOR_COLOR_THEMES.length];
-                const profHours = officeHours.filter((oh) => oh.professor_id === prof.id);
+            <motion.div layout className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              <AnimatePresence mode="popLayout">
+                {filteredProfessors.map((prof) => {
+                  const theme = PROFESSOR_COLOR_THEMES[prof.color_index % PROFESSOR_COLOR_THEMES.length];
+                  const profHours = officeHours.filter((oh) => oh.professor_id === prof.id);
 
-                return (
-                  <div
-                    key={prof.id}
-                    className="group bg-white dark:bg-[#18181b] rounded-xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between"
-                  >
+                  return (
+                    <motion.div
+                      layout
+                      key={prof.id}
+                      initial={{ opacity: 0, scale: 0.88, y: 12, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.84,
+                        y: -10,
+                        filter: "blur(5px)",
+                        transition: { duration: 0.2, ease: [0.32, 0, 0.67, 0] },
+                      }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                        duration: 0.24,
+                      }}
+                      className="group bg-white dark:bg-[#18181b] rounded-xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex flex-col justify-between"
+                    >
                     <div>
                       {/* Card Header */}
                       <div className="flex items-start justify-between gap-2">
@@ -950,10 +999,11 @@ export default function OfficeHours() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+              </AnimatePresence>
+            </motion.div>
           )}
         </div>
       )}

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Minimize2, Maximize2, Radio } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, orchestrateContentOpen } from "@/lib/utils";
 import { useAIPersonas } from "@/hooks/useAIPersonas";
 import { useAIChat, DisplayMessage } from "@/contexts/AIChatContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,8 +21,6 @@ export function ProfessionalAILogo({
 }) {
     return <TabeAIIcon className={className} variant="gradient" inverted={inverted} />;
 }
-
-
 
 const PAGE_CONTEXT_MAP: Record<string, string> = {
     "/": "Dashboard - Vista general del estudiante",
@@ -157,154 +156,163 @@ export function AIBubbleWidget() {
     return (
         <>
             {/* Chat Panel */}
-            {isOpen && (
-                <div
-                    className={cn(
-                        "fixed bottom-24 right-3 sm:right-4 z-[60] w-[375px] max-w-[calc(100vw-1.5rem)] rounded-2xl flex flex-col overflow-hidden relative",
-                        // Light Mode: Fondo degradé nítido con borde negro sólido y sombra neobrutalista
-                        "bg-gradient-to-b from-white via-slate-50 to-indigo-50/40 border-[3px] border-black shadow-[8px_8px_0_0_#000000]",
-                        // Dark Mode: Fondo cósmico profundo con borde cian tenue y glow tecnológico
-                        "dark:bg-gradient-to-b dark:from-[#0c1222] dark:via-[#090d18] dark:to-[#05070e] dark:border-cyan-500/40 dark:shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(6,182,212,0.18)]",
-                        "animate-in fade-in slide-in-from-bottom-4 duration-300"
-                    )}
-                    style={{ maxHeight: "min(520px, 65vh)" }}
-                >
-                    {/* Atmospheric background glows */}
-                    <div className="absolute -top-16 -right-16 w-44 h-44 bg-gradient-to-br from-indigo-500/15 via-purple-500/15 to-transparent dark:from-cyan-500/15 dark:via-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-                    <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-tr from-cyan-500/10 via-emerald-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-
-                    {/* Header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-black/10 dark:border-cyan-500/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md relative z-10">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-black dark:border-cyan-400/60 shadow-[2px_2px_0_0_#000000] dark:shadow-[0_0_10px_rgba(6,182,212,0.4)] shrink-0">
-                            <ProfessionalAILogo className="w-full h-full" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                                <p className="text-sm font-black uppercase tracking-wide truncate text-foreground">
-                                    {activePersona?.name || "T.A.B.E. IA"}
-                                </p>
-                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                            </div>
-                            <div className="flex items-center gap-1.5 truncate">
-                                <span className="text-[10px] font-bold text-muted-foreground truncate">
-                                    📍 {currentContext}
-                                </span>
-                                <span
-                                    className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 hidden sm:inline-block"
-                                    style={{
-                                        borderColor: `${selectedModel?.color || '#00E5FF'}60`,
-                                        color: selectedModel?.color || '#00E5FF',
-                                        backgroundColor: `${selectedModel?.color || '#00E5FF'}15`,
-                                    }}
-                                >
-                                    {selectedModel?.name?.split(" ")[0] || "IA"}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => {
-                                    setIsOpen(false);
-                                    navigate("/TABEAI");
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
-                                title="Abrir página completa de la IA"
-                            >
-                                <Maximize2 className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={handleToggle}
-                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
-                                title="Minimizar"
-                            >
-                                <Minimize2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
-                        {messages.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
-                                <div className="w-14 h-14 flex items-center justify-center mb-2">
-                                    <ProfessionalAILogo className="w-full h-full" />
-                                </div>
-                                <p className="text-xs font-bold">
-                                    Preguntame lo que quieras sobre<br />
-                                    <span className="font-black text-foreground uppercase">{currentContext}</span>
-                                </p>
-                            </div>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        key="ai-bubble-panel"
+                        ref={(node) => {
+                            if (node) orchestrateContentOpen(node, { skipContainerClass: true });
+                        }}
+                        initial={{ opacity: 0, scale: 0.9, y: 16 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 14, transition: { duration: 0.17, ease: [0.32, 0, 0.67, 0] } }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        className={cn(
+                            "fixed bottom-24 right-3 sm:right-4 z-[60] w-[375px] max-w-[calc(100vw-1.5rem)] rounded-2xl flex flex-col overflow-hidden relative origin-bottom-right",
+                            // Light Mode: Fondo degradé nítido con borde negro sólido y sombra neobrutalista
+                            "bg-gradient-to-b from-white via-slate-50 to-indigo-50/40 border-[3px] border-black shadow-[8px_8px_0_0_#000000]",
+                            // Dark Mode: Fondo cósmico profundo con borde cian tenue y glow tecnológico
+                            "dark:bg-gradient-to-b dark:from-[#0c1222] dark:via-[#090d18] dark:to-[#05070e] dark:border-cyan-500/40 dark:shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(6,182,212,0.18)]"
                         )}
-                        {messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={cn(
-                                    "flex gap-2",
-                                    msg.role === "user" ? "justify-end" : "justify-start items-start"
-                                )}
-                            >
-                                {msg.role === "assistant" && (
-                                    <div className="w-6 h-6 shrink-0 mt-0.5">
+                        style={{ maxHeight: "min(520px, 65vh)" }}
+                    >
+                        {/* Atmospheric background glows */}
+                        <div className="absolute -top-16 -right-16 w-44 h-44 bg-gradient-to-br from-indigo-500/15 via-purple-500/15 to-transparent dark:from-cyan-500/15 dark:via-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-tr from-cyan-500/10 via-emerald-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+                        {/* Header */}
+                        <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-black/10 dark:border-cyan-500/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md relative z-10">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-black dark:border-cyan-400/60 shadow-[2px_2px_0_0_#000000] dark:shadow-[0_0_10px_rgba(6,182,212,0.4)] shrink-0">
+                                <ProfessionalAILogo className="w-full h-full" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-black uppercase tracking-wide truncate text-foreground">
+                                        {activePersona?.name || "T.A.B.E. IA"}
+                                    </p>
+                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                </div>
+                                <div className="flex items-center gap-1.5 truncate">
+                                    <span className="text-[10px] font-bold text-muted-foreground truncate">
+                                        📍 {currentContext}
+                                    </span>
+                                    <span
+                                        className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 hidden sm:inline-block"
+                                        style={{
+                                            borderColor: `${selectedModel?.color || '#00E5FF'}60`,
+                                            color: selectedModel?.color || '#00E5FF',
+                                            backgroundColor: `${selectedModel?.color || '#00E5FF'}15`,
+                                        }}
+                                    >
+                                        {selectedModel?.name?.split(" ")[0] || "IA"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        navigate("/TABEAI");
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                    title="Abrir página completa de la IA"
+                                >
+                                    <Maximize2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={handleToggle}
+                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                    title="Minimizar"
+                                >
+                                    <Minimize2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
+                            {messages.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
+                                    <div className="w-14 h-14 flex items-center justify-center mb-2">
                                         <ProfessionalAILogo className="w-full h-full" />
                                     </div>
-                                )}
+                                    <p className="text-xs font-bold">
+                                        Preguntame lo que quieras sobre<br />
+                                        <span className="font-black text-foreground uppercase">{currentContext}</span>
+                                    </p>
+                                </div>
+                            )}
+                            {messages.map((msg) => (
                                 <div
+                                    key={msg.id}
                                     className={cn(
-                                        "text-sm leading-relaxed",
-                                        msg.role === "user"
-                                            ? "max-w-[85%] rounded-2xl px-3.5 py-2 font-bold bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
-                                            : "flex-1 min-w-0 bg-transparent text-foreground font-normal py-0.5"
+                                        "flex gap-2",
+                                        msg.role === "user" ? "justify-end" : "justify-start items-start"
                                     )}
                                 >
-                                    {!msg.content && isStreaming && (
-                                        <AIThinkingIndicator personaName={activePersona?.name} state={aiStatus?.state} label={aiStatus?.label} detail={aiStatus?.detail} />
+                                    {msg.role === "assistant" && (
+                                        <div className="w-6 h-6 shrink-0 mt-0.5">
+                                            <ProfessionalAILogo className="w-full h-full" />
+                                        </div>
                                     )}
-                                    {msg.content && msg.role === "assistant" ? (
-                                        <ChatMessageContent content={msg.content} className="prose-p:leading-snug prose-p:my-1 text-xs md:text-sm" />
-                                    ) : (
-                                        <span className="whitespace-pre-wrap">{msg.content}</span>
-                                    )}
+                                    <div
+                                        className={cn(
+                                            "text-sm leading-relaxed",
+                                            msg.role === "user"
+                                                ? "max-w-[85%] rounded-2xl px-3.5 py-2 font-bold bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
+                                                : "flex-1 min-w-0 bg-transparent text-foreground font-normal py-0.5"
+                                        )}
+                                    >
+                                        {!msg.content && isStreaming && (
+                                            <AIThinkingIndicator personaName={activePersona?.name} state={aiStatus?.state} label={aiStatus?.label} detail={aiStatus?.detail} />
+                                        )}
+                                        {msg.content && msg.role === "assistant" ? (
+                                            <ChatMessageContent content={msg.content} className="prose-p:leading-snug prose-p:my-1 text-xs md:text-sm" />
+                                        ) : (
+                                            <span className="whitespace-pre-wrap">{msg.content}</span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input */}
-                    <div className="px-3 py-2.5 border-t border-black/10 dark:border-cyan-500/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md relative z-10">
-                        <div className="flex items-center gap-2">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Escribí tu mensaje..."
-                                disabled={isStreaming}
-                                className="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800/70 border-2 border-black/10 dark:border-cyan-500/30 rounded-xl text-sm font-bold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground placeholder:text-muted-foreground/60"
-                            />
-                            <button
-                                onClick={() => navigate("/asistente?live=true")}
-                                className="p-2 rounded-xl bg-[#00E5FF] hover:bg-[#00cce6] text-black transition-all border-2 border-black/20 shadow-sm cursor-pointer"
-                                title="Iniciar Modo de Voz en Vivo (ChatGPT / Gemini Live)"
-                            >
-                                <Radio className="w-4 h-4 stroke-[2.5] animate-pulse" />
-                            </button>
-                            <button
-                                onClick={handleSend}
-                                disabled={isStreaming || !input.trim()}
-                                className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm cursor-pointer"
-                            >
-                                {isStreaming ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Send className="w-4 h-4" />
-                                )}
-                            </button>
+                            ))}
+                            <div ref={messagesEndRef} />
                         </div>
-                    </div>
-                </div>
-            )}
+
+                        {/* Input */}
+                        <div className="px-3 py-2.5 border-t border-black/10 dark:border-cyan-500/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md relative z-10">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Escribí tu mensaje..."
+                                    disabled={isStreaming}
+                                    className="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800/70 border-2 border-black/10 dark:border-cyan-500/30 rounded-xl text-sm font-bold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground placeholder:text-muted-foreground/60"
+                                />
+                                <button
+                                    onClick={() => navigate("/asistente?live=true")}
+                                    className="p-2 rounded-xl bg-[#00E5FF] hover:bg-[#00cce6] text-black transition-all border-2 border-black/20 shadow-sm cursor-pointer"
+                                    title="Iniciar Modo de Voz en Vivo (ChatGPT / Gemini Live)"
+                                >
+                                    <Radio className="w-4 h-4 stroke-[2.5] animate-pulse" />
+                                </button>
+                                <button
+                                    onClick={handleSend}
+                                    disabled={isStreaming || !input.trim()}
+                                    className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm cursor-pointer"
+                                >
+                                    {isStreaming ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Floating Bubble Button */}
             <button

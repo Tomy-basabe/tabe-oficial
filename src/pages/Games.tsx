@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Trophy, Flame, Zap, Target, Swords, Clock, ChevronRight, Users, Bot, Gauge, Bomb, Crown, Goal, GraduationCap, Search, LayoutGrid, Play, KeyRound, Check, Minus, X, Shield, Layers, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -177,7 +178,7 @@ export default function Games() {
   const winRate = stats.totalGames > 0 ? Math.round((stats.wins / stats.totalGames) * 100) : 0;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 space-y-8 text-foreground max-w-7xl mx-auto">
+    <div className="tabe-page min-h-screen p-4 md:p-8 space-y-8 text-foreground max-w-7xl mx-auto">
       {/* Notion-style Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-border/60">
         <div className="space-y-1.5">
@@ -293,20 +294,30 @@ export default function Games() {
               { id: "all", label: "Todos los juegos" },
               { id: "1v1", label: "1 vs 1 Multijugador" },
               { id: "solo", label: "Solitario / IA" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveFilter(tab.id as any)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0",
-                  activeFilter === tab.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+            ].map((tab) => {
+              const isSelected = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id as any)}
+                  className={cn(
+                    "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer",
+                    isSelected
+                      ? "text-primary-foreground"
+                      : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
+                  )}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="games-filter-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search Input */}
@@ -323,16 +334,25 @@ export default function Games() {
 
         {/* Games Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <AnimatePresence mode="popLayout" initial={false}>
           {filteredGames.map((game) => {
             const IconComponent = game.icon;
             const isFeatured = game.highlight;
 
             return (
-              <div
+              <motion.div
+                layout
                 key={game.id}
+                initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                transition={{
+                  layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                  opacity: { duration: 0.22 },
+                }}
                 onClick={() => handleOpenGame(game.path, game.title, game.type)}
                 className={cn(
-                  "bg-card/70 border rounded-xl p-5 transition-all duration-200 flex flex-col justify-between group cursor-pointer hover:shadow-md hover:border-primary/50 relative overflow-hidden",
+                  "bg-card/70 border rounded-xl p-5 transition-colors duration-200 flex flex-col justify-between group cursor-pointer hover:shadow-md hover:border-primary/50 relative overflow-hidden",
                   isFeatured 
                     ? "md:col-span-2 lg:col-span-3 border-primary/30 bg-gradient-to-r from-card/90 via-card/70 to-primary/5"
                     : "border-border/70"
@@ -385,9 +405,10 @@ export default function Games() {
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
+          </AnimatePresence>
         </div>
 
         {filteredGames.length === 0 && (

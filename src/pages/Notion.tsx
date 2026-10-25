@@ -44,6 +44,42 @@ import { resolveDocSubject, normalizeSubjectName } from "@/lib/notionSubjectHelp
 import { subscribeNotionSync, broadcastNotionDocUpdate } from "@/lib/notionSync";
 import { usePageTitle } from "@/hooks/useDynamicTitle";
 import { useStudyTimer } from "@/contexts/StudyTimerContext";
+import { motion, AnimatePresence } from "framer-motion";
+
+const getYearAccent = (year?: number) => {
+  switch (year) {
+    case 1:
+      return {
+        badge: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200/60 dark:border-sky-800/60",
+        dot: "bg-sky-500",
+      };
+    case 2:
+      return {
+        badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60",
+        dot: "bg-emerald-500",
+      };
+    case 3:
+      return {
+        badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60",
+        dot: "bg-amber-500",
+      };
+    case 4:
+      return {
+        badge: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/60",
+        dot: "bg-purple-500",
+      };
+    case 5:
+      return {
+        badge: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60",
+        dot: "bg-rose-500",
+      };
+    default:
+      return {
+        badge: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60",
+        dot: "bg-zinc-400",
+      };
+  }
+};
 
 interface Subject {
   id: string;
@@ -279,7 +315,7 @@ const GalleryCard = ({
               <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded border border-zinc-200/60 dark:border-zinc-700/60" title={resolvedSubject.nombre}>
                 {resolvedSubject.codigo || resolvedSubject.nombre}
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400 rounded border border-zinc-200/60 dark:border-zinc-700/60">
+              <span className={cn("inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border", getYearAccent(resolvedSubject.año).badge)}>
                 Año {resolvedSubject.año}
               </span>
               {resolvedSubject.isLinkedToMyPlan && !isOwner && (
@@ -3270,9 +3306,9 @@ export default function Notion() {
             )
           ) : (
             /* Empty state / Gallery View */
-            <div className="flex flex-col h-full bg-background text-foreground">
+            <div className="tabe-page flex flex-col h-full bg-background text-foreground">
               {/* Header and Tabs */}
-              <div className="flex flex-col gap-5 px-6 md:px-10 py-6 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#171717] text-foreground">
+              <div className="flex flex-col gap-4 px-6 md:px-10 py-6 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#171717] text-foreground">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Tus Apuntes</h1>
 
@@ -3325,7 +3361,7 @@ export default function Notion() {
                         key={tab.id}
                         onClick={() => setFilterOwner(tab.id as any)}
                         className={cn(
-                          "px-3 py-1.5 font-medium text-xs rounded-lg transition-colors",
+                          "px-3 py-1.5 font-medium text-xs rounded-lg transition-colors cursor-pointer",
                           filterOwner === tab.id
                             ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
                             : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
@@ -3336,41 +3372,61 @@ export default function Notion() {
                     ))}
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    {/* Filter by Year */}
-                    <Select value={filterYear} onValueChange={(val) => { setFilterYear(val); setFilterSubject("all"); }}>
-                      <SelectTrigger className="w-[140px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
-                        <Filter className="w-4 h-4 mr-2 text-zinc-500" />
-                        <SelectValue placeholder="Año" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
-                        <SelectItem value="all" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Todos los años</SelectItem>
-                        {uniqueYears.map(year => (
-                          <SelectItem key={year} value={year.toString()} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Año {year}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Filter by Subject */}
-                    <Select value={filterSubject} onValueChange={setFilterSubject}>
-                      <SelectTrigger className="w-[160px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
-                        <Filter className="w-4 h-4 mr-2 text-zinc-500" />
-                        <SelectValue placeholder="Materias" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
-                        <SelectItem value="all" className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">Todas las materias</SelectItem>
-                        {filterSubjectOptions
-                          .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
-                          .map(sub => (
-                            <SelectItem key={sub.id} value={sub.id} className="font-medium text-xs cursor-pointer focus:bg-zinc-100 dark:focus:bg-zinc-800/80 rounded-lg">{sub.name}</SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* Píldoras directas de Filtro por Año */}
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80">
+                      <button
+                        type="button"
+                        onClick={() => { setFilterYear("all"); setFilterSubject("all"); }}
+                        className={cn(
+                          "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
+                          filterYear === "all"
+                            ? "text-white dark:text-zinc-900"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                        )}
+                      >
+                        {filterYear === "all" && (
+                          <motion.span
+                            layoutId="notion-gallery-year-pill"
+                            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                            className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+                          />
+                        )}
+                        <span className="relative z-10">Todos los años</span>
+                      </button>
+                      {uniqueYears.map(year => {
+                        const isSelected = filterYear === year.toString();
+                        const accent = getYearAccent(year);
+                        return (
+                          <button
+                            key={year}
+                            type="button"
+                            onClick={() => { setFilterYear(year.toString()); setFilterSubject("all"); }}
+                            className={cn(
+                              "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5",
+                              isSelected
+                                ? "text-white dark:text-zinc-900"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                            )}
+                          >
+                            {isSelected && (
+                              <motion.span
+                                layoutId="notion-gallery-year-pill"
+                                transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                                className="absolute inset-0 rounded-lg bg-zinc-900 dark:bg-white shadow-2xs"
+                              />
+                            )}
+                            <span className={cn("relative z-10 w-1.5 h-1.5 rounded-full", accent.dot)} />
+                            <span className="relative z-10">{year}° Año</span>
+                          </button>
+                        );
+                      })}
+                    </div>
 
                     {/* Sort */}
                     <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                      <SelectTrigger className="w-[160px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
-                        <ArrowUpDown className="w-4 h-4 mr-2 text-zinc-500" />
+                      <SelectTrigger className="w-[140px] bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 font-medium text-xs rounded-lg shadow-2xs h-8 focus:ring-0">
+                        <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
                         <SelectValue placeholder="Ordenar" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-lg p-1.5">
@@ -3381,6 +3437,60 @@ export default function Notion() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Barra de Materias animada por Año: las materias de otros años se retiran y quedan solo las filtradas */}
+                {filterSubjectOptions.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-zinc-100 dark:border-zinc-800/70">
+                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 mr-1 flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      Materias:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFilterSubject("all")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border",
+                        filterSubject === "all"
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                          : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      )}
+                    >
+                      Todas
+                    </button>
+                    <AnimatePresence mode="popLayout">
+                      {filterSubjectOptions
+                        .filter(sub => filterYear === "all" || sub.año.toString() === filterYear)
+                        .map(sub => {
+                          const isSubActive = filterSubject === sub.id;
+                          const accent = getYearAccent(sub.año);
+                          return (
+                            <motion.button
+                              layout
+                              key={sub.id}
+                              type="button"
+                              initial={{ opacity: 0, scale: 0.82, y: 6, filter: "blur(4px)" }}
+                              animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                              exit={{ opacity: 0, scale: 0.78, y: -6, filter: "blur(4px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                              transition={{
+                                layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.7 },
+                                duration: 0.22,
+                              }}
+                              onClick={() => setFilterSubject(isSubActive ? "all" : sub.id)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border flex items-center gap-1.5",
+                                isSubActive
+                                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-2xs"
+                                  : "bg-white dark:bg-[#212121] text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80"
+                              )}
+                            >
+                              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", accent.dot)} />
+                              <span className="truncate max-w-[180px]">{sub.name}</span>
+                            </motion.button>
+                          );
+                        })}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* Grid */}
@@ -3408,51 +3518,74 @@ export default function Notion() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredAndSortedDocuments.map((doc) => (
-                      <MemoizedGalleryCard
-                        key={doc.id}
-                        doc={doc}
-                        userSubjects={subjects}
-                        onClick={openDocument}
-                        onToggleFavorite={handleToggleFavorite}
-                        onRename={(d) => {
-                          setDocToRename(d);
-                          setNewTitle(d.titulo || "");
-                          setShowRenameModal(true);
-                        }}
-                        onChangeSubject={(d) => {
-                          setDocToChangeSubject(d);
-                          setModalYear(null);
-                          setShowChangeSubjectModal(true);
-                        }}
-                        onDelete={(d) => {
-                          setDocToDelete(d);
-                          setShowDeleteModal(true);
-                        }}
-                        currentUserId={user?.id}
-                        friendsList={friendsList}
-                        onShare={(d) => {
-                          setDocToShare(d);
-                          setShowShareModal(true);
-                        }}
-                        onImportFriendDoc={(d) => {
-                          const matchedFriend = friendsList.find(f => f.user_id === d.user_id);
-                          setPreselectedFriendNote({
-                            id: d.id,
-                            titulo: d.titulo,
-                            emoji: d.emoji,
-                            subject_id: d.subject_id,
-                            user_id: d.user_id,
-                            ownerName: d.owner?.nombre || d.owner?.username || matchedFriend?.nombre || matchedFriend?.username || "tu amigo",
-                            cover_url: d.cover_url,
-                            subject: d.subject
-                          });
-                          setShowImportFriendModal(true);
-                        }}
-                      />
-                    ))}
-                  </div>
+                  <motion.div
+                    layout
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {filteredAndSortedDocuments.map((doc) => (
+                        <motion.div
+                          layout
+                          key={doc.id}
+                          initial={{ opacity: 0, scale: 0.88, y: 14, filter: "blur(5px)" }}
+                          animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                          exit={{
+                            opacity: 0,
+                            scale: 0.84,
+                            y: -12,
+                            filter: "blur(6px)",
+                            transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] },
+                          }}
+                          transition={{
+                            layout: { type: "spring", stiffness: 360, damping: 28, mass: 0.72 },
+                            duration: 0.26,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                        >
+                          <MemoizedGalleryCard
+                            doc={doc}
+                            userSubjects={subjects}
+                            onClick={openDocument}
+                            onToggleFavorite={handleToggleFavorite}
+                            onRename={(d) => {
+                              setDocToRename(d);
+                              setNewTitle(d.titulo || "");
+                              setShowRenameModal(true);
+                            }}
+                            onChangeSubject={(d) => {
+                              setDocToChangeSubject(d);
+                              setModalYear(null);
+                              setShowChangeSubjectModal(true);
+                            }}
+                            onDelete={(d) => {
+                              setDocToDelete(d);
+                              setShowDeleteModal(true);
+                            }}
+                            currentUserId={user?.id}
+                            friendsList={friendsList}
+                            onShare={(d) => {
+                              setDocToShare(d);
+                              setShowShareModal(true);
+                            }}
+                            onImportFriendDoc={(d) => {
+                              const matchedFriend = friendsList.find(f => f.user_id === d.user_id);
+                              setPreselectedFriendNote({
+                                id: d.id,
+                                titulo: d.titulo,
+                                emoji: d.emoji,
+                                subject_id: d.subject_id,
+                                user_id: d.user_id,
+                                ownerName: d.owner?.nombre || d.owner?.username || matchedFriend?.nombre || matchedFriend?.username || "tu amigo",
+                                cover_url: d.cover_url,
+                                subject: d.subject
+                              });
+                              setShowImportFriendModal(true);
+                            }}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 )}
               </div>
             </div>
@@ -3607,59 +3740,70 @@ export default function Notion() {
 
                   <div>
                     <span className="text-[11px] font-bold text-muted-foreground uppercase block mb-1.5">Elegí la materia:</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
-                      {modalSubjects.map((subject) => {
-                        const isApproved = subject.status === "aprobada";
-                        const isSelected = newDocSubjectId === subject.id;
-                        return (
-                          <button
-                            key={subject.id}
-                            type="button"
-                            onClick={() => setNewDocSubjectId(subject.id)}
-                            className={cn(
-                              "p-2.5 rounded-lg border text-left transition-all group relative",
-                              isSelected
-                                ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
-                                : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-1 mb-1">
-                              <span className={cn(
-                                "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
-                                isApproved
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
-                                  : isSelected
-                                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
-                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
-                              )}>
-                                {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
-                              </span>
-                              <span className={cn(
-                                "text-[10px] transition-colors",
+                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
+                      <AnimatePresence mode="popLayout">
+                        {modalSubjects.map((subject) => {
+                          const isApproved = subject.status === "aprobada";
+                          const isSelected = newDocSubjectId === subject.id;
+                          const accent = getYearAccent(subject.año);
+                          return (
+                            <motion.button
+                              layout
+                              key={subject.id}
+                              type="button"
+                              initial={{ opacity: 0, scale: 0.86, y: 10, filter: "blur(4px)" }}
+                              animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                              exit={{ opacity: 0, scale: 0.82, y: -8, filter: "blur(5px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                              transition={{
+                                layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.72 },
+                                duration: 0.22,
+                              }}
+                              onClick={() => setNewDocSubjectId(subject.id)}
+                              className={cn(
+                                "p-2.5 rounded-lg border text-left transition-colors group relative",
                                 isSelected
-                                  ? "text-zinc-900 font-semibold"
-                                  : "text-zinc-500 group-hover:text-zinc-900 font-semibold"
+                                  ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                                  : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className={cn(
+                                  "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
+                                  isApproved
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
+                                    : isSelected
+                                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                                      : accent.badge
+                                )}>
+                                  {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
+                                </span>
+                                <span className={cn(
+                                  "text-[10px] transition-colors",
+                                  isSelected
+                                    ? "text-zinc-900 font-semibold"
+                                    : "text-zinc-500 group-hover:text-zinc-900 font-semibold"
+                                )}>
+                                  Año {subject.año}
+                                </span>
+                              </div>
+                              <p className={cn(
+                                "text-xs truncate transition-colors font-medium mt-1",
+                                isSelected
+                                  ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                                  : "text-zinc-900 dark:text-zinc-100"
                               )}>
-                                Año {subject.año}
-                              </span>
-                            </div>
-                            <p className={cn(
-                              "text-xs truncate transition-colors font-medium mt-1",
-                              isSelected
-                                ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                                : "text-zinc-900 dark:text-zinc-100"
-                            )}>
-                              {subject.nombre}
-                            </p>
-                          </button>
-                        );
-                      })}
+                                {subject.nombre}
+                              </p>
+                            </motion.button>
+                          );
+                        })}
+                      </AnimatePresence>
                       {modalSubjects.length === 0 && (
                         <div className="col-span-full py-4 text-center text-xs font-bold text-muted-foreground">
                           No hay materias registradas para este filtro.
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               )}
@@ -3803,59 +3947,70 @@ export default function Notion() {
               <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
                 Materia Destino
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
-                {modalSubjects.map((subject) => {
-                  const isApproved = subject.status === "aprobada";
-                  const isSelected = activeDocument?.subject_id === subject.id;
-                  return (
-                    <button
-                      key={subject.id}
-                      type="button"
-                      onClick={() => handleChangeSubjectSubmit(subject.id)}
-                      className={cn(
-                        "p-2.5 rounded-lg border text-left transition-all group relative",
-                        isSelected
-                          ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
-                          : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className={cn(
-                          "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
-                          isApproved
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
-                            : isSelected
-                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
-                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60"
-                        )}>
-                          {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
-                        </span>
-                        <span className={cn(
-                          "text-[10px] transition-colors",
+              <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                <AnimatePresence mode="popLayout">
+                  {modalSubjects.map((subject) => {
+                    const isApproved = subject.status === "aprobada";
+                    const isSelected = activeDocument?.subject_id === subject.id;
+                    const accent = getYearAccent(subject.año);
+                    return (
+                      <motion.button
+                        layout
+                        key={subject.id}
+                        type="button"
+                        initial={{ opacity: 0, scale: 0.86, y: 10, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, scale: 0.82, y: -8, filter: "blur(5px)", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
+                        transition={{
+                          layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.72 },
+                          duration: 0.22,
+                        }}
+                        onClick={() => handleChangeSubjectSubmit(subject.id)}
+                        className={cn(
+                          "p-2.5 rounded-lg border text-left transition-colors group relative",
+                          isSelected
+                            ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-1 ring-zinc-900 dark:ring-zinc-100"
+                            : "bg-white dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-700/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-600"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className={cn(
+                            "text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0",
+                            isApproved
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
+                              : isSelected
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                                : accent.badge
+                          )}>
+                            {isApproved ? "✓ Aprobada" : (subject.codigo || `Año ${subject.año}`)}
+                          </span>
+                          <span className={cn(
+                            "text-[10px] transition-colors",
+                            isSelected
+                              ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                              : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-semibold"
+                          )}>
+                            Año {subject.año}
+                          </span>
+                        </div>
+                        <p className={cn(
+                          "text-xs truncate transition-colors font-medium mt-1",
                           isSelected
                             ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                            : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-semibold"
+                            : "text-zinc-800 dark:text-zinc-200"
                         )}>
-                          Año {subject.año}
-                        </span>
-                      </div>
-                      <p className={cn(
-                        "text-xs truncate transition-colors font-medium mt-1",
-                        isSelected
-                          ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                          : "text-zinc-800 dark:text-zinc-200"
-                      )}>
-                        {subject.nombre}
-                      </p>
-                    </button>
-                  );
-                })}
+                          {subject.nombre}
+                        </p>
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
                 {modalSubjects.length === 0 && (
                   <div className="col-span-full text-center text-xs font-medium text-muted-foreground py-4">
                     No hay materias en este año.
                   </div>
                 )}
-              </div>
+              </motion.div>
             </div>
           </div>
         </DialogContent>

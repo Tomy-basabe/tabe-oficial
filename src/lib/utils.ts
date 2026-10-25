@@ -30,3 +30,48 @@ export function parseLocalDate(dateStr: string | null | undefined): Date {
   return new Date(dateStr);
 }
 
+/**
+ * Orquesta la animación de apertura y cierre de contenido (Pilar 4 de T.A.B.E.):
+ * 1) Aplica apertura/cierre elástico al contenedor (.tabe-content-open) salvo que use slide/height propio
+ * 2) Escala la aparición y repliegue de sus bloques hijos (.tabe-inner-section-reveal)
+ * 3) Escala en cascada la entrada y salida de los botones/controles internos (.tabe-inner-btn-cascade)
+ */
+export function orchestrateContentOpen(
+  node: HTMLElement | null,
+  options?: { skipContainerClass?: boolean }
+) {
+  if (!node || node.dataset.contentOrchestrated === "1") return;
+  node.dataset.contentOrchestrated = "1";
+  if (!options?.skipContainerClass) {
+    node.classList.add("tabe-content-open");
+  }
+
+  let secIdx = 0;
+  const children = node.children;
+  const maxChildren = Math.min(children.length, 6);
+  for (let i = 0; i < maxChildren; i++) {
+    const child = children[i];
+    if (
+      child instanceof HTMLElement &&
+      !child.hasAttribute("data-radix-dialog-close") &&
+      !child.classList.contains("sr-only")
+    ) {
+      child.style.setProperty("--sec-idx", String(Math.min(secIdx, 4)));
+      child.classList.add("tabe-inner-section-reveal");
+      secIdx++;
+    }
+  }
+
+  const controls = node.querySelectorAll<HTMLElement>(
+    'button, [role="menuitem"], [role="option"], [role="radio"]'
+  );
+  const maxControls = Math.min(controls.length, 10);
+  let btnIdx = 0;
+  for (let i = 0; i < maxControls; i++) {
+    const btn = controls[i];
+    if (btn.hasAttribute("data-radix-dialog-close")) continue;
+    btn.style.setProperty("--btn-idx", String(Math.min(btnIdx, 7)));
+    btn.classList.add("tabe-inner-btn-cascade");
+    btnIdx++;
+  }
+}

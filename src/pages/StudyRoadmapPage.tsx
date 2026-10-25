@@ -355,7 +355,7 @@ export default function StudyRoadmapPage() {
       {/* Modal de Confirmación para Eliminar Ruta */}
       {roadmapToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-card border border-border/80 rounded-2xl shadow-lg overflow-hidden">
+          <div className="tabe-content-open w-full max-w-md bg-card border border-border/80 rounded-2xl shadow-lg overflow-hidden">
             <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
                 <AlertTriangle className="w-4 h-4 text-destructive" />

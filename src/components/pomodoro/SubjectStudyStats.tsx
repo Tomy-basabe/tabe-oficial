@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Clock, Trophy, BarChart2, Calendar, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -209,20 +210,32 @@ export function SubjectStudyStats() {
         {/* Timeframe selector */}
         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
           <div className="bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/50">
-            {(["today", "7d", "30d", "all"] as Timeframe[]).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setTimeframe(tf)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                  timeframe === tf
-                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                )}
-              >
-                {tf === "today" ? "Hoy" : tf === "7d" ? "7 Días" : tf === "30d" ? "30 Días" : "Histórico"}
-              </button>
-            ))}
+            {(["today", "7d", "30d", "all"] as Timeframe[]).map((tf) => {
+              const isSelected = timeframe === tf;
+              return (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf)}
+                  className={cn(
+                    "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                    isSelected
+                      ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  )}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="pomodoro-stats-tf-pill"
+                      transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                      className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-700 shadow-2xs"
+                    />
+                  )}
+                  <span className="relative z-10">
+                    {tf === "today" ? "Hoy" : tf === "7d" ? "7 Días" : tf === "30d" ? "30 Días" : "Histórico"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <button
@@ -293,13 +306,22 @@ export function SubjectStudyStats() {
             </p>
           </div>
         ) : (
-          stats.map((stat, idx) => {
+          <AnimatePresence mode="popLayout" initial={false}>
+          {stats.map((stat, idx) => {
             const barColor = PROGRESS_COLORS[idx % PROGRESS_COLORS.length];
             const isExpanded = expandedSubjectId === stat.subjectId;
 
             return (
-              <div
+              <motion.div
+                layout
                 key={stat.subjectId}
+                initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
+                transition={{
+                  layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
+                  opacity: { duration: 0.22 },
+                }}
                 className="bg-zinc-50/40 dark:bg-zinc-800/30 border border-zinc-200/70 dark:border-zinc-800/70 rounded-xl p-4 transition-colors hover:border-zinc-300 dark:hover:border-zinc-700 space-y-3"
               >
                 {/* Info row */}
@@ -364,7 +386,7 @@ export function SubjectStudyStats() {
 
                 {/* Expanded Session Details */}
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-zinc-200/70 dark:border-zinc-800/70 space-y-2 animate-in fade-in duration-200">
+                  <div className="tabe-content-open mt-3 pt-3 border-t border-zinc-200/70 dark:border-zinc-800/70 space-y-2">
                     <div className="flex items-center justify-between text-[11px] font-medium text-zinc-400 uppercase tracking-wider px-1">
                       <span>Sesiones registradas ({stat.sessions.length})</span>
                       <span>Duración</span>
@@ -390,8 +412,9 @@ export function SubjectStudyStats() {
                             </span>
                             <button
                               type="button"
+                              style={{ "--btn-idx": Math.min(sIdx, 12) } as React.CSSProperties}
                               onClick={() => deleteSession(sess.id)}
-                              className="p-1 rounded-md text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              className="tabe-inner-btn-cascade p-1 rounded-md text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                               title="Eliminar sesión"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -402,9 +425,10 @@ export function SubjectStudyStats() {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
-          })
+          })}
+          </AnimatePresence>
         )}
       </div>
     </div>

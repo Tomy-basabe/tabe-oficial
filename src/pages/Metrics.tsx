@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -317,7 +318,7 @@ export default function Metrics() {
   };
 
   return (
-    <div className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="tabe-page p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -354,66 +355,38 @@ export default function Metrics() {
 
         {/* Tab Selector Notion / ChatGPT Style */}
         <div className="flex bg-zinc-100/80 dark:bg-zinc-850 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 gap-1 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-2xs">
-          <button
-            onClick={() => setActiveTab("general")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
-              activeTab === "general"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
-            )}
-          >
-            <BarChart3 className="w-3.5 h-3.5 mr-1.5 text-zinc-500 dark:text-zinc-400" />
-            General
-          </button>
-          <button
-            onClick={() => setActiveTab("carrera")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
-              activeTab === "carrera"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
-            )}
-          >
-            <GraduationCap className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-            Carrera & Predicción
-          </button>
-          <button
-            onClick={() => setActiveTab("flashcards")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
-              activeTab === "flashcards"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
-            )}
-          >
-            <Layers className="w-3.5 h-3.5 mr-1.5 text-sky-500" />
-            Flashcards
-          </button>
-          <button
-            onClick={() => setActiveTab("rutinas")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
-              activeTab === "rutinas"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
-            )}
-          >
-            <Calendar className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-            Rutinas
-          </button>
-          <button
-            onClick={() => setActiveTab("sueno")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
-              activeTab === "sueno"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
-            )}
-          >
-            <Moon className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
-            Descanso
-          </button>
+          {([
+            { id: "general", label: "General", icon: BarChart3, iconColor: "text-zinc-500 dark:text-zinc-400" },
+            { id: "carrera", label: "Carrera & Predicción", icon: GraduationCap, iconColor: "text-amber-500" },
+            { id: "flashcards", label: "Flashcards", icon: Layers, iconColor: "text-sky-500" },
+            { id: "rutinas", label: "Rutinas", icon: Calendar, iconColor: "text-emerald-500" },
+            { id: "sueno", label: "Descanso", icon: Moon, iconColor: "text-indigo-500" },
+          ] as const).map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
+                  isSelected
+                    ? "text-zinc-900 dark:text-zinc-100 font-semibold"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
+                )}
+              >
+                {isSelected && (
+                  <motion.span
+                    layoutId="metrics-tab-pill"
+                    transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
+                    className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                  />
+                )}
+                <Icon className={cn("relative z-10 w-3.5 h-3.5 mr-1.5", tab.iconColor)} />
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
