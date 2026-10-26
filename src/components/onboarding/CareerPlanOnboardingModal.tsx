@@ -1,15 +1,33 @@
-import { useState, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Building2, BookOpen, ArrowRight, Loader2, FileUp, Sliders, MapPin, AlertTriangle, Check } from "lucide-react";
+import { 
+  GraduationCap, 
+  Building2, 
+  BookOpen, 
+  ArrowRight, 
+  Loader2, 
+  FileUp, 
+  Sliders, 
+  Search, 
+  X, 
+  Check, 
+  Sparkles,
+  Clock,
+  HelpCircle
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
 import { supabase } from "@/integrations/supabase/client";
-import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_CAREERS, FacultadOption } from "@/lib/careerData";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { toast } from "sonner";
 import { AICareerImportModal } from "@/components/subjects/AICareerImportModal";
+import careerStatsRaw from "@/lib/careerStats.json";
+import { cn } from "@/lib/utils";
+
+const careerStats = careerStatsRaw as Record<string, [number, number]>;
 
 export function CareerPlanOnboardingModal() {
   const { user, isGuest } = useAuth();
@@ -20,12 +38,21 @@ export function CareerPlanOnboardingModal() {
   const [saving, setSaving] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
 
-  // Estados de selección en cascada: Provincia -> Universidad -> Carrera
-  const [selectedProvincia, setSelectedProvincia] = useState<string>("");
+  // Filtros y búsquedas
+  const [provinciaFilter, setProvinciaFilter] = useState<string>("ALL");
+  const [searchFacultad, setSearchFacultad] = useState<string>("");
+  const [searchCareer, setSearchCareer] = useState<string>("");
+
+  // Selecciones
   const [selectedFacultad, setSelectedFacultad] = useState<string>("");
   const [customFacultad, setCustomFacultad] = useState<string>("");
+  const [isCustomFacultad, setIsCustomFacultad] = useState(false);
+
   const [selectedCareer, setSelectedCareer] = useState<string>("");
   const [customCareer, setCustomCareer] = useState<string>("");
+  const [isCustomCareer, setIsCustomCareer] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const storageKey = user
     ? `tabe_career_onboarding_v2_${user.id}`
@@ -36,7 +63,7 @@ export function CareerPlanOnboardingModal() {
     let isMounted = true;
 
     const checkAcademicStatus = async () => {
-      // Regla: en modo demo / invitado no se hace el cuestionario de facultad
+      // En modo invitado no forzar el asistente si ya fue cerrado
       if (isGuest || !user) {
         if (isMounted) {
           setLoadingCheck(false);
@@ -44,29 +71,17 @@ export function CareerPlanOnboardingModal() {
         }
         return;
       }
+
       // Si el usuario ya lo respondió u omitió en esta versión, no volver a mostrar nunca
       if (localStorage.getItem(storageKey) === "true") {
         if (isMounted) setLoadingCheck(false);
         return;
       }
 
-      // Si es invitado, mostrar sólo si no fue omitido en localStorage
-      if (isGuest || !user) {
-        if (isMounted) {
-          setLoadingCheck(false);
-          setTimeout(() => {
-            if (isMounted && !localStorage.getItem(storageKey)) {
-              setIsOpen(true);
-            }
-          }, 600);
-        }
-        return;
-      }
-
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("academic_onboarding_dismissed")
+          .select("academic_onboarding_dismissed, facultad")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -79,10 +94,26 @@ export function CareerPlanOnboardingModal() {
           localStorage.setItem(storageKey, "true");
           if (isMounted) setIsOpen(false);
         } else {
-          // Mostrar el asistente una única vez
+          // Si ya tiene una facultad previa, la inicializamos
+          if (profileData?.facultad) {
+            const raw = profileData.facultad.trim();
+            const match = ALL_FACULTADES.find(
+              (f) =>
+                f.id.toLowerCase() === raw.toLowerCase() ||
+                f.label.toLowerCase() === raw.toLowerCase() ||
+                f.fullLabel.toLowerCase().includes(raw.toLowerCase())
+            );
+            if (match) {
+              setSelectedFacultad(match.id);
+            } else {
+              setIsCustomFacultad(true);
+              setCustomFacultad(raw);
+            }
+          }
+
           setTimeout(() => {
             if (isMounted) setIsOpen(true);
-          }, 600);
+          }, 500);
         }
       } catch (err) {
         console.error("Error al verificar onboarding académico:", err);
@@ -98,66 +129,69 @@ export function CareerPlanOnboardingModal() {
     };
   }, [user, isGuest, storageKey]);
 
-  // Universidades filtradas por la provincia seleccionada (Paso 2)
-  const availableFacultades = useMemo(() => {
-    if (!selectedProvincia) return [];
-    if (selectedProvincia === "OTRA_PROVINCIA") {
-      return ALL_FACULTADES;
-    }
-    return ALL_FACULTADES.filter((f) => f.provinciaId === selectedProvincia);
-  }, [selectedProvincia]);
+  // Lista de facultades filtradas por provincia y por término de búsqueda
+  const filteredFacultades = useMemo(() => {
+    const q = searchFacultad.trim().toLowerCase();
+    return ALL_FACULTADES.filter((fac) => {
+      // Filtro de provincia
+      if (provinciaFilter !== "ALL" && fac.provinciaId !== provinciaFilter) {
+        return false;
+      }
+      // Filtro de búsqueda textual
+      if (!q) return true;
+      const matchLabel = fac.label.toLowerCase().includes(q);
+      const matchFull = fac.fullLabel.toLowerCase().includes(q);
+      const matchId = fac.id.toLowerCase().includes(q);
+      const prov = ALL_PROVINCIAS.find((p) => p.id === fac.provinciaId)?.label.toLowerCase() || "";
+      const matchProv = prov.includes(q);
+      return matchLabel || matchFull || matchId || matchProv;
+    });
+  }, [provinciaFilter, searchFacultad]);
 
-  // Carreras disponibles para la facultad seleccionada (Paso 3)
-  const availableCareers = useMemo(() => {
+  // Carreras asociadas a la facultad elegida (si tiene en el catálogo)
+  const availableCareersForFacultad = useMemo(() => {
     if (!selectedFacultad) return [];
     return AVAILABLE_CAREERS.filter((c) => c.facultad === selectedFacultad);
   }, [selectedFacultad]);
 
-  // Reiniciar universidad y carrera si cambia la provincia
-  const handleProvinciaChange = (provinciaId: string) => {
-    setSelectedProvincia(provinciaId);
-    setSelectedFacultad("");
-    setCustomFacultad("");
-    setSelectedCareer("");
-    setCustomCareer("");
-  };
+  // Carreras filtradas por búsqueda textual
+  const filteredCareers = useMemo(() => {
+    const q = searchCareer.trim().toLowerCase();
+    if (!q) return availableCareersForFacultad;
+    return availableCareersForFacultad.filter((c) => c.label.toLowerCase().includes(q));
+  }, [availableCareersForFacultad, searchCareer]);
 
-  // Reiniciar carrera si cambia la facultad
-  const handleFacultadChange = (facultadId: string) => {
-    setSelectedFacultad(facultadId);
-    setCustomFacultad("");
-    setSelectedCareer("");
-    setCustomCareer("");
-  };
+  // Resolver nombre de la facultad elegida
+  const resolvedFacultadObj = useMemo(() => {
+    return ALL_FACULTADES.find((f) => f.id === selectedFacultad);
+  }, [selectedFacultad]);
 
-  // Helper para verificar si la universidad está válidamente completada
-  const isUniversityValid = useMemo(() => {
-    if (!selectedProvincia) return false;
-    if (!selectedFacultad) return false;
-    if (selectedFacultad === "OTRA_FACULTAD") {
-      return customFacultad.trim().length > 0;
+  const resolvedFacultadName = useMemo(() => {
+    if (isCustomFacultad) return customFacultad.trim();
+    if (!resolvedFacultadObj) return "";
+    return resolvedFacultadObj.fullLabel || resolvedFacultadObj.label || selectedFacultad;
+  }, [isCustomFacultad, customFacultad, resolvedFacultadObj, selectedFacultad]);
+
+  // Omitir por ahora (cerrar sin trabar al usuario)
+  const handleDismiss = () => {
+    localStorage.setItem(storageKey, "true");
+    if (user && !isGuest) {
+      supabase
+        .from("profiles")
+        .update({ academic_onboarding_dismissed: true } as any)
+        .eq("user_id", user.id)
+        .then(() => {});
     }
-    return true;
-  }, [selectedProvincia, selectedFacultad, customFacultad]);
+    setIsOpen(false);
+  };
 
-  // 2. Opción A: Guardar ÚNICAMENTE la universidad y omitir plan de materias
-  // (Conserva las materias actuales sin sobrescribir nada)
+  // Guardar solo la universidad (sin alterar materias)
   const handleSaveUniversityOnly = async () => {
-    const provObj = ALL_PROVINCIAS.find((p) => p.id === selectedProvincia);
-    const facultadObj = ALL_FACULTADES.find((f) => f.id === selectedFacultad);
-
-    const facultadName =
-      selectedFacultad === "OTRA_FACULTAD"
-        ? customFacultad.trim()
-        : facultadObj?.fullLabel || facultadObj?.label || selectedFacultad;
-
-    if (!selectedProvincia) {
-      toast.error("Por favor, selecciona primero tu provincia.");
-      return;
-    }
-
-    if (!facultadName) {
-      toast.error("Por favor, selecciona tu universidad (o elige 'Otro' para escribirla).");
+    if (!resolvedFacultadName) {
+      toast.warning("Buscá y seleccioná tu universidad (o escribí su nombre)", {
+        description: "Podés usar el buscador superior para encontrar tu institución.",
+      });
+      searchInputRef.current?.focus();
       return;
     }
 
@@ -165,22 +199,21 @@ export function CareerPlanOnboardingModal() {
     try {
       localStorage.setItem(storageKey, "true");
 
-      const provLabel = provObj?.label || selectedProvincia;
-      const fullFacultadWithProv = `${facultadName} (${provLabel})`;
-
       if (user && !isGuest) {
         await supabase
           .from("profiles")
           .update({
-            facultad: fullFacultadWithProv,
+            facultad: resolvedFacultadName,
             academic_profile_completed: true,
             academic_onboarding_dismissed: true,
           } as any)
           .eq("user_id", user.id);
+      } else {
+        localStorage.setItem("tabe_guest_facultad", resolvedFacultadName);
       }
 
-      toast.success(`🎓 Universidad guardada: ${facultadName}`, {
-        description: "Tus materias actuales se conservaron intactas.",
+      toast.success(`🎓 Universidad guardada: ${resolvedFacultadName}`, {
+        description: "Tus materias y apuntes actuales se conservaron intactos.",
       });
       setIsOpen(false);
     } catch (err) {
@@ -191,34 +224,21 @@ export function CareerPlanOnboardingModal() {
     }
   };
 
-  // 3. Opción B: Guardar universidad y CARGAR PLAN DE CARRERA (sobrescribe materias)
-  const handleSaveAndImport = async () => {
-    const provObj = ALL_PROVINCIAS.find((p) => p.id === selectedProvincia);
-    const facultadObj = ALL_FACULTADES.find((f) => f.id === selectedFacultad);
+  // Guardar universidad y CARGAR PLAN DE CARRERA OFICIAL
+  const handleSaveAndImportCareer = async () => {
+    if (!resolvedFacultadName) {
+      toast.warning("Seleccioná primero tu universidad");
+      searchInputRef.current?.focus();
+      return;
+    }
+
     const careerObj = AVAILABLE_CAREERS.find((c) => c.id === selectedCareer);
-
-    const facultadName =
-      selectedFacultad === "OTRA_FACULTAD"
-        ? customFacultad.trim()
-        : facultadObj?.fullLabel || facultadObj?.label || selectedFacultad;
-
-    const careerName =
-      selectedCareer === "OTRA"
-        ? customCareer.trim()
-        : careerObj?.label || customCareer.trim() || selectedCareer;
-
-    if (!selectedProvincia) {
-      toast.error("Por favor, selecciona tu provincia.");
-      return;
-    }
-
-    if (!facultadName) {
-      toast.error("Por favor, selecciona o escribe tu universidad o instituto.");
-      return;
-    }
+    const careerName = isCustomCareer
+      ? customCareer.trim()
+      : careerObj?.label || customCareer.trim() || selectedCareer;
 
     if (!careerName) {
-      toast.error("Por favor, selecciona o escribe el nombre de tu carrera.");
+      toast.warning("Seleccioná la carrera que deseás importar");
       return;
     }
 
@@ -226,9 +246,7 @@ export function CareerPlanOnboardingModal() {
     try {
       localStorage.setItem(storageKey, "true");
 
-      // Si la carrera elegida tiene un template oficial de materias y correlatividades
       if (careerObj?.file) {
-        // Sobrescribir: limpiar materias previas si existían
         if (subjects.length > 0) {
           try {
             await deleteAllSubjects();
@@ -236,40 +254,33 @@ export function CareerPlanOnboardingModal() {
             console.warn("Limpieza de materias previas:", delErr);
           }
         }
-
-        // Cargar las materias y correlatividades oficiales del nuevo plan
-        try {
-          await importCareerPlan(careerObj.id, true);
-        } catch (importErr) {
-          console.error("Error al importar plan oficial:", importErr);
-        }
+        await importCareerPlan(careerObj.id, true);
       }
 
-      // Actualizar perfil de usuario
       if (user && !isGuest) {
-        const provLabel = provObj?.label || selectedProvincia;
-        const fullFacultadWithProv = `${facultadName} (${provLabel})`;
-
         await supabase
           .from("profiles")
           .update({
-            facultad: fullFacultadWithProv,
+            facultad: resolvedFacultadName,
             carrera: careerName,
             academic_profile_completed: true,
             academic_onboarding_dismissed: true,
           } as any)
           .eq("user_id", user.id);
+      } else {
+        localStorage.setItem("tabe_guest_facultad", resolvedFacultadName);
+        localStorage.setItem("tabe_guest_carrera", careerName);
       }
 
       toast.success(
         careerObj?.file
           ? "🎓 ¡Plan de carrera cargado exitosamente!"
-          : "🎓 ¡Perfil académico configurado correctamente!"
+          : "🎓 ¡Universidad y carrera guardadas!"
       );
       setIsOpen(false);
     } catch (err) {
-      console.error("Error al guardar selección académica:", err);
-      toast.error("Ocurrió un error al cargar tu plan.");
+      console.error("Error al cargar plan:", err);
+      toast.error("Ocurrió un error al cargar el plan.");
     } finally {
       setSaving(false);
     }
@@ -281,223 +292,355 @@ export function CareerPlanOnboardingModal() {
 
   return (
     <>
-      <Dialog
-        open={isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            // Solo permitir cerrar si ya guardó universidad
-            if (isUniversityValid) {
-              handleSaveUniversityOnly();
-            } else {
-              toast.warning("Por favor elegí a qué universidad pertenecés para continuar.");
-            }
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 sm:p-7 space-y-4 max-h-[92vh] overflow-y-auto">
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
+        <DialogContent className="sm:max-w-xl bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-hidden flex flex-col">
           {/* Header */}
-          <DialogHeader className="text-left space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px] font-medium border border-zinc-200/60 dark:border-zinc-700/60">
-                <Sliders className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
-                Configuración Académica
+          <DialogHeader className="text-left space-y-1.5 shrink-0">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[11px] font-medium border border-blue-200/60 dark:border-blue-800/50">
+                <Sliders className="w-3 h-3 text-blue-500" />
+                Configuración Inicial
               </span>
+
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+              >
+                Omitir por ahora
+              </button>
             </div>
 
-            <DialogTitle className="font-semibold text-xl sm:text-2xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-2xs">
-                <GraduationCap className="w-5 h-5" />
+            <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-2xs">
+                <GraduationCap className="w-4 h-4" />
               </div>
-              <span>Tu Universidad y Plan de Estudio</span>
+              <span>¿A qué Universidad pertenecés?</span>
             </DialogTitle>
 
-            <DialogDescription className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-normal leading-relaxed">
-              Indicanos a qué institución pertenecés. La carga de plan de materias es opcional; si ya tenés tus materias cargadas, podés omitir el plan y solo guardar tu universidad.
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 font-normal leading-relaxed">
+              Buscá y seleccioná tu institución. Es obligatorio indicar tu facultad; la carga de plan de materias es opcional y no sobrescribe tus materias a menos que lo desees.
             </DialogDescription>
           </DialogHeader>
 
-          {/* AVISO IMPORTANTE */}
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/30 p-3.5 sm:p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-2xs">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs leading-relaxed">
-              <p className="font-semibold text-amber-950 dark:text-amber-100 text-[13px]">
-                ¿Ya tenés tus materias cargadas?
-              </p>
-              <p className="text-amber-800/90 dark:text-amber-300/90">
-                Seleccioná tu universidad y tocá en <strong>"Guardar universidad (omitir materias)"</strong> para no sobrescribir nada. Solo hacé clic en <strong>"Cargar Plan de Carrera"</strong> si querés importar el plan oficial completo.
-              </p>
-            </div>
-          </div>
+          {/* Cuerpo interactivo scrolleable */}
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4 min-h-0">
+            {/* 1. SECCIÓN DE BÚSQUEDA Y SELECCIÓN DE UNIVERSIDAD */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                  <span>1. Seleccioná tu Universidad o Instituto</span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">*Requerido</span>
+                </label>
 
-          {/* Formulario en Cascada */}
-          <div className="space-y-3.5 pt-1">
-            {/* Paso 1: Dropdown de Provincia (Obligatorio) */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-zinc-400" />
-                <span>1. Provincia</span>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">*Requerido</span>
-              </label>
-              <Select value={selectedProvincia} onValueChange={handleProvinciaChange}>
-                <SelectTrigger className="w-full h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 font-normal text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none">
-                  <SelectValue placeholder="Seleccioná tu provincia..." />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl max-h-60 p-1.5 z-50 text-zinc-900 dark:text-zinc-100">
-                  {ALL_PROVINCIAS.map((prov) => (
-                    <SelectItem
-                      key={prov.id}
-                      value={prov.id}
-                      className="font-medium text-xs sm:text-sm cursor-pointer py-2 px-3 rounded-lg text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 focus:text-zinc-900 dark:focus:text-zinc-100 transition-colors"
-                    >
-                      {prov.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {resolvedFacultadName && (
+                  <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Seleccionada
+                  </span>
+                )}
+              </div>
 
-            {/* Paso 2: Dropdown de Universidad (Obligatorio) */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-zinc-400" />
-                <span>2. Universidad a la que pertenecés</span>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">*Requerido</span>
-              </label>
-              <Select
-                value={selectedFacultad}
-                onValueChange={handleFacultadChange}
-                disabled={!selectedProvincia}
-              >
-                <SelectTrigger className="w-full h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 font-normal text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                  <SelectValue placeholder={selectedProvincia ? "Seleccioná tu universidad..." : "Seleccioná primero tu provincia"} />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl max-h-60 p-1.5 z-50 text-zinc-900 dark:text-zinc-100">
-                  {availableFacultades.map((fac) => (
-                    <SelectItem
-                      key={fac.id}
-                      value={fac.id}
-                      className="font-medium text-xs sm:text-sm cursor-pointer py-2 px-3 rounded-lg text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 focus:text-zinc-900 dark:focus:text-zinc-100 transition-colors"
-                    >
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <span>{fac.fullLabel}</span>
-                        {fac.hasOfficialTemplates && (
-                          <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded shrink-0">
-                            ⭐ Planes listos
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                  <SelectItem
-                    value="OTRA_FACULTAD"
-                    className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-2 cursor-pointer py-2 px-3 rounded-lg focus:bg-zinc-100 dark:focus:bg-zinc-800/80 transition-colors"
-                  >
-                    ✏️ Otro (escribir mi universidad o instituto)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {selectedFacultad === "OTRA_FACULTAD" && (
+              {/* Barra de Búsqueda Instantánea con Botón Limpiar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 <Input
-                  placeholder="Escribí el nombre exacto de tu universidad o instituto..."
-                  value={customFacultad}
-                  onChange={(e) => setCustomFacultad(e.target.value)}
-                  className="h-10 mt-1.5 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none shadow-2xs"
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Buscar por nombre (ej: UTN, Cuyo, UM, Siglo 21, Aconcagua, UBA...)"
+                  value={searchFacultad}
+                  onChange={(e) => setSearchFacultad(e.target.value)}
+                  className="h-10 pl-9 pr-8 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500 shadow-2xs"
                 />
+                {searchFacultad && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchFacultad("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro rápido por Provincia (Chips deslizables) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setProvinciaFilter("ALL")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full whitespace-nowrap transition-colors cursor-pointer border",
+                    provinciaFilter === "ALL"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                      : "bg-zinc-100/70 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60"
+                  )}
+                >
+                  Todas ({ALL_FACULTADES.length})
+                </button>
+                {ALL_PROVINCIAS.filter((p) => p.id !== "OTRA_PROVINCIA").map((prov) => {
+                  const count = ALL_FACULTADES.filter((f) => f.provinciaId === prov.id).length;
+                  if (count === 0) return null;
+                  const isSel = provinciaFilter === prov.id;
+                  return (
+                    <button
+                      key={prov.id}
+                      type="button"
+                      onClick={() => setProvinciaFilter(prov.id)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full whitespace-nowrap transition-colors cursor-pointer border",
+                        isSel
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent font-medium"
+                          : "bg-zinc-100/70 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60"
+                      )}
+                    >
+                      {prov.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Lista Scrolleable de Facultades */}
+              <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden bg-white dark:bg-[#1f1f1f] shadow-2xs">
+                <div className="max-h-48 overflow-y-auto p-1.5 space-y-1">
+                  {filteredFacultades.length === 0 ? (
+                    <div className="p-4 text-center space-y-1">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                        No se encontraron universidades con "{searchFacultad}".
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomFacultad(true);
+                          setSelectedFacultad("OTHER");
+                          setCustomFacultad(searchFacultad);
+                        }}
+                        className="text-xs text-blue-600 dark:text-blue-400 underline font-medium cursor-pointer"
+                      >
+                        Usar "{searchFacultad}" como nombre de mi institución
+                      </button>
+                    </div>
+                  ) : (
+                    filteredFacultades.map((fac) => {
+                      const isSelected = selectedFacultad === fac.id && !isCustomFacultad;
+                      const careersCount = AVAILABLE_CAREERS.filter((c) => c.facultad === fac.id).length;
+
+                      return (
+                        <button
+                          key={fac.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedFacultad(fac.id);
+                            setIsCustomFacultad(false);
+                            setCustomFacultad("");
+                            setSelectedCareer("");
+                            setIsCustomCareer(false);
+                          }}
+                          className={cn(
+                            "w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-center justify-between gap-3 cursor-pointer",
+                            isSelected
+                              ? "bg-blue-50 dark:bg-blue-950/40 border border-blue-500/40 text-blue-900 dark:text-blue-200 shadow-2xs font-medium"
+                              : "border border-transparent hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-6 h-6 shrink-0 rounded-md overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center p-0.5">
+                              <UniversityLogo universityId={fac.id} className="w-5 h-5" />
+                            </div>
+                            <div className="truncate">
+                              <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                                {fac.label}
+                              </p>
+                              <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                                {fac.fullLabel}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {careersCount > 0 ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium border border-emerald-500/20">
+                                {careersCount} {careersCount === 1 ? "carrera" : "carreras"}
+                              </span>
+                            ) : null}
+
+                            {isSelected && (
+                              <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                                <Check className="w-2.5 h-2.5" />
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+
+                  {/* Opción para escribir a mano */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomFacultad(true);
+                      setSelectedFacultad("OTHER");
+                      setSelectedCareer("");
+                    }}
+                    className={cn(
+                      "w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-center justify-between gap-2 border border-dashed cursor-pointer",
+                      isCustomFacultad
+                        ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500/40 text-blue-900 dark:text-blue-200 font-medium"
+                        : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">✏️</span>
+                      <span>No encuentro mi institución / Otra universidad o instituto</span>
+                    </div>
+                    {isCustomFacultad && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Input si eligió escribir a mano */}
+              {isCustomFacultad && (
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1.5 animate-in fade-in">
+                  <label className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                    Escribí el nombre exacto de tu institución:
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Ej: Universidad Siglo 21 / Instituto Técnico / Otra"
+                    value={customFacultad}
+                    onChange={(e) => setCustomFacultad(e.target.value)}
+                    autoFocus
+                    className="h-9 text-xs bg-white dark:bg-[#18181b] rounded-lg"
+                  />
+                </div>
               )}
             </div>
 
-            {/* Paso 3: Dropdown de Carrera (Opcional) */}
-            <div className="space-y-1.5">
+            {/* 2. SECCIÓN DE PLAN DE CARRERA (OPCIONAL) */}
+            <div className="space-y-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-zinc-400" />
-                  <span>3. Plan de Carrera</span>
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>2. Plan de Carrera Oficial (Opcional)</span>
                 </label>
-                <span className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500">
-                  (Opcional - podés omitirlo)
+                <span className="text-[10px] text-zinc-400 font-normal">
+                  Podés omitirlo si ya tenés tus materias cargadas
                 </span>
               </div>
 
-              {availableCareers.length > 0 ? (
+              {availableCareersForFacultad.length > 0 ? (
                 <div className="space-y-2">
-                  <Select
-                    value={selectedCareer}
-                    onValueChange={setSelectedCareer}
-                    disabled={!selectedFacultad}
-                  >
-                    <SelectTrigger className="w-full h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 font-normal text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 shadow-2xs hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                      <SelectValue placeholder="Seleccioná tu carrera si deseás cargar el plan..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl max-h-60 p-1.5 z-50 text-zinc-900 dark:text-zinc-100">
-                      {availableCareers.map((car) => (
-                        <SelectItem
-                          key={car.id}
-                          value={car.id}
-                          className="font-medium text-xs sm:text-sm cursor-pointer py-2 px-3 rounded-lg text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800/80 focus:text-zinc-900 dark:focus:text-zinc-100 transition-colors"
-                        >
-                          <div className="flex items-center justify-between w-full gap-2">
-                            <span>{car.label}</span>
-                            {car.file && (
-                              <span className="text-[10px] bg-blue-500/15 text-blue-700 dark:text-blue-400 font-medium px-1.5 py-0.5 rounded shrink-0">
-                                Plan oficial listo
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem
-                        value="OTRA"
-                        className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 border-t border-zinc-100 dark:border-zinc-800 mt-1 pt-2 cursor-pointer py-2 px-3 rounded-lg focus:bg-zinc-100 dark:focus:bg-zinc-800/80 transition-colors"
-                      >
-                        ✏️ Otra carrera (escribir a mano)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {selectedCareer === "OTRA" && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
                     <Input
-                      placeholder="Escribí el nombre exacto de tu carrera..."
+                      type="text"
+                      placeholder={`Buscar entre las ${availableCareersForFacultad.length} carreras disponibles...`}
+                      value={searchCareer}
+                      onChange={(e) => setSearchCareer(e.target.value)}
+                      className="h-9 pl-8 text-xs bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xs"
+                    />
+                  </div>
+
+                  <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden bg-white dark:bg-[#1f1f1f]">
+                    <div className="max-h-36 overflow-y-auto p-1.5 space-y-1">
+                      {filteredCareers.map((c) => {
+                        const isSelected = selectedCareer === c.id && !isCustomCareer;
+                        const fileKey = (c.file || c.id).split("/").pop()?.replace("_template", "") || "";
+                        const [, maxYear] = careerStats[fileKey] || [36, 5];
+                        const durationLabel = `${maxYear || 5} años`;
+
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCareer(c.id);
+                              setIsCustomCareer(false);
+                              setCustomCareer("");
+                            }}
+                            className={cn(
+                              "w-full text-left p-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2 cursor-pointer",
+                              isSelected
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-medium"
+                                : "hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300"
+                            )}
+                          >
+                            <span className="truncate">{c.label}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-zinc-400" />
+                                {durationLabel}
+                              </span>
+                              {isSelected && <Check className="w-3 h-3 text-emerald-600" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomCareer(true);
+                          setSelectedCareer("OTHER");
+                        }}
+                        className={cn(
+                          "w-full text-left p-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2 border border-dashed cursor-pointer",
+                          isCustomCareer
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-medium"
+                            : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-500"
+                        )}
+                      >
+                        <span>✏️ Otra carrera (escribir el nombre a mano)</span>
+                        {isCustomCareer && <Check className="w-3 h-3 text-emerald-600" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isCustomCareer && (
+                    <Input
+                      type="text"
+                      placeholder="Escribí el nombre de tu carrera..."
                       value={customCareer}
                       onChange={(e) => setCustomCareer(e.target.value)}
-                      className="h-10 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none shadow-2xs"
+                      className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900/60 rounded-lg"
                     />
                   )}
                 </div>
-              ) : (
-                <div className="space-y-1.5">
+              ) : selectedFacultad ? (
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-2">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Esta institución no tiene carreras automáticas en la base local aún. Podés escribir tu carrera o cargar tus materias con IA.
+                  </p>
                   <Input
-                    placeholder={
-                      selectedFacultad
-                        ? "Escribí tu carrera (opcional)..."
-                        : "Seleccioná primero tu universidad"
-                    }
+                    type="text"
+                    placeholder="Nombre de tu carrera (opcional)..."
                     value={customCareer}
                     onChange={(e) => setCustomCareer(e.target.value)}
-                    disabled={!selectedFacultad}
-                    className="h-11 bg-zinc-50/70 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:outline-none shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 text-xs bg-white dark:bg-[#18181b] rounded-lg"
                   />
-                  {selectedFacultad && (
-                    <p className="text-[11px] text-zinc-400 px-1">
-                      Esta institución aún no tiene materias pre-cargadas. Podés guardar tu universidad ahora y configurar tus materias manualmente o subirlas con IA.
-                    </p>
-                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/30 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-center">
+                  <p className="text-xs text-zinc-400">
+                    Buscá y seleccioná primero tu universidad para ver sus planes disponibles.
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Alternativa de Importación con IA */}
-            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-3">
+            {/* Alternativa con IA */}
+            <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 shadow-2xs">
-                  <FileUp className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0">
+                  <FileUp className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 leading-tight">
                     ¿Tenés tu plan en PDF o foto?
                   </p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    Extraé materias y correlativas automáticamente con IA.
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                    Extraé materias y correlatividades con IA.
                   </p>
                 </div>
               </div>
@@ -505,55 +648,72 @@ export function CareerPlanOnboardingModal() {
                 type="button"
                 size="sm"
                 onClick={() => setShowAiModal(true)}
-                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium px-3 py-1.5 h-auto rounded-lg shadow-2xs shrink-0 transition-colors"
+                className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 text-xs font-medium px-3 py-1.5 h-auto rounded-lg shrink-0 cursor-pointer"
               >
                 Subir con IA
               </Button>
             </div>
           </div>
 
-          {/* Footer con los 2 botones claros */}
-          <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 w-full border-t border-zinc-100 dark:border-zinc-800/80">
-            {/* Botón 1: Guardar universidad (omitir materias) */}
+          {/* Footer con Botones que FUNCIONAN SIEMPRE */}
+          <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
+            {/* Botón 1: Omitir / Guardar solo Universidad */}
             <Button
               type="button"
               variant="outline"
               onClick={handleSaveUniversityOnly}
-              disabled={saving || !isUniversityValid}
-              className="w-full sm:w-auto text-xs sm:text-sm font-medium border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl py-2.5 px-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              disabled={saving}
+              className="w-full sm:w-auto text-xs font-medium border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-xl py-2 px-4 cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Guardar universidad (omitir materias)</span>
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Guardar universidad (mantener mis materias)</span>
             </Button>
 
-            {/* Botón 2: Cargar Plan de Carrera */}
-            <Button
-              type="button"
-              onClick={handleSaveAndImport}
-              disabled={
-                saving ||
-                !isUniversityValid ||
-                (!selectedCareer && !customCareer.trim())
-              }
-              className="w-full sm:w-auto px-5 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs sm:text-sm font-medium rounded-xl shadow-2xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Cargando plan...</span>
-                </>
-              ) : (
-                <>
-                  <span>Cargar Plan de Carrera</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+            {/* Botón 2: Importar Plan Oficial si eligió carrera */}
+            {selectedCareer && selectedCareer !== "OTHER" ? (
+              <Button
+                type="button"
+                onClick={handleSaveAndImportCareer}
+                disabled={saving}
+                className="w-full sm:w-auto px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium rounded-xl shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Cargando plan...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Cargar Plan de Carrera</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSaveUniversityOnly}
+                disabled={saving}
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-xl shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Confirmar Selección</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Modal IA de subida de archivos si el usuario prefiere su propio PDF/Excel */}
+      {/* Modal IA de subida de archivos */}
       {showAiModal && (
         <AICareerImportModal
           open={showAiModal}
@@ -561,7 +721,7 @@ export function CareerPlanOnboardingModal() {
           onImport={async (data) => {
             await importCustomCareerPlan(data);
             if (user && !isGuest) {
-              const facName = data.facultad || selectedFacultad || "Universidad";
+              const facName = data.facultad || resolvedFacultadName || "Universidad";
               const carName = data.careerName || "Mi Carrera";
               await supabase
                 .from("profiles")

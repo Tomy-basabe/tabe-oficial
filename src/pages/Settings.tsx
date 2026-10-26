@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
+import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award, Search, X } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
@@ -62,6 +62,7 @@ export default function Settings() {
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
   const [selectedProvincia, setSelectedProvincia] = useState("MENDOZA");
   const [selectedFacultad, setSelectedFacultad] = useState("");
+  const [searchFacultadModal, setSearchFacultadModal] = useState("");
   const [customFacultad, setCustomFacultad] = useState("");
   const [actionType, setActionType] = useState<"only_facultad" | "load_plan">("only_facultad");
   const [selectedCareer, setSelectedCareer] = useState("");
@@ -103,9 +104,16 @@ export default function Settings() {
 
   // Facultades de la provincia seleccionada
   const facultadesForProvincia = useMemo(() => {
-    if (!selectedProvincia || selectedProvincia === "ALL" || selectedProvincia === "OTRA_PROVINCIA") return ALL_FACULTADES;
-    return ALL_FACULTADES.filter((f) => f.provinciaId === selectedProvincia);
-  }, [selectedProvincia]);
+    let list = (!selectedProvincia || selectedProvincia === "ALL" || selectedProvincia === "OTRA_PROVINCIA")
+      ? ALL_FACULTADES
+      : ALL_FACULTADES.filter((f) => f.provinciaId === selectedProvincia);
+    
+    if (searchFacultadModal.trim()) {
+      const q = searchFacultadModal.trim().toLowerCase();
+      list = list.filter((f) => f.label.toLowerCase().includes(q) || f.fullLabel.toLowerCase().includes(q) || f.id.toLowerCase().includes(q));
+    }
+    return list;
+  }, [selectedProvincia, searchFacultadModal]);
 
   // Carreras disponibles para la facultad seleccionada
   const availableCareersForModal = useMemo(() => {
@@ -137,6 +145,7 @@ export default function Settings() {
     }
     setActionType("only_facultad");
     setSelectedCareer("");
+    setSearchFacultadModal("");
     setIsAcademicModalOpen(true);
   };
 
@@ -1331,11 +1340,37 @@ export default function Settings() {
               </Select>
             </div>
 
-            {/* Selector de Facultad */}
+            {/* Selector de Facultad con Buscador */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Universidad o Instituto
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Universidad o Instituto
+                </label>
+                {selectedFacultad && selectedFacultad !== "OTHER" && (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    ✓ Seleccionada
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Buscar universidad (ej: UTN, Cuyo, UM, Siglo 21...)"
+                  value={searchFacultadModal}
+                  onChange={(e) => setSearchFacultadModal(e.target.value)}
+                  className="h-8 pl-8 pr-7 text-xs rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800"
+                />
+                {searchFacultadModal && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchFacultadModal("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
               <Select value={selectedFacultad} onValueChange={(val) => {
                 setSelectedFacultad(val);
                 setSelectedCareer("");
