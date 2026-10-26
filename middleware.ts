@@ -14,7 +14,7 @@ export async function middleware(request: Request) {
   const host = request.headers.get("host") || "";
   if (host.includes("tabe.software")) {
     const destination = new URL(request.url);
-    destination.host = "tabe.com.ar";
+    destination.host = "www.tabe.com.ar";
     destination.protocol = "https:";
     return Response.redirect(destination.toString(), 301);
   }

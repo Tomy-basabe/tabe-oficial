@@ -319,15 +319,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Helper to ensure auth redirects land strictly on tabe.com.ar in production
+  // Helper to ensure auth redirects land strictly on the canonical domain in production
   const getCanonicalAuthUrl = (path: string = "/dashboard"): string => {
     if (typeof window !== "undefined") {
       const origin = window.location.origin;
-      if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+      if (origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("vercel.app")) {
+        return `${origin}${path}`;
+      }
+      if (origin.includes("tabe.com.ar")) {
         return `${origin}${path}`;
       }
     }
-    return `https://tabe.com.ar${path}`;
+    return `https://www.tabe.com.ar${path}`;
   };
 
   const signUp = async (email: string, password: string, nombre?: string) => {
