@@ -207,33 +207,80 @@ export default function Marketplace() {
     setLoadingPreview(false);
   };
 
-  const handleImport = async () => {
-    if (!importingResource || (importingResource.type === 'deck' && !selectedSubject)) return;
-    setImporting(true);
-
-    let result: { error: string | null } = { error: "Tipo desconocido" };
-
-    if (importingResource.type === 'deck') {
-      result = await importDeck(importingResource.id, selectedSubject);
-    } else if (importingResource.type === 'file') {
-      result = await importFile(importingResource.data, null);
-    } else if (importingResource.type === 'folder') {
-      result = await importFolder(importingResource.id, null);
-    } else if (importingResource.type === 'quiz') {
-      result = await importQuiz(importingResource.id, selectedSubject);
-    } else if (importingResource.type === 'apunte') {
-      result = await importApunte(importingResource.id, selectedSubject || null);
+  const startBackgroundImport = async (
+    resource: { id: string; type: "deck" | "file" | "folder" | "quiz" | "apunte"; data: any },
+    subjectId: string | null = null
+  ) => {
+    if (!user) {
+      toast.error("Inicia sesión para importar recursos de la comunidad.");
+      return;
     }
 
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("¡Importado correctamente a tu cuenta!");
-      setImportOpen(false);
-      setImportingResource(null);
+    // Cerrar inmediatamente el modal para liberar la interfaz
+    setImportOpen(false);
+    setImportingResource(null);
+
+    const resourceName = resource.data?.nombre || resource.data?.titulo || "Recurso";
+    const toastId = `import-${resource.type}-${resource.id}-${Date.now()}`;
+
+    toast.loading(`Descargando "${resourceName}" en segundo plano...`, {
+      id: toastId,
+    });
+
+    try {
+      let targetSubjectId = subjectId;
+
+      // Si es un mazo y no tiene materia asignada, buscar o crear una materia
+      if (resource.type === "deck" && !targetSubjectId) {
+        if (subjects.length > 0) {
+          targetSubjectId = subjects[0].id;
+        } else {
+          const { data: createdSub } = await (supabase.from("subjects") as any)
+            .insert({
+              user_id: user.id,
+              nombre: "General",
+              año: 1,
+            })
+            .select("id")
+            .single();
+          if (createdSub) {
+            targetSubjectId = createdSub.id;
+            setSubjects((prev) => [...prev, { id: createdSub.id, nombre: "General", year: 1 }]);
+          }
+        }
+      }
+
+      let result: { error: string | null; [key: string]: any } = { error: "Tipo desconocido" };
+
+      if (resource.type === "deck") {
+        result = await importDeck(resource.id, targetSubjectId || "", true);
+      } else if (resource.type === "file") {
+        result = await importFile(resource.data, null);
+      } else if (resource.type === "folder") {
+        result = await importFolder(resource.id, null);
+      } else if (resource.type === "quiz") {
+        result = await importQuiz(resource.id, targetSubjectId, true);
+      } else if (resource.type === "apunte") {
+        result = await importApunte(resource.id, targetSubjectId);
+      }
+
+      if (result.error) {
+        toast.error(`Error al importar "${resourceName}": ${result.error}`, { id: toastId });
+      } else {
+        toast.success(`¡"${resourceName}" descargado e importado con éxito!`, {
+          id: toastId,
+          duration: 3500,
+        });
+      }
+    } catch (err: any) {
+      console.error("Error en importación en segundo plano:", err);
+      toast.error(`Error al importar "${resourceName}": ${err?.message || "Error inesperado"}`, {
+        id: toastId,
+      });
     }
-    setImporting(false);
   };
+
+  const handleImport = startBackgroundImport;
 
   const handlePublish = async () => {
     if (!resourceToPublish) return;
@@ -498,16 +545,18 @@ export default function Marketplace() {
               onClick={() => {
                 if (type === 'deck') {
                   setImportingResource({ id: item.id, type: 'deck', data: item });
+                  setSelectedSubject(subjects[0]?.id || "");
                   setImportOpen(true);
                 } else if (type === 'quiz') {
                   setImportingResource({ id: item.id, type: 'quiz', data: item });
+                  setSelectedSubject(subjects[0]?.id || "");
                   setImportOpen(true);
                 } else if (type === 'apunte') {
                   setImportingResource({ id: item.id, type: 'apunte', data: item });
+                  setSelectedSubject("");
                   setImportOpen(true);
                 } else {
-                  setImportingResource({ id: item.id, type, data: item });
-                  handleImport();
+                  startBackgroundImport({ id: item.id, type, data: item }, null);
                 }
               }}
             >
@@ -1193,7 +1242,7 @@ export default function Marketplace() {
                     startBackgroundImport(importingResource, selectedSubject || null);
                   }
                 }} 
-                disabled={importingResource?.type === 'deck' && !selectedSubject}
+                disabled={false}
               >
                 <Download className="w-3.5 h-3.5 mr-1.5" />
                 Descargar en segundo plano
