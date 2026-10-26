@@ -58,6 +58,7 @@ const RPGBattleGame = lazy(() => import("@/pages/RPGBattleGame"));
 const BombGame = lazy(() => import("@/pages/BombGame"));
 const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
+const CampusProxyRedirect = lazy(() => import("@/components/campus/CampusProxyRedirect"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
 const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
 const MiCampus = lazy(() => import("@/pages/MiCampus"));
@@ -258,6 +259,7 @@ const AppRoutes = () => (
       <Route path="/juegos/tateti" element={<TicTacToeGame />} />
       <Route path="/juegos/ajedrez" element={<ChessGame />} />
     </Route>
+    <Route path="/api/campus-proxy" element={<CampusProxyRedirect />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
   </Suspense>

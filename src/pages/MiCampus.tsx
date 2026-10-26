@@ -103,13 +103,13 @@ export default function MiCampus() {
     return "default-utn";
   });
 
-  // Modo de visualización: 'visor' (iframe embebido) o 'launcher' (tarjetas de acceso rápido)
+  // Modo de visualización: 'launcher' (tarjetas de acceso rápido recomendadas) o 'visor' (iframe embebido)
   const [viewMode, setViewMode] = useState<"visor" | "launcher">(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VIEW_MODE_KEY);
       if (saved === "launcher" || saved === "visor") return saved;
     } catch {}
-    return "visor";
+    return "launcher";
   });
 
   // Determinar sitio activo

@@ -28,6 +28,13 @@ self.addEventListener('activate', function (event) {
   );
 });
 
+// Bypass Service Worker Cache for all /api/ endpoints (guarantees raw network response)
+self.addEventListener('fetch', function (event) {
+  if (event.request && event.request.url && event.request.url.indexOf('/api/') !== -1) {
+    event.respondWith(fetch(event.request));
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. LISTEN FOR WEB PUSH NOTIFICATIONS (Wakes up SW even if app is closed)
 // ─────────────────────────────────────────────────────────────────────────────
