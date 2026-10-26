@@ -303,134 +303,118 @@ export default function MiCampus() {
     <div
       ref={containerRef}
       className={cn(
-        "tabe-page flex flex-col transition-all duration-300",
+        "tabe-page flex flex-col w-full transition-all duration-300",
         isFullscreen
-          ? "fixed inset-0 z-[1200] bg-white dark:bg-[#161618] p-2 sm:p-4"
-          : "p-3 sm:p-5 lg:p-6 max-w-[1550px] mx-auto min-h-[calc(100vh-6rem)]"
+          ? "fixed inset-0 z-[1200] bg-white dark:bg-[#161618] p-2"
+          : "h-[calc(100vh-4.5rem)] lg:h-screen p-2 sm:p-3 overflow-hidden gap-2"
       )}
     >
-      {/* Barra de sitios guardados (Tabs / Pills horizontales) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none shrink-0 mb-2">
-        {sites.map((site) => {
-          const isActive = site.id === activeSite.id;
-          const displayLogo = site.logoUrl || getAutoFavicon(site.url);
+      {/* Barra de control unificada (Header tipo navegador integrado al panel lateral) */}
+      <header className="w-full min-h-[46px] h-[46px] rounded-xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 px-2 sm:px-3 flex items-center justify-between gap-2 shadow-2xs shrink-0 z-20">
+        {/* Lado izquierdo: Tabs de sitios guardados */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
+          {sites.map((site) => {
+            const isActive = site.id === activeSite.id;
+            const displayLogo = site.logoUrl || getAutoFavicon(site.url);
 
-          return (
-            <button
-              key={site.id}
-              type="button"
-              onClick={() => {
-                setActiveSiteId(site.id);
-                setHasIframeError(false);
-              }}
-              className={cn(
-                "group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 border cursor-pointer",
-                isActive
-                  ? "bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-xs"
-                  : "bg-white/80 dark:bg-zinc-900/60 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80"
-              )}
-            >
-              <div className="w-4 h-4 rounded-full overflow-hidden shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
-                {displayLogo ? (
-                  <img
-                    src={displayLogo}
-                    alt={site.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <Globe className="w-3 h-3 text-zinc-500" />
-                )}
-              </div>
-              <span className="truncate max-w-[140px]">{site.name}</span>
-            </button>
-          );
-        })}
-
-        {/* Botón para agregar un nuevo link */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleOpenCreate}
-          className="h-8 px-2.5 rounded-xl text-xs flex items-center gap-1.5 shrink-0 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-blue-500 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Agregar link</span>
-        </Button>
-      </div>
-
-      {/* Barra de control superior */}
-      <div className="neo-bento-card p-3 sm:p-4 mb-3 sm:mb-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20 overflow-hidden">
-            {activeSite.logoUrl ? (
-              <img
-                src={activeSite.logoUrl}
-                alt={activeSite.name}
-                className="w-6 h-6 object-contain rounded-md"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <Globe className="w-5 h-5" />
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
-                {activeSite.name}
-              </h1>
+            return (
               <button
+                key={site.id}
                 type="button"
-                onClick={() => handleOpenEdit(activeSite)}
-                className="p-1 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                title="Editar este sitio"
+                onClick={() => {
+                  setActiveSiteId(site.id);
+                  setHasIframeError(false);
+                }}
+                className={cn(
+                  "group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 border cursor-pointer select-none",
+                  isActive
+                    ? "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-2xs font-semibold"
+                    : "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-transparent hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
+                )}
+                title={site.name}
               >
-                <Edit2 className="w-3.5 h-3.5" />
+                <div className="w-3.5 h-3.5 rounded-full overflow-hidden shrink-0 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+                  {displayLogo ? (
+                    <img
+                      src={displayLogo}
+                      alt={site.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <Globe className="w-2.5 h-2.5 text-zinc-500" />
+                  )}
+                </div>
+                <span className="truncate max-w-[110px] sm:max-w-[140px]">{site.name}</span>
               </button>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              {activeSite.url.replace(/^https?:\/\//, "")}
-            </p>
-          </div>
+            );
+          })}
+
+          {/* Botón para agregar un nuevo link */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleOpenCreate}
+            className="h-7 px-2 rounded-lg text-xs flex items-center gap-1 shrink-0 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 cursor-pointer"
+            title="Agregar nuevo portal o enlace"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nuevo</span>
+          </Button>
         </div>
 
-        {/* Acciones de control y Selector de Vista */}
-        <div className="flex items-center gap-1.5 sm:gap-2 self-end md:self-auto shrink-0 flex-wrap">
+        {/* Centro / Detalle sutil del sitio activo (Pantallas medianas y grandes) */}
+        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800/60 text-xs shrink-0 max-w-[320px]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+          <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+            {activeSite.name}
+          </span>
+          <span className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
+            {activeSite.url.replace(/^https?:\/\//, "")}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleOpenEdit(activeSite)}
+            className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors cursor-pointer"
+            title="Editar nombre o enlace de este portal"
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* Lado derecho: Acciones y conmutador de vista */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Switcher Visor / Lanzador */}
-          <div className="flex items-center p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60 mr-1">
+          <div className="flex items-center p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60">
             <button
               type="button"
               onClick={() => setViewMode("visor")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
+                "px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-all cursor-pointer",
                 viewMode === "visor"
                   ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold"
                   : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               )}
               title="Ver embebido en la aplicación"
             >
-              <Monitor className="w-3.5 h-3.5" />
-              <span>Visor</span>
+              <Monitor className="w-3 h-3" />
+              <span className="hidden sm:inline">Visor</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode("launcher")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
+                "px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-all cursor-pointer",
                 viewMode === "launcher"
                   ? "bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold"
                   : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               )}
-              title="Ver panel de acceso rápido y accesos directos"
+              title="Ver lanzador y accesos directos"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Lanzador</span>
+              <LayoutGrid className="w-3 h-3" />
+              <span className="hidden sm:inline">Lanzador</span>
             </button>
           </div>
 
@@ -438,33 +422,32 @@ export default function MiCampus() {
           <Button
             size="sm"
             onClick={() => openAsAppWindow()}
-            className="h-8 px-3 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="h-7 px-2.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 cursor-pointer shadow-2xs"
             title="Abrir como ventana independiente tipo app (sesión completa y sin bloqueos)"
           >
             <AppWindow className="w-3.5 h-3.5" />
-            <span>Ventana app</span>
+            <span className="hidden md:inline">Ventana app</span>
           </Button>
 
           {/* Abrir en Pestaña Directa */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             asChild
-            className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+            className="h-7 w-7 p-0 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
             title="Abrir en pestaña nueva del navegador"
           >
             <a href={activeSite.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Pestaña</span>
             </a>
           </Button>
 
           {/* Recargar iframe */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleReload}
-            className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+            className="h-7 w-7 p-0 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
             title="Recargar página"
           >
             <RotateCw className="w-3.5 h-3.5" />
@@ -472,16 +455,16 @@ export default function MiCampus() {
 
           {/* Pantalla completa */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={toggleFullscreen}
-            className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer"
+            className="h-7 w-7 p-0 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
             title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Editor / Modal Desplegable para Agregar o Editar Sitio */}
       <AnimatePresence>
@@ -611,7 +594,7 @@ export default function MiCampus() {
       {/* CONTENIDO PRINCIPAL SEGÚN EL MODO SELECCIONADO */}
       {viewMode === "launcher" ? (
         /* MODO LANZADOR / ACCESO RÁPIDO (TARJETAS GLASSMORPHIC) */
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 w-full min-h-0 overflow-y-auto pr-1 flex flex-col gap-4">
           {/* Tarjeta Destacada del Campus Activo */}
           <div className="neo-bento-card p-5 sm:p-7 relative overflow-hidden bg-gradient-to-br from-blue-500/[0.04] via-transparent to-indigo-500/[0.03]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
@@ -785,137 +768,84 @@ export default function MiCampus() {
           </div>
         </div>
       ) : (
-        /* MODO VISOR EMBEBIDO (IFRAME PROXY SEGURO) */
-        <div className="flex-1 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 overflow-hidden relative min-h-[550px] flex flex-col shadow-xs">
+        /* MODO VISOR EMBEBIDO (IFRAME PROXY SEGURO DE ALTO COMPLETO) */
+        <div className="flex-1 w-full min-h-0 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#161618] overflow-hidden relative flex flex-col shadow-2xs">
           {activeSite?.url ? (
-            <>
-              {/* Aviso superior de estado */}
-              <div className="bg-zinc-100/90 dark:bg-zinc-900/90 border-b border-zinc-200/70 dark:border-zinc-800/70 px-3.5 py-2 flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 shrink-0 gap-3">
-                <span className="flex items-center gap-1.5 truncate">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span className="truncate">
-                    Portal: <strong className="text-zinc-900 dark:text-zinc-100">{activeSite.name}</strong> ({activeSite.url})
-                  </span>
-                </span>
-
-                <div className="flex items-center gap-3 shrink-0 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => openAsAppWindow()}
-                    className="text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <AppWindow className="w-3 h-3" />
-                    Abrir en Ventana App
-                  </button>
-                  <span className="text-zinc-300 dark:text-zinc-700">|</span>
-                  <a
-                    href={activeSite.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 font-medium"
-                  >
-                    Enlace directo <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="relative flex-1 w-full h-full min-h-[500px]">
-                {/* Spinner de carga limpio */}
-                {isLoadingIframe && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/85 dark:bg-[#161618]/85 backdrop-blur-xs">
-                    <div className="w-7 h-7 rounded-full border-2 border-blue-600 border-t-transparent animate-spin mb-2" />
-                    <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      Conectando con {activeSite.name}...
-                    </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openAsAppWindow()}
-                        className="h-7 text-xs rounded-lg px-2.5 cursor-pointer"
-                      >
-                        <AppWindow className="w-3 h-3 mr-1" />
-                        Abrir ventana app
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsLoadingIframe(false)}
-                        className="h-7 text-xs rounded-lg px-2 text-zinc-500"
-                      >
-                        Omitir espera
-                      </Button>
-                    </div>
+            <div className="relative flex-1 w-full h-full min-h-0">
+              {/* Spinner de carga limpio */}
+              {isLoadingIframe && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/90 dark:bg-[#161618]/90 backdrop-blur-xs">
+                  <div className="w-7 h-7 rounded-full border-2 border-blue-600 border-t-transparent animate-spin mb-2" />
+                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    Cargando {activeSite.name}...
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openAsAppWindow()}
+                      className="h-7 text-xs rounded-lg px-2.5 cursor-pointer"
+                    >
+                      <AppWindow className="w-3 h-3 mr-1" />
+                      Abrir ventana app
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsLoadingIframe(false)}
+                      className="h-7 text-xs rounded-lg px-2 text-zinc-500"
+                    >
+                      Omitir espera
+                    </Button>
                   </div>
-                )}
-
-                {/* Si hubo un error explícito de carga */}
-                {hasIframeError ? (
-                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-white dark:bg-[#161618]">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-                      <AlertCircle className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                      El campus requiere navegación directa
-                    </h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1 mb-4 leading-relaxed">
-                      Muchos portales educativos impiden ser mostrados dentro de marcos por políticas de seguridad de cookies y exámenes. Podés abrirlo en su ventana nativa con 1 solo clic.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => openAsAppWindow()}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <AppWindow className="w-3.5 h-3.5" />
-                        Abrir en Ventana App
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleReload}
-                        className="h-9 px-3 text-xs rounded-xl cursor-pointer"
-                      >
-                        <RotateCw className="w-3.5 h-3.5 mr-1" /> Reintentar
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Iframe que renderiza el sitio */}
-                <iframe
-                  key={`${activeSite.id}-${iframeKey}`}
-                  src={iframeSrc}
-                  title={activeSite.name}
-                  className="w-full h-full min-h-[550px] border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  onLoad={() => setIsLoadingIframe(false)}
-                  onError={() => {
-                    setIsLoadingIframe(false);
-                    setHasIframeError(true);
-                  }}
-                />
-
-                {/* Asistente Flotante inferior sutil */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-200/90 dark:border-zinc-800/90 shadow-lg flex items-center gap-2.5 text-xs text-zinc-600 dark:text-zinc-300">
-                  <span className="hidden sm:inline text-[11px] text-zinc-500">¿Problemas al iniciar sesión o descargar archivos?</span>
-                  <button
-                    type="button"
-                    onClick={() => openAsAppWindow()}
-                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <AppWindow className="w-3.5 h-3.5" />
-                    Abrir en Ventana App
-                  </button>
-                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("launcher")}
-                    className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer text-[11px]"
-                  >
-                    Ver Lanzador
-                  </button>
                 </div>
-              </div>
-            </>
+              )}
+
+              {/* Si hubo un error explícito de carga */}
+              {hasIframeError ? (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-white dark:bg-[#161618]">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    El campus requiere navegación directa
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1 mb-4 leading-relaxed">
+                    Muchos portales educativos impiden ser mostrados dentro de marcos por políticas de seguridad de cookies y exámenes. Podés abrirlo en su ventana nativa con 1 solo clic.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => openAsAppWindow()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <AppWindow className="w-3.5 h-3.5" />
+                      Abrir en Ventana App
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleReload}
+                      className="h-9 px-3 text-xs rounded-xl cursor-pointer"
+                    >
+                      <RotateCw className="w-3.5 h-3.5 mr-1" /> Reintentar
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Iframe a pantalla completa del contenedor */}
+              <iframe
+                key={`${activeSite.id}-${iframeKey}`}
+                src={iframeSrc}
+                title={activeSite.name}
+                className="w-full h-full border-0 block"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                onLoad={() => setIsLoadingIframe(false)}
+                onError={() => {
+                  setIsLoadingIframe(false);
+                  setHasIframeError(true);
+                }}
+              />
+            </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 border border-blue-500/20">
