@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
@@ -35,6 +36,20 @@ interface PomodoroSettingsType {
 type SettingsTab = "account" | "integrations" | "notifications" | "appearance" | "pomodoro" | "legal";
 
 export default function Settings() {
+  const { 
+    user, 
+    isGuest, 
+    signOut, 
+    profile, 
+    isGoogleLinked,
+    googleIdentity,
+    linkGoogleAccount,
+    unlinkGoogleAccount,
+    connectGoogleCalendar
+  } = useAuth();
+
+  const { settings: pomodoroSettings, updateSettings } = usePomodoro();
+  const { theme, setTheme } = useTheme();
   const { confirm } = useConfirm();
   const { deleteAllSubjects, importCareerPlan } = useSubjects();
   const { userStats } = useDashboardStats();
@@ -73,8 +88,8 @@ export default function Settings() {
         .maybeSingle();
       if (data) {
         setAcademicProfile({
-          facultad: data.facultad || null,
-          carrera: data.carrera || null,
+          facultad: data.facultad || localStorage.getItem("tabe_guest_facultad") || null,
+          carrera: data.carrera || localStorage.getItem("tabe_guest_carrera") || null,
         });
       }
     } catch (err) {
@@ -88,6 +103,7 @@ export default function Settings() {
 
   // Facultades de la provincia seleccionada
   const facultadesForProvincia = useMemo(() => {
+    if (!selectedProvincia || selectedProvincia === "ALL" || selectedProvincia === "OTRA_PROVINCIA") return ALL_FACULTADES;
     return ALL_FACULTADES.filter((f) => f.provinciaId === selectedProvincia);
   }, [selectedProvincia]);
 
@@ -98,7 +114,7 @@ export default function Settings() {
   }, [selectedFacultad]);
 
   const handleOpenAcademicModal = () => {
-    setSelectedProvincia("MENDOZA");
+    setSelectedProvincia("ALL");
     // Intentar pre-seleccionar la facultad actual del usuario
     if (academicProfile.facultad) {
       const match = ALL_FACULTADES.find(
@@ -238,20 +254,6 @@ export default function Settings() {
       setIsSavingAcademic(false);
     }
   };
-  const { 
-    user, 
-    isGuest, 
-    signOut, 
-    profile, 
-    isGoogleLinked,
-    googleIdentity,
-    linkGoogleAccount,
-    unlinkGoogleAccount,
-    connectGoogleCalendar
-  } = useAuth();
-  
-  const { settings: pomodoroSettings, updateSettings } = usePomodoro();
-  const { theme, setTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [expandedBotSection, setExpandedBotSection] = useState(false);
@@ -589,7 +591,7 @@ export default function Settings() {
                         className="h-8 px-3.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                       >
                         <GraduationCap className="w-3.5 h-3.5" />
-                        <span>Modificar facultad / plan</span>
+                        <span>{academicProfile.facultad ? "Modificar facultad / plan" : "Seleccionar universidad"}</span>
                       </button>
                     </div>
                   </div>
@@ -1319,6 +1321,7 @@ export default function Settings() {
                   <SelectValue placeholder="Selecciona provincia..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-56 z-50">
+                  <SelectItem value="ALL" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Todas las provincias / Nacional</SelectItem>
                   {ALL_PROVINCIAS.map((p) => (
                     <SelectItem key={p.id} value={p.id} className="text-xs">
                       {p.label}
