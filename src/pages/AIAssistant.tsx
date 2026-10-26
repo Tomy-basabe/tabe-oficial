@@ -250,6 +250,9 @@ export default function AIAssistant() {
     setWelcomeContentReady(true);
   }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAutoScrollEnabledRef = useRef(true);
+  const [showScrollBottomButton, setShowScrollBottomButton] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const prevPersonaIdRef = useRef<string | null>(null);
@@ -280,11 +283,42 @@ export default function AIAssistant() {
     }
   }, [activePersona?.id, user?.id]);
 
-  // Scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(() => { scrollToBottom(); }, [messages, isStreaming]);
+  // Detección de scroll: si el usuario sube para leer, desactivamos el auto-scroll agresivo
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    // Si está a menos de 80px del final, se reactiva el auto-scroll
+    const isAtBottom = distanceFromBottom < 80;
+    isAutoScrollEnabledRef.current = isAtBottom;
+    setShowScrollBottomButton(!isAtBottom);
+  }, []);
+
+  // Función para bajar al fondo
+  const scrollToBottom = useCallback((smooth = false) => {
+    isAutoScrollEnabledRef.current = true;
+    setShowScrollBottomButton(false);
+    if (smooth) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      }
+    }
+  }, []);
+
+  // Auto-scroll durante streaming: SOLO si el usuario está al fondo y NO subió para leer
+  useEffect(() => {
+    if (!isAutoScrollEnabledRef.current) return;
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages]);
 
   // ---- Persona actions ----
   const handleSelectPersona = (persona: AIPersona) => {
@@ -367,6 +401,7 @@ export default function AIAssistant() {
           timestamp: new Date(m.created_at),
         }))
       );
+      setTimeout(() => scrollToBottom(false), 80);
     }
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
@@ -869,6 +904,11 @@ export default function AIAssistant() {
     const newMessages = [...existingMessages, userMessage];
     setMessages(newMessages);
     setInputValue("");
+    isAutoScrollEnabledRef.current = true;
+    setShowScrollBottomButton(false);
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
 
     // Create or reuse session
     let sessionId = currentSessionRef.current;
@@ -1319,8 +1359,10 @@ export default function AIAssistant() {
 
         {/* ── MESSAGES / HERO AREA ───────────────────────────── */}
         <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
           className={cn(
-            "flex-1 scroll-smooth relative",
+            "flex-1 relative",
             isWelcomeScreen || showLiveVoice
               ? "flex flex-col items-center justify-center overflow-hidden px-4"
               : "overflow-y-auto"
@@ -1550,6 +1592,21 @@ export default function AIAssistant() {
                 </div>
               )}
             </div>
+
+        {/* Botón flotante para bajar al último mensaje si el usuario subió para leer */}
+        {showScrollBottomButton && !isWelcomeScreen && !showLiveVoice && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto animate-in fade-in zoom-in-95 duration-150">
+            <button
+              type="button"
+              onClick={() => scrollToBottom(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-900 dark:bg-zinc-100/90 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 shadow-lg text-xs font-medium backdrop-blur-md transition-all cursor-pointer border border-white/10 dark:border-zinc-800 hover:scale-105 active:scale-95 select-none"
+              title="Bajar al último mensaje"
+            >
+              <ChevronDown className="w-3.5 h-3.5 animate-bounce" />
+              <span>Bajar al último mensaje</span>
+            </button>
+          </div>
+        )}
 
         {/* ── UNIFIED ALL-IN-ONE PROMPT BAR (se oculta completamente en modo voz en vivo) ────────────────── */}
         {!showLiveVoice && !isWelcomeScreen && (
