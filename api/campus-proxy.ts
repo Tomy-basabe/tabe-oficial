@@ -72,9 +72,11 @@ function sendBody(res: any, code: number, body: any, contentType?: string) {
 }
 
 export default async function handler(req: any, res: any) {
+  const reqOrigin = req.headers["origin"] || "*";
   // Configurar CORS y no-cache estricto para evitar cualquier 404 cacheado
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+  res.setHeader("Access-Control-Allow-Origin", reqOrigin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH");
   res.setHeader("Access-Control-Allow-Headers", "*");
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.setHeader("Pragma", "no-cache");
@@ -104,11 +106,16 @@ export default async function handler(req: any, res: any) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 18000);
 
+    const parsedTarget = new URL(cleanUrl);
+
     const forwardHeaders: Record<string, string> = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-      "Accept": req.headers["accept"] || "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept": req.headers["accept"] || "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8",
       "Accept-Language": req.headers["accept-language"] || "es-ES,es;q=0.9,en;q=0.8",
+      "Host": parsedTarget.host,
+      "Origin": parsedTarget.origin,
+      "Referer": cleanUrl,
     };
 
     if (req.headers["content-type"]) {
@@ -117,6 +124,14 @@ export default async function handler(req: any, res: any) {
 
     if (req.headers["cookie"]) {
       forwardHeaders["Cookie"] = req.headers["cookie"];
+    }
+
+    if (req.headers["x-requested-with"]) {
+      forwardHeaders["X-Requested-With"] = req.headers["x-requested-with"];
+    }
+
+    if (req.headers["authorization"]) {
+      forwardHeaders["Authorization"] = req.headers["authorization"];
     }
 
     const fetchOptions: any = {
@@ -128,23 +143,33 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
       let bodyBuffer: Buffer | null = null;
+
       if (Buffer.isBuffer(req.body)) {
         bodyBuffer = req.body;
       } else if (typeof req.body === "string") {
         bodyBuffer = Buffer.from(req.body, "utf-8");
       } else if (req.body && typeof req.body === "object") {
-        bodyBuffer = Buffer.from(new URLSearchParams(req.body).toString(), "utf-8");
-      } else if (typeof req[Symbol.asyncIterator] === "function") {
+        const reqContentType = (req.headers["content-type"] || "").toLowerCase();
+        if (reqContentType.includes("application/x-www-form-urlencoded") && !Array.isArray(req.body)) {
+          bodyBuffer = Buffer.from(new URLSearchParams(req.body).toString(), "utf-8");
+        } else {
+          // Serializar JSON (para arrays de llamadas múltiples o payloads JSON de Moodle service.php)
+          bodyBuffer = Buffer.from(JSON.stringify(req.body), "utf-8");
+        }
+      }
+
+      if (!bodyBuffer && typeof req[Symbol.asyncIterator] === "function") {
         try {
           const chunks: any[] = [];
           for await (const chunk of req) {
-            chunks.push(chunk);
+            chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
           }
           if (chunks.length > 0) {
             bodyBuffer = Buffer.concat(chunks);
           }
         } catch (_) {}
       }
+
       if (bodyBuffer) {
         fetchOptions.body = bodyBuffer;
       }
@@ -266,13 +291,21 @@ export default async function handler(req: any, res: any) {
     if (next) {
       args[1] = next;
     }
-    return origOpen.apply(this, args);
+    var res = origOpen.apply(this, args);
+    try {
+      this.withCredentials = true;
+    } catch(e) {}
+    return res;
   };
 
   // 2. Interceptar fetch
   if (window.fetch) {
     var origFetch = window.fetch;
     window.fetch = function(input, init) {
+      init = init || {};
+      if (typeof init.credentials === 'undefined') {
+        init.credentials = 'include';
+      }
       if (typeof input === 'string') {
         var next = rewrite(input);
         if (next) input = next;
@@ -348,9 +381,9 @@ export default async function handler(req: any, res: any) {
       return sendBody(res, 200, html, "text/html; charset=utf-8");
     }
 
-    // Para imágenes, css, js u otros assets
+    // Para imágenes, css, js u otros assets (y respuestas JSON de AJAX)
     const buffer = Buffer.from(await response.arrayBuffer());
-    return sendBody(res, 200, buffer, contentType || undefined);
+    return sendBody(res, response.status || 200, buffer, contentType || undefined);
   } catch (err: any) {
     if (err?.name === "AbortError") {
       return sendJson(res, 504, { error: "Tiempo de espera agotado al conectar con el campus" });
