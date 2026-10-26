@@ -165,16 +165,45 @@ export function useDashboardStats() {
 
   // Check persistent cache in localStorage (hydrate even if stale for 0ms UI, revalidate in background)
   const dailyCache = user ? getStoredDashboardStats(user.id) : null;
-  const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < STATS_CACHE_TTL_MS);
 
   if (!_cachedUserStats && dailyCache) {
     _cachedUserStats = dailyCache.userStats;
     _cachedStudySessions = dailyCache.studySessions;
   }
 
-  const [userStats, setUserStats] = useState<UserStats | null>(_cachedUserStats);
-  const [studySessions, setStudySessions] = useState<StudySession[]>(_cachedStudySessions || []);
-  const [loading, setLoading] = useState<boolean>(!_cachedUserStats && !dailyCache);
+  const [userStats, setUserStats] = useState<UserStats | null>(() => {
+    if (_cachedUserStats) return _cachedUserStats;
+    if (user) {
+      const stored = getStoredDashboardStats(user.id);
+      if (stored?.userStats) return stored.userStats;
+    }
+    if (isGuest) {
+      let guestXp = 4150;
+      try {
+        const saved = localStorage.getItem("tabe_guest_xp");
+        if (saved) guestXp = parseInt(saved, 10);
+      } catch (e) {}
+      return {
+        xp_total: guestXp,
+        nivel: Math.floor(guestXp / 100) + 1,
+        racha_actual: 14,
+        mejor_racha: 35,
+        horas_estudio_total: 312,
+      };
+    }
+    return null;
+  });
+
+  const [studySessions, setStudySessions] = useState<StudySession[]>(() => {
+    if (_cachedStudySessions && _cachedStudySessions.length > 0) return _cachedStudySessions;
+    if (user) {
+      const stored = getStoredDashboardStats(user.id);
+      if (stored?.studySessions) return stored.studySessions;
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => !_cachedUserStats && !dailyCache && !isGuest);
   const hasAutoHealedStreak = useRef(false);
 
   const fetchStats = useCallback(async (showLoading = !_cachedUserStats) => {
@@ -338,27 +367,77 @@ export function useDashboardStats() {
   useEffect(() => {
     // Si hay caché reciente la mostramos de inmediato, pero siempre revalidamos en segundo plano
     const daily = user ? getStoredDashboardStats(user.id) : null;
-    if (daily) {
-      setUserStats(prev => prev || daily.userStats);
-      setStudySessions(prev => (prev.length > 0 ? prev : daily.studySessions));
+    if (daily?.userStats) {
+      setUserStats(daily.userStats);
+      if (daily.studySessions?.length) {
+        setStudySessions(daily.studySessions);
+      }
+      setLoading(false);
+    } else if (_cachedUserStats) {
+      setUserStats(_cachedUserStats);
+      if (_cachedStudySessions?.length) {
+        setStudySessions(_cachedStudySessions);
+      }
       setLoading(false);
     }
+
     const recentlySynced = _cachedUserStats !== null && (Date.now() - _cachedStatsSyncTime < 5 * 60 * 1000);
-    if (recentlySynced) {
+    if (recentlySynced && (user || isGuest)) {
       setLoading(false);
       return;
     }
     fetchStats(!daily && !_cachedUserStats);
   }, [fetchStats, user, isGuest]);
 
-  // Refrescar inmediatamente si se invalida la caché de estadísticas desde cualquier pantalla
+  // Suscripción en tiempo real a cambios de user_stats para el usuario actual
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`dashboard_stats_user_${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_stats",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            setUserStats(prev => {
+              const updated: UserStats = {
+                xp_total: payload.new.xp_total ?? prev?.xp_total ?? 0,
+                nivel: payload.new.nivel ?? prev?.nivel ?? 1,
+                racha_actual: payload.new.racha_actual ?? prev?.racha_actual ?? 0,
+                mejor_racha: payload.new.mejor_racha ?? prev?.mejor_racha ?? 0,
+                horas_estudio_total: payload.new.horas_estudio_total ?? prev?.horas_estudio_total ?? 0,
+              };
+              _cachedUserStats = updated;
+              if (user) {
+                setStoredDashboardStats(user.id, updated, _cachedStudySessions || []);
+              }
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Refrescar inmediatamente si se invalida la caché de estadísticas desde cualquier pantalla o evento de XP
   useEffect(() => {
     const handleInvalidate = () => {
       fetchStats(false);
     };
     window.addEventListener("tabe:dashboard-stats-invalidated", handleInvalidate);
+    window.addEventListener("tabe:xp-updated", handleInvalidate);
     return () => {
       window.removeEventListener("tabe:dashboard-stats-invalidated", handleInvalidate);
+      window.removeEventListener("tabe:xp-updated", handleInvalidate);
     };
   }, [fetchStats]);
 

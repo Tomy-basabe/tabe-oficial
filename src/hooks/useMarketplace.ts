@@ -331,8 +331,15 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
           );
         }
         if (categoryFilter) filtered = filtered.filter(d => d.category === categoryFilter);
-        if (yearFilter) filtered = filtered.filter(d => d.subject?.year === yearFilter);
-        if (subjectFilter) filtered = filtered.filter(d => d.subject_id === subjectFilter);
+        if (yearFilter) filtered = filtered.filter(d => d.subject?.year === yearFilter || d.year === yearFilter);
+        if (subjectFilter && subjectFilter !== "all") {
+          const lowerSub = subjectFilter.toLowerCase().trim();
+          filtered = filtered.filter(d => 
+            d.subject_id === subjectFilter || 
+            (d.subject?.nombre && d.subject.nombre.toLowerCase().trim() === lowerSub) ||
+            (d.subject_name && d.subject_name.toLowerCase().trim() === lowerSub)
+          );
+        }
 
         if (facultadFilter && facultadFilter !== "all") {
           const facObj = ALL_FACULTADES.find(f => f.id === facultadFilter);

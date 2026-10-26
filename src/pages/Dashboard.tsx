@@ -84,21 +84,42 @@ export default function Dashboard() {
                   El conocimiento te pertenece.
                 </motion.p>
               </div>
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
-                className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-2 shadow-2xs"
+              <Link
+                to="/metricas"
+                title="Ver estadísticas y métricas completas"
+                className="group"
               >
-                <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-                <span className="text-sm font-semibold">{userStats?.xp_total || 0} XP</span>
-              </motion.div>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
+                  className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 transition-colors text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-2 shadow-2xs cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-semibold">{userStats?.xp_total ?? 0} XP</span>
+                </motion.div>
+              </Link>
             </div>
           </StaggerItem>
 
           {/* Bento: Stats Row */}
           <StaggerItem yOffset={16}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 tour-dashboard-stats">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 tour-dashboard-stats">
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Link to="/metricas" className="block h-full">
+                  <StatsCard
+                    title="Experiencia"
+                    value={`${userStats?.xp_total ?? 0} XP`}
+                    subtitle={`Nivel ${userStats?.nivel ?? 1}`}
+                    icon={Zap}
+                    variant="purple"
+                  />
+                </Link>
+              </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}

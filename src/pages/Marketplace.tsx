@@ -18,6 +18,14 @@ import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import HoldButton from "@/components/ui/HoldButton";
 
+const AVAILABLE_YEARS = [
+  { value: 1, label: "1° Año" },
+  { value: 2, label: "2° Año" },
+  { value: 3, label: "3° Año" },
+  { value: 4, label: "4° Año" },
+  { value: 5, label: "5° Año" },
+];
+
 interface Subject {
   id: string;
   nombre: string;
@@ -76,21 +84,39 @@ export default function Marketplace() {
 
   // Cargar facultad del perfil del usuario para pre-seleccionar por default
   useEffect(() => {
-    if (!user) return;
     let isMounted = true;
 
     async function loadUserAcademicProfile() {
       try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("facultad, carrera")
-          .eq("user_id", user.id)
-          .single();
+        let facRaw = "";
+        let carrRaw = "";
 
-        if (error || !data || !isMounted) return;
+        if (user) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("facultad, carrera")
+            .eq("user_id", user.id)
+            .maybeSingle();
 
-        const facRaw = (data.facultad || "").trim();
-        const carrRaw = (data.carrera || "").trim();
+          if (data) {
+            facRaw = (data.facultad || "").trim();
+            carrRaw = (data.carrera || "").trim();
+          }
+        }
+
+        if (!facRaw) {
+          try {
+            facRaw = (localStorage.getItem("tabe_guest_facultad") || "").trim();
+          } catch {}
+        }
+        if (!carrRaw) {
+          try {
+            carrRaw = (localStorage.getItem("tabe_guest_carrera") || "").trim();
+          } catch {}
+        }
+
+        if (!isMounted) return;
+
         if (carrRaw) setUserCarreraLabel(carrRaw);
 
         if (facRaw) {
@@ -121,6 +147,52 @@ export default function Marketplace() {
       isMounted = false;
     };
   }, [user]);
+
+  // Materias únicas disponibles según los recursos cargados y las materias registradas
+  const availableSubjects = React.useMemo(() => {
+    const map = new Map<string, { id: string; nombre: string; year?: number }>();
+
+    const allPublic = [
+      ...publicApuntes,
+      ...publicDecks,
+      ...publicFiles,
+      ...publicFolders,
+      ...publicQuizzes,
+    ];
+
+    for (const item of allPublic) {
+      if (item.subject?.nombre) {
+        const key = item.subject.nombre.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, {
+            id: item.subject_id || item.subject.nombre,
+            nombre: item.subject.nombre,
+            year: item.subject.year,
+          });
+        }
+      }
+    }
+
+    for (const s of subjects) {
+      if (s.nombre) {
+        const key = s.nombre.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, {
+            id: s.id,
+            nombre: s.nombre,
+            year: s.year,
+          });
+        }
+      }
+    }
+
+    let list = Array.from(map.values());
+    if (yearFilter) {
+      list = list.filter((s) => s.year === yearFilter);
+    }
+
+    return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [publicApuntes, publicDecks, publicFiles, publicFolders, publicQuizzes, subjects, yearFilter]);
 
   // Carreras disponibles según la facultad actualmente filtrada
   const filteredCareers = React.useMemo(() => {
@@ -696,119 +768,187 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {/* Fila 2: Filtros Académicos (Facultad y Carrera) */}
-        <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 flex-wrap flex-1">
-            {/* Selector de Facultad */}
-            <div className="w-full sm:w-auto min-w-[200px] flex-1 max-w-sm">
-              <Select 
-                value={facultadFilter || "all"} 
-                onValueChange={(val) => {
-                  setFacultadFilter(val === "all" ? null : val);
-                  setCarreraFilter(null);
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <SelectValue placeholder="Filtrar por Facultad" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60">
-                  <SelectItem value="all">
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">🏛️ Todas las facultades</span>
-                  </SelectItem>
-                  {userFacultadId && !AVAILABLE_FACULTADES.some(f => f.id === userFacultadId) && (
-                    <SelectItem value={userFacultadId}>
-                      <span className="font-medium text-indigo-600 dark:text-indigo-400">
-                        ⭐ {userFacultadLabel || userFacultadId} (Mi facultad)
-                      </span>
-                    </SelectItem>
-                  )}
-                  {AVAILABLE_FACULTADES.map((fac) => (
-                    <SelectItem key={fac.id} value={fac.id}>
-                      <span className={fac.id === userFacultadId ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""}>
-                        {fac.id === userFacultadId ? `⭐ ${fac.label} (Mi facultad)` : fac.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Fila 2: Filtros Académicos en Cascada: Facultad -> Carrera -> Año -> Materia */}
+        <div className="pt-2.5 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5" />
+              Filtro Académico
+            </span>
 
-            {/* Selector de Carrera (visible si hay facultad seleccionada) */}
-            {facultadFilter && facultadFilter !== "all" && filteredCareers.length > 0 && (
-              <div className="w-full sm:w-auto min-w-[200px] flex-1 max-w-sm">
-                <Select 
-                  value={carreraFilter || "all"} 
-                  onValueChange={(val) => setCarreraFilter(val === "all" ? null : val)}
-                >
-                  <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <SelectValue placeholder="Filtrar por Carrera" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60">
-                    <SelectItem value="all">
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">🎓 Todas las carreras</span>
-                    </SelectItem>
-                    {filteredCareers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Botón rápido para volver a Mi Facultad si se cambió */}
-            {userFacultadId && facultadFilter !== userFacultadId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFacultadFilter(userFacultadId);
-                  setCarreraFilter(null);
-                }}
-                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-[11px] font-medium transition-colors cursor-pointer"
-                title="Volver a ver únicamente los recursos de mi facultad"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Mi facultad
-              </button>
-            )}
-
-            {/* Botón para ver Todas si hay un filtro aplicado */}
-            {facultadFilter && facultadFilter !== "all" && (
+            {/* Badges de filtros activos y botón de reset */}
+            {(facultadFilter || carreraFilter || yearFilter || subjectFilter || categoryFilter) && (
               <button
                 type="button"
                 onClick={() => {
                   setFacultadFilter(null);
                   setCarreraFilter(null);
+                  setYearFilter(null);
+                  setSubjectFilter(null);
+                  setCategoryFilter(null);
                 }}
-                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-[11px] font-medium transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors cursor-pointer"
               >
                 <X className="w-3 h-3" />
-                Ver todas
+                Limpiar filtros
               </button>
             )}
           </div>
 
-          {/* Badge informativo de filtro activo */}
-          {facultadFilter && facultadFilter !== "all" && (
-            <div className="shrink-0 flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              <span>Filtrado activo</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {/* 1. Selector de Facultad */}
+            <Select 
+              value={facultadFilter || "all"} 
+              onValueChange={(val) => {
+                setFacultadFilter(val === "all" ? null : val);
+                setCarreraFilter(null);
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
+                <div className="flex items-center gap-1.5 truncate">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <SelectValue placeholder="Facultad" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
+                <SelectItem value="all">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">🏛️ Todas las facultades</span>
+                </SelectItem>
+                {userFacultadId && !ALL_FACULTADES.some(f => f.id === userFacultadId) && (
+                  <SelectItem value={userFacultadId}>
+                    <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                      ⭐ {userFacultadLabel || userFacultadId} (Mi facultad)
+                    </span>
+                  </SelectItem>
+                )}
+                {ALL_FACULTADES.map((fac) => (
+                  <SelectItem key={fac.id} value={fac.id}>
+                    <span className={fac.id === userFacultadId ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""}>
+                      {fac.id === userFacultadId ? `⭐ ${fac.label} (Mi facultad)` : (fac.fullLabel || fac.label)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* 2. Selector de Carrera */}
+            <Select 
+              value={carreraFilter || "all"} 
+              onValueChange={(val) => setCarreraFilter(val === "all" ? null : val)}
+              disabled={!facultadFilter || facultadFilter === "all" || filteredCareers.length === 0}
+            >
+              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg disabled:opacity-50">
+                <div className="flex items-center gap-1.5 truncate">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <SelectValue placeholder={filteredCareers.length === 0 && facultadFilter && facultadFilter !== "all" ? "Sin carreras cargadas" : "Carrera"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
+                <SelectItem value="all">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">🎓 Todas las carreras</span>
+                </SelectItem>
+                {filteredCareers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* 3. Selector de Año */}
+            <Select
+              value={yearFilter ? yearFilter.toString() : "all"}
+              onValueChange={(val) => {
+                const num = val === "all" ? null : parseInt(val, 10);
+                setYearFilter(num);
+                setSubjectFilter(null);
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
+                <div className="flex items-center gap-1.5 truncate">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <SelectValue placeholder="Año de cursado" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
+                <SelectItem value="all">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">📅 Todos los años</span>
+                </SelectItem>
+                {AVAILABLE_YEARS.map((y) => (
+                  <SelectItem key={y.value} value={y.value.toString()}>
+                    {y.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* 4. Selector de Materia */}
+            <Select
+              value={subjectFilter || "all"}
+              onValueChange={(val) => setSubjectFilter(val === "all" ? null : val)}
+            >
+              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
+                <div className="flex items-center gap-1.5 truncate">
+                  <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <SelectValue placeholder="Materia" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
+                <SelectItem value="all">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">📚 Todas las materias</span>
+                </SelectItem>
+                {availableSubjects.map((s) => (
+                  <SelectItem key={s.id || s.nombre} value={s.nombre}>
+                    {s.year ? `${s.year}° - ${s.nombre}` : s.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Botones de acceso rápido y estado del filtro */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {userFacultadId && facultadFilter !== userFacultadId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFacultadFilter(userFacultadId);
+                    setCarreraFilter(null);
+                  }}
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-[11px] font-medium transition-colors cursor-pointer"
+                  title="Volver a los recursos de mi facultad"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Mi facultad ({userFacultadLabel || userFacultadId})
+                </button>
+              )}
             </div>
-          )}
+
+            {facultadFilter && facultadFilter !== "all" && (
+              <div className="flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Filtrando por: <strong>{userFacultadLabel || facultadFilter}</strong></span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Tabs Principales de Comunidad */}
-      <Tabs defaultValue="decks" className="space-y-6 tour-marketplace-decks">
+      <Tabs defaultValue="apuntes" className="space-y-6 tour-marketplace-decks">
         <div className="overflow-x-auto pb-1 scrollbar-none">
           <TabsList className="bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 inline-flex w-auto min-w-full sm:min-w-0">
+            <TabsTrigger 
+              value="apuntes" 
+              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4 text-emerald-500" /> Apuntes
+              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
+                {publicApuntes.length}
+              </span>
+            </TabsTrigger>
+
             <TabsTrigger 
               value="decks" 
               className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
@@ -826,16 +966,6 @@ export default function Marketplace() {
               <HelpCircle className="w-4 h-4" /> Quizzes
               <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
                 {publicQuizzes.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="apuntes" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <GraduationCap className="w-4 h-4" /> Apuntes
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicApuntes.length}
               </span>
             </TabsTrigger>
 
