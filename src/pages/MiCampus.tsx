@@ -109,8 +109,11 @@ export default function MiCampus() {
       const saved = localStorage.getItem(STORAGE_VIEW_MODE_KEY);
       if (saved === "launcher" || saved === "visor") return saved;
     } catch {}
-    return "launcher";
+    return "visor";
   });
+
+  // Modo de conexión: 'proxy' (seguro, elimina bloqueos iframe) o 'direct' (carga directa sin pasar por servidor)
+  const [loadMode, setLoadMode] = useState<"proxy" | "direct">("proxy");
 
   // Determinar sitio activo
   const activeSite = useMemo(() => {
@@ -136,6 +139,17 @@ export default function MiCampus() {
   const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Escuchar mensajes del fallback del proxy para abrir ventana app con 1 clic
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data && e.data.type === "tabe_open_app_window" && e.data.url) {
+        openAsAppWindow(e.data.url);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   // Sincronizar persistencia de sitios y activo en localStorage
   useEffect(() => {
     try {
@@ -149,16 +163,19 @@ export default function MiCampus() {
     } catch {}
   }, [sites, activeSite, viewMode]);
 
-  // Fuente del iframe con origen canónico y cache-buster para evitar 404 cacheado y redirecciones 308
+  // Fuente del iframe con soporte tanto de Proxy universal como Carga Directa
   const iframeSrc = useMemo(() => {
-    const validUrl = activeSite?.url && activeSite.url.startsWith("http")
-      ? activeSite.url
-      : "https://campusvirtual.frm.utn.edu.ar";
-    const isLocal = typeof window !== "undefined" &&
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-    const origin = isLocal ? window.location.origin : "https://www.tabe.com.ar";
-    return `${origin}/api/campus-proxy?url=${encodeURIComponent(validUrl)}&_k=${iframeKey}`;
-  }, [activeSite?.url, iframeKey]);
+    let validUrl = (activeSite?.url || "").trim();
+    if (!validUrl.startsWith("http://") && !validUrl.startsWith("https://")) {
+      validUrl = `https://${validUrl || "campusvirtual.frm.utn.edu.ar"}`;
+    }
+
+    if (loadMode === "direct") {
+      return validUrl;
+    }
+
+    return `/api/campus-proxy?url=${encodeURIComponent(validUrl)}&_k=${iframeKey}`;
+  }, [activeSite?.url, loadMode, iframeKey]);
 
   useEffect(() => {
     if (activeSite?.url) {
@@ -417,6 +434,29 @@ export default function MiCampus() {
               <span className="hidden sm:inline">Lanzador</span>
             </button>
           </div>
+
+          {/* Selector de Modo de Conexión (Proxy vs Directo) */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = loadMode === "proxy" ? "direct" : "proxy";
+              setLoadMode(next);
+              setHasIframeError(false);
+              setIsLoadingIframe(true);
+              setIframeKey((prev) => prev + 1);
+              toast.info(`Cambiado a modo ${next === "proxy" ? "Proxy Seguro" : "Carga Directa"}`);
+            }}
+            className={cn(
+              "h-7 px-2 rounded-lg text-xs font-medium border flex items-center gap-1 transition-all cursor-pointer select-none",
+              loadMode === "proxy"
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                : "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30"
+            )}
+            title={loadMode === "proxy" ? "Modo Proxy Seguro (neutraliza bloqueos). Clic para Carga Directa" : "Modo Directo. Clic para Proxy Seguro"}
+          >
+            {loadMode === "proxy" ? <ShieldCheck className="w-3 h-3 text-emerald-500" /> : <Globe className="w-3 h-3 text-purple-500" />}
+            <span className="hidden lg:inline">{loadMode === "proxy" ? "Proxy" : "Directo"}</span>
+          </button>
 
           {/* Botón Principal: Abrir como Ventana App */}
           <Button
@@ -808,12 +848,12 @@ export default function MiCampus() {
                     <AlertCircle className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                    El campus requiere navegación directa
+                    Opciones de conexión para este enlace
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1 mb-4 leading-relaxed">
-                    Muchos portales educativos impiden ser mostrados dentro de marcos por políticas de seguridad de cookies y exámenes. Podés abrirlo en su ventana nativa con 1 solo clic.
+                    Si este portal cuenta con protección WAF estricta o restringe marcos embebidos, puedes alternar entre el modo Directo/Proxy o abrirlo en una ventana app nativa sin bloqueos.
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
                     <Button
                       onClick={() => openAsAppWindow()}
                       className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -823,6 +863,20 @@ export default function MiCampus() {
                     </Button>
                     <Button
                       variant="outline"
+                      onClick={() => {
+                        const next = loadMode === "proxy" ? "direct" : "proxy";
+                        setLoadMode(next);
+                        setHasIframeError(false);
+                        setIsLoadingIframe(true);
+                        setIframeKey((prev) => prev + 1);
+                      }}
+                      className="h-9 px-3 text-xs rounded-xl cursor-pointer"
+                    >
+                      <Globe className="w-3.5 h-3.5 mr-1" />
+                      Cambiar a modo {loadMode === "proxy" ? "Directo" : "Proxy Seguro"}
+                    </Button>
+                    <Button
+                      variant="ghost"
                       onClick={handleReload}
                       className="h-9 px-3 text-xs rounded-xl cursor-pointer"
                     >

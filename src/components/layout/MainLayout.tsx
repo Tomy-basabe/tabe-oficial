@@ -402,12 +402,11 @@ export function MainLayout() {
               <Link
                 to="/metricas"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 active:scale-95 transition-all shadow-2xs"
-                title="Ver métricas y nivel"
+                title="Ver métricas"
               >
                 <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">NV. {xpData.level}</span>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center">
-                  • {xpData.currentXp} XP
+                <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">
+                  {xpData.currentXp} XP
                 </span>
               </Link>
 
@@ -752,34 +751,13 @@ export function MainLayout() {
           </ScrollArea>
         )}
 
-          {/* Footer: XP del usuario, botones compactos para cambiar tema y cerrar sesión */}
+          {/* Footer: Usuario, XP, botones compactos para cambiar tema y cerrar sesión */}
           <div className={cn(
             "mt-auto border-t border-zinc-200/80 dark:border-zinc-800/80 shrink-0 transition-all select-none",
-            isCollapsed ? "py-3 px-2 flex flex-col items-center gap-1.5" : "py-2.5 px-3 flex flex-col gap-2"
+            isCollapsed ? "py-3 px-2 flex flex-col items-center gap-1.5" : "py-2.5 px-3 flex items-center justify-between gap-1"
           )}>
             {isCollapsed ? (
               <>
-                {/* XP / Nivel Pill (Colapsado) */}
-                <div className="relative group/foot-xp">
-                  <Link
-                    to="/metricas"
-                    className="w-10 h-10 flex flex-col items-center justify-center rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer"
-                    aria-label={`Nivel ${xpData.level} • ${xpData.currentXp} XP`}
-                  >
-                    <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
-                    <span className="text-[9px] font-bold leading-none mt-0.5">{xpData.level}</span>
-                  </Link>
-                  <div className="hidden group-hover/foot-xp:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1.5 shadow-md items-center gap-1.5 whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
-                    <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">
-                      Nivel {xpData.level}
-                    </span>
-                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      • {xpData.currentXp} XP
-                    </span>
-                  </div>
-                </div>
-
                 {/* Cambiar tema (Colapsado) */}
                 <div className="relative group/foot-theme">
                   <button
@@ -826,78 +804,59 @@ export function MainLayout() {
                 </div>
               </>
             ) : (
-              <div className="w-full space-y-2">
-                {/* Barra interactiva de XP y Nivel (Expandido) */}
-                <Link
-                  to="/metricas"
-                  className="group/xp-card block p-2 rounded-xl bg-white/70 dark:bg-zinc-850/80 border border-zinc-200/80 dark:border-zinc-700/70 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-2xs"
-                  title="Ver estadísticas y nivel"
-                >
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                      <span className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px]">
-                        Nivel {xpData.level}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                      {xpData.currentXp} XP
-                    </span>
+              <>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="w-6 h-6 rounded-md bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs font-semibold shrink-0">
+                    {user?.email?.charAt(0).toUpperCase() || "T"}
                   </div>
-                  <div className="w-full h-1.5 bg-zinc-200/80 dark:bg-zinc-700/80 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, Math.max(0, xpData.progress))}%` }}
-                    />
-                  </div>
-                </Link>
-
-                <div className="flex items-center justify-between gap-1 pt-0.5">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-6 h-6 rounded-md bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs font-semibold shrink-0">
-                      {user?.email?.charAt(0).toUpperCase() || "T"}
-                    </div>
+                  <div className="min-w-0 flex-1 flex items-center gap-1.5">
                     <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate">
                       {user?.email?.split("@")[0] || "Mi cuenta"}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Cambiar tema (Expandido) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        
-                        toggleTheme();
-                      }}
-                      className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
-                      title={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-                      aria-label={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-                    >
-                      {resolvedTheme === "dark" ? (
-                        <Sun className="w-4 h-4 text-amber-400 stroke-[2.2]" />
-                      ) : (
-                        <Moon className="w-4 h-4 text-zinc-600 stroke-[2.2]" />
-                      )}
-                    </button>
-
-                    {/* Cerrar sesión (Expandido) */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        
-                        await signOut();
-                        navigate("/login");
-                      }}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                      title="Cerrar sesión"
-                      aria-label="Cerrar sesión"
-                    >
-                      <LogOut className="w-4 h-4 stroke-[2.2]" />
-                    </button>
+                    {userStats?.xp_total ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 shrink-0">
+                        <Zap className="w-2.5 h-2.5 fill-amber-500" />
+                        {userStats.xp_total} XP
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Cambiar tema (Expandido) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      
+                      toggleTheme();
+                    }}
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                    title={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                    aria-label={resolvedTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                  >
+                    {resolvedTheme === "dark" ? (
+                      <Sun className="w-4 h-4 text-amber-400 stroke-[2.2]" />
+                    ) : (
+                      <Moon className="w-4 h-4 text-zinc-600 stroke-[2.2]" />
+                    )}
+                  </button>
+
+                  {/* Cerrar sesión (Expandido) */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      
+                      await signOut();
+                      navigate("/login");
+                    }}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                    title="Cerrar sesión"
+                    aria-label="Cerrar sesión"
+                  >
+                    <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  </button>
+                </div>
+              </>
             )}
           </div>
 

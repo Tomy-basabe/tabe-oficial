@@ -537,12 +537,6 @@ export default function Settings() {
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate font-mono">
                           {userEmail || "Sin correo asociado"}
                         </p>
-                        <div className="pt-1">
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25 shadow-2xs">
-                            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                            Nivel {userStats?.nivel || Math.floor((userStats?.xp_total || 0) / 100) + 1} • {userStats?.xp_total || 0} XP
-                          </span>
-                        </div>
                       </div>
                     </div>
 
