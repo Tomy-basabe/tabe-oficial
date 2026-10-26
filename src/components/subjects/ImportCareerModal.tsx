@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Loader2, Info, FileUp, Check } from "lucide-react";
+import { BookOpen, Loader2, Info, FileUp, Check, Clock } from "lucide-react";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { cn } from "@/lib/utils";
+import careerStatsRaw from "@/lib/careerStats.json";
+
+const careerStats = careerStatsRaw as Record<string, [number, number]>;
 
 interface ImportCareerModalProps {
   open: boolean;
@@ -43,7 +47,7 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
                 Importar plan de estudios
               </DialogTitle>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Selecciona tu universidad y carrera para cargar el plan con correlatividades oficiales precargadas.
+                Selecciona tu facultad y carrera para cargar el plan con correlatividades precargadas.
               </p>
             </div>
           </div>
@@ -81,10 +85,10 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
 
         {/* Body: Split View */}
         <div className="flex flex-1 min-h-0 overflow-hidden bg-white dark:bg-[#212121]">
-          {/* Left: Universities list */}
-          <div className="w-48 sm:w-56 shrink-0 border-r border-zinc-100 dark:border-zinc-800/80 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/30 overflow-y-auto p-2 space-y-0.5">
+          {/* Left: Universities list with Logos */}
+          <div className="w-52 sm:w-60 shrink-0 border-r border-zinc-100 dark:border-zinc-800/80 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/30 overflow-y-auto p-2 space-y-0.5">
             <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 px-2 py-1">
-              Universidad
+              Facultad / Universidad
             </p>
             {AVAILABLE_FACULTADES.map(f => {
               const count = AVAILABLE_CAREERS.filter(c => c.facultad === f.id).length;
@@ -98,13 +102,18 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
                     if (first) setSelectedCareer(first.id);
                   }}
                   className={cn(
-                    "w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between border",
+                    "w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between border gap-2",
                     isSelected
                       ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium border-transparent shadow-2xs"
                       : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40"
                   )}
                 >
-                  <span className="truncate pr-1">{f.label}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                      <UniversityLogo universityId={f.id} className="w-4 h-4" />
+                    </div>
+                    <span className="truncate">{f.label}</span>
+                  </div>
                   <span className={cn(
                     "text-[10px] px-1.5 py-0.2 rounded font-medium shrink-0",
                     isSelected ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900" : "text-zinc-400"
@@ -116,13 +125,13 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
             })}
           </div>
 
-          {/* Right: Career cards list */}
+          {/* Right: Career cards list with Duration */}
           <div className="flex-1 flex flex-col min-h-0 p-4 sm:p-5 overflow-hidden">
             <div className="flex items-center justify-between pb-2 mb-3 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0">
-              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate pr-2">
                 {AVAILABLE_FACULTADES.find(f => f.id === selectedFacultad)?.fullLabel}
               </span>
-              <span className="text-[11px] text-zinc-500">
+              <span className="text-[11px] text-zinc-500 shrink-0">
                 {AVAILABLE_CAREERS.filter(c => c.facultad === selectedFacultad).length} carreras
               </span>
             </div>
@@ -132,6 +141,11 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {AVAILABLE_CAREERS.filter(c => c.facultad === selectedFacultad).map(c => {
                   const isSelected = selectedCareer === c.id;
+                  const fileKey = (c.file || c.id).split("/").pop()?.replace("_template", "") || "";
+                  const [, maxYear] = careerStats[fileKey] || [36, 5];
+                  const finalYears = maxYear || 5;
+                  const durationLabel = `${finalYears} ${finalYears === 1 ? "año" : "años"}`;
+
                   return (
                     <button
                       key={c.id}
@@ -147,9 +161,12 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
                         <p className="text-xs font-medium leading-snug text-zinc-900 dark:text-zinc-100">
                           {c.label}
                         </p>
-                        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                          Plan Oficial
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 font-medium">
+                            <Clock className="w-3 h-3 text-zinc-400" />
+                            Duración: {durationLabel}
+                          </span>
+                        </div>
                       </div>
                       {isSelected && (
                         <div className="w-4 h-4 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 mt-0.5">
@@ -168,7 +185,7 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
         <div className="p-3.5 sm:p-4 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <p className="text-[11px] text-zinc-500 flex items-center gap-1.5 text-center sm:text-left">
             <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-            <span>Se importarán las materias con códigos y correlativas al plan actual.</span>
+            <span>Se asignará la facultad a tu perfil y se cargarán sus materias con correlatividades.</span>
           </p>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
             <Button

@@ -1,32 +1,31 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap,
-  ChevronRight,
-  BookOpen,
+import {
+  GraduationCap,
   Clock,
   Target,
   ArrowRight,
-  CheckCircle2,
   Search,
   Building2,
   Calendar,
   Layers,
-  
   Check,
-  Compass } from "lucide-react";
+  Compass,
+  BookOpen,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import {
-  UniversityLogo,
-  UTNLogo,
-  UNCUYOLogo,
-  UNSJLogo,
-  UNLPLogo,
-  DonBoscoLogo,
-  ITGCLogo,
-} from "@/components/icons/UniversityLogos";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { cn } from "@/lib/utils";
+import {
+  AVAILABLE_CAREERS,
+  ALL_FACULTADES,
+  AVAILABLE_FACULTADES,
+} from "@/lib/careerData";
+import careerStatsRaw from "@/lib/careerStats.json";
+
+const careerStats = careerStatsRaw as Record<string, [number, number]>;
 
 interface UniversityDefinition {
   id: string;
@@ -38,225 +37,46 @@ interface UniversityDefinition {
   accentColor: string;
 }
 
-const UNIVERSITIES: UniversityDefinition[] = [
-  {
-    id: "UTN",
-    name: "Universidad Tecnológica Nacional",
-    shortName: "UTN",
-    facultyInfo: "Facultad Regional Mendoza (FRM) y Facultad Regional Córdoba (FRC)",
-    location: "Mendoza / Córdoba",
-    badgeColor: "bg-[#003865] text-white",
-    accentColor: "#0072CE",
-  },
-  {
-    id: "UNCUYO",
-    name: "Universidad Nacional de Cuyo",
-    shortName: "UNCUYO",
-    facultyInfo: "Fac. de Ciencias Agrarias (FCA) y Fac. de Cs. Políticas y Sociales (FCPyS)",
-    location: "Mendoza",
-    badgeColor: "bg-[#004F9F] text-white",
-    accentColor: "#004F9F",
-  },
-  {
-    id: "UNSJ",
-    name: "Universidad Nacional de San Juan",
-    shortName: "UNSJ",
-    facultyInfo: "Facultad de Ingeniería",
-    location: "San Juan",
-    badgeColor: "bg-[#7A0026] text-white",
-    accentColor: "#8A1538",
-  },
-  {
-    id: "UNLP",
-    name: "Universidad Nacional de La Plata",
-    shortName: "UNLP",
-    facultyInfo: "Facultad de Ciencias Exactas",
-    location: "La Plata, Buenos Aires",
-    badgeColor: "bg-[#002B49] text-white",
-    accentColor: "#002B49",
-  },
-  {
-    id: "DONBOSCO",
-    name: "Facultad Don Bosco",
-    shortName: "Don Bosco",
-    facultyInfo: "Facultad Don Bosco de Enología y Ciencias de la Alimentación",
-    location: "Rodeo del Medio, Mendoza",
-    badgeColor: "bg-[#6A1B29] text-white",
-    accentColor: "#722F37",
-  },
-  {
-    id: "ITGC",
-    name: "IES 9-002 Tomás Godoy Cruz",
-    shortName: "IES 9-002",
-    facultyInfo: "Instituto de Educación Superior 9-002 Tomás Godoy Cruz",
-    location: "Godoy Cruz, Mendoza",
-    badgeColor: "bg-[#1E3A8A] text-white",
-    accentColor: "#1E3A8A",
-  },
-];
-
-// Map of template filename prefix to University ID and details
-const CAREER_METADATA: Record<
-  string,
-  {
-    name: string;
-    universityId: string;
-    faculty: string;
-    icon: any;
-    color: string;
-  }
-> = {
-  sistemas: {
-    name: "Ingeniería en Sistemas de Información",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: GraduationCap,
-    color: "#0072CE",
-  },
-  civil: {
-    name: "Ingeniería Civil",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: Target,
-    color: "#ff9415",
-  },
-  electromecanica: {
-    name: "Ingeniería Electromecánica",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: Target,
-    color: "#10b981",
-  },
-  quimica: {
-    name: "Ingeniería Química",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: BookOpen,
-    color: "#e53935",
-  },
-  telecomunicaciones: {
-    name: "Ingeniería en Telecomunicaciones",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: Target,
-    color: "#8b5cf6",
-  },
-  electronica: {
-    name: "Ingeniería Electrónica",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Mendoza",
-    icon: Target,
-    color: "#06b6d4",
-  },
-  mecanica_utn_frc: {
-    name: "Ingeniería Mecánica",
-    universityId: "UTN",
-    faculty: "UTN Facultad Regional Córdoba",
-    icon: Target,
-    color: "#3b82f6",
-  },
-  agronomia_uncuyo: {
-    name: "Ingeniería Agronómica",
-    universityId: "UNCUYO",
-    faculty: "Facultad de Ciencias Agrarias (FCA)",
-    icon: BookOpen,
-    color: "#48bd22",
-  },
-  ciencia_politica_fcpys: {
-    name: "Licenciatura en Ciencia Política y Adm. Pública",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: Target,
-    color: "#10b981",
-  },
-  comunicacion_social_fcpys: {
-    name: "Licenciatura en Comunicación Social",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: BookOpen,
-    color: "#06b6d4",
-  },
-  gestion_politicas_publicas_fcpys: {
-    name: "Tecnicatura en Gestión de Políticas Públicas",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: GraduationCap,
-    color: "#f59e0b",
-  },
-  sociologia_fcpys: {
-    name: "Licenciatura en Sociología",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: GraduationCap,
-    color: "#a855f7",
-  },
-  trabajo_social_fcpys: {
-    name: "Licenciatura en Trabajo Social",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: BookOpen,
-    color: "#f43f5e",
-  },
-  tupa_fcpys: {
-    name: "Tecnicatura Universitaria en Producción Audiovisual (TUPA)",
-    universityId: "UNCUYO",
-    faculty: "Fac. de Cs. Políticas y Sociales (FCPyS)",
-    icon: Target,
-    color: "#f97316",
-  },
-  electromecanica_unsj: {
-    name: "Ingeniería Electromecánica",
-    universityId: "UNSJ",
-    faculty: "Facultad de Ingeniería",
-    icon: Target,
-    color: "#ff9415",
-  },
-  energia_electrica_unsj: {
-    name: "Ingeniería en Energía Eléctrica",
-    universityId: "UNSJ",
-    faculty: "Facultad de Ingeniería",
-    icon: Target,
-    color: "#ffd21c",
-  },
-  mecanica_unsj: {
-    name: "Ingeniería Mecánica",
-    universityId: "UNSJ",
-    faculty: "Facultad de Ingeniería",
-    icon: Target,
-    color: "#1475e5",
-  },
-  contactologia: {
-    name: "Tecnicatura en Contactología",
-    universityId: "UNLP",
-    faculty: "Facultad de Ciencias Exactas",
-    icon: GraduationCap,
-    color: "#14b8a6",
-  },
-  licenciatura_enologia_donbosco: {
-    name: "Licenciatura en Enología",
-    universityId: "DONBOSCO",
-    faculty: "Facultad Don Bosco de Enología",
-    icon: GraduationCap,
-    color: "#722F37",
-  },
-  enologia_donbosco: {
-    name: "Tecnicatura Universitaria en Enología",
-    universityId: "DONBOSCO",
-    faculty: "Facultad Don Bosco de Enología",
-    icon: BookOpen,
-    color: "#8B0000",
-  },
-  profesorado_primaria_godoy_cruz: {
-    name: "Profesorado de Educación Primaria",
-    universityId: "ITGC",
-    faculty: "Instituto de Educación Superior 9-002",
-    icon: GraduationCap,
-    color: "#1E3A8A",
-  },
+// Colores de acento por defecto para las facultades
+const FACULTY_COLORS: Record<string, { accent: string; badge: string; location: string }> = {
+  UTN: { accent: "#0072CE", badge: "bg-[#003865] text-white", location: "Mendoza / Córdoba" },
+  UTN_FRSR: { accent: "#0072CE", badge: "bg-[#003865] text-white", location: "San Rafael, Mendoza" },
+  UNCUYO: { accent: "#004F9F", badge: "bg-[#004F9F] text-white", location: "Mendoza" },
+  UNCUYO_FCPYS: { accent: "#004F9F", badge: "bg-[#004F9F] text-white", location: "Mendoza" },
+  UMENDOZA: { accent: "#005a9c", badge: "bg-[#005a9c] text-white", location: "Mendoza" },
+  UMAZA: { accent: "#1e3a8a", badge: "bg-[#1e3a8a] text-white", location: "Guaymallén, Mendoza" },
+  UCONGRESO: { accent: "#0284c7", badge: "bg-[#0284c7] text-white", location: "Mendoza" },
+  UDA: { accent: "#b91c1c", badge: "bg-[#b91c1c] text-white", location: "Mendoza" },
+  UCHAMPAGNAT: { accent: "#047857", badge: "bg-[#047857] text-white", location: "Godoy Cruz, Mendoza" },
+  UCA: { accent: "#1e40af", badge: "bg-[#1e40af] text-white", location: "Mendoza" },
+  UES21: { accent: "#ea580c", badge: "bg-[#ea580c] text-white", location: "Mendoza" },
+  DONBOSCO: { accent: "#722F37", badge: "bg-[#6A1B29] text-white", location: "Rodeo del Medio, Mendoza" },
+  ITGC: { accent: "#1E3A8A", badge: "bg-[#1E3A8A] text-white", location: "Godoy Cruz, Mendoza" },
+  INSUTEC: { accent: "#0284c7", badge: "bg-[#0369a1] text-white", location: "Mendoza" },
+  IES_BELGRANO: { accent: "#0891b2", badge: "bg-[#0e7490] text-white", location: "Mendoza" },
+  IES_MAIPU: { accent: "#059669", badge: "bg-[#047857] text-white", location: "Maipú, Mendoza" },
+  UNSJ: { accent: "#8A1538", badge: "bg-[#7A0026] text-white", location: "San Juan" },
+  UNLP: { accent: "#002B49", badge: "bg-[#002B49] text-white", location: "La Plata, Buenos Aires" },
 };
 
-// Carga todas las plantillas JSON de carreras
-const careerTemplates = import.meta.glob("../data/*_template.json", { eager: true });
+// Generar dinámicamente las universidades a partir de las facultades disponibles
+const UNIVERSITIES: UniversityDefinition[] = AVAILABLE_FACULTADES.map((f) => {
+  const conf = FACULTY_COLORS[f.id] || {
+    accent: "#3b82f6",
+    badge: "bg-zinc-800 text-white",
+    location: "Mendoza, Argentina",
+  };
+
+  return {
+    id: f.id,
+    name: f.fullLabel || f.label,
+    shortName: f.label,
+    facultyInfo: f.fullLabel || f.label,
+    location: conf.location,
+    badgeColor: conf.badge,
+    accentColor: conf.accent,
+  };
+});
 
 interface CareerItem {
   id: string;
@@ -266,52 +86,64 @@ interface CareerItem {
   universityShort: string;
   faculty: string;
   degreeType: string;
-  subjectsCount: number;
   years: number;
-  icon: typeof GraduationCap;
+  durationLabel: string;
+  icon: any;
   color: string;
-  description: string;
-  tags: string[];
+}
+
+function getCareerIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes("ingenier")) return Target;
+  if (lower.includes("licenciatura")) return BookOpen;
+  if (lower.includes("profesorado") || lower.includes("educaci")) return GraduationCap;
+  if (lower.includes("tecnicatura")) return Layers;
+  return GraduationCap;
 }
 
 export default function Careers() {
   const [selectedUniversity, setSelectedUniversity] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Process all career templates
   const allCareers: CareerItem[] = useMemo(() => {
     const list: CareerItem[] = [];
 
-    for (const path in careerTemplates) {
-      const mod: any = careerTemplates[path];
-      const data: any = mod.default || mod;
-      const id = path.split("/").pop()?.replace("_template.json", "") || "";
-      const subjects: any[] = Array.isArray(data.subjects) ? data.subjects : [];
-      const maxYear = Math.max(...subjects.map((s: any) => Number(s.año) || 0), 0);
+    for (const career of AVAILABLE_CAREERS) {
+      const fileKey = (career.file || career.id).split("/").pop()?.replace("_template", "") || "";
+      const [, maxYear] = careerStats[fileKey] || [36, 5];
 
-      const meta = CAREER_METADATA[id] || {
-        name: id.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-        universityId: "UTN",
-        faculty: "Universidad",
-        icon: GraduationCap,
-        color: "#0072CE",
+      const uniDef = UNIVERSITIES.find((u) => u.id === career.facultad) || {
+        id: career.facultad,
+        name: career.facultad,
+        shortName: career.facultad,
+        facultyInfo: career.facultad,
+        location: "Mendoza, Argentina",
+        badgeColor: "bg-zinc-800 text-white",
+        accentColor: "#3b82f6",
       };
-      const universityDef = UNIVERSITIES.find((u) => u.id === meta.universityId) || UNIVERSITIES[0];
+
+      const icon = getCareerIcon(career.label);
+      const degreeType = career.label.toLowerCase().includes("tecnicatura")
+        ? "Tecnicatura"
+        : career.label.toLowerCase().includes("profesorado")
+        ? "Profesorado"
+        : "Grado";
+
+      const finalYears = maxYear || 5;
+      const durationLabel = `${finalYears} ${finalYears === 1 ? "año" : "años"}`;
 
       list.push({
-        id,
-        name: meta.name,
-        universityId: meta.universityId,
-        universityName: universityDef.name,
-        universityShort: universityDef.shortName,
-        faculty: meta.faculty,
-        degreeType: "Grado",
-        subjectsCount: subjects.length,
-        years: maxYear || 5,
-        icon: meta.icon,
-        color: meta.color,
-        description: `Plan de estudios con ${subjects.length} materias en ${maxYear || 5} años.`,
-        tags: [],
+        id: career.id,
+        name: career.label,
+        universityId: career.facultad,
+        universityName: uniDef.name,
+        universityShort: uniDef.shortName,
+        faculty: uniDef.facultyInfo,
+        degreeType,
+        years: finalYears,
+        durationLabel,
+        icon,
+        color: uniDef.accentColor || "#0072CE",
       });
     }
 
@@ -330,7 +162,6 @@ export default function Careers() {
         return (
           c.name.toLowerCase().includes(q) ||
           c.faculty.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q) ||
           uni.name.toLowerCase().includes(q) ||
           uni.shortName.toLowerCase().includes(q)
         );
@@ -353,10 +184,18 @@ export default function Careers() {
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-blue-500/20 selection:text-blue-600">
       <LandingNavbar />
 
-      {/* Hero Header (Clean Apple/Notion style) */}
+      {/* Hero Header */}
       <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#121212]/50">
         <div className="container mx-auto px-4 md:px-6 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-5">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/50 text-xs font-medium"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Directorio Académico Oficial</span>
+            </motion.div>
 
             <motion.h1
               initial={{ opacity: 0, y: 15 }}
@@ -364,7 +203,7 @@ export default function Careers() {
               transition={{ delay: 0.1 }}
               className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 leading-tight"
             >
-              Planes de Estudio
+              Facultades y Carreras
             </motion.h1>
 
             <motion.p
@@ -373,7 +212,7 @@ export default function Careers() {
               transition={{ delay: 0.2 }}
               className="text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed max-w-2xl mx-auto"
             >
-              Explorá carreras agrupadas por institución con sus mapas de correlatividades, malla interactiva y carga directa a tu perfil.
+              Explorá las facultades y carreras oficiales con su duración y logo institucional verificado.
             </motion.p>
 
             {/* Buscador minimalista */}
@@ -387,7 +226,7 @@ export default function Careers() {
                 <Search className="w-4 h-4 absolute left-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Buscar carrera (ej: Sistemas, Agronomía, Civil)..."
+                  placeholder="Buscar por carrera o universidad..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-20 py-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all placeholder:text-zinc-400"
@@ -406,20 +245,20 @@ export default function Careers() {
             {/* Badges informativos */}
             <div className="flex flex-wrap justify-center gap-4 pt-2 text-xs text-zinc-500 dark:text-zinc-400">
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-500" /> Validado por estudiantes
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> Facultades verificadas
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-500" /> {totalCareersCount} Planes disponibles
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> {totalCareersCount} Carreras disponibles
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-500" /> 100% Gratuito
+                <Check className="w-3.5 h-3.5 text-emerald-500" /> Información oficial
               </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Barra de Filtros por Universidad (Tabs modernas) */}
+      {/* Barra de Filtros por Universidad */}
       <section className="sticky top-16 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/60 dark:border-zinc-800/60 py-2.5 shadow-2xs">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
@@ -439,6 +278,7 @@ export default function Careers() {
             {UNIVERSITIES.map((uni) => {
               const isSelected = selectedUniversity === uni.id;
               const count = allCareers.filter((c) => c.universityId === uni.id).length;
+              if (count === 0) return null;
 
               return (
                 <button
@@ -451,7 +291,7 @@ export default function Careers() {
                       : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
                   )}
                 >
-                  <div className="w-3.5 h-3.5 shrink-0 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="w-4 h-4 shrink-0 rounded-md overflow-hidden flex items-center justify-center bg-white dark:bg-zinc-900 p-0.5 border border-zinc-200/60 dark:border-zinc-700/60">
                     <UniversityLogo universityId={uni.id} className="w-3.5 h-3.5" />
                   </div>
                   <span>{uni.shortName}</span>
@@ -472,7 +312,7 @@ export default function Careers() {
         </div>
       </section>
 
-      {/* Contenido Principal: Separado por Universidad */}
+      {/* Contenido Principal: Solo Facultades, Carreras y Duración */}
       <main className="py-12 md:py-16 flex-1">
         <div className="container mx-auto px-4 md:px-6 max-w-7xl space-y-14">
           {displayedUniversities.length === 0 ? (
@@ -480,7 +320,7 @@ export default function Careers() {
               <Search className="w-8 h-8 text-zinc-400 mx-auto" />
               <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron carreras</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
-                No hay coincidencias para "{searchQuery}". Intentá buscar con otro término o limpiá el filtro.
+                No hay coincidencias para "{searchQuery}". Intentá buscar con otro término.
               </p>
               <button
                 onClick={() => {
@@ -499,10 +339,10 @@ export default function Careers() {
                 id={`uni-${uni.id.toLowerCase()}`}
                 className="space-y-5 scroll-mt-36"
               >
-                {/* Encabezado limpio de la Universidad con Logo */}
+                {/* Encabezado limpio de la Universidad con Logo Oficial */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 md:p-6 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shrink-0">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center p-2 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs shrink-0">
                       <UniversityLogo universityId={uni.id} className="w-full h-full" />
                     </div>
 
@@ -528,7 +368,7 @@ export default function Careers() {
                   </div>
                 </div>
 
-                {/* Grilla de Carreras */}
+                {/* Grilla de Carreras: Solo Facultad, Carrera y Duración */}
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                   {uni.careers.map((career) => {
                     const CareerIcon = career.icon;
@@ -540,7 +380,7 @@ export default function Careers() {
                         className="group relative p-5 bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full cursor-pointer"
                       >
                         <div>
-                          {/* Cabecera de la tarjeta: Icono + Mini logo */}
+                          {/* Cabecera de la tarjeta: Icono + Mini logo oficial */}
                           <div className="flex items-center justify-between mb-3.5">
                             <div
                               className="w-10 h-10 rounded-xl flex items-center justify-center p-2 border border-zinc-200/60 dark:border-zinc-700/60 transition-transform group-hover:scale-105"
@@ -553,7 +393,7 @@ export default function Careers() {
                             </div>
 
                             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800">
-                              <div className="w-3.5 h-3.5 shrink-0">
+                              <div className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
                                 <UniversityLogo universityId={uni.id} className="w-3.5 h-3.5" />
                               </div>
                               <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
@@ -568,27 +408,26 @@ export default function Careers() {
                           </h3>
 
                           {/* Subtítulo de Facultad */}
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal line-clamp-1 mb-3">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 font-normal mb-3">
                             {career.faculty}
                           </p>
 
-                          {/* Datos métricos */}
-                          <div className="grid grid-cols-2 gap-2 mb-4">
-                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                              <BookOpen className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                              <span>{career.subjectsCount} Materias</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                              <Calendar className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                              <span>{career.years} Años</span>
-                            </div>
+                          {/* Duración destacada */}
+                          <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 mb-2">
+                            <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">
+                              <Clock className="w-3.5 h-3.5 text-blue-500" />
+                              Duración: {career.durationLabel}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                              {career.degreeType}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Botón inferior Ver Plan */}
-                        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs font-medium text-zinc-600 dark:text-zinc-400 group-hover:text-blue-500 transition-colors mt-auto">
-                          <span>Ver Mapa y Plan</span>
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        {/* Pie de tarjeta con Call to Action sutil */}
+                        <div className="pt-2 flex items-center justify-between text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <span>Ver carrera</span>
+                          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                         </div>
                       </Link>
                     );
@@ -599,69 +438,6 @@ export default function Careers() {
           )}
         </div>
       </main>
-
-      {/* Sección Herramientas integradas */}
-      <section className="py-16 md:py-20 bg-zinc-50/50 dark:bg-[#121212]/50 border-t border-zinc-200/80 dark:border-zinc-800/80">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 text-xs font-medium mb-3">
-              Herramientas Universitarias
-            </span>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Todo lo que necesitás para tu carrera
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-normal mt-2 leading-relaxed">
-              Desde el primer año hasta tu tesis: mapa de correlatividades, apuntes, pomodoro y tutor inteligente.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            {[
-              { icon: Layers, label: "Correlatividades", val: "Árbol Interactivo" },
-              { icon: Clock, label: "Productividad", val: "Pomodoro Focus" },
-              { icon: Target, label: "Seguimiento", val: "Métricas & Notas" },
-              { icon: GraduationCap, label: "Apoyo Académico", val: "Tutor IA Rioplatense" },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="p-5 bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs text-center space-y-2"
-              >
-                <div className="w-9 h-9 rounded-xl mx-auto flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-700 dark:text-zinc-300">
-                  <item.icon className="w-4 h-4" />
-                </div>
-                <div className="text-[10px] uppercase font-medium text-zinc-400">{item.label}</div>
-                <div className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.val}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Banner Call-to-action ¿No encontrás tu carrera? */}
-      <section className="py-14 bg-white dark:bg-zinc-950 border-t border-zinc-200/80 dark:border-zinc-800/80">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="p-8 sm:p-10 rounded-3xl bg-zinc-900 text-white dark:bg-[#181818] border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-            <div className="space-y-2 text-center md:text-left max-w-xl">
-              <span className="px-2.5 py-1 bg-white/10 rounded-full text-[11px] font-medium text-zinc-300 border border-white/15">
-                Plan Personalizado
-              </span>
-              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                ¿No encontrás tu carrera o universidad?
-              </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 font-normal leading-relaxed">
-                Con TABE podés crear tu propio plan en segundos. Subí tu PDF o cargá tus materias y gestioná tus correlatividades y calendario.
-              </p>
-            </div>
-            <Link
-              to="/registro"
-              className="px-5 py-2.5 bg-white text-zinc-900 hover:bg-zinc-100 font-medium text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 shrink-0 shadow-xs cursor-pointer"
-            >
-              <span>Crear mi Plan Gratis</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       <LandingFooter />
     </div>

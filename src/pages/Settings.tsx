@@ -1,13 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
+import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { resetCookieConsent } from "@/components/legal/CookieConsent";
 import { getStoredMoodleSession, MoodleSession } from "@/lib/moodleService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubjects } from "@/hooks/useSubjects";
+import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { ReviewForm } from "@/components/settings/ReviewForm";
 import { useTheme } from "@/hooks/useTheme";
@@ -29,6 +35,164 @@ type SettingsTab = "account" | "integrations" | "notifications" | "appearance" |
 
 export default function Settings() {
   const { confirm } = useConfirm();
+  const { deleteAllSubjects, importCareerPlan } = useSubjects();
+
+  // Estado del perfil académico (Facultad y Carrera)
+  const [academicProfile, setAcademicProfile] = useState<{ facultad: string | null; carrera: string | null }>({
+    facultad: null,
+    carrera: null,
+  });
+  const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
+  const [selectedProvincia, setSelectedProvincia] = useState("MENDOZA");
+  const [selectedFacultad, setSelectedFacultad] = useState("");
+  const [customFacultad, setCustomFacultad] = useState("");
+  const [actionType, setActionType] = useState<"only_facultad" | "load_plan">("only_facultad");
+  const [selectedCareer, setSelectedCareer] = useState("");
+  const [isSavingAcademic, setIsSavingAcademic] = useState(false);
+
+  // Cargar facultad y carrera desde profiles
+  const fetchAcademicProfile = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("facultad, carrera")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setAcademicProfile({
+          facultad: data.facultad || null,
+          carrera: data.carrera || null,
+        });
+      }
+    } catch (err) {
+      console.error("Error al cargar perfil académico:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAcademicProfile();
+  }, [user]);
+
+  // Facultades de la provincia seleccionada
+  const facultadesForProvincia = useMemo(() => {
+    return ALL_FACULTADES.filter((f) => f.provinciaId === selectedProvincia);
+  }, [selectedProvincia]);
+
+  // Carreras disponibles para la facultad seleccionada
+  const availableCareersForModal = useMemo(() => {
+    if (!selectedFacultad || selectedFacultad === "OTHER") return [];
+    return AVAILABLE_CAREERS.filter((c) => c.facultad === selectedFacultad);
+  }, [selectedFacultad]);
+
+  const handleOpenAcademicModal = () => {
+    setSelectedProvincia("MENDOZA");
+    // Intentar pre-seleccionar la facultad actual del usuario
+    if (academicProfile.facultad) {
+      const match = ALL_FACULTADES.find(
+        (f) =>
+          f.id.toLowerCase() === academicProfile.facultad?.toLowerCase() ||
+          academicProfile.facultad?.toLowerCase().includes(f.label.toLowerCase()) ||
+          f.label.toLowerCase().includes(academicProfile.facultad?.toLowerCase() || "") ||
+          (f.fullLabel && academicProfile.facultad?.toLowerCase().includes(f.fullLabel.toLowerCase()))
+      );
+      if (match) {
+        setSelectedProvincia(match.provinciaId || "MENDOZA");
+        setSelectedFacultad(match.id);
+      } else {
+        setSelectedFacultad("OTHER");
+        setCustomFacultad(academicProfile.facultad);
+      }
+    } else {
+      setSelectedFacultad("");
+      setCustomFacultad("");
+    }
+    setActionType("only_facultad");
+    setSelectedCareer("");
+    setIsAcademicModalOpen(true);
+  };
+
+  const handleSaveAcademicChanges = async () => {
+    if (!user) return;
+
+    if (!selectedFacultad) {
+      toast.error("Por favor selecciona tu facultad o universidad");
+      return;
+    }
+
+    if (selectedFacultad === "OTHER" && !customFacultad.trim()) {
+      toast.error("Escribe el nombre de tu institución");
+      return;
+    }
+
+    const facObj = ALL_FACULTADES.find((f) => f.id === selectedFacultad);
+    const resolvedFacName =
+      selectedFacultad === "OTHER"
+        ? customFacultad.trim()
+        : facObj?.fullLabel || facObj?.label || selectedFacultad;
+
+    try {
+      setIsSavingAcademic(true);
+
+      if (actionType === "only_facultad") {
+        // Opción 1: Solo cambiar la facultad en el perfil sin tocar las materias
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            facultad: resolvedFacName,
+          } as any)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+        toast.success("Facultad actualizada con éxito");
+      } else {
+        // Opción 2: Cargar nuevo plan de carrera oficial
+        if (!selectedCareer) {
+          toast.error("Por favor selecciona una carrera");
+          setIsSavingAcademic(false);
+          return;
+        }
+
+        const confirmed = await confirm({
+          title: "¿Sobrescribir materias actuales?",
+          description: "Se reemplazarán las materias de tu espacio académico por las materias del nuevo plan oficial. ¿Deseas continuar?",
+          confirmText: "Sí, cargar nuevo plan",
+          cancelText: "Cancelar",
+          variant: "warning",
+        });
+
+        if (!confirmed) {
+          setIsSavingAcademic(false);
+          return;
+        }
+
+        toast.loading("Cargando materias del nuevo plan...", { id: "academic-plan" });
+        await deleteAllSubjects();
+        await importCareerPlan(selectedCareer, true);
+
+        // Actualizar perfil con la facultad y carrera
+        const careerObj = AVAILABLE_CAREERS.find((c) => c.id === selectedCareer);
+        await supabase
+          .from("profiles")
+          .update({
+            facultad: resolvedFacName,
+            carrera: careerObj?.label || selectedCareer,
+            academic_profile_completed: true,
+          } as any)
+          .eq("user_id", user.id);
+
+        toast.success("¡Plan de carrera oficial importado con éxito!", { id: "academic-plan" });
+      }
+
+      await fetchAcademicProfile();
+      setIsAcademicModalOpen(false);
+    } catch (err: any) {
+      console.error("Error al guardar cambios académicos:", err);
+      toast.error(`Error: ${err.message || "No se pudo actualizar"}`);
+    } finally {
+      setIsSavingAcademic(false);
+    }
+  };
   const { 
     user, 
     isGuest, 
@@ -339,6 +503,50 @@ export default function Settings() {
                       <LogOut className="w-3.5 h-3.5 text-zinc-400" />
                       <span>Cerrar sesión</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* Tarjeta de Institución Académica y Carrera */}
+                <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-center shrink-0 p-1">
+                        {academicProfile.facultad ? (
+                          <UniversityLogo universityId={academicProfile.facultad} className="w-6 h-6" />
+                        ) : (
+                          <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                            Institución Académica y Carrera
+                          </h3>
+                          {academicProfile.facultad && (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50">
+                              Asignada
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 font-medium truncate">
+                          🏛️ {academicProfile.facultad || "Universidad no especificada"}
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                          🎓 {academicProfile.carrera || "Carrera no especificada"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleOpenAcademicModal}
+                        className="h-8 px-3.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        <span>Modificar facultad / plan</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
