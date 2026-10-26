@@ -9,6 +9,7 @@ export interface FacultadOption {
   fullLabel: string;
   provinciaId: string;
   hasOfficialTemplates?: boolean;
+  logoUrl?: string;
 }
 
 export interface CareerOption {
@@ -49,60 +50,60 @@ export const ALL_PROVINCIAS: ProvinciaOption[] = [
 
 export const ALL_FACULTADES: FacultadOption[] = [
   // --- MENDOZA ---
-  { id: "UTN", label: "UTN FRM", fullLabel: "Universidad Tecnológica Nacional - FRM (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UTN_FRSR", label: "UTN FRSR", fullLabel: "Universidad Tecnológica Nacional - FRSR (San Rafael)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UNCUYO", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UNCUYO_FCPYS", label: "UNCUYO FCPyS", fullLabel: "Universidad Nacional de Cuyo - Fac. Cs. Políticas y Sociales", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UMENDOZA", label: "Univ. Mendoza", fullLabel: "Universidad de Mendoza (UM)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UMAZA", label: "Univ. Maza", fullLabel: "Universidad Juan Agustín Maza (UMaza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UCONGRESO", label: "Univ. Congreso", fullLabel: "Universidad de Congreso (UC)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UDA", label: "Univ. Aconcagua", fullLabel: "Universidad del Aconcagua (UDA)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UCHAMPAGNAT", label: "Univ. Champagnat", fullLabel: "Universidad Champagnat (UCH)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UCA", label: "UCA Mendoza", fullLabel: "Universidad Católica Argentina - Sede Mendoza (UCA)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "UES21", label: "Siglo 21 Mendoza", fullLabel: "Universidad Siglo 21 (Centro Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "DONBOSCO", label: "Don Bosco", fullLabel: "Facultad Don Bosco (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "ITGC", label: "I.T.G.C. 9-002", fullLabel: "Instituto Tomás Godoy Cruz (IES 9-002)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "INSUTEC", label: "INSUTEC 9-019", fullLabel: "Instituto Superior Tecnológico N° 9-019 (INSUTEC)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "IES_BELGRANO", label: "IES 9-008 Belgrano", fullLabel: "IES N° 9-008 Manuel Belgrano (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
-  { id: "IES_MAIPU", label: "IES 9-023 Maipú", fullLabel: "IES N° 9-023 Maipú (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UTN", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN FRM", fullLabel: "Universidad Tecnológica Nacional - FRM (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UTN_FRSR", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN FRSR", fullLabel: "Universidad Tecnológica Nacional - FRSR (San Rafael)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UNCUYO", logoUrl: "https://derecho.uncuyo.edu.ar/cache/logo-fd-color1_315_600_c.png", label: "UNCUYO", fullLabel: "Universidad Nacional de Cuyo (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UNCUYO_FCPYS", logoUrl: "https://derecho.uncuyo.edu.ar/cache/logo-fd-color1_315_600_c.png", label: "UNCUYO FCPyS", fullLabel: "Universidad Nacional de Cuyo - Fac. Cs. Políticas y Sociales", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UMENDOZA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/41/UM_logo.png", label: "Univ. Mendoza", fullLabel: "Universidad de Mendoza (UM)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UMAZA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/ab/Universidad_Juan_Agust%C3%ADn_Maza.png", label: "Univ. Maza", fullLabel: "Universidad Juan Agustín Maza (UMaza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UCONGRESO", logoUrl: "https://www.ucongreso.edu.ar/wp-content/themes/ucongreso/images/logo.svg", label: "Univ. Congreso", fullLabel: "Universidad de Congreso (UC)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UDA", logoUrl: "https://www.uda.edu.ar/images/2017/05/19/logo-tablet-06.png", label: "Univ. Aconcagua", fullLabel: "Universidad del Aconcagua (UDA)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UCHAMPAGNAT", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Logo_Universidad_Champagnat.svg", label: "Univ. Champagnat", fullLabel: "Universidad Champagnat (UCH)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UCA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Universidad_Cat%C3%B3lica_Argentina.png", label: "UCA Mendoza", fullLabel: "Universidad Católica Argentina - Sede Mendoza (UCA)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "UES21", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/0/07/Logo_de_la_Universidad_Siglo_21.svg", label: "Siglo 21 Mendoza", fullLabel: "Universidad Siglo 21 (Centro Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "DONBOSCO", logoUrl: "https://enologia.donbosco.org.ar/wp-content/uploads/2021/03/cropped-logo-don-bosco.png", label: "Don Bosco", fullLabel: "Facultad Don Bosco (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "ITGC", logoUrl: "https://ies9002.mendoza.edu.ar/wp-content/uploads/2020/06/logo-itgc.png", label: "I.T.G.C. 9-002", fullLabel: "Instituto Tomás Godoy Cruz (IES 9-002)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "INSUTEC", logoUrl: "https://www.insutec.edu.ar/wp-content/uploads/2025/03/logo.png", label: "INSUTEC 9-019", fullLabel: "Instituto Superior Tecnológico N° 9-019 (INSUTEC)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "IES_BELGRANO", logoUrl: "https://ies9008.mendoza.edu.ar/wp-content/uploads/2021/04/cropped-logo-ies9008.png", label: "IES 9-008 Belgrano", fullLabel: "IES N° 9-008 Manuel Belgrano (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
+  { id: "IES_MAIPU", logoUrl: "https://ies9023.mendoza.edu.ar/wp-content/uploads/2020/07/logo-ies9023.png", label: "IES 9-023 Maipú", fullLabel: "IES N° 9-023 Maipú (Mendoza)", provinciaId: "MENDOZA", hasOfficialTemplates: true },
 
   // --- SAN JUAN ---
-  { id: "UNSJ", label: "UNSJ", fullLabel: "Universidad Nacional de San Juan (UNSJ)", provinciaId: "SAN_JUAN", hasOfficialTemplates: true },
-  { id: "UCCUYO", label: "UCCuyo", fullLabel: "Universidad Católica de Cuyo (UCCuyo)", provinciaId: "SAN_JUAN" },
+  { id: "UNSJ", logoUrl: "https://fi.unsj.edu.ar/panel_fi/img/logo_unsj_min_.png", label: "UNSJ", fullLabel: "Universidad Nacional de San Juan (UNSJ)", provinciaId: "SAN_JUAN", hasOfficialTemplates: true },
+  { id: "UCCUYO", logoUrl: "https://www.uccuyo.edu.ar/images/logo_uccuyo.png", label: "UCCuyo", fullLabel: "Universidad Católica de Cuyo (UCCuyo)", provinciaId: "SAN_JUAN" },
 
   // --- CÓRDOBA ---
-  { id: "UTN_FRC", label: "UTN FRC", fullLabel: "Universidad Tecnológica Nacional - FRC (Córdoba)", provinciaId: "CORDOBA", hasOfficialTemplates: true },
+  { id: "UTN_FRC", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN FRC", fullLabel: "Universidad Tecnológica Nacional - FRC (Córdoba)", provinciaId: "CORDOBA", hasOfficialTemplates: true },
   { id: "UNC_CBA", label: "UNC", fullLabel: "Universidad Nacional de Córdoba (UNC)", provinciaId: "CORDOBA" },
   { id: "UCC_CBA", label: "UCC", fullLabel: "Universidad Católica de Córdoba (UCC)", provinciaId: "CORDOBA" },
   { id: "UBP", label: "Blas Pascal", fullLabel: "Universidad Blas Pascal (UBP)", provinciaId: "CORDOBA" },
 
   // --- BUENOS AIRES ---
-  { id: "UNLP", label: "UNLP", fullLabel: "Universidad Nacional de La Plata (UNLP)", provinciaId: "BUENOS_AIRES" },
-  { id: "UTN_FRBA_PROV", label: "UTN Prov. Bs. As.", fullLabel: "UTN - Reg. La Plata / Pacheco / Delta / Haedo", provinciaId: "BUENOS_AIRES" },
-  { id: "UNLAM", label: "UNLaM", fullLabel: "Universidad Nacional de La Matanza (UNLaM)", provinciaId: "BUENOS_AIRES" },
-  { id: "UNMDP", label: "UNMdP", fullLabel: "Universidad Nacional de Mar del Plata (UNMdP)", provinciaId: "BUENOS_AIRES" },
-  { id: "UNS", label: "UNS", fullLabel: "Universidad Nacional del Sur (UNS)", provinciaId: "BUENOS_AIRES" },
-  { id: "UNSAM", label: "UNSAM", fullLabel: "Universidad Nacional de San Martín (UNSAM)", provinciaId: "BUENOS_AIRES" },
-  { id: "UNQ", label: "UNQ", fullLabel: "Universidad Nacional de Quilmes (UNQ)", provinciaId: "BUENOS_AIRES" },
+  { id: "UNLP", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/2/24/Unlp_marca_escudo.png", label: "UNLP", fullLabel: "Universidad Nacional de La Plata (UNLP)", provinciaId: "BUENOS_AIRES" },
+  { id: "UTN_FRBA_PROV", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN Prov. Bs. As.", fullLabel: "UTN - Reg. La Plata / Pacheco / Delta / Haedo", provinciaId: "BUENOS_AIRES" },
+  { id: "UNLAM", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/30/UNLaM_logo.png", label: "UNLaM", fullLabel: "Universidad Nacional de La Matanza (UNLaM)", provinciaId: "BUENOS_AIRES" },
+  { id: "UNMDP", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Logo_UNMDP.png", label: "UNMdP", fullLabel: "Universidad Nacional de Mar del Plata (UNMdP)", provinciaId: "BUENOS_AIRES" },
+  { id: "UNS", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/da/UNS_logo.png", label: "UNS", fullLabel: "Universidad Nacional del Sur (UNS)", provinciaId: "BUENOS_AIRES" },
+  { id: "UNSAM", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e2/Logo_UNSAM.png", label: "UNSAM", fullLabel: "Universidad Nacional de San Martín (UNSAM)", provinciaId: "BUENOS_AIRES" },
+  { id: "UNQ", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Logo_UNQ.png", label: "UNQ", fullLabel: "Universidad Nacional de Quilmes (UNQ)", provinciaId: "BUENOS_AIRES" },
 
   // --- CABA ---
-  { id: "UBA", label: "UBA", fullLabel: "Universidad de Buenos Aires (UBA)", provinciaId: "CABA" },
-  { id: "UTN_FRBA", label: "UTN FRBA", fullLabel: "Universidad Tecnológica Nacional - FRBA (CABA)", provinciaId: "CABA" },
-  { id: "ITBA", label: "ITBA", fullLabel: "Instituto Tecnológico de Buenos Aires (ITBA)", provinciaId: "CABA" },
+  { id: "UBA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Logo_Universidad_de_Buenos_Aires.png", label: "UBA", fullLabel: "Universidad de Buenos Aires (UBA)", provinciaId: "CABA" },
+  { id: "UTN_FRBA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN FRBA", fullLabel: "Universidad Tecnológica Nacional - FRBA (CABA)", provinciaId: "CABA" },
+  { id: "ITBA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d6/Logo_ITBA.png", label: "ITBA", fullLabel: "Instituto Tecnológico de Buenos Aires (ITBA)", provinciaId: "CABA" },
   { id: "UADE", label: "UADE", fullLabel: "Universidad Argentina de la Empresa (UADE)", provinciaId: "CABA" },
-  { id: "UCA_CABA", label: "UCA", fullLabel: "Universidad Católica Argentina (UCA)", provinciaId: "CABA" },
+  { id: "UCA_CABA", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Universidad_Cat%C3%B3lica_Argentina.png", label: "UCA", fullLabel: "Universidad Católica Argentina (UCA)", provinciaId: "CABA" },
   { id: "UDESA", label: "UDESA", fullLabel: "Universidad de San Andrés (UDESA)", provinciaId: "CABA" },
   { id: "UTDT", label: "UTDT", fullLabel: "Universidad Torcuato Di Tella (UTDT)", provinciaId: "CABA" },
 
   // --- SANTA FE ---
-  { id: "UNR", label: "UNR", fullLabel: "Universidad Nacional de Rosario (UNR)", provinciaId: "SANTA_FE" },
+  { id: "UNR", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/da/UNR_logo.png", label: "UNR", fullLabel: "Universidad Nacional de Rosario (UNR)", provinciaId: "SANTA_FE" },
   { id: "UNL", label: "UNL", fullLabel: "Universidad Nacional del Litoral (UNL)", provinciaId: "SANTA_FE" },
-  { id: "UTN_FRRO", label: "UTN Rosario", fullLabel: "UTN - Facultad Regional Rosario (FRRO)", provinciaId: "SANTA_FE" },
-  { id: "UTN_FRSF", label: "UTN Santa Fe", fullLabel: "UTN - Facultad Regional Santa Fe (FRSF)", provinciaId: "SANTA_FE" },
+  { id: "UTN_FRRO", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN Rosario", fullLabel: "UTN - Facultad Regional Rosario (FRRO)", provinciaId: "SANTA_FE" },
+  { id: "UTN_FRSF", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN Santa Fe", fullLabel: "UTN - Facultad Regional Santa Fe (FRSF)", provinciaId: "SANTA_FE" },
 
   // --- TUCUMÁN ---
   { id: "UNT", label: "UNT", fullLabel: "Universidad Nacional de Tucumán (UNT)", provinciaId: "TUCUMAN" },
-  { id: "UTN_FRT", label: "UTN Tucumán", fullLabel: "UTN - Facultad Regional Tucumán (FRT)", provinciaId: "TUCUMAN" },
+  { id: "UTN_FRT", logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/67/UTN_logo.jpg", label: "UTN Tucumán", fullLabel: "UTN - Facultad Regional Tucumán (FRT)", provinciaId: "TUCUMAN" },
 
   // --- OTRAS PROVINCIAS ---
   { id: "UNER", label: "UNER", fullLabel: "Universidad Nacional de Entre Ríos (UNER)", provinciaId: "ENTRE_RIOS" },
