@@ -23,6 +23,7 @@ import { getStoredGoogleFeedUrl } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { usePomodoro } from "@/contexts/PomodoroContext";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 interface PomodoroSettingsType {
   work: number;
@@ -36,6 +37,7 @@ type SettingsTab = "account" | "integrations" | "notifications" | "appearance" |
 export default function Settings() {
   const { confirm } = useConfirm();
   const { deleteAllSubjects, importCareerPlan } = useSubjects();
+  const { userStats } = useDashboardStats();
 
   // Estado del perfil académico (Facultad y Carrera)
   const [academicProfile, setAcademicProfile] = useState<{ facultad: string | null; carrera: string | null }>({
@@ -535,6 +537,12 @@ export default function Settings() {
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate font-mono">
                           {userEmail || "Sin correo asociado"}
                         </p>
+                        <div className="pt-1">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25 shadow-2xs">
+                            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                            Nivel {userStats?.nivel || Math.floor((userStats?.xp_total || 0) / 100) + 1} • {userStats?.xp_total || 0} XP
+                          </span>
+                        </div>
                       </div>
                     </div>
 

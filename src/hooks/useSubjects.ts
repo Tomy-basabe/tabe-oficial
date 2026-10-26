@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
 import { AVAILABLE_CAREERS, ALL_FACULTADES } from "@/lib/careerData";
 import { generateId } from "@/lib/utils/id";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 // Hook para verificar logros (se llama externamente)
 export const checkAchievementsAfterSubjectUpdate = async (userId: string) => {
@@ -660,10 +661,10 @@ export function useSubjects() {
             .from("user_stats")
             .select("xp_total, nivel, credits")
             .eq("user_id", user.id)
-            .single();
+            .maybeSingle();
 
-          if (currentStats) {
-            const stats = currentStats as any;
+          if (user) {
+            const stats = (currentStats as any) || {};
             const newXpTotal = (stats.xp_total || 0) + xpToAdd;
             const creditsToAdd = Math.floor(xpToAdd / 2); // 50% of XP as Credits
             const newCredits = (stats.credits || 0) + creditsToAdd;
@@ -674,12 +675,14 @@ export function useSubjects() {
 
             await supabase
               .from("user_stats")
-              .update({
+              .upsert({
+                user_id: user.id,
                 xp_total: newXpTotal,
                 nivel: newLevel,
                 credits: newCredits
-              })
-              .eq("user_id", user.id);
+              }, { onConflict: "user_id" });
+
+            invalidateDashboardStatsCache();
 
             const statusLabel = estado === "aprobada" ? "aprobar" : "regularizar";
             toast.success(`+${xpToAdd} XP y +${creditsToAdd} Créditos por ${statusLabel} la materia! 🎉`);

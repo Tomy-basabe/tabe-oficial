@@ -351,7 +351,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 .from("user_stats")
                 .select("id, horas_estudio_total, xp_total, credits, xp_multiplier, xp_multiplier_ends_at")
                 .eq("user_id", user.id)
-                .single();
+                .maybeSingle();
 
             if (stats) {
                 const currentStats = stats as any;
@@ -367,7 +367,16 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                     horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
                     xp_total: (currentStats.xp_total || 0) + xpGained,
                     credits: (currentStats.credits || 0) + Math.floor(currentElapsed / 60),
+                    nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
                 }).eq("user_id", user.id);
+            } else {
+                await supabase.from("user_stats").upsert({
+                    user_id: user.id,
+                    horas_estudio_total: hours,
+                    xp_total: xpGained,
+                    credits: Math.floor(currentElapsed / 60),
+                    nivel: Math.floor(xpGained / 100) + 1,
+                }, { onConflict: "user_id" });
             }
 
             setElapsedSeconds(0);

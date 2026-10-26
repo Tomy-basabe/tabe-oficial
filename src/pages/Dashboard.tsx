@@ -88,10 +88,19 @@ export default function Dashboard() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
-                className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-2 shadow-2xs"
               >
-                <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-                <span className="text-sm font-semibold">{userStats?.xp_total || 0} XP</span>
+                <Link
+                  to="/metricas"
+                  title="Ver métricas y nivel de experiencia"
+                  className="bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 text-zinc-900 dark:text-zinc-100 px-3.5 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex items-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse shrink-0" />
+                  <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                    NV. {userStats?.nivel || Math.floor((userStats?.xp_total || 0) / 100) + 1}
+                  </span>
+                  <span className="text-xs text-zinc-300 dark:text-zinc-600">•</span>
+                  <span className="text-sm font-semibold">{userStats?.xp_total || 0} XP</span>
+                </Link>
               </motion.div>
             </div>
           </StaggerItem>

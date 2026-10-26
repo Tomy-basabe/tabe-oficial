@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { toLocalDateStr } from "@/lib/utils";
 import { startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 
 export interface Plant {
   id: string;
@@ -799,19 +800,22 @@ export function useForest() {
         .from("user_stats")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (stats) {
-        const currentStats = stats as any;
+      if (user) {
+        const currentStats = (stats as any) || {};
         await supabase
           .from("user_stats")
-          .update({
+          .upsert({
+            user_id: user.id,
             horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
             xp_total: (currentStats.xp_total || 0) + xpGained,
             credits: (currentStats.credits || 0) + Math.floor(totalSeconds / 60),
             nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
-          })
-          .eq("user_id", user.id);
+          },
+          { onConflict: "user_id" });
+
+        invalidateDashboardStatsCache();
 
         await supabase.rpc("check_and_unlock_achievements", { p_user_id: user.id });
       }

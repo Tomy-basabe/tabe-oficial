@@ -186,9 +186,15 @@ export function useDashboardStats() {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     if (isGuest) {
+      let guestXp = 4150;
+      try {
+        const saved = localStorage.getItem("tabe_guest_xp");
+        if (saved) guestXp = parseInt(saved, 10);
+      } catch (e) {}
+
       const guestStats = {
-        xp_total: 4150, // 4150 / 100 + 1 => Nivel 42
-        nivel: 42,
+        xp_total: guestXp,
+        nivel: Math.floor(guestXp / 100) + 1,
         racha_actual: 14,
         mejor_racha: 35,
         horas_estudio_total: 312
@@ -233,7 +239,7 @@ export function useDashboardStats() {
       }, 8000);
 
       // Fetch user stats and sessions (select only needed fields to minimize egress)
-      const { data: statsData } = await supabase
+      let { data: statsData } = await supabase
         .from("user_stats")
         .select("xp_total, nivel, racha_actual, mejor_racha, horas_estudio_total")
         .eq("user_id", user.id)
@@ -269,6 +275,25 @@ export function useDashboardStats() {
         allDates,
         statsData?.mejor_racha || 0
       );
+
+      // Si el usuario no tiene registro en user_stats, inicializarlo para que no quede vacio ni falle en ganar XP
+      if (!statsData) {
+        const { data: newRow } = await supabase
+          .from("user_stats")
+          .upsert({
+            user_id: user.id,
+            xp_total: 0,
+            nivel: 1,
+            racha_actual: currentStreak,
+            mejor_racha: bestStreak,
+            horas_estudio_total: 0,
+          }, { onConflict: "user_id" })
+          .select("xp_total, nivel, racha_actual, mejor_racha, horas_estudio_total")
+          .maybeSingle();
+        if (newRow) {
+          statsData = newRow;
+        }
+      }
 
       const mergedStats: UserStats = {
         xp_total: statsData?.xp_total ?? 0,

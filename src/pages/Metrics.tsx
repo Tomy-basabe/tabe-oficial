@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3, Clock, BookOpen,
   Timer, Layers, Calendar, Library,
-  ChevronLeft, ChevronRight, Plus, GraduationCap, Trash2
+  ChevronLeft, ChevronRight, Plus, GraduationCap, Trash2, Zap
 } from "lucide-react";
 import { 
   subDays, addDays, eachDayOfInterval, format, differenceInDays, 
@@ -22,6 +22,7 @@ import { DeleteStudyTimeDialog } from "@/components/metrics/DeleteStudyTimeDialo
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
 import { Moon } from "lucide-react";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 interface StudySession {
   id?: string;
@@ -46,6 +47,7 @@ const defaultDateRange: DateRange = {
 
 export default function Metrics() {
   const { user, isGuest } = useAuth();
+  const { userStats } = useDashboardStats();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; nombre: string; año?: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,9 +325,17 @@ export default function Metrics() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Métricas y Rendimiento
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Métricas y Rendimiento
+              </h1>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs">
+                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+                <span>NV. {userStats?.nivel || Math.floor((userStats?.xp_total || 0) / 100) + 1}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">•</span>
+                <span>{userStats?.xp_total || 0} XP</span>
+              </div>
+            </div>
             <p className="text-zinc-500 dark:text-zinc-400 font-normal text-xs sm:text-sm mt-0.5">
               Analiza tu progreso y optimiza tus sesiones de estudio
             </p>

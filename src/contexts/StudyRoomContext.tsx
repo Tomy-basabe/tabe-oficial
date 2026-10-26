@@ -731,17 +731,22 @@ export function StudyRoomProvider({ children }: { children: ReactNode }) {
           .from("user_stats")
           .select("horas_estudio_total, xp_total")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
-        if (stats) {
+        if (user) {
+          const currentStats = (stats as any) || {};
           const xpGained = Math.floor(duration / 60);
+          const newXp = (currentStats.xp_total || 0) + xpGained;
           await supabase
             .from("user_stats")
-            .update({
-              horas_estudio_total: stats.horas_estudio_total + Math.floor(duration / 3600),
-              xp_total: stats.xp_total + xpGained,
-            })
-            .eq("user_id", user.id);
+            .upsert({
+              user_id: user.id,
+              horas_estudio_total: (currentStats.horas_estudio_total || 0) + Math.floor(duration / 3600),
+              xp_total: newXp,
+              nivel: Math.floor(newXp / 100) + 1,
+            }, { onConflict: "user_id" });
+
+          invalidateDashboardStatsCache();
         }
         invalidateDashboardStatsCache();
       }
