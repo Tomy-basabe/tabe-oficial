@@ -206,8 +206,12 @@ export default function Pomodoro() {
       setLoading(false);
       return;
     }
+    if (careerSubjects && careerSubjects.length > 0) {
+      setLoading(false);
+      return;
+    }
     fetchSubjects();
-  }, [user, isGuest]);
+  }, [user, isGuest, careerSubjects.length]);
 
   const fetchSubjects = async () => {
     if (!user || isGuest) return;

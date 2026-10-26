@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
+import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, Building2, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
-import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
+import { ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { ComunidadCustomIcon } from "@/components/icons/TabeSectionIcons";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,10 @@ export default function Marketplace() {
     setYearFilter,
     subjectFilter,
     setSubjectFilter,
+    facultadFilter,
+    setFacultadFilter,
+    carreraFilter,
+    setCarreraFilter,
     sortBy,
     setSortBy,
     userRatings,
@@ -65,6 +70,63 @@ export default function Marketplace() {
 
   const [categories, setCategories] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [userFacultadId, setUserFacultadId] = useState<string | null>(null);
+  const [userFacultadLabel, setUserFacultadLabel] = useState<string | null>(null);
+  const [userCarreraLabel, setUserCarreraLabel] = useState<string | null>(null);
+
+  // Cargar facultad del perfil del usuario para pre-seleccionar por default
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+
+    async function loadUserAcademicProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("facultad, carrera")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error || !data || !isMounted) return;
+
+        const facRaw = (data.facultad || "").trim();
+        const carrRaw = (data.carrera || "").trim();
+        if (carrRaw) setUserCarreraLabel(carrRaw);
+
+        if (facRaw) {
+          const match = ALL_FACULTADES.find(
+            (f) =>
+              f.id.toLowerCase() === facRaw.toLowerCase() ||
+              facRaw.toLowerCase().includes(f.label.toLowerCase()) ||
+              f.label.toLowerCase().includes(facRaw.toLowerCase()) ||
+              (f.fullLabel && (facRaw.toLowerCase().includes(f.fullLabel.toLowerCase()) || f.fullLabel.toLowerCase().includes(facRaw.toLowerCase())))
+          );
+
+          const resolvedId = match ? match.id : facRaw;
+          const resolvedLabel = match ? match.label : facRaw;
+
+          setUserFacultadId(resolvedId);
+          setUserFacultadLabel(resolvedLabel);
+
+          // Si el filtro aún no ha sido seleccionado manualmente, pre-seleccionar la facultad del usuario
+          setFacultadFilter((prev) => (prev === null ? resolvedId : prev));
+        }
+      } catch (err) {
+        console.error("Error al cargar facultad del usuario en Marketplace:", err);
+      }
+    }
+
+    loadUserAcademicProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  // Carreras disponibles según la facultad actualmente filtrada
+  const filteredCareers = React.useMemo(() => {
+    if (!facultadFilter || facultadFilter === "all") return [];
+    return AVAILABLE_CAREERS.filter((c) => c.facultad === facultadFilter);
+  }, [facultadFilter]);
 
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -145,32 +207,76 @@ export default function Marketplace() {
     setLoadingPreview(false);
   };
 
-  const handleImport = async () => {
-    if (!importingResource || (importingResource.type === 'deck' && !selectedSubject)) return;
-    setImporting(true);
-
-    let result: { error: string | null } = { error: "Tipo desconocido" };
-
-    if (importingResource.type === 'deck') {
-      result = await importDeck(importingResource.id, selectedSubject);
-    } else if (importingResource.type === 'file') {
-      result = await importFile(importingResource.data, null);
-    } else if (importingResource.type === 'folder') {
-      result = await importFolder(importingResource.id, null);
-    } else if (importingResource.type === 'quiz') {
-      result = await importQuiz(importingResource.id, selectedSubject);
-    } else if (importingResource.type === 'apunte') {
-      result = await importApunte(importingResource.id, selectedSubject || null);
+  const getResourceTypeName = (type: "deck" | "file" | "folder" | "quiz" | "apunte") => {
+    switch (type) {
+      case 'deck': return 'mazo';
+      case 'file': return 'archivo';
+      case 'folder': return 'carpeta';
+      case 'quiz': return 'cuestionario';
+      case 'apunte': return 'apunte';
+      default: return 'recurso';
     }
+  };
 
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("¡Importado correctamente a tu cuenta!");
-      setImportOpen(false);
-      setImportingResource(null);
-    }
-    setImporting(false);
+  // Descarga e importación en segundo plano (no bloquea al usuario)
+  const startBackgroundImport = (
+    resource: { id: string; type: "deck" | "file" | "folder" | "quiz" | "apunte"; data: any },
+    targetSubjectId: string | null = null
+  ) => {
+    const typeName = getResourceTypeName(resource.type);
+    const resourceName = resource.data?.nombre || resource.data?.titulo || "Recurso";
+    const toastId = `bg-import-${resource.type}-${resource.id}-${Date.now()}`;
+
+    // 1. Cerrar el modal y liberar la interfaz de inmediato
+    setImportOpen(false);
+    setImportingResource(null);
+    setSelectedSubject("");
+
+    // 2. Notificación en segundo plano flotante y no bloqueante
+    toast.loading(`Descargando ${typeName} "${resourceName}" en segundo plano...`, {
+      id: toastId,
+      description: "Podés seguir navegando en T.A.B.E. Te avisaremos al finalizar.",
+      duration: Infinity,
+    });
+
+    // 3. Ejecución desacoplada en segundo plano
+    (async () => {
+      try {
+        let result: { error: string | null; [key: string]: any } = { error: "Tipo desconocido" };
+
+        if (resource.type === 'deck') {
+          result = await importDeck(resource.id, targetSubjectId || "", true);
+        } else if (resource.type === 'file') {
+          result = await importFile(resource.data, null);
+        } else if (resource.type === 'folder') {
+          result = await importFolder(resource.id, null);
+        } else if (resource.type === 'quiz') {
+          result = await importQuiz(resource.id, targetSubjectId, true);
+        } else if (resource.type === 'apunte') {
+          result = await importApunte(resource.id, targetSubjectId);
+        }
+
+        if (result.error) {
+          toast.error(`Error al importar ${typeName}`, {
+            id: toastId,
+            description: result.error,
+            duration: 5000,
+          });
+        } else {
+          toast.success(`¡${typeName.charAt(0).toUpperCase() + typeName.slice(1)} importado con éxito!`, {
+            id: toastId,
+            description: `"${resourceName}" ya está disponible en tu cuenta.`,
+            duration: 4500,
+          });
+        }
+      } catch (err: any) {
+        toast.error(`Error al descargar ${typeName}`, {
+          id: toastId,
+          description: err.message || "Error al conectar con la base de datos.",
+          duration: 5000,
+        });
+      }
+    })();
   };
 
   const handlePublish = async () => {
@@ -444,8 +550,7 @@ export default function Marketplace() {
                   setImportingResource({ id: item.id, type: 'apunte', data: item });
                   setImportOpen(true);
                 } else {
-                  setImportingResource({ id: item.id, type, data: item });
-                  handleImport();
+                  startBackgroundImport({ id: item.id, type, data: item }, null);
                 }
               }}
             >
@@ -463,7 +568,7 @@ export default function Marketplace() {
       <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 flex items-center justify-center shrink-0 shadow-2xs">
-            <ComunidadIcon className="w-7 h-7" />
+            <ComunidadCustomIcon className="w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -501,7 +606,7 @@ export default function Marketplace() {
 
         <div className="neo-bento-card p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Quizzes de estudio</p>
+            <p className="text-xs font-normal text-zinc-500 dark:text-zinc-400">Cuestionarios de estudio</p>
             <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
               {publicQuizzes.length}
             </p>
@@ -537,305 +642,162 @@ export default function Marketplace() {
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="neo-bento-card p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input
-            placeholder="Buscar por nombre, materia o palabra clave..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9 text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-all"
-          />
-          {searchTerm && (
-            <button 
-              onClick={() => setSearchTerm("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+      <div className="neo-bento-card p-3.5 sm:p-4 space-y-3">
+        {/* Fila 1: Búsqueda general, Categoría y Orden */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <Input
+              placeholder="Buscar por nombre, materia o palabra clave..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-9 text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-all"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Select value={categoryFilter || "all"} onValueChange={(v) => setCategoryFilter(v === "all" ? null : v)}>
+              <SelectTrigger className="w-full sm:w-40 md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <SelectTrigger className="w-full sm:w-40 md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
+                <div className="flex items-center gap-1.5 truncate">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <SelectValue placeholder="Ordenar por" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
+                <SelectItem value="downloads">Más descargados</SelectItem>
+                <SelectItem value="rating">Mejor calificados</SelectItem>
+                <SelectItem value="recent">Más recientes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Select value={categoryFilter || "all"} onValueChange={(v) => setCategoryFilter(v === "all" ? null : v)}>
-            <SelectTrigger className="w-full md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
-              <SelectItem value="all">Todas las categorías</SelectItem>
-              {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        {/* Fila 2: Filtros Académicos (Facultad y Carrera) */}
+        <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap flex-1">
+            {/* Selector de Facultad */}
+            <div className="w-full sm:w-auto min-w-[200px] flex-1 max-w-sm">
+              <Select 
+                value={facultadFilter || "all"} 
+                onValueChange={(val) => {
+                  setFacultadFilter(val === "all" ? null : val);
+                  setCarreraFilter(null);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <SelectValue placeholder="Filtrar por Facultad" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60">
+                  <SelectItem value="all">
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">🏛️ Todas las facultades</span>
+                  </SelectItem>
+                  {userFacultadId && !AVAILABLE_FACULTADES.some(f => f.id === userFacultadId) && (
+                    <SelectItem value={userFacultadId}>
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                        ⭐ {userFacultadLabel || userFacultadId} (Mi facultad)
+                      </span>
+                    </SelectItem>
+                  )}
+                  {AVAILABLE_FACULTADES.map((fac) => (
+                    <SelectItem key={fac.id} value={fac.id}>
+                      <span className={fac.id === userFacultadId ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""}>
+                        {fac.id === userFacultadId ? `⭐ ${fac.label} (Mi facultad)` : fac.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-            <SelectTrigger className="w-full md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
-              <div className="flex items-center gap-1.5 truncate">
-                <ArrowUpDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                <SelectValue placeholder="Ordenar por" />
+            {/* Selector de Carrera (visible si hay facultad seleccionada) */}
+            {facultadFilter && facultadFilter !== "all" && filteredCareers.length > 0 && (
+              <div className="w-full sm:w-auto min-w-[200px] flex-1 max-w-sm">
+                <Select 
+                  value={carreraFilter || "all"} 
+                  onValueChange={(val) => setCarreraFilter(val === "all" ? null : val)}
+                >
+                  <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <SelectValue placeholder="Filtrar por Carrera" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60">
+                    <SelectItem value="all">
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">🎓 Todas las carreras</span>
+                    </SelectItem>
+                    {filteredCareers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
-              <SelectItem value="downloads">Más descargados</SelectItem>
-              <SelectItem value="rating">Mejor calificados</SelectItem>
-              <SelectItem value="recent">Más recientes</SelectItem>
-            </SelectContent>
-          </Select>
+            )}
+
+            {/* Botón rápido para volver a Mi Facultad si se cambió */}
+            {userFacultadId && facultadFilter !== userFacultadId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFacultadFilter(userFacultadId);
+                  setCarreraFilter(null);
+                }}
+                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-[11px] font-medium transition-colors cursor-pointer"
+                title="Volver a ver únicamente los recursos de mi facultad"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Mi facultad
+              </button>
+            )}
+
+            {/* Botón para ver Todas si hay un filtro aplicado */}
+            {facultadFilter && facultadFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFacultadFilter(null);
+                  setCarreraFilter(null);
+                }}
+                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-[11px] font-medium transition-colors cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+                Ver todas
+              </button>
+            )}
+          </div>
+
+          {/* Badge informativo de filtro activo */}
+          {facultadFilter && facultadFilter !== "all" && (
+            <div className="shrink-0 flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span>Filtrado activo</span>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Tabs Principales de Comunidad */}
-      <Tabs defaultValue="decks" className="space-y-6 tour-marketplace-decks">
-        <div className="overflow-x-auto pb-1 scrollbar-none">
-          <TabsList className="bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 inline-flex w-auto min-w-full sm:min-w-0">
-            <TabsTrigger 
-              value="decks" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <Layers className="w-4 h-4" /> Mazos
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicDecks.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="quizzes" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <HelpCircle className="w-4 h-4" /> Quizzes
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicQuizzes.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="apuntes" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <GraduationCap className="w-4 h-4" /> Apuntes
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicApuntes.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="files" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <FileText className="w-4 h-4" /> Archivos
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicFiles.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="folders" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <Folder className="w-4 h-4" /> Carpetas
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-normal">
-                {publicFolders.length}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="my-posts" 
-              className="rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs transition-all flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" /> Mis Publicaciones
-              {myResources.filter(r => r.is_public).length > 0 && (
-                <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
-                  {myResources.filter(r => r.is_public).length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* Tab Content: Mazos */}
-        <TabsContent value="decks" className="focus-visible:outline-none">
-          {loading && publicDecks.length === 0 ? (
-            <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
-              </AnimatePresence>
-              {publicDecks.length === 0 && (
-                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
-                    <Layers className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron mazos</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                    {searchTerm ? "Prueba a modificar los filtros de búsqueda o categoría." : "Sé el primero en compartir un mazo de estudio con la comunidad."}
-                  </p>
-                  <Button 
-                    onClick={() => { setSelectedPublishType('deck'); setPublishSelectOpen(true); }}
-                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                  >
-                    Publicar un mazo
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Tab Content: Quizzes */}
-        <TabsContent value="quizzes" className="focus-visible:outline-none">
-          {loading && publicQuizzes.length === 0 ? (
-            <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
-              </AnimatePresence>
-              {publicQuizzes.length === 0 && (
-                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-                    <HelpCircle className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron cuestionarios</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                    Comparte un quiz de autoevaluación para ayudar a otros estudiantes a medir sus conocimientos.
-                  </p>
-                  <Button 
-                    onClick={() => { setSelectedPublishType('quiz'); setPublishSelectOpen(true); }}
-                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                  >
-                    Publicar un cuestionario
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Tab Content: Apuntes */}
-        <TabsContent value="apuntes" className="focus-visible:outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
-            </AnimatePresence>
-            {publicApuntes.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron apuntes</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Publica tus notas y resúmenes de Notion para que tus compañeros puedan estudiar con ellos.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('apunte'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar un apunte
-                </Button>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Tab Content: Archivos */}
-        <TabsContent value="files" className="focus-visible:outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
-            </AnimatePresence>
-            {publicFiles.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron archivos</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Comparte PDFs, guías o documentos de tu biblioteca académica.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar un archivo
-                </Button>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Tab Content: Carpetas */}
-        <TabsContent value="folders" className="focus-visible:outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
-            </AnimatePresence>
-            {publicFolders.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
-                  <Folder className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron carpetas</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Comparte carpetas completas de recursos organizados por temas o asignaturas.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar una carpeta
-                </Button>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Tab Content: Mis Publicaciones */}
-        <TabsContent value="my-posts" className="space-y-4 focus-visible:outline-none">
-          <div className="neo-bento-card overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
-                  Tus contribuciones a la comunidad
-                </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-normal">
-                  Recursos que has hecho públicos para otros estudiantes. Puedes retirarlos en cualquier momento.
-                </p>
-              </div>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                {myResources.filter(r => r.is_public).length} publicados
-              </span>
-            </div>
-
-            <div className="p-4 sm:p-5 divide-y divide-zinc-100 dark:divide-zinc-800/80">
-              {myResources.filter(r => r.is_public).map(resource => {
-                const config = getTypeConfig(resource.type);
-                const Icon = config.icon;
-                return (
-                  <div key={resource.id} className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", config.iconBg)}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate block">
-                            {resource.nombre}
-                          </span>
-                          {resource.is_anonymous && (
-                            <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/60">
-                              <ShieldCheck className="w-3 h-3 text-zinc-400" /> Anónimo
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                          <span className="font-normal capitalize">{config.label}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Download className="w-3 h-3" /> {resource.download_count || 0} descargas
-                          </span>
-                        </div>
-                      </div>
-                    </div>
 
                     <HoldButton 
                       size="sm"
@@ -1015,16 +977,15 @@ export default function Marketplace() {
               </Button>
               <Button 
                 className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900" 
-                onClick={handleImport} 
-                disabled={importing || (importingResource?.type === 'deck' && !selectedSubject)}
+                onClick={() => {
+                  if (importingResource) {
+                    startBackgroundImport(importingResource, selectedSubject || null);
+                  }
+                }} 
+                disabled={importingResource?.type === 'deck' && !selectedSubject}
               >
-                {importing ? (
-                  <span className="flex items-center gap-1.5">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Importando...
-                  </span>
-                ) : (
-                  `Importar ahora`
-                )}
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                Descargar en segundo plano
               </Button>
             </div>
           </div>

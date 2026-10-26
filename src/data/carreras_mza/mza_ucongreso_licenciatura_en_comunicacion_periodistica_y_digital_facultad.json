@@ -1,0 +1,583 @@
+{
+  "subjects": [
+    {
+      "id": "sub_1",
+      "nombre": "Teoría de la Comunicación Social",
+      "codigo": "TCS",
+      "año": 1,
+      "numero_materia": 1
+    },
+    {
+      "id": "sub_2",
+      "nombre": "Redacción Periodística I (Crónica y Noticia)",
+      "codigo": "RPI",
+      "año": 1,
+      "numero_materia": 2
+    },
+    {
+      "id": "sub_3",
+      "nombre": "Historia Contemporánea y Argentina",
+      "codigo": "HCA",
+      "año": 1,
+      "numero_materia": 3
+    },
+    {
+      "id": "sub_4",
+      "nombre": "Filosofía y Antropología",
+      "codigo": "FA",
+      "año": 1,
+      "numero_materia": 4
+    },
+    {
+      "id": "sub_5",
+      "nombre": "Lenguaje Sonoro y Producción Radial",
+      "codigo": "LSPR",
+      "año": 1,
+      "numero_materia": 5
+    },
+    {
+      "id": "sub_6",
+      "nombre": "Fotografía, Imagen y Diseño Visual",
+      "codigo": "FIDV",
+      "año": 1,
+      "numero_materia": 6
+    },
+    {
+      "id": "sub_7",
+      "nombre": "Herramientas Digitales y Narrativas Web I",
+      "codigo": "HDNWI",
+      "año": 1,
+      "numero_materia": 7
+    },
+    {
+      "id": "sub_8",
+      "nombre": "Inglés I",
+      "codigo": "INGI",
+      "año": 1,
+      "numero_materia": 8
+    },
+    {
+      "id": "sub_9",
+      "nombre": "Redacción Periodística II (Entrevista y Opinión)",
+      "codigo": "RPII",
+      "año": 2,
+      "numero_materia": 9
+    },
+    {
+      "id": "sub_10",
+      "nombre": "Lenguaje y Producción Televisiva y Audiovisual",
+      "codigo": "LPTA",
+      "año": 2,
+      "numero_materia": 10
+    },
+    {
+      "id": "sub_11",
+      "nombre": "Economía y Finanzas para Periodistas",
+      "codigo": "EFP",
+      "año": 2,
+      "numero_materia": 11
+    },
+    {
+      "id": "sub_12",
+      "nombre": "Ciencia Política y Opinión Pública",
+      "codigo": "CPOP",
+      "año": 2,
+      "numero_materia": 12
+    },
+    {
+      "id": "sub_13",
+      "nombre": "Semiótica y Análisis del Discurso Mediático",
+      "codigo": "SADM",
+      "año": 2,
+      "numero_materia": 13
+    },
+    {
+      "id": "sub_14",
+      "nombre": "Periodismo Digital, Redes Sociales y SEO II",
+      "codigo": "PDRSSII",
+      "año": 2,
+      "numero_materia": 14
+    },
+    {
+      "id": "sub_15",
+      "nombre": "Formación Teológica",
+      "codigo": "FT",
+      "año": 2,
+      "numero_materia": 15
+    },
+    {
+      "id": "sub_16",
+      "nombre": "Inglés II",
+      "codigo": "INGII",
+      "año": 2,
+      "numero_materia": 16
+    },
+    {
+      "id": "sub_17",
+      "nombre": "Periodismo de Investigación y de Datos",
+      "codigo": "PID",
+      "año": 3,
+      "numero_materia": 17
+    },
+    {
+      "id": "sub_18",
+      "nombre": "Producción Multiplataforma, Podcasting y Stream",
+      "codigo": "PMPS",
+      "año": 3,
+      "numero_materia": 18
+    },
+    {
+      "id": "sub_19",
+      "nombre": "Comunicación Institucional y Gestión de Prensa",
+      "codigo": "CIGP",
+      "año": 3,
+      "numero_materia": 19
+    },
+    {
+      "id": "sub_20",
+      "nombre": "Derecho a la Información y Ética Periodística",
+      "codigo": "DIEP",
+      "año": 3,
+      "numero_materia": 20
+    },
+    {
+      "id": "sub_21",
+      "nombre": "Relaciones Internacionales y Periodismo Global",
+      "codigo": "RIPG",
+      "año": 3,
+      "numero_materia": 21
+    },
+    {
+      "id": "sub_22",
+      "nombre": "Práctica Profesional en Medios I (Pregrado)",
+      "codigo": "PPMI",
+      "año": 3,
+      "numero_materia": 22
+    },
+    {
+      "id": "sub_23",
+      "nombre": "Dirección y Gestión de Empresas Informativas",
+      "codigo": "DGEI",
+      "año": 4,
+      "numero_materia": 23
+    },
+    {
+      "id": "sub_24",
+      "nombre": "Comunicación Política y Consultoría Pública",
+      "codigo": "CPCP",
+      "año": 4,
+      "numero_materia": 24
+    },
+    {
+      "id": "sub_25",
+      "nombre": "Inteligencia Artificial y Nuevas Tecnologías",
+      "codigo": "IANT",
+      "año": 4,
+      "numero_materia": 25
+    },
+    {
+      "id": "sub_26",
+      "nombre": "Metodología de la Investigación y Trabajo Final",
+      "codigo": "MITF",
+      "año": 4,
+      "numero_materia": 26
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "sub_9",
+      "requiere_regular": "sub_3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_9",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_9",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": "sub_7",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": "sub_2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": "sub_6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": "sub_9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_19",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_18"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_18"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": "sub_23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": "sub_24",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": "sub_25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_18"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    }
+  ]
+}

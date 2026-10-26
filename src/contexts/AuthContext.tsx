@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, authStorage } from "@/integrations/supabase/client";
 import { setStoredGoogleToken, disconnectGoogleCalendar, GCAL_LINKED_KEY, GCAL_EMAIL_KEY } from "@/lib/googleCalendarSync";
 
 interface AuthContextType {
@@ -34,16 +34,46 @@ function getInitialStoredAuth(): { user: User | null; session: Session | null; i
   }
   try {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    if (url) {
-      const projectRef = new URL(url).hostname.split(".")[0];
-      const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const resolvedUser = parsed?.user || parsed?.currentSession?.user || null;
-        const resolvedSession = parsed?.session || (parsed?.access_token ? parsed : null);
-        if (resolvedUser) {
-          return { user: resolvedUser, session: resolvedSession, isGuest: false };
+    const projectRef = url ? new URL(url).hostname.split(".")[0] : "ndmjrcinfugswtlknebl";
+    const primaryKey = `sb-${projectRef}-auth-token`;
+
+    // 1. Intentar leer desde authStorage (localStorage + sessionStorage + cookie + backup)
+    let raw = authStorage.getItem(primaryKey);
+
+    // 2. Si no se encontró por primaryKey, buscar por cualquier key sb-*-auth-token
+    if (!raw) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+            raw = localStorage.getItem(k);
+            if (raw) break;
+          }
         }
+      } catch {}
+    }
+
+    if (!raw) {
+      try {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+            raw = sessionStorage.getItem(k);
+            if (raw) break;
+          }
+        }
+      } catch {}
+    }
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const resolvedUser = parsed?.user || parsed?.currentSession?.user || null;
+      const resolvedSession = parsed?.session || (parsed?.access_token ? parsed : null);
+      if (resolvedUser) {
+        // Sincronizar inmediatamente
+        try { localStorage.setItem(primaryKey, raw); } catch {}
+        try { sessionStorage.setItem(primaryKey, raw); } catch {}
+        return { user: resolvedUser, session: resolvedSession, isGuest: false };
       }
     }
   } catch {}
@@ -55,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initialAuth = getInitialStoredAuth();
   const [user, setUser] = useState<User | null>(initialAuth.user);
   const [session, setSession] = useState<Session | null>(initialAuth.session);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(initialAuth.user ? false : true);
   const [profile, setProfile] = useState<{ active_theme: string | null; active_badge: string | null; sidebar_config: any | null } | null>(null);
   const [isGuest, setIsGuest] = useState<boolean>(initialAuth.isGuest);
 
@@ -147,15 +177,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    let currentUserId: string | null = null;
+    let currentUserId: string | null = initialAuth.user?.id ?? null;
 
-    const handleSessionChange = (session: Session | null) => {
+    const handleSessionChange = (incomingSession: Session | null, eventType?: string) => {
       if (!isMounted) return;
-      const newUser = session?.user ?? null;
+      const newUser = incomingSession?.user ?? null;
       const newUserId = newUser?.id ?? null;
 
-      // Only re-apply if user identity actually changed or on initial resolve
-      setSession(session);
+      // Si Supabase reporta sesión nula
+      if (!newUser) {
+        // Verificar si todavía existen credenciales en storage
+        const stored = getInitialStoredAuth();
+        if (stored.user && eventType !== 'SIGNED_OUT') {
+          // Evento transitorio de red o inicio de sesión en background; no desloguear
+          setLoading(false);
+          return;
+        }
+
+        currentUserId = null;
+        setSession(null);
+        setUser(null);
+        setIsGuest(true);
+        setProfile({ active_theme: null, active_badge: null, sidebar_config: null });
+        applyTheme();
+        setLoading(false);
+        return;
+      }
+
+      setSession(incomingSession);
       setUser(prev => {
         if (!newUser) return null;
         if (prev && prev.id === newUser.id && prev.email === newUser.email) {
@@ -164,11 +213,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return newUser;
       });
 
-      if (session?.provider_token) {
+      if (incomingSession?.provider_token) {
         setStoredGoogleToken(
-          session.provider_token,
-          session.user?.email,
-          session.provider_refresh_token ?? undefined
+          incomingSession.provider_token,
+          incomingSession.user?.email,
+          incomingSession.provider_refresh_token ?? undefined
         );
       } else if (newUser) {
         const isGoogle =
@@ -184,40 +233,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (newUser) {
-        setIsGuest(false);
-        try { localStorage.removeItem("tabe_guest_mode"); } catch {}
-        applyTheme();
-        if (newUserId !== currentUserId) {
-          currentUserId = newUserId;
-          fetchProfile(newUser.id);
+      setIsGuest(false);
+      try { localStorage.removeItem("tabe_guest_mode"); } catch {}
+      applyTheme();
 
-          // Sincronizar inmediatamente al iniciar sesión si es con Google o tiene Calendar vinculado
-          const isGoogleUser =
-            newUser.app_metadata?.provider === "google" ||
-            newUser.app_metadata?.providers?.includes("google") ||
-            newUser.identities?.some((id: any) => id.provider === "google") ||
-            newUser.user_metadata?.gcal_linked === true;
+      if (newUserId !== currentUserId) {
+        currentUserId = newUserId;
+        fetchProfile(newUser.id);
 
-          if (isGoogleUser && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
-            localStorage.setItem(GCAL_LINKED_KEY, "true");
-            if (!newUser.user_metadata?.gcal_linked) {
-              supabase.auth.updateUser({
-                data: { gcal_linked: true, gcal_email: newUser.email }
-              }).catch(() => {});
-            }
-            import("@/lib/globalCalendarSync").then(({ performGlobalCalendarSync }) => {
-              performGlobalCalendarSync(newUser, { force: true, silent: true }).catch((e) => {
-                console.warn("Auto-sync on login failed:", e);
-              });
-            });
+        // Sincronizar inmediatamente al iniciar sesión si es con Google o tiene Calendar vinculado
+        const isGoogleUser =
+          newUser.app_metadata?.provider === "google" ||
+          newUser.app_metadata?.providers?.includes("google") ||
+          newUser.identities?.some((id: any) => id.provider === "google") ||
+          newUser.user_metadata?.gcal_linked === true;
+
+        if (isGoogleUser && localStorage.getItem("tabe_gcal_explicitly_disconnected") !== "true") {
+          localStorage.setItem(GCAL_LINKED_KEY, "true");
+          if (!newUser.user_metadata?.gcal_linked) {
+            supabase.auth.updateUser({
+              data: { gcal_linked: true, gcal_email: newUser.email }
+            }).catch(() => {});
           }
+          import("@/lib/globalCalendarSync").then(({ performGlobalCalendarSync }) => {
+            performGlobalCalendarSync(newUser, { force: true, silent: true }).catch((e) => {
+              console.warn("Auto-sync on login failed:", e);
+            });
+          });
         }
-      } else {
-        currentUserId = null;
-        setIsGuest(true);
-        setProfile({ active_theme: null, active_badge: null, sidebar_config: null });
-        applyTheme();
       }
       setLoading(false);
     };
@@ -226,24 +269,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // Si el evento inicial reporta null antes de que getSession() termine de leer localStorage, esperamos
-        if (event === 'INITIAL_SESSION' && !session && !initialCheckCompleted) {
+      (event, incomingSession) => {
+        // Si el evento inicial reporta null antes de que getSession() termine de leer storage, no desloguear
+        if (event === 'INITIAL_SESSION' && !incomingSession && !initialCheckCompleted) {
           return;
         }
-        handleSessionChange(session);
+        handleSessionChange(incomingSession, event);
       }
     );
 
     // Initial check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       initialCheckCompleted = true;
-      handleSessionChange(session);
+      if (existingSession) {
+        handleSessionChange(existingSession, 'INITIAL_GET_SESSION');
+      } else if (!initialAuth.user) {
+        handleSessionChange(null, 'INITIAL_GET_SESSION');
+      } else {
+        // Si teníamos usuario inicial pero getSession devolvió null (ej. token por refrescar), intentamos refresh
+        supabase.auth.refreshSession().then(({ data: { session: refreshedSession } }) => {
+          if (refreshedSession) {
+            handleSessionChange(refreshedSession, 'TOKEN_REFRESHED');
+          } else {
+            handleSessionChange(null, 'SIGNED_OUT');
+          }
+        }).catch(() => {
+          if (isMounted) setLoading(false);
+        });
+      }
     }).catch(err => {
       initialCheckCompleted = true;
       console.error("Auth session error:", err);
       if (isMounted) {
-        setIsGuest(true);
         setLoading(false);
       }
     });
@@ -253,7 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isMounted) {
         setLoading(false);
       }
-    }, 3000);
+    }, 2500);
 
     return () => {
       isMounted = false;

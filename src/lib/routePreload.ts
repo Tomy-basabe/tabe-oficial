@@ -2,6 +2,7 @@
 const routeLoaders: Record<string, () => Promise<any>> = {
   "/dashboard": () => import("@/pages/Dashboard"),
   "/carrera": () => import("@/pages/CareerPlan"),
+  "/campus": () => import("@/pages/MiCampus"),
   "/calendario": () => import("@/pages/Calendar"),
   "/pomodoro": () => import("@/pages/Pomodoro"),
   "/tareas": () => import("@/pages/Tasks"),
@@ -55,6 +56,7 @@ export function preloadCoreRoutes() {
     "/cuestionarios",
     "/examenes",
     "/carrera",
+    "/campus",
     "/biblioteca",
     "/rutinas",
     "/metricas",
@@ -68,7 +70,7 @@ export function preloadCoreRoutes() {
   ];
   const runner = () => {
     allRoutes.forEach((path, idx) => {
-      setTimeout(() => preloadRoute(path), 150 + idx * 120);
+      setTimeout(() => preloadRoute(path), 80 + idx * 60);
     });
   };
 

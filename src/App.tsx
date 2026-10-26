@@ -60,6 +60,7 @@ const TicTacToeGame = lazy(() => import("@/pages/TicTacToeGame"));
 const ChessGame = lazy(() => import("@/pages/ChessGame"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
 const StudyRoadmapPage = lazy(() => import("@/pages/StudyRoadmapPage"));
+const MiCampus = lazy(() => import("@/pages/MiCampus"));
 const DemoOne = lazy(() => import("@/components/ui/demo"));
 const Meet = lazy(() => import("@/pages/Meet"));
 
@@ -218,6 +219,8 @@ const AppRoutes = () => (
     >
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/carrera" element={<CareerPlan />} />
+      <Route path="/campus" element={<MiCampus />} />
+      <Route path="/mi-campus" element={<Navigate to="/campus" replace />} />
       <Route path="/calendario" element={<Calendar />} />
       <Route path="/pomodoro" element={<Pomodoro />} />
       <Route path="/tareas" element={<Tasks />} />

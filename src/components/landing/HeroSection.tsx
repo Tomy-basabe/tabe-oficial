@@ -4,12 +4,12 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 export function HeroSection() {
-  const [activeTab, setActiveTab] = useState<"notion" | "pomodoro" | "quizzes" | "ai">("notion");
+  const [activeTab, setActiveTab] = useState<"notion" | "pomodoro" | "Cuestionarios" | "ai">("notion");
 
   return (
     <section id="hero" className="relative pt-32 pb-24 md:pt-44 md:pb-36 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        
+
         {/* Top Announcement Pill */}
         <div className="flex justify-center mb-8">
           <motion.div
@@ -100,7 +100,7 @@ export function HeroSection() {
           className="mt-14 max-w-5xl mx-auto"
         >
           <div className="rounded-3xl border-2 border-zinc-300 dark:border-zinc-700 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl shadow-2xl p-2 sm:p-4">
-            
+
             {/* Top Toolbar / Tab Switcher */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 mb-4">
               <div className="flex items-center gap-2">
@@ -125,11 +125,10 @@ export function HeroSection() {
                     <button
                       key={t.id}
                       onClick={() => setActiveTab(t.id as any)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                        activeTab === t.id
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${activeTab === t.id
                           ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs"
                           : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                      }`}
+                        }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {t.label}
@@ -182,16 +181,14 @@ export function HeroSection() {
                     ].map((opt) => (
                       <div
                         key={opt.letter}
-                        className={`p-3 rounded-xl border text-xs font-medium flex items-center justify-between ${
-                          opt.correct
+                        className={`p-3 rounded-xl border text-xs font-medium flex items-center justify-between ${opt.correct
                             ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/80 text-emerald-900 dark:text-emerald-200"
                             : "bg-white dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 rounded-md flex items-center justify-center font-semibold text-xs ${
-                            opt.correct ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                          }`}>{opt.letter}</span>
+                          <span className={`w-6 h-6 rounded-md flex items-center justify-center font-semibold text-xs ${opt.correct ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                            }`}>{opt.letter}</span>
                           <span>{opt.text}</span>
                         </div>
                         {opt.correct && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}

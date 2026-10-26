@@ -1,6 +1,7 @@
-import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Zap, Layers, ClipboardList, Library, Trophy, Shield, Users, Store, TreeDeciduous, Repeat2, Clock, Folder, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator, Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame, Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare, Search, Compass, Award, Bookmark } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Calendar, Timer, BarChart3, Bot, Settings, Zap, Layers, ClipboardList, Library, Trophy, Shield, Users, Store, TreeDeciduous, Repeat2, Clock, Folder, Brain, Target, Lightbulb, Rocket, Book, BookOpen, PenTool, Microscope, FlaskConical, Calculator, Music, Video, Camera, MessageSquare, Bell, Heart, Star, Flame, Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, CheckCircle2, CheckSquare, Search, Compass, Award, Bookmark, Globe } from "lucide-react";
 import { 
-  UniversidadCatIcon, 
+  UniversidadCatIcon,
+  EstudioCatIcon,
   PlanCarreraIcon, 
   ExamenesIcon, 
   BibliotecaCustomIcon, 
@@ -41,13 +42,15 @@ export const ICON_MAP: Record<string, any> = {
   Music, Video, Camera, MessageSquare, Users, Bell, Search, Settings, Heart, Star, Flame, Zap, Bookmark,
   Sword, Gamepad2, Monitor, Laptop, Coffee, Send, Hash, Folder, CheckCircle2, CheckSquare,
   ApuntesIcon, NotionIcon: ApuntesIcon, TabeAIIcon, TabetalkIcon, Tabetalk: TabetalkIcon,
-  Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous,
+  Shield, Compass, Bot: TabeAIIcon, Repeat2, Timer, BarChart3, TreeDeciduous, Globe,
   Arcade: ArcadeIcon, ArcadeIcon,
   ComunidadIcon: ComunidadCustomIcon, Comunidad: ComunidadCustomIcon,
   AmigosIcon: AmigosCustomIcon, Amigos: AmigosCustomIcon,
   AmigosCustomIcon,
   ComunidadCustomIcon,
   UniversidadCatIcon,
+  EstudioCatIcon,
+  Estudio: EstudioCatIcon,
   PlanCarreraIcon,
   ExamenesIcon,
   BibliotecaCustomIcon,
@@ -61,6 +64,7 @@ export const ICON_NAMES = Object.keys(ICON_MAP);
 
 export const DEFAULT_ICON_MAPPING: Record<string, string> = {
   "/dashboard": "DashboardCustomIcon",
+  "/campus": "Globe",
   "/carrera": "PlanCarreraIcon",
   "/consultas": "Clock",
   "/apuntes": "ApuntesIcon",
@@ -106,14 +110,23 @@ export const DEFAULT_CATEGORIZED_SIDEBAR: CustomSidebarItem[] = [
     type: "category",
     iconName: "UniversidadCatIcon",
     items: [
+      { id: "item-/campus", path: "/campus", label: "Mi Campus", type: "item", iconName: "Globe" },
       { id: "item-/carrera", path: "/carrera", label: "Plan de Carrera", type: "item", iconName: "PlanCarreraIcon" },
       { id: "item-/examenes", path: "/examenes", label: "Exámenes", type: "item", iconName: "ExamenesIcon" },
+      { id: "item-/consultas", path: "/consultas", label: "Consultas", type: "item", iconName: "Clock" },
+      { id: "item-/mapa", path: "/mapa", label: "Correlatividades", type: "item", iconName: "CorrelatividadesCustomIcon" }
+    ]
+  },
+  {
+    id: "cat-estudio",
+    label: "Estudio",
+    type: "category",
+    iconName: "EstudioCatIcon",
+    items: [
       { id: "item-/apuntes", path: "/apuntes", label: "Apuntes", type: "item", iconName: "ApuntesIcon" },
       { id: "item-/flashcards", path: "/flashcards", label: "Flashcards", type: "item", iconName: "Layers" },
       { id: "item-/cuestionarios", path: "/cuestionarios", label: "Cuestionarios", type: "item", iconName: "ClipboardList" },
-      { id: "item-/consultas", path: "/consultas", label: "Consultas", type: "item", iconName: "Clock" },
-      { id: "item-/biblioteca", path: "/biblioteca", label: "Biblioteca", type: "item", iconName: "BibliotecaCustomIcon" },
-      { id: "item-/mapa", path: "/mapa", label: "Correlatividades", type: "item", iconName: "CorrelatividadesCustomIcon" }
+      { id: "item-/biblioteca", path: "/biblioteca", label: "Biblioteca", type: "item", iconName: "BibliotecaCustomIcon" }
     ]
   },
   {
@@ -173,6 +186,7 @@ export const baseNavItems: NavItem[] = [
   { icon: DashboardCustomIcon, label: "Dashboard", path: "/dashboard", tourClass: "tour-sidebar-dashboard" },
   { icon: TabeAIIcon, label: "TABE IA", path: "/TABEAI", tourClass: "tour-sidebar-asistenteia" },
   { icon: PlanCarreraIcon, label: "Plan de Carrera", path: "/carrera", tourClass: "tour-sidebar-plan" },
+  { icon: Globe, label: "Mi Campus", path: "/campus", tourClass: "tour-sidebar-campus" },
   { icon: ExamenesIcon, label: "Exámenes", path: "/examenes", tourClass: "tour-sidebar-examenes" },
   { icon: Clock, label: "Consultas", path: "/consultas", tourClass: "tour-sidebar-consultas" },
   { icon: ApuntesIcon, label: "Apuntes", path: "/apuntes", tourClass: "tour-sidebar-apuntes tour-sidebar-notion" },
@@ -287,6 +301,8 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
         if (updated.type === "category") {
           if (updated.id === "cat-academico" || targetLabel.includes("académ") || targetLabel.includes("academ") || targetLabel.includes("universidad")) {
             updated.iconName = "UniversidadCatIcon";
+          } else if (updated.id === "cat-estudio" || targetLabel.includes("estudio")) {
+            updated.iconName = "EstudioCatIcon";
           } else if (updated.id === "cat-organizacion" || targetLabel.includes("productividad") || targetLabel.includes("organiza")) {
             updated.iconName = "ProductividadCatIcon";
           } else if (updated.id === "cat-comunidad" || targetLabel.includes("juego") || targetLabel.includes("recrea")) {
@@ -342,7 +358,85 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     });
   };
 
-  // 3. Promover /amigos y /comunidad al nivel raíz si estaban dentro de cat-comunidad
+  // 3. Separar apartados de Estudio de Académico si estaban mezclados dentro de cat-academico
+  const STUDY_PATHS = ["/apuntes", "/flashcards", "/cuestionarios", "/biblioteca"];
+  const studyItemsToMigrate: CustomSidebarItem[] = [];
+
+  cleaned.forEach(cat => {
+    if (
+      cat.type === "category" &&
+      cat.items &&
+      (cat.id === "cat-academico" ||
+        cat.label?.toLowerCase().includes("académ") ||
+        cat.label?.toLowerCase().includes("academ"))
+    ) {
+      const remaining: CustomSidebarItem[] = [];
+      cat.items.forEach(sub => {
+        const p = sub.path || sub.id;
+        if (
+          STUDY_PATHS.includes(p) ||
+          STUDY_PATHS.some(sp => sub.id === `item-${sp}`) ||
+          sub.label?.toLowerCase() === "apuntes" ||
+          sub.label?.toLowerCase() === "flashcards" ||
+          sub.label?.toLowerCase() === "cuestionarios" ||
+          sub.label?.toLowerCase() === "biblioteca"
+        ) {
+          studyItemsToMigrate.push(sub);
+        } else {
+          remaining.push(sub);
+        }
+      });
+      cat.items = remaining;
+    }
+  });
+
+  // Asegurar que exista cat-estudio y esté ubicado justo después de cat-academico
+  let estudioCat = cleaned.find(
+    c =>
+      c.type === "category" &&
+      (c.id === "cat-estudio" || c.label?.toLowerCase().includes("estudio"))
+  );
+
+  if (!estudioCat) {
+    estudioCat = {
+      id: "cat-estudio",
+      label: "Estudio",
+      type: "category",
+      iconName: "EstudioCatIcon",
+      items: []
+    };
+    const academicoIdx = cleaned.findIndex(
+      c =>
+        c.type === "category" &&
+        (c.id === "cat-academico" ||
+          c.label?.toLowerCase().includes("académ") ||
+          c.label?.toLowerCase().includes("academ"))
+    );
+    if (academicoIdx !== -1) {
+      cleaned.splice(academicoIdx + 1, 0, estudioCat);
+    } else {
+      const metricasIdx = cleaned.findIndex(
+        i => (i.path || i.id) === "/metricas" || i.id === "item-/metricas"
+      );
+      if (metricasIdx !== -1) {
+        cleaned.splice(metricasIdx, 0, estudioCat);
+      } else {
+        cleaned.push(estudioCat);
+      }
+    }
+  }
+
+  if (!estudioCat.items) estudioCat.items = [];
+
+  // Mover los items de estudio migrados a cat-estudio
+  studyItemsToMigrate.forEach(migrated => {
+    const p = migrated.path || migrated.id;
+    if (!estudioCat!.items!.some(sub => (sub.path || sub.id) === p || sub.id === migrated.id)) {
+      estudioCat!.items!.push(migrated);
+    }
+  });
+
+  // 4. Promover /amigos y /comunidad al nivel raíz si estaban dentro de cat-comunidad
   cleaned.forEach(item => {
     if (item.type === "category" && item.items && item.id === "cat-comunidad") {
       item.items = item.items.filter(sub => {
@@ -352,7 +446,7 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
     }
   });
 
-  // 4. Garantizar que todas las categorías y apartados de DEFAULT_CATEGORIZED_SIDEBAR existan
+  // 5. Garantizar que todas las categorías y apartados de DEFAULT_CATEGORIZED_SIDEBAR existan
   for (const defEntry of DEFAULT_CATEGORIZED_SIDEBAR) {
     if (defEntry.type === "category" && defEntry.items) {
       let targetCat = cleaned.find(
@@ -360,6 +454,7 @@ export function ensureTabeAISecond(items: CustomSidebarItem[]): CustomSidebarIte
           c.type === "category" &&
           (c.id === defEntry.id ||
             (defEntry.id === "cat-academico" && (c.label?.toLowerCase().includes("académ") || c.label?.toLowerCase().includes("academ"))) ||
+            (defEntry.id === "cat-estudio" && c.label?.toLowerCase().includes("estudio")) ||
             (defEntry.id === "cat-organizacion" && (c.label?.toLowerCase().includes("productividad") || c.label?.toLowerCase().includes("organiza"))) ||
             (defEntry.id === "cat-comunidad" && (c.label?.toLowerCase().includes("juego") || c.label?.toLowerCase().includes("comunidad"))))
       );

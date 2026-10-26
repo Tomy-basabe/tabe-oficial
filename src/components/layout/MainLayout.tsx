@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -43,6 +42,7 @@ import { preloadRoute } from "@/lib/routePreload";
 import { performGlobalCalendarSync, isWednesdaySyncDay } from "@/lib/globalCalendarSync";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 interface UserStats {
   xp_total: number;
@@ -103,6 +103,7 @@ export function MainLayout() {
     } catch (e) {}
     return {
       "cat-academico": false,
+      "cat-estudio": false,
       "cat-organizacion": false,
       "cat-comunidad": false
     };
@@ -110,24 +111,7 @@ export function MainLayout() {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // PWA auto-update check (especially for mobile/installed apps)
-  useRegisterSW({
-    onRegistered(r) {
-      if (!r) return;
-      
-      // Check for updates every 10 minutes
-      setInterval(() => {
-        r.update();
-      }, 10 * 60 * 1000);
 
-      // Check for updates when the user returns to the app
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          r.update();
-        }
-      });
-    }
-  });
 
   const navItems = baseNavItems;
   const userId = user?.id;
@@ -251,7 +235,8 @@ export function MainLayout() {
         const hasTabegochi = parsed?.some((i: any) => 
           (i.path || i.id) === "/tabegochi" || (i.items && i.items.some((sub: any) => (sub.path || sub.id) === "/tabegochi"))
         );
-        if (hasTabetalk || hasMarketplace || hasTabegochi) {
+        const missingEstudio = !parsed?.some((i: any) => i.id === "cat-estudio" || i.label?.toLowerCase() === "estudio");
+        if (hasTabetalk || hasMarketplace || hasTabegochi || missingEstudio) {
           localStorage.setItem("tabe-custom-sidebar-config", JSON.stringify(displayItems));
         }
       }
@@ -341,25 +326,80 @@ export function MainLayout() {
     }
   };
 
+  const currentMobileNavInfo = useMemo(() => {
+    if (location.pathname === "/" || location.pathname === "/dashboard") {
+      return { label: "Inicio", color: "#3b82f6" };
+    }
+    const matched = ALL_AVAILABLE_ITEMS.find(
+      (item) => item.path !== "/" && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+    );
+    if (matched) {
+      return { label: matched.label, color: (matched as any).color || "#6366f1" };
+    }
+    return { label: "T.A.B.E.", color: "#6366f1" };
+  }, [location.pathname]);
+
   return (
     <ComicEffectsProvider>
       <div className="min-h-screen bg-white dark:bg-[#171717] text-zinc-900 dark:text-zinc-100 relative overflow-hidden">
-        {/* Mobile Header */}
+        {/* Mobile & Tablet Header (Apple / Notion Glass Header) */}
         {!isFullScreenPage && (
-          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-white/90 dark:bg-[#1f1f1f]/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between px-4">
-            <Link to="/" className="flex items-center gap-2">
-              <TabeLogo size={32} className="shrink-0" />
-              <span className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">TABE</span>
-            </Link>
+          <header className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-white/85 dark:bg-[#171717]/85 backdrop-blur-xl backdrop-saturate-150 border-b border-zinc-200/70 dark:border-zinc-800/80 flex items-center justify-between px-3.5 sm:px-5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link to="/" className="flex items-center gap-2 shrink-0 active:scale-95 transition-transform">
+                <TabeLogo size={28} className="shrink-0" />
+              </Link>
+              <div className="h-3.5 w-[1px] bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.div
+                  key={currentMobileNavInfo.label}
+                  initial={{ opacity: 0, y: 6, filter: "blur(2px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -6, filter: "blur(2px)" }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex items-center gap-1.5 min-w-0"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: currentMobileNavInfo.color,
+                      boxShadow: `0 0 8px ${currentMobileNavInfo.color}66`,
+                    }}
+                  />
+                  <span className="font-semibold text-[14px] sm:text-[15px] tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
+                    {currentMobileNavInfo.label}
+                  </span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-            {/* Quick Level / XP Badge on mobile header */}
-            <Link 
-              to="/metricas"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors"
-            >
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">NV. {xpData.level}</span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">({xpData.currentXp} XP)</span>
-            </Link>
+            {/* Quick Actions on Mobile/Tablet Header */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <Link
+                to="/metricas"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 active:scale-95 transition-all"
+                title="Ver métricas y nivel"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200">NV. {xpData.level}</span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium hidden xs:inline">
+                  {xpData.currentXp} XP
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={resolvedTheme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 text-zinc-600 dark:text-zinc-300 active:scale-90 transition-all cursor-pointer"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <Moon className="w-3.5 h-3.5 text-zinc-700" />
+                )}
+              </button>
+            </div>
           </header>
         )}
 
@@ -800,7 +840,7 @@ export function MainLayout() {
           : cn("pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pt-0 lg:pb-0", isCollapsed ? "lg:ml-20" : "lg:ml-64")
       )}>
         <PageTransition className="w-full h-full">
-          <Suspense fallback={<div className="w-full min-h-[60vh] flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>}><Outlet /></Suspense>
+          <Suspense fallback={<LoadingScreen />}><Outlet /></Suspense>
         </PageTransition>
       </main>
 

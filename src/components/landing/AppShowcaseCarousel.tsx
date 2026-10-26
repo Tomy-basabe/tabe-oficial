@@ -140,7 +140,7 @@ export const TABE_MODULES: TabeShowcaseItem[] = [
     src: '/caps/tabe-cap-15.png',
     alt: 'Marketplace Colaborativo con recursos compartidos',
     title: 'Marketplace Colaborativo',
-    subtitle: 'Mazos, Quizzes y Apuntes',
+    subtitle: 'Mazos, Cuestionarios y Apuntes',
     category: 'Marketplace',
     tag: 'Recursos Libres',
     description: 'Biblioteca comunitaria abierta para descubrir, calificar e importar mazos de flashcards, cuestionarios y apuntes creados y validados por otros estudiantes.',

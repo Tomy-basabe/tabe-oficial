@@ -1,0 +1,575 @@
+{
+  "subjects": [
+    {
+      "id": "sub_1",
+      "nombre": "Matemática y Estadística Aplicada",
+      "codigo": "MEA",
+      "año": 1,
+      "numero_materia": 1
+    },
+    {
+      "id": "sub_2",
+      "nombre": "Física General y Mecánica de Fluidos Básica",
+      "codigo": "FGMFB",
+      "año": 1,
+      "numero_materia": 2
+    },
+    {
+      "id": "sub_3",
+      "nombre": "Química General y de los Hidrocarburos",
+      "codigo": "QGH",
+      "año": 1,
+      "numero_materia": 3
+    },
+    {
+      "id": "sub_4",
+      "nombre": "Geología General y Estructural",
+      "codigo": "GGE",
+      "año": 1,
+      "numero_materia": 4
+    },
+    {
+      "id": "sub_5",
+      "nombre": "Introducción a la Industria del Petróleo y Gas",
+      "codigo": "IIPG",
+      "año": 1,
+      "numero_materia": 5
+    },
+    {
+      "id": "sub_6",
+      "nombre": "Dibujo Técnico e Interpretación de Planos (P&ID)",
+      "codigo": "DTIP",
+      "año": 1,
+      "numero_materia": 6
+    },
+    {
+      "id": "sub_7",
+      "nombre": "Electrotecnia e Instrumental de Campo",
+      "codigo": "EIC",
+      "año": 1,
+      "numero_materia": 7
+    },
+    {
+      "id": "sub_8",
+      "nombre": "Inglés Técnico",
+      "codigo": "IT",
+      "año": 1,
+      "numero_materia": 8
+    },
+    {
+      "id": "sub_9",
+      "nombre": "Práctica Profesionalizante I (Equipos)",
+      "codigo": "PPROI",
+      "año": 1,
+      "numero_materia": 9
+    },
+    {
+      "id": "sub_10",
+      "nombre": "Geología del Petróleo, Cuencas y Perfilaje",
+      "codigo": "GPCP",
+      "año": 2,
+      "numero_materia": 10
+    },
+    {
+      "id": "sub_11",
+      "nombre": "Perforación de Pozos I (Equipos, Lodos y Cem.)",
+      "codigo": "PPOZI",
+      "año": 2,
+      "numero_materia": 11
+    },
+    {
+      "id": "sub_12",
+      "nombre": "Producción de Hidrocarburos I (Bombeo)",
+      "codigo": "PHI",
+      "año": 2,
+      "numero_materia": 12
+    },
+    {
+      "id": "sub_13",
+      "nombre": "Reservorios I (Petrofísica y Empujes)",
+      "codigo": "RESI",
+      "año": 2,
+      "numero_materia": 13
+    },
+    {
+      "id": "sub_14",
+      "nombre": "Máquinas Térmicas, Bombas y Compresores",
+      "codigo": "MTBC",
+      "año": 2,
+      "numero_materia": 14
+    },
+    {
+      "id": "sub_15",
+      "nombre": "Higiene, Seguridad y Control Ambiental",
+      "codigo": "HSCA",
+      "año": 2,
+      "numero_materia": 15
+    },
+    {
+      "id": "sub_16",
+      "nombre": "Práctica Profesionalizante II (Operaciones)",
+      "codigo": "PPII",
+      "año": 2,
+      "numero_materia": 16
+    },
+    {
+      "id": "sub_17",
+      "nombre": "Terminación, Workover, Pulling y Estimulación",
+      "codigo": "TWPE",
+      "año": 3,
+      "numero_materia": 17
+    },
+    {
+      "id": "sub_18",
+      "nombre": "Tratamiento de Crudo, Agua, Gas y Oleoductos",
+      "codigo": "TCAGO",
+      "año": 3,
+      "numero_materia": 18
+    },
+    {
+      "id": "sub_19",
+      "nombre": "Recuperación Secundaria (EOR) y No Convencionales",
+      "codigo": "RSNC",
+      "año": 3,
+      "numero_materia": 19
+    },
+    {
+      "id": "sub_20",
+      "nombre": "Automatización, Telemetría (SCADA) y Medición",
+      "codigo": "ATM",
+      "año": 3,
+      "numero_materia": 20
+    },
+    {
+      "id": "sub_21",
+      "nombre": "Economía Petrolera y Legislación Hidrocarburífera",
+      "codigo": "EPLH",
+      "año": 3,
+      "numero_materia": 21
+    },
+    {
+      "id": "sub_22",
+      "nombre": "Práctica Profesionalizante III (Yacimiento)",
+      "codigo": "PPIII",
+      "año": 3,
+      "numero_materia": 22
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": "sub_6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": "sub_9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": "sub_9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": "sub_10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": "sub_9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_13",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": "sub_17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": "sub_18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_19",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_21",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    }
+  ]
+}

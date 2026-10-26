@@ -1,0 +1,988 @@
+{
+  "subjects": [
+    {
+      "id": "sub_1",
+      "nombre": "Anatomía Humana Normal",
+      "codigo": "AHN",
+      "año": 1,
+      "numero_materia": 1
+    },
+    {
+      "id": "sub_2",
+      "nombre": "Histología, Biología Celular, Embriología y Genética",
+      "codigo": "HBCEG",
+      "año": 1,
+      "numero_materia": 2
+    },
+    {
+      "id": "sub_3",
+      "nombre": "Química Biológica y Biofísica",
+      "codigo": "QBB",
+      "año": 1,
+      "numero_materia": 3
+    },
+    {
+      "id": "sub_4",
+      "nombre": "Salud Pública y Medicina Preventiva I",
+      "codigo": "SPMPI",
+      "año": 1,
+      "numero_materia": 4
+    },
+    {
+      "id": "sub_5",
+      "nombre": "Psicología Médica y Humanidades",
+      "codigo": "PMH",
+      "año": 1,
+      "numero_materia": 5
+    },
+    {
+      "id": "sub_6",
+      "nombre": "Inglés Médico I",
+      "codigo": "IMI",
+      "año": 1,
+      "numero_materia": 6
+    },
+    {
+      "id": "sub_7",
+      "nombre": "Informática Biomédica",
+      "codigo": "IB",
+      "año": 1,
+      "numero_materia": 7
+    },
+    {
+      "id": "sub_8",
+      "nombre": "Fisiología y Biofísica Humana",
+      "codigo": "FBH",
+      "año": 2,
+      "numero_materia": 8
+    },
+    {
+      "id": "sub_9",
+      "nombre": "Microbiología, Parasitología y Virología Médica",
+      "codigo": "MPVM",
+      "año": 2,
+      "numero_materia": 9
+    },
+    {
+      "id": "sub_10",
+      "nombre": "Inmunología Humana",
+      "codigo": "IH",
+      "año": 2,
+      "numero_materia": 10
+    },
+    {
+      "id": "sub_11",
+      "nombre": "Bioestadística y Epidemiología",
+      "codigo": "BE",
+      "año": 2,
+      "numero_materia": 11
+    },
+    {
+      "id": "sub_12",
+      "nombre": "Antropología Médica y Bioética I",
+      "codigo": "AMBI",
+      "año": 2,
+      "numero_materia": 12
+    },
+    {
+      "id": "sub_13",
+      "nombre": "Inglés Médico II",
+      "codigo": "IMII",
+      "año": 2,
+      "numero_materia": 13
+    },
+    {
+      "id": "sub_14",
+      "nombre": "Anatomía Patológica",
+      "codigo": "AP",
+      "año": 3,
+      "numero_materia": 14
+    },
+    {
+      "id": "sub_15",
+      "nombre": "Semiología y Fisiopatología Clínica",
+      "codigo": "SFC",
+      "año": 3,
+      "numero_materia": 15
+    },
+    {
+      "id": "sub_16",
+      "nombre": "Farmacología Básica",
+      "codigo": "FB",
+      "año": 3,
+      "numero_materia": 16
+    },
+    {
+      "id": "sub_17",
+      "nombre": "Diagnóstico por Imágenes I",
+      "codigo": "DII",
+      "año": 3,
+      "numero_materia": 17
+    },
+    {
+      "id": "sub_18",
+      "nombre": "Salud Mental I (Psicopatología)",
+      "codigo": "SMI",
+      "año": 3,
+      "numero_materia": 18
+    },
+    {
+      "id": "sub_19",
+      "nombre": "Salud Pública II y Administración Sanitaria",
+      "codigo": "SPIAS",
+      "año": 3,
+      "numero_materia": 19
+    },
+    {
+      "id": "sub_20",
+      "nombre": "Medicina Interna I",
+      "codigo": "MII",
+      "año": 4,
+      "numero_materia": 20
+    },
+    {
+      "id": "sub_21",
+      "nombre": "Cirugía General y Anestesiología",
+      "codigo": "CGA",
+      "año": 4,
+      "numero_materia": 21
+    },
+    {
+      "id": "sub_22",
+      "nombre": "Enfermedades Infecciosas",
+      "codigo": "EI",
+      "año": 4,
+      "numero_materia": 22
+    },
+    {
+      "id": "sub_23",
+      "nombre": "Dermatología",
+      "codigo": "DER",
+      "año": 4,
+      "numero_materia": 23
+    },
+    {
+      "id": "sub_24",
+      "nombre": "Neurología Clínica",
+      "codigo": "NC",
+      "año": 4,
+      "numero_materia": 24
+    },
+    {
+      "id": "sub_25",
+      "nombre": "Farmacología Clínica y Terapéutica",
+      "codigo": "FCT",
+      "año": 4,
+      "numero_materia": 25
+    },
+    {
+      "id": "sub_26",
+      "nombre": "Oftalmología",
+      "codigo": "OFT",
+      "año": 4,
+      "numero_materia": 26
+    },
+    {
+      "id": "sub_27",
+      "nombre": "Otorrinolaringología",
+      "codigo": "OTO",
+      "año": 4,
+      "numero_materia": 27
+    },
+    {
+      "id": "sub_28",
+      "nombre": "Medicina Interna II",
+      "codigo": "MIII",
+      "año": 5,
+      "numero_materia": 28
+    },
+    {
+      "id": "sub_29",
+      "nombre": "Pediatría y Neonatología",
+      "codigo": "PN",
+      "año": 5,
+      "numero_materia": 29
+    },
+    {
+      "id": "sub_30",
+      "nombre": "Ginecología y Obstetricia",
+      "codigo": "GO",
+      "año": 5,
+      "numero_materia": 30
+    },
+    {
+      "id": "sub_31",
+      "nombre": "Ortopedia y Traumatología",
+      "codigo": "OT",
+      "año": 5,
+      "numero_materia": 31
+    },
+    {
+      "id": "sub_32",
+      "nombre": "Urología",
+      "codigo": "URO",
+      "año": 5,
+      "numero_materia": 32
+    },
+    {
+      "id": "sub_33",
+      "nombre": "Psiquiatría y Salud Mental II",
+      "codigo": "PSMII",
+      "año": 5,
+      "numero_materia": 33
+    },
+    {
+      "id": "sub_34",
+      "nombre": "Medicina Legal, Toxicología y Bioética II",
+      "codigo": "MLTBII",
+      "año": 5,
+      "numero_materia": 34
+    },
+    {
+      "id": "sub_35",
+      "nombre": "Metodología de la Investigación Científica",
+      "codigo": "MIC",
+      "año": 5,
+      "numero_materia": 35
+    },
+    {
+      "id": "sub_36",
+      "nombre": "Internado Rotatorio Anual (PFO)",
+      "codigo": "IRA",
+      "año": 6,
+      "numero_materia": 36
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "sub_8",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_8",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_8",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_9",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_9",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": "sub_8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": "sub_9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_10",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_11",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_12",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_13",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": "sub_10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_14",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": "sub_14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_15",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": "sub_14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_16",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": "sub_14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": "sub_15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_17",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": "sub_15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_18",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": "sub_12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_19",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_20",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": "sub_17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_21",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_22",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_23",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": "sub_17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_24",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_25",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_26",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_27",
+      "requiere_regular": "sub_16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_27",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_27",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_27",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_28",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_28",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_28",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_28",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_29",
+      "requiere_regular": "sub_28",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_29",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_29",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_29",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_30",
+      "requiere_regular": "sub_28",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_30",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_30",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_30",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_31",
+      "requiere_regular": "sub_25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_31",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_31",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_31",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_32",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_32",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_32",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_32",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_33",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_18"
+    },
+    {
+      "subject_id": "sub_33",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_33",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_24"
+    },
+    {
+      "subject_id": "sub_33",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": "sub_28",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": "sub_33",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_34",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_35",
+      "requiere_regular": "sub_20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "sub_35",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_35",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_35",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_1"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_2"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_3"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_4"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_5"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_6"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_7"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_8"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_9"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_10"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_11"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_12"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_13"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_14"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_15"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_16"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_17"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_18"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_19"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_20"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_21"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_22"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_23"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_24"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_25"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_26"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_27"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_28"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_29"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_30"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_31"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_32"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_33"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_34"
+    },
+    {
+      "subject_id": "sub_36",
+      "requiere_regular": null,
+      "requiere_aprobada": "sub_35"
+    }
+  ]
+}

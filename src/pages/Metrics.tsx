@@ -740,7 +740,7 @@ export default function Metrics() {
                 const knownTypes: Record<string, { label: string; icon: any; iconColor: string }> = {
                   pomodoro: { label: "Pomodoro", icon: Timer, iconColor: "text-amber-500" },
                   flashcard: { label: "Flashcards", icon: Layers, iconColor: "text-sky-500" },
-                  cuestionario: { label: "Cuestionarios & Quizzes", icon: BookOpen, iconColor: "text-rose-500" },
+                  cuestionario: { label: "Cuestionarios", icon: BookOpen, iconColor: "text-rose-500" },
                   apuntes: { label: "Apuntes & Docs", icon: BookOpen, iconColor: "text-emerald-500" },
                   biblioteca: { label: "Biblioteca", icon: Library, iconColor: "text-blue-500" },
                   manual: { label: "Tiempo Manual", icon: Clock, iconColor: "text-zinc-500" },

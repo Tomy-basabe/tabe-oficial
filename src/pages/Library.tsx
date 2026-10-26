@@ -182,7 +182,7 @@ export default function Library() {
   const [showGenOptions, setShowGenOptions] = useState<'flashcards' | 'quiz' | null>(null);
   const [genCount, setGenCount] = useState(10);
   const [loading, setLoading] = useState(() => !libraryFilesCache);
-  const { publishResource } = useMarketplace();
+  const { publishResource } = useMarketplace({ autoFetch: false });
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingResource, setPublishingResource] = useState<{ id: string; type: "file" | "folder"; nombre: string } | null>(null);
   const [pubDescription, setPubDescription] = useState("");

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "./useRealtimeSubscription";
-import { AVAILABLE_CAREERS } from "@/lib/careerData";
+import { AVAILABLE_CAREERS, ALL_FACULTADES } from "@/lib/careerData";
 import { generateId } from "@/lib/utils/id";
 
 // Hook para verificar logros (se llama externamente)
@@ -185,12 +185,12 @@ export function useSubjects() {
     _cachedUserId = user.id;
   }
 
-  // Check 24-hour persistent cache in localStorage (5 min TTL if empty so new users stay fast)
+  // Check 24-hour persistent cache in localStorage (hydrate even if stale for 0ms UI, revalidate in background)
   const dailyCache = user ? getStoredDailySubjects(user.id) : null;
   const effectiveTtl = dailyCache && dailyCache.subjects.length === 0 ? 5 * 60 * 1000 : CACHE_TTL_MS;
   const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < effectiveTtl);
 
-  if (!_cachedSubjects && isDailyCacheFresh && dailyCache) {
+  if (!_cachedSubjects && dailyCache) {
     _cachedSubjects = dailyCache.subjects;
     _cachedUserStatuses = dailyCache.userStatuses;
     _cachedDependencies = dailyCache.dependencies;
@@ -199,8 +199,8 @@ export function useSubjects() {
   const [subjects, setSubjects] = useState<Subject[]>(_cachedSubjects || []);
   const [userStatuses, setUserStatuses] = useState<UserSubjectStatus[]>(_cachedUserStatuses || []);
   const [dependencies, setDependencies] = useState<Dependency[]>(_cachedDependencies || []);
-  const [loading, setLoading] = useState(_cachedSubjects === null && !isDailyCacheFresh);
-  const isInitialLoad = useRef(_cachedSubjects === null && !isDailyCacheFresh);
+  const [loading, setLoading] = useState(_cachedSubjects === null && !dailyCache);
+  const isInitialLoad = useRef(_cachedSubjects === null && !dailyCache);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Global safety timeout on loading state
@@ -986,10 +986,10 @@ export function useSubjects() {
     return validYears.filter(year => subjects.some(s => Number(s.año) === year));
   }, [subjects]);
 
-  const importCareerPlan = async (careerId: string) => {
+  const importCareerPlan = async (careerId: string, skipConfirm = false) => {
     if (!user || isGuest) return;
 
-    const career = AVAILABLE_CAREERS.find(c => c.id === careerId);
+    const career = AVAILABLE_CAREERS.find(c => c.id === careerId || c.file === careerId);
     if (!career) {
       toast.error("Carrera no encontrada");
       return;
@@ -1005,7 +1005,7 @@ export function useSubjects() {
         .eq("user_id", user.id)
         .limit(1);
 
-      if (existingSubjects && existingSubjects.length > 0) {
+      if (!skipConfirm && existingSubjects && existingSubjects.length > 0) {
         const confirmImport = await confirm({
           title: "¿Agregar nuevo plan de estudio?",
           description: "Ya tienes materias cargadas. Si continúas se agregarán las del nuevo plan (puede duplicar materias). ¿Deseas continuar?",
@@ -1022,7 +1022,17 @@ export function useSubjects() {
       toast.loading(`Cargando plan de ${career.label}...`, { id: 'import-career' });
 
       // @ts-ignore - dynamic import
-      const templateModule = await import(`../data/${career.file}.json`);
+      let templateModule;
+      try {
+        if (career.file?.startsWith("carreras_mza/")) {
+          const fileName = career.file.replace("carreras_mza/", "");
+          templateModule = await import(`../data/carreras_mza/${fileName}.json`);
+        } else {
+          templateModule = await import(`../data/${career.file}.json`);
+        }
+      } catch (e) {
+        templateModule = await import(`../data/${career.file}.json`);
+      }
       const templateData = templateModule.default;
       const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
 
@@ -1081,13 +1091,17 @@ export function useSubjects() {
         if (depError) throw depError;
       }
 
-      // Update user profile
+      // Update user profile with full facultad name and career
+      const facObj = ALL_FACULTADES.find((f) => f.id === career.facultad);
+      const fullFacultad = facObj?.fullLabel || facObj?.label || career.facultad;
+
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          facultad: career.facultad,
-          carrera: career.label
-        })
+          facultad: fullFacultad,
+          carrera: career.label,
+          academic_profile_completed: true,
+        } as any)
         .eq("user_id", user.id);
 
       if (profileError) console.error("Error updating profile:", profileError);

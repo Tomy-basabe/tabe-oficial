@@ -2,259 +2,259 @@
   "subjects": [
     {
       "id": "el1",
-      "codigo": "1",
+      "codigo": "INFI",
       "nombre": "Informática I",
       "numero_materia": 1,
       "año": 1
     },
     {
       "id": "el2",
-      "codigo": "2",
+      "codigo": "AGA",
       "nombre": "Álgebra y Geometría Analítica",
       "numero_materia": 2,
       "año": 1
     },
     {
       "id": "el3",
-      "codigo": "3",
+      "codigo": "AMI",
       "nombre": "Análisis Matemático I",
       "numero_materia": 3,
       "año": 1
     },
     {
       "id": "el4",
-      "codigo": "4",
+      "codigo": "IS",
       "nombre": "Ingeniería y Sociedad",
       "numero_materia": 4,
       "año": 1
     },
     {
       "id": "el5",
-      "codigo": "5",
+      "codigo": "AMII",
       "nombre": "Análisis Matemático II",
       "numero_materia": 5,
       "año": 1
     },
     {
       "id": "el6",
-      "codigo": "6",
+      "codigo": "FISI",
       "nombre": "Física I",
       "numero_materia": 6,
       "año": 1
     },
     {
       "id": "el7",
-      "codigo": "7",
+      "codigo": "DAC",
       "nombre": "Diseño asistido por computadora",
       "numero_materia": 7,
       "año": 1
     },
     {
       "id": "el8",
-      "codigo": "8",
+      "codigo": "INFII",
       "nombre": "Informática II",
       "numero_materia": 8,
       "año": 2
     },
     {
       "id": "el9",
-      "codigo": "9",
+      "codigo": "ASS",
       "nombre": "Análisis de Señales y Sistemas",
       "numero_materia": 9,
       "año": 2
     },
     {
       "id": "el10",
-      "codigo": "10",
+      "codigo": "QG",
       "nombre": "Química General",
       "numero_materia": 10,
       "año": 2
     },
     {
       "id": "el11",
-      "codigo": "11",
+      "codigo": "FISII",
       "nombre": "Física II",
       "numero_materia": 11,
       "año": 2
     },
     {
       "id": "el12",
-      "codigo": "12",
+      "codigo": "PE",
       "nombre": "Probabilidad y Estadística",
       "numero_materia": 12,
       "año": 2
     },
     {
       "id": "el13",
-      "codigo": "13",
+      "codigo": "FE",
       "nombre": "Física Electrónica",
       "numero_materia": 13,
       "año": 2
     },
     {
       "id": "el14",
-      "codigo": "14",
+      "codigo": "INGI",
       "nombre": "Inglés I",
       "numero_materia": 14,
       "año": 2
     },
     {
       "id": "el15",
-      "codigo": "15",
+      "codigo": "TCI",
       "nombre": "Teoría de los Circuitos I",
       "numero_materia": 15,
       "año": 3
     },
     {
       "id": "el16",
-      "codigo": "16",
+      "codigo": "TDI",
       "nombre": "Técnicas Digitales I",
       "numero_materia": 16,
       "año": 3
     },
     {
       "id": "el17",
-      "codigo": "17",
+      "codigo": "DE",
       "nombre": "Dispositivos Electrónicos",
       "numero_materia": 17,
       "año": 3
     },
     {
       "id": "el18",
-      "codigo": "18",
+      "codigo": "LEG",
       "nombre": "Legislación",
       "numero_materia": 18,
       "año": 3
     },
     {
       "id": "el21",
-      "codigo": "21",
+      "codigo": "INGII",
       "nombre": "Inglés II",
       "numero_materia": 21,
       "año": 3
     },
     {
       "id": "el19",
-      "codigo": "19",
+      "codigo": "EAI",
       "nombre": "Electrónica Aplicada I",
       "numero_materia": 19,
       "año": 3
     },
     {
       "id": "el20",
-      "codigo": "20",
+      "codigo": "ME",
       "nombre": "Medios de Enlace",
       "numero_materia": 20,
       "año": 3
     },
     {
       "id": "el22",
-      "codigo": "22",
+      "codigo": "TDII",
       "nombre": "Técnicas Digitales II",
       "numero_materia": 22,
       "año": 4
     },
     {
       "id": "el23",
-      "codigo": "23",
+      "codigo": "MEI",
       "nombre": "Medidas Electrónicas I",
       "numero_materia": 23,
       "año": 4
     },
     {
       "id": "el24",
-      "codigo": "24",
+      "codigo": "TCII",
       "nombre": "Teoría de los Circuitos II",
       "numero_materia": 24,
       "año": 4
     },
     {
       "id": "el25",
-      "codigo": "25",
+      "codigo": "MIE",
       "nombre": "Máquinas e Instalaciones Eléctricas",
       "numero_materia": 25,
       "año": 4
     },
     {
       "id": "el26",
-      "codigo": "26",
+      "codigo": "SCOM",
       "nombre": "Sistemas de Comunicaciones",
       "numero_materia": 26,
       "año": 4
     },
     {
       "id": "el27",
-      "codigo": "27",
+      "codigo": "EAII",
       "nombre": "Electrónica Aplicada II",
       "numero_materia": 27,
       "año": 4
     },
     {
       "id": "el28",
-      "codigo": "28",
+      "codigo": "SHMA",
       "nombre": "Seguridad, Higiene y Medio Ambiente",
       "numero_materia": 28,
       "año": 4
     },
     {
       "id": "el29",
-      "codigo": "29",
+      "codigo": "TDIII",
       "nombre": "Técnicas Digitales III",
       "numero_materia": 29,
       "año": 5
     },
     {
       "id": "el30",
-      "codigo": "30",
+      "codigo": "MEII",
       "nombre": "Medidas Electrónicas II",
       "numero_materia": 30,
       "año": 5
     },
     {
       "id": "el31",
-      "codigo": "31",
+      "codigo": "SCON",
       "nombre": "Sistemas de Control",
       "numero_materia": 31,
       "año": 5
     },
     {
       "id": "el32",
-      "codigo": "32",
+      "codigo": "EAIII",
       "nombre": "Electrónica Aplicada III",
       "numero_materia": 32,
       "año": 5
     },
     {
       "id": "el33",
-      "codigo": "33",
+      "codigo": "TE",
       "nombre": "Tecnología Electrónica",
       "numero_materia": 33,
       "año": 5
     },
     {
       "id": "el34",
-      "codigo": "34",
+      "codigo": "EP",
       "nombre": "Electrónica de Potencia",
       "numero_materia": 34,
       "año": 5
     },
     {
       "id": "el35",
-      "codigo": "35",
+      "codigo": "OI",
       "nombre": "Organización Industrial",
       "numero_materia": 35,
       "año": 5
     },
     {
       "id": "el36",
-      "codigo": "36",
+      "codigo": "ECO",
       "nombre": "Economía",
       "numero_materia": 36,
       "año": 6
     },
     {
       "id": "el37",
-      "codigo": "37",
+      "codigo": "PF",
       "nombre": "Proyecto Final",
       "numero_materia": 37,
       "año": 6

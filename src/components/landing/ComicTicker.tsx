@@ -6,7 +6,7 @@ const TICKER_ITEMS = [
   { text: "Técnica Pomodoro & Seguimiento", icon: Zap },
   { text: "Mapas de Correlatividades Vivos", icon: Compass },
   { text: "Flashcards con Repetición Espaciada", icon: Brain },
-  { text: "Quizzes y Resúmenes con IA", icon: Flame },
+  { text: "Cuestionarios y Resúmenes con IA", icon: Flame },
   { text: "100% Gratuito y Accesible", icon: Trophy },
 ];
 

@@ -20,10 +20,12 @@ export function GlobalPomodoroWidget() {
     if (!isSessionActive) return null;
 
     return (
-        <div className="fixed bottom-20 right-[70px] lg:bottom-6 lg:right-[84px] z-50 animate-in slide-in-from-bottom-10 fade-in duration-300 max-w-[calc(100vw-5.5rem)]">
+        <div className="fixed bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))] right-[62px] md:bottom-6 md:right-[74px] lg:bottom-6 lg:right-[84px] z-50 animate-in slide-in-from-bottom-10 fade-in duration-200 max-w-[calc(100vw-5.2rem)]">
             <div className={cn(
-                "backdrop-blur-xl border rounded-2xl shadow-2xl p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 w-56 sm:w-64 ring-1 overflow-hidden transition-all duration-300",
-                isRinging ? "bg-neon-red/20 border-neon-red ring-neon-red/50 animate-pulse" : "bg-card/90 border-primary/20 ring-border/50"
+                "backdrop-blur-2xl backdrop-saturate-150 border rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.16)] px-3 py-2 flex items-center gap-2.5 w-52 sm:w-60 overflow-hidden transition-all duration-200",
+                isRinging
+                    ? "bg-red-500/20 border-red-500/60 animate-pulse"
+                    : "bg-white/92 dark:bg-[#18181b]/92 border-zinc-200/80 dark:border-zinc-800/90"
             )}>
 
                 {/* Progress Ring Mini */}

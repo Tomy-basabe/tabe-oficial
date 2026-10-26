@@ -160,14 +160,27 @@ interface ScheduleEntry {
   professorId: string;
 }
 
+// Caché en memoria a nivel de módulo para navegación instantánea (0ms)
+let _cachedProfessors: Professor[] | null = null;
+let _cachedOfficeHours: OfficeHour[] | null = null;
+let _cachedOfficeUserId: string | null = null;
+let _cachedOfficeTimestamp = 0;
+
 export default function OfficeHours() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
   const { rawSubjects: allSubjects, getYears, loading: subjectsLoading } = useSubjects();
 
-  const [professors, setProfessors] = useState<Professor[]>([]);
-  const [officeHours, setOfficeHours] = useState<OfficeHour[]>([]);
-  const [loading, setLoading] = useState(true);
+  if (user && user.id !== _cachedOfficeUserId) {
+    _cachedProfessors = null;
+    _cachedOfficeHours = null;
+    _cachedOfficeUserId = user.id;
+    _cachedOfficeTimestamp = 0;
+  }
+
+  const [professors, setProfessors] = useState<Professor[]>(() => _cachedProfessors || []);
+  const [officeHours, setOfficeHours] = useState<OfficeHour[]>(() => _cachedOfficeHours || []);
+  const [loading, setLoading] = useState(() => _cachedProfessors === null);
 
   // View Mode: Grilla o Tarjetas
   const [viewMode, setViewMode] = useState<"grid" | "cards">("grid");
@@ -237,6 +250,10 @@ export default function OfficeHours() {
           subject_year: sub?.año,
         };
       });
+      _cachedProfessors = enriched;
+      _cachedOfficeHours = hoursResult.data || [];
+      _cachedOfficeUserId = user.id;
+      _cachedOfficeTimestamp = Date.now();
       setProfessors(enriched);
       setOfficeHours(hoursResult.data || []);
     } catch (err) {
@@ -248,6 +265,10 @@ export default function OfficeHours() {
   }, [user?.id, isGuest, allSubjects]);
 
   useEffect(() => {
+    if (_cachedProfessors !== null && (Date.now() - _cachedOfficeTimestamp < 5 * 60 * 1000)) {
+      setLoading(false);
+      return;
+    }
     fetchData();
     const safetyTimer = setTimeout(() => {
       setLoading(false);

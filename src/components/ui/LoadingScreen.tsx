@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,18 +8,46 @@ interface LoadingScreenProps {
   submessage?: string;
   fullScreen?: boolean;
   className?: string;
+  /** Retardo antes de mostrar el indicador visual para evitar destellos en cargas rápidas (< 450ms) */
+  delayMs?: number;
 }
 
 /**
  * Pantalla de carga oficial unificada estilo Notion / ChatGPT:
  * Minimalista, sobria, sin ruidos visuales ni elementos pesados.
+ * Incluye umbral anti-flash (450ms por defecto) para que las transiciones rápidas se sientan instantáneas.
  */
 export function LoadingScreen({
   message = "Cargando...",
   submessage,
   fullScreen = false,
   className = "",
+  delayMs = 450,
 }: LoadingScreenProps) {
+  const [visible, setVisible] = useState(delayMs <= 0);
+
+  useEffect(() => {
+    if (delayMs <= 0) {
+      setVisible(true);
+      return;
+    }
+    const timer = setTimeout(() => setVisible(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [delayMs]);
+
+  if (!visible) {
+    return (
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none select-none opacity-0",
+          fullScreen ? "min-h-screen w-full bg-background" : "min-h-[50vh] w-full",
+          className
+        )}
+      />
+    );
+  }
+
   return (
     <div
       className={cn(

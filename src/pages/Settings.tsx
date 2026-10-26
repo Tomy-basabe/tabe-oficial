@@ -13,8 +13,6 @@ import { ReviewForm } from "@/components/settings/ReviewForm";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useComic } from "@/components/comic/ComicEffectsProvider";
-import { ComicAudio } from "@/components/comic/ComicAudio";
 import { getStoredGoogleFeedUrl } from "@/lib/googleCalendarSync";
 import { cn } from "@/lib/utils";
 import { usePomodoro } from "@/contexts/PomodoroContext";
@@ -43,7 +41,6 @@ export default function Settings() {
     connectGoogleCalendar
   } = useAuth();
   
-  const { comicMode, toggleComicMode, soundEnabled, toggleSound, triggerBurst } = useComic();
   const { settings: pomodoroSettings, updateSettings } = usePomodoro();
   const { theme, setTheme } = useTheme();
 
@@ -803,118 +800,6 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* Efectos de Cómic y Sonido */}
-                <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-                      Efectos interactivos y sonido
-                    </h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Añade feedback visual y sonoro a tus logros y acciones.
-                    </p>
-                  </div>
-
-                  {/* Modo Cómic */}
-                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 flex items-center justify-center shrink-0">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Partículas y animaciones</h4>
-                        <p className="text-[11px] text-zinc-400">Onomatopeyas flotantes al hacer clics</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleComicMode();
-                        if (!comicMode) {
-                          ComicAudio.playPop();
-                          toast.success("¡Efectos activados!");
-                        }
-                      }}
-                      className={cn(
-                        "h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                        comicMode
-                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                          : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
-                      )}
-                    >
-                      {comicMode ? "Activado" : "Desactivado"}
-                    </button>
-                  </div>
-
-                  {/* Sonidos */}
-                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-500/20 flex items-center justify-center shrink-0">
-                        {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100">Efectos de sonido</h4>
-                        <p className="text-[11px] text-zinc-400">Pops y fanfarrias retro al completar tareas</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleSound();
-                        if (!soundEnabled) {
-                          ComicAudio.playPop();
-                          toast.success("Sonidos habilitados");
-                        }
-                      }}
-                      className={cn(
-                        "h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                        soundEnabled
-                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                          : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900"
-                      )}
-                    >
-                      {soundEnabled ? "Activado" : "Silenciado"}
-                    </button>
-                  </div>
-
-                  {/* Pad de prueba */}
-                  <div className="p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/20 space-y-2">
-                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 block">
-                      Probar sonidos interactivos:
-                    </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          ComicAudio.playPop();
-                          triggerBurst(e.clientX, e.clientY, "POP!");
-                        }}
-                        className="h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>💥</span> Pop
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          ComicAudio.playPowerUp();
-                          triggerBurst(e.clientX, e.clientY, "XP+!");
-                        }}
-                        className="h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>⚡</span> Power Up
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          ComicAudio.playBoing();
-                          triggerBurst(e.clientX, e.clientY, "BOING!");
-                        }}
-                        className="h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>🦘</span> Boing
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
 

@@ -233,6 +233,24 @@ Cuando el usuario hace clic en cualquier botón de la aplicación para abrir o c
 
 ---
 
+## Pilar 5: UI Móvil y Tablet (Estilo Apple / Notion / ChatGPT)
+
+Para que la experiencia en teléfonos (`< 768px`) y tablets (`768px - 1023px`) sea ultracómoda a una sola mano:
+
+1. **Dock Inferior Cristalino y Floating Dock para Tablet (`MobileNavbar.tsx`):**
+   - En teléfonos, barra inferior translúcida (`backdrop-blur-2xl backdrop-saturate-150`); en tablets (`md:`), **Floating Dock** tipo iPadOS (`md:bottom-3 md:max-w-[540px] md:rounded-2xl`).
+   - Indicador activo con resorte compartido (`layoutId="mobile-dock-active-pill"`).
+2. **App Launcher Sheet con Buscador Spotlight y Filtro FLIP (`MobileNavbar.tsx`):**
+   - El cajón "Más / Explorar" abre un Bottom Sheet con esquinas `rounded-t-[28px]`, buscador instantáneo (`"Buscar apartado..."`), píldoras de categoría con resorte (`layoutId="mobile-sheet-cat-pill"`), y grilla de apartados con filtrado elástico FLIP (`AnimatePresence mode="popLayout"` + `<motion.div layout>`).
+3. **Header Móvil/Tablet Contextual (`MainLayout.tsx`):**
+   - Muestra el nombre y punto de color del apartado activo animados con `<AnimatePresence mode="popLayout">`, acceso directo a Nivel/XP y botón rápido de tema Claro/Oscuro.
+4. **Diálogos como Bottom Sheet en Teléfono (`dialog.tsx`, `alert-dialog.tsx`, `.tabe-mobile-sheet-dialog`):**
+   - En pantallas `< 640px`, los `Dialog` y `AlertDialog` se alinean abajo (`items-end sm:items-center`) con `rounded-t-[26px] sm:rounded-2xl`, píldora superior de agarre y animación `.tabe-mobile-sheet-dialog` para que queden al alcance del pulgar.
+5. **Ergonomía Táctil (`src/index.css`):**
+   - `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`, e `input { font-size: max(16px, 1em) }` en `< 1024px` para evitar el auto-zoom involuntario de iOS Safari.
+
+---
+
 ## Reglas de Rendimiento, Carga Instantánea (0ms) y Accesibilidad
 
 1. **Prohibido `<AnimatePresence mode="wait">` en `<Outlet />` (`PageTransition.tsx`):**

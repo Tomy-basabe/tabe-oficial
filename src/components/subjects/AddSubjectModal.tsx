@@ -4,6 +4,7 @@ import { Plus, X, BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Subject, CreateSubjectData } from "@/hooks/useSubjects";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { generateUniqueSubjectCode } from "@/lib/subjectCodeHelper";
 
 interface AddSubjectModalProps {
   open: boolean;
@@ -16,6 +17,15 @@ interface AddSubjectModalProps {
 export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, years }: AddSubjectModalProps) {
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [isManualCodigo, setIsManualCodigo] = useState(false);
+
+  const handleNombreChange = (val: string) => {
+    setNombre(val);
+    if (!isManualCodigo) {
+      const generated = generateUniqueSubjectCode(val, existingSubjects.map((s) => s.codigo));
+      setCodigo(generated);
+    }
+  };
   const [año, setAño] = useState(1);
   const [requiereRegular, setRequiereRegular] = useState<string[]>([]);
   const [requiereAprobada, setRequiereAprobada] = useState<string[]>([]);
@@ -101,7 +111,7 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
               <input
                 type="text"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => handleNombreChange(e.target.value)}
                 placeholder="Ej: Análisis Matemático I"
                 className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
                 required
@@ -116,7 +126,7 @@ export function AddSubjectModal({ open, onClose, onSubmit, existingSubjects, yea
                 <input
                   type="text"
                   value={codigo}
-                  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                  onChange={(e) => { setCodigo(e.target.value.toUpperCase()); setIsManualCodigo(true); }}
                   placeholder="Ej: AM1"
                   maxLength={10}
                   className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 uppercase focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"

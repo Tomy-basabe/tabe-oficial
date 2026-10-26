@@ -2,259 +2,259 @@
   "subjects": [
     {
       "id": "t1",
-      "codigo": "T1",
+      "codigo": "INFI",
       "nombre": "Informática I",
       "numero_materia": 1,
       "año": 1
     },
     {
       "id": "t2",
-      "codigo": "T2",
+      "codigo": "AGA",
       "nombre": "Álgebra y Geometría Analítica",
       "numero_materia": 2,
       "año": 1
     },
     {
       "id": "t3",
-      "codigo": "T3",
+      "codigo": "AMI",
       "nombre": "Análisis Matemático I",
       "numero_materia": 3,
       "año": 1
     },
     {
       "id": "t4",
-      "codigo": "T4",
+      "codigo": "IS",
       "nombre": "Ingeniería y Sociedad",
       "numero_materia": 4,
       "año": 1
     },
     {
       "id": "t5",
-      "codigo": "T5",
+      "codigo": "DAC",
       "nombre": "Diseño Asistido por Computadoras",
       "numero_materia": 5,
       "año": 1
     },
     {
       "id": "t6",
-      "codigo": "T6",
+      "codigo": "FISI",
       "nombre": "Física I",
       "numero_materia": 6,
       "año": 1
     },
     {
       "id": "t7",
-      "codigo": "T7",
+      "codigo": "TD",
       "nombre": "Técnicas Digitales",
       "numero_materia": 7,
       "año": 1
     },
     {
       "id": "t8",
-      "codigo": "T8",
+      "codigo": "QG",
       "nombre": "Química General",
       "numero_materia": 8,
       "año": 1
     },
     {
       "id": "t9",
-      "codigo": "T9",
+      "codigo": "FISII",
       "nombre": "Física II",
       "numero_materia": 9,
       "año": 2
     },
     {
       "id": "t10",
-      "codigo": "T10",
+      "codigo": "ASS",
       "nombre": "Análisis de Señales y Sistemas",
       "numero_materia": 10,
       "año": 2
     },
     {
       "id": "t11",
-      "codigo": "T11",
+      "codigo": "AMII",
       "nombre": "Análisis Matemático II",
       "numero_materia": 11,
       "año": 2
     },
     {
       "id": "t12",
-      "codigo": "T12",
+      "codigo": "TRC",
       "nombre": "Taller de Redes y Comunicaciones",
       "numero_materia": 12,
       "año": 2
     },
     {
       "id": "t13",
-      "codigo": "T13",
+      "codigo": "INFII",
       "nombre": "Informática II",
       "numero_materia": 13,
       "año": 2
     },
     {
       "id": "t14",
-      "codigo": "T14",
+      "codigo": "INGI",
       "nombre": "Inglés I",
       "numero_materia": 14,
       "año": 2
     },
     {
       "id": "t15",
-      "codigo": "T15",
+      "codigo": "PE",
       "nombre": "Probabilidad y Estadística",
       "numero_materia": 15,
       "año": 2
     },
     {
       "id": "t16",
-      "codigo": "T16",
+      "codigo": "TC",
       "nombre": "Teoría de los Circuitos",
       "numero_materia": 16,
       "año": 2
     },
     {
       "id": "t17",
-      "codigo": "T17",
+      "codigo": "DEEG",
       "nombre": "Dispositivos Electrónicos y Electrónica General",
       "numero_materia": 17,
       "año": 3
     },
     {
       "id": "t18",
-      "codigo": "T18",
+      "codigo": "FE",
       "nombre": "Física Electrónica",
       "numero_materia": 18,
       "año": 3
     },
     {
       "id": "t19",
-      "codigo": "T19",
+      "codigo": "MENL",
       "nombre": "Medios de Enlace",
       "numero_materia": 19,
       "año": 3
     },
     {
       "id": "t20",
-      "codigo": "T20",
+      "codigo": "SC",
       "nombre": "Sistemas de Comunicaciones",
       "numero_materia": 20,
       "año": 3
     },
     {
       "id": "t21",
-      "codigo": "T21",
+      "codigo": "RCD",
       "nombre": "Redes de Comunicaciones y Datos",
       "numero_materia": 21,
       "año": 3
     },
     {
       "id": "t22",
-      "codigo": "T22",
+      "codigo": "INGII",
       "nombre": "Inglés II",
       "numero_materia": 22,
       "año": 3
     },
     {
       "id": "t23",
-      "codigo": "T23",
+      "codigo": "SHMA",
       "nombre": "Seguridad Higiene y Medio Ambiente",
       "numero_materia": 23,
       "año": 3
     },
     {
       "id": "t24",
-      "codigo": "T24",
+      "codigo": "MELE",
       "nombre": "Medidas Electrónicas",
       "numero_materia": 24,
       "año": 3
     },
     {
       "id": "t25",
-      "codigo": "T25",
+      "codigo": "LC",
       "nombre": "Legislación para Comunicaciones",
       "numero_materia": 25,
       "año": 3
     },
     {
       "id": "t26",
-      "codigo": "T26",
+      "codigo": "TEIC",
       "nombre": "Tecnología Electrónica e Introducción al Control",
       "numero_materia": 26,
       "año": 3
     },
     {
       "id": "t27",
-      "codigo": "T27",
+      "codigo": "ARD",
       "nombre": "Administración de Redes de Datos",
       "numero_materia": 27,
       "año": 4
     },
     {
       "id": "t28",
-      "codigo": "T28",
+      "codigo": "EAC",
       "nombre": "Electrónica Aplicada a las Comunicaciones",
       "numero_materia": 28,
       "año": 4
     },
     {
       "id": "t29",
-      "codigo": "T29",
+      "codigo": "TM",
       "nombre": "Telecomunicaciones Móviles",
       "numero_materia": 29,
       "año": 4
     },
     {
       "id": "t30",
-      "codigo": "T30",
+      "codigo": "SOR",
       "nombre": "Sistemas Operativos de Red",
       "numero_materia": 30,
       "año": 4
     },
     {
       "id": "t31",
-      "codigo": "T31",
+      "codigo": "OI",
       "nombre": "Organización Industrial",
       "numero_materia": 31,
       "año": 4
     },
     {
       "id": "t32",
-      "codigo": "T32",
+      "codigo": "CO",
       "nombre": "Comunicaciones Ópticas",
       "numero_materia": 32,
       "año": 4
     },
     {
       "id": "t33",
-      "codigo": "T33",
+      "codigo": "SMAVD",
       "nombre": "Sistemas Multimedia, Audio y Video Digital",
       "numero_materia": 33,
       "año": 4
     },
     {
       "id": "t34",
-      "codigo": "T34",
+      "codigo": "APE",
       "nombre": "Antenas y Propagación Electromagnética",
       "numero_materia": 34,
       "año": 4
     },
     {
       "id": "t35",
-      "codigo": "T35",
+      "codigo": "CPI",
       "nombre": "Comunicaciones y Protocolos Industriales",
       "numero_materia": 35,
       "año": 5
     },
     {
       "id": "t36",
-      "codigo": "T36",
+      "codigo": "ECO",
       "nombre": "Economía",
       "numero_materia": 36,
       "año": 5
     },
     {
       "id": "t37",
-      "codigo": "T37",
+      "codigo": "PF",
       "nombre": "Proyecto Final",
       "numero_materia": 37,
       "año": 5

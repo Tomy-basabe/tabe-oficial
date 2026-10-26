@@ -36,6 +36,33 @@ export function UniversidadCatIcon({ className, size = 20, ...props }: CustomIco
   );
 }
 
+
+/**
+ * 1.b Estudio (Category Icon)
+ * Cuaderno/libro de estudio abierto con destello de aprendizaje.
+ */
+export function EstudioCatIcon({ className, size = 20, ...props }: CustomIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={size}
+      height={size}
+      className={cn("shrink-0", className)}
+      {...props}
+    >
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      <path d="M12 4v4" />
+      <circle cx="12" cy="3" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 /**
  * 2. Plan de Carrera (NUEVO DISEÑO PROPIO)
  * Brújula estelar y timón de trayectoria académica con horizonte de avance universitario.

@@ -131,7 +131,7 @@ export default function Flashcards() {
     }
   }, [activeYears, selectedYear]);
 
-  const { publishResource } = useMarketplace();
+  const { publishResource } = useMarketplace({ autoFetch: false });
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
   const [pubDescription, setPubDescription] = useState("");

@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Search,
   BookOpen,
+  Globe,
 } from "lucide-react";
 
 interface SectionItem {
@@ -33,12 +34,13 @@ const SECTIONS: SectionItem[] = [
   { id: "datos-recopilados", title: "4. Datos que Recopilamos", icon: Database, badge: "Inventario" },
   { id: "finalidades", title: "5. Finalidades del Tratamiento", icon: Eye, badge: "Objetivos" },
   { id: "inteligencia-artificial", title: "6. Tratamiento con Inteligencia Artificial (IA)", icon: Brain, badge: "IA & LLMs" },
-  { id: "publicidad-cookies", title: "7. Cookies y Redes Publicitarias", icon: Cookie, badge: "Monetización" },
-  { id: "seguridad", title: "8. Seguridad y Cifrado", icon: Lock, badge: "Ciberseguridad" },
-  { id: "retencion", title: "9. Retención y Purgado de Datos", icon: Server, badge: "Ciclo de Vida" },
-  { id: "transferencias", title: "10. Transferencias Internacionales", icon: ExternalLink, badge: "Cloud" },
-  { id: "derechos-arco", title: "11. Derechos ARCO y Portabilidad", icon: UserCheck, badge: "Tus Derechos" },
-  { id: "contacto-cambios", title: "12. Modificaciones y Contacto", icon: Mail, badge: "Soporte Legal" },
+  { id: "visores-externos", title: "7. Enlaces Externos y «Mi Campus»", icon: Globe, badge: "Mero Conducto" },
+  { id: "publicidad-cookies", title: "8. Cookies y Redes Publicitarias", icon: Cookie, badge: "Monetización" },
+  { id: "seguridad", title: "9. Seguridad y Cifrado", icon: Lock, badge: "Ciberseguridad" },
+  { id: "retencion", title: "10. Retención y Purgado de Datos", icon: Server, badge: "Ciclo de Vida" },
+  { id: "transferencias", title: "11. Transferencias Internacionales", icon: ExternalLink, badge: "Cloud" },
+  { id: "derechos-arco", title: "12. Derechos ARCO y Portabilidad", icon: UserCheck, badge: "Tus Derechos" },
+  { id: "contacto-cambios", title: "13. Modificaciones y Contacto", icon: Mail, badge: "Soporte Legal" },
 ];
 
 export default function Privacy() {
@@ -298,7 +300,48 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 7 */}
+                        {/* SECCIÓN 7 */}
+            <section id="visores-externos" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Sección 13</span>
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
+                  Visores de Enlaces Externos, Plataformas de Terceros y Módulo «Mi Campus»
+                </h2>
+              </div>
+
+              <div className="space-y-4 font-normal text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  TABE pone a disposición de los usuarios herramientas técnicas instrumentales de visualización y accesos directos (tales como el módulo <strong>«Mi Campus»</strong> y enlaces personalizados), diseñadas para que el estudiante pueda consultar sus plataformas educativas (Moodle, Blackboard, portales institucionales) y recursos web complementarios en una interfaz unificada.
+                </p>
+
+                <div className="p-4 bg-secondary/50 border border-border/60 rounded-xl space-y-2 text-foreground text-xs">
+                  <div className="font-semibold text-primary flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-emerald-500" />
+                    Principio de Mero Conducto y No-Intervención de Credenciales
+                  </div>
+                  <p className="leading-relaxed text-muted-foreground">
+                    TABE actúa exclusivamente como un <strong>proveedor técnico neutro de mero conducto y visor de navegación</strong>. Toda autenticación, credenciales de inicio de sesión, contraseñas, tokens de sesión o cookies negociadas dentro de sitios web de terceros cargados en el visor se transmiten de forma directa, autónoma y cifrada entre el navegador del usuario y los servidores de dicho tercero. <strong>TABE no captura, no almacena, no intercepta ni tiene acceso a contraseñas, datos bancarios ni información confidencial gestionada por plataformas de terceros.</strong>
+                  </p>
+                </div>
+
+                <ul className="list-disc pl-5 space-y-2 text-foreground text-xs">
+                  <li>
+                    <strong>Deslinde Taxativo de Aprobación y Patrocinio:</strong> La carga o configuración de cualquier URL externa es un acto voluntario, discrecional y exclusivo del usuario. TABE <strong>no aprueba, no patrocina, no supervisa ni avala</strong> la legalidad, el contenido, las políticas de privacidad ni los términos contractuales de sitios o servicios de terceros (incluyendo servicios de mensajería como Discord, redes sociales o portales externos).
+                  </li>
+                  <li>
+                    <strong>Sitios que Rechazan Conexión o Restringen Marcos Embebidos (X-Frame / CSP):</strong> Determinados sitios y plataformas configuran cabeceras de restricción técnica (como <code>X-Frame-Options</code> o directivas de seguridad <code>Content-Security-Policy</code>) o prohíben expresamente en sus condiciones de uso la ejecución en entornos o visores embebidos de terceros. TABE <strong>no promueve, no aprueba ni incentiva el uso no autorizado de plataformas que rechacen la conexión o restrinjan su integración</strong>. Si un sitio web de terceros no autoriza o bloquea la visualización incrustada, el usuario deberá acceder al mismo utilizando exclusivamente las aplicaciones o sitios web oficiales provistos por su titular.
+                  </li>
+                  <li>
+                    <strong>Prohibición Terminante de Usos Ilícitos:</strong> Queda terminantemente prohibido utilizar el visor de TABE para acceder a plataformas de juego clandestino, sitios con malware, suplantación de identidad (phishing), distribución no autorizada de material protegido por derechos de autor o cualquier actividad que contravenga las leyes aplicables o los términos de servicio de terceros.
+                  </li>
+                  <li>
+                    <strong>Responsabilidad Exclusiva e Indemnidad:</strong> Ante cualquier infracción legal o incumplimiento de los términos de servicio de una plataforma externa cometida mediante la carga de URLs por parte del usuario, la responsabilidad civil y penal recaerá única y exclusivamente sobre dicho usuario, manteniendo a TABE indemne frente a cualquier reclamo, demanda o sanción de terceros o autoridades competentes.
+                  </li>
+                </ul>
+              </div>
+            </section>
+
+            {/* SECCIÓN 8 */}
             <section id="publicidad-cookies" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 7</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Cookies, Almacenamiento Local y Redes Publicitarias</h2></div>
 
@@ -359,7 +402,7 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 8 */}
+            {/* SECCIÓN 9 */}
             <section id="seguridad" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 8</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Seguridad Informática, Cifrado y Salvaguardas Técnicas</h2></div>
 
@@ -389,7 +432,7 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 9 */}
+            {/* SECCIÓN 10 */}
             <section id="retencion" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 9</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Conservación, Retención y Purgado Definitivo</h2></div>
 
@@ -411,7 +454,7 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 10 */}
+            {/* SECCIÓN 11 */}
             <section id="transferencias" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 10</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Transferencias Internacionales de Datos y Terceros</h2></div>
 
@@ -431,7 +474,7 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 11 */}
+            {/* SECCIÓN 12 */}
             <section id="derechos-arco" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 11</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Tus Derechos Legales (ARCO, Portabilidad y Supresión)</h2></div>
 
@@ -482,7 +525,7 @@ export default function Privacy() {
               </div>
             </section>
 
-            {/* SECCIÓN 12 */}
+            {/* SECCIÓN 13 */}
             <section id="contacto-cambios" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
               <div className="space-y-1"><span className="text-xs text-muted-foreground">Sección 12</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">Modificaciones de la Política y Canales Oficiales</h2></div>
 

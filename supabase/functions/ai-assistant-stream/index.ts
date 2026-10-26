@@ -52,13 +52,13 @@ function mapET(t: string): string {
     "entrega": "Entrega", "entregar": "Entrega",
     "clase": "Clase", "cursada": "Clase", "cursado": "Clase", "otro": "Otro", "evento": "Otro"
   };
-  
+
   if (m[n]) return m[n];
-  
+
   // Soporte para parciales extra (P3, P4, etc.)
   const parcialMatch = n.match(/parcial\s*(\d+)/i) || n.match(/^p(\d+)$/i);
   if (parcialMatch) return `P${parcialMatch[1]}`;
-  
+
   return "Otro";
 }
 
@@ -68,12 +68,12 @@ function colorFor(t: string): string {
     "Recuperatorio P1": "#ef4444", "Recuperatorio P2": "#ef4444", "Recuperatorio Global": "#ef4444",
     "Estudio": "#6b7280", "TP": "#ec4899", "Entrega": "#f97316", "Clase": "#3b82f6", "Otro": "#8b5cf6"
   };
-  
+
   if (c[t]) return c[t];
-  
+
   // Color por defecto para parciales extra (cyan/azulado)
   if (t.startsWith("P")) return "#00d9ff";
-  
+
   return "#00d9ff";
 }
 
@@ -289,325 +289,325 @@ serve(async (req) => {
       let chatMemory = "";
 
       if (userId) {
-      if (persona_id) {
-        const { data: p } = await serviceClient.from("ai_personas").select("name, personality_prompt").eq("id", persona_id).eq("user_id", userId).maybeSingle();
-        if (p) { personaName = p.name; if (p.personality_prompt) personalityPrompt = p.personality_prompt; }
+        if (persona_id) {
+          const { data: p } = await serviceClient.from("ai_personas").select("name, personality_prompt").eq("id", persona_id).eq("user_id", userId).maybeSingle();
+          if (p) { personaName = p.name; if (p.personality_prompt) personalityPrompt = p.personality_prompt; }
 
-        const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(4);
-        if (rm && rm.length > 0) {
-          chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 100)).join("\n");
+          const { data: rm } = await serviceClient.from("ai_chat_messages").select("role, content, created_at, session_id!inner(persona_id, user_id)").eq("session_id.persona_id", persona_id).eq("session_id.user_id", userId).order("created_at", { ascending: false }).limit(4);
+          if (rm && rm.length > 0) {
+            chatMemory = "\nMEMORIA CONVERSACIONES ANTERIORES:\n" + rm.reverse().map((m: { role: string; content: string }) => (m.role === "user" ? "Estudiante" : personaName) + ": " + m.content.slice(0, 100)).join("\n");
+          }
+        }
+
+        const [ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR, discordR] = await Promise.all([
+          serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
+          serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
+          serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
+          serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(20),
+          serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(100),
+          serviceClient.from("profiles").select("nombre, username, email, carrera, facultad, plan, plan_type").eq("user_id", userId).maybeSingle(),
+          serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
+          serviceClient.from("professors").select("*").eq("user_id", userId),
+          serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
+          serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(50),
+          serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
+          serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+          serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+          serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
+          serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
+          serviceClient.from("discord_server_members").select("server_id, role, discord_servers(id, name)").eq("user_id", userId).limit(10),
+        ]);
+
+        uss = ussR.data || [];
+        events = evR.data || [];
+        stats = stR.data;
+        sessions = ssR.data || [];
+        decks = fdR.data || [];
+        profile = prR.data;
+        allSessions = allSessionsR.data || [];
+        professorsData = profR.data || [];
+        officeHoursData = hoursR.data || [];
+        routines = routinesR.data || [];
+        documents = docsR.data || [];
+        files = filesR.data || [];
+        quizzes = quizzesR.data || [];
+        friendships = friendshipsR.data || [];
+        achievements = achievementsR.data || [];
+        discordMembersData = (discordR && discordR.data) || [];
+      }
+
+
+
+      // Ensure any subjects present in uss are included even if not in initial query
+      const knownSubjectIds = new Set(subjects.map((s: any) => s.id));
+      const missingSubjectIds = uss
+        .map((u: any) => u.subject_id)
+        .filter((id: string) => id && !knownSubjectIds.has(id));
+
+      if (missingSubjectIds.length > 0) {
+        const { data: missingSubs } = await serviceClient
+          .from("subjects")
+          .select("id, nombre, codigo, año, numero_materia")
+          .in("id", missingSubjectIds);
+        if (missingSubs && missingSubs.length > 0) {
+          subjects = [...subjects, ...missingSubs];
         }
       }
 
-      const [ussR, evR, stR, ssR, fdR, prR, allSessionsR, profR, hoursR, routinesR, docsR, filesR, quizzesR, friendshipsR, achievementsR, discordR] = await Promise.all([
-        serviceClient.from("user_subject_status").select("*").eq("user_id", userId),
-        serviceClient.from("calendar_events").select("*").eq("user_id", userId).order("fecha", { ascending: true }).limit(100),
-        serviceClient.from("user_stats").select("*").eq("user_id", userId).maybeSingle(),
-        serviceClient.from("study_sessions").select("*").eq("user_id", userId).order("fecha", { ascending: false }).limit(20),
-        serviceClient.from("flashcard_decks").select("id, nombre, total_cards, subject_id").eq("user_id", userId).limit(100),
-        serviceClient.from("profiles").select("nombre, username, email, carrera, facultad, plan, plan_type").eq("user_id", userId).maybeSingle(),
-        serviceClient.from("study_sessions").select("subject_id, duracion_segundos, fecha, tipo").eq("user_id", userId),
-        serviceClient.from("professors").select("*").eq("user_id", userId),
-        serviceClient.from("professor_office_hours").select("*").eq("user_id", userId),
-        serviceClient.from("routines").select("id, name, description, category, start_time, end_time, days_of_week, start_date, end_date, is_active, subject_id").eq("user_id", userId).eq("is_active", true).limit(50),
-        serviceClient.from("notion_documents").select("id, titulo, subject_id, parent_id, is_favorite, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
-        serviceClient.from("library_files").select("id, nombre, tipo, subject_id, folder_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
-        serviceClient.from("quiz_decks").select("id, nombre, subject_id, total_questions, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
-        serviceClient.from("friendships").select("requester_id, addressee_id, status, created_at").or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).limit(50),
-        serviceClient.from("user_achievements").select("achievement_id, unlocked_at, achievements(nombre, descripcion, xp_reward)").eq("user_id", userId).limit(100),
-        serviceClient.from("discord_server_members").select("server_id, role, discord_servers(id, name)").eq("user_id", userId).limit(10),
-      ]);
+      const nameById: Record<string, string> = {};
+      for (const s of subjects) nameById[s.id] = s.nombre;
 
-      uss = ussR.data || [];
-      events = evR.data || [];
-      stats = stR.data;
-      sessions = ssR.data || [];
-      decks = fdR.data || [];
-      profile = prR.data;
-      allSessions = allSessionsR.data || [];
-      professorsData = profR.data || [];
-      officeHoursData = hoursR.data || [];
-      routines = routinesR.data || [];
-      documents = docsR.data || [];
-      files = filesR.data || [];
-      quizzes = quizzesR.data || [];
-      friendships = friendshipsR.data || [];
-      achievements = achievementsR.data || [];
-      discordMembersData = (discordR && discordR.data) || [];
-    }
-
-
-
-    // Ensure any subjects present in uss are included even if not in initial query
-    const knownSubjectIds = new Set(subjects.map((s: any) => s.id));
-    const missingSubjectIds = uss
-      .map((u: any) => u.subject_id)
-      .filter((id: string) => id && !knownSubjectIds.has(id));
-
-    if (missingSubjectIds.length > 0) {
-      const { data: missingSubs } = await serviceClient
-        .from("subjects")
-        .select("id, nombre, codigo, año, numero_materia")
-        .in("id", missingSubjectIds);
-      if (missingSubs && missingSubs.length > 0) {
-        subjects = [...subjects, ...missingSubs];
-      }
-    }
-
-    const nameById: Record<string, string> = {};
-    for (const s of subjects) nameById[s.id] = s.nombre;
-
-    const getEffectiveGrade = (st: any): number | null => {
-      if (!st) return null;
-      const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
-      for (const val of candidates) {
-        if (val !== null && val !== undefined && val !== "") {
-          const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
-          if (!isNaN(num) && num > 0) return num;
+      const getEffectiveGrade = (st: any): number | null => {
+        if (!st) return null;
+        const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
+        for (const val of candidates) {
+          if (val !== null && val !== undefined && val !== "") {
+            const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+            if (!isNaN(num) && num > 0) return num;
+          }
         }
-      }
-      return null;
-    };
-
-    const swStatus = subjects.map((s: any) => {
-      const st = uss.find((u: any) => u.subject_id === s.id);
-      const grade = getEffectiveGrade(st);
-      return {
-        ...s,
-        estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
-        nota: grade,
-        fecha_aprobacion: st?.fecha_aprobacion || null,
-        p1: st?.nota_parcial_1 || st?.nota_rec_parcial_1 || null,
-        p2: st?.nota_parcial_2 || st?.nota_rec_parcial_2 || null,
-        global: st?.nota_global || st?.nota_rec_global || null,
-        final_examen: st?.nota_final_examen || null
+        return null;
       };
-    });
 
-    const aprobadas = swStatus.filter((s: any) => s.estado === "aprobada");
-    const regulares = swStatus.filter((s: any) => s.estado === "regular");
-    const enCurso = swStatus.filter((s: any) => s.estado === "en_curso");
-    const sinCursar = swStatus.filter((s: any) => s.estado === "sin_cursar");
+      const swStatus = subjects.map((s: any) => {
+        const st = uss.find((u: any) => u.subject_id === s.id);
+        const grade = getEffectiveGrade(st);
+        return {
+          ...s,
+          estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
+          nota: grade,
+          fecha_aprobacion: st?.fecha_aprobacion || null,
+          p1: st?.nota_parcial_1 || st?.nota_rec_parcial_1 || null,
+          p2: st?.nota_parcial_2 || st?.nota_rec_parcial_2 || null,
+          global: st?.nota_global || st?.nota_rec_global || null,
+          final_examen: st?.nota_final_examen || null
+        };
+      });
 
-    const notasAprobadasDetalle: { nombre: string; nota: number }[] = [];
-    for (const s of aprobadas) {
-      if (s.nota !== null && !isNaN(s.nota) && s.nota > 0) {
-        notasAprobadasDetalle.push({ nombre: s.nombre, nota: s.nota });
-      }
-    }
+      const aprobadas = swStatus.filter((s: any) => s.estado === "aprobada");
+      const regulares = swStatus.filter((s: any) => s.estado === "regular");
+      const enCurso = swStatus.filter((s: any) => s.estado === "en_curso");
+      const sinCursar = swStatus.filter((s: any) => s.estado === "sin_cursar");
 
-    const promedioNum = notasAprobadasDetalle.length > 0
-      ? (notasAprobadasDetalle.reduce((a: number, b: number) => a + b.nota, 0) / notasAprobadasDetalle.length)
-      : null;
-    const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "N/A";
-    const progreso = subjects.length > 0 ? ((aprobadas.length / subjects.length) * 100).toFixed(1) : "0";
-    const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
-    const userName = profile?.nombre || profile?.username || "Estudiante";
-
-    const subjectStudyTime: Record<string, { totalSeconds: number; sessionCount: number; lastStudied: string | null; pomodoroCount: number }> = {};
-    for (const session of allSessions) {
-      if (!session.subject_id) continue;
-      if (!subjectStudyTime[session.subject_id]) {
-        subjectStudyTime[session.subject_id] = { totalSeconds: 0, sessionCount: 0, lastStudied: null, pomodoroCount: 0 };
-      }
-      const entry = subjectStudyTime[session.subject_id];
-      entry.totalSeconds += session.duracion_segundos || 0;
-      entry.sessionCount += 1;
-      if (session.tipo === "pomodoro") entry.pomodoroCount += 1;
-      if (!entry.lastStudied || session.fecha > entry.lastStudied) entry.lastStudied = session.fecha;
-    }
-
-    let metricasStr = "";
-    if (enCurso.length > 0) {
-      const metricasLines: string[] = [];
-      for (const subj of enCurso) {
-        const m = subjectStudyTime[subj.id];
-        if (m) {
-          const hours = (m.totalSeconds / 3600).toFixed(1);
-          const daysSinceStudy = m.lastStudied ? Math.floor((Date.now() - new Date(m.lastStudied).getTime()) / (1000 * 60 * 60 * 24)) : null;
-          let line = `- ${subj.nombre}: ${hours}hs, ${m.sessionCount} ses, ${m.pomodoroCount} pom`;
-          if (daysSinceStudy !== null) {
-            if (daysSinceStudy === 0) line += " | HOY";
-            else if (daysSinceStudy === 1) line += " | AYER";
-            else line += ` | hace ${daysSinceStudy}d`;
-          }
-          metricasLines.push(line);
-        } else {
-          metricasLines.push(`- ${subj.nombre}: 0hs | ⚠️ SIN ESTUDIAR`);
+      const notasAprobadasDetalle: { nombre: string; nota: number }[] = [];
+      for (const s of aprobadas) {
+        if (s.nota !== null && !isNaN(s.nota) && s.nota > 0) {
+          notasAprobadasDetalle.push({ nombre: s.nombre, nota: s.nota });
         }
       }
-      metricasStr = metricasLines.join("\n");
-    }
 
-    const materiasStr = swStatus.map((s: any) => {
-      let str = "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase();
-      if (s.nota) str += " Nota:" + s.nota;
-      if (s.final_examen) str += " Final:" + s.final_examen;
-      if (s.p1 || s.p2 || s.global) {
-        const exams = [];
-        if (s.p1) exams.push("P1:" + s.p1);
-        if (s.p2) exams.push("P2:" + s.p2);
-        if (s.global) exams.push("G:" + s.global);
-        str += " [" + exams.join(",") + "]";
+      const promedioNum = notasAprobadasDetalle.length > 0
+        ? (notasAprobadasDetalle.reduce((a: number, b: number) => a + b.nota, 0) / notasAprobadasDetalle.length)
+        : null;
+      const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "N/A";
+      const progreso = subjects.length > 0 ? ((aprobadas.length / subjects.length) * 100).toFixed(1) : "0";
+      const studyMin = sessions.reduce((a: number, s: any) => a + (s.duracion_segundos || 0), 0) / 60;
+      const userName = profile?.nombre || profile?.username || "Estudiante";
+
+      const subjectStudyTime: Record<string, { totalSeconds: number; sessionCount: number; lastStudied: string | null; pomodoroCount: number }> = {};
+      for (const session of allSessions) {
+        if (!session.subject_id) continue;
+        if (!subjectStudyTime[session.subject_id]) {
+          subjectStudyTime[session.subject_id] = { totalSeconds: 0, sessionCount: 0, lastStudied: null, pomodoroCount: 0 };
+        }
+        const entry = subjectStudyTime[session.subject_id];
+        entry.totalSeconds += session.duracion_segundos || 0;
+        entry.sessionCount += 1;
+        if (session.tipo === "pomodoro") entry.pomodoroCount += 1;
+        if (!entry.lastStudied || session.fecha > entry.lastStudied) entry.lastStudied = session.fecha;
       }
-      return str;
-    }).join("\n");
 
-    const eventosStr = events.length > 0
-      ? events.map((e: any) => "- " + e.fecha + (e.hora ? " " + e.hora : "") + ": " + e.titulo + " (" + e.tipo_examen + ") [ID:" + e.id + "]").join("\n")
-      : "Sin eventos proximos.";
-
-    const sesionesStr = sessions.length > 0
-      ? sessions.map((s: any) => "- " + s.fecha + ": " + Math.round((s.duracion_segundos || 0) / 60) + "min (" + s.tipo + ")" + (s.subject_id && nameById[s.subject_id] ? " - " + nameById[s.subject_id] : "")).join("\n")
-      : "Sin sesiones recientes.";
-
-    // Format Professors and Hours for Context
-    const profesoresStr = professorsData.length > 0
-      ? professorsData.map((p: any) => {
-        const hours = officeHoursData.filter((h: { professor_id: string; dia: string; hora_inicio: string; hora_fin: string }) => h.professor_id === p.id);
-        const hoursStr = hours.map((h: { dia: string; hora_inicio: string; hora_fin: string }) => `${h.dia} ${h.hora_inicio} a ${h.hora_fin}`).join(", ");
-        return `- ${p.nombre} (${p.rol || "Sin rol"}) [ID:${p.id}] Materia: ${nameById[p.subject_id] || "ID:" + p.subject_id} - Consultas: ${hoursStr || "No cargadas"}`;
-      }).join("\n")
-      : "Sin profesores cargados.";
-
-    const recursosStr = [
-      `Rutinas activas: ${routines.length > 0 ? routines.map((r: any) => `${r.name} (${r.days_of_week?.join?.(", ") || "sin días"} ${r.start_time || ""}-${r.end_time || ""})`).join("; ") : "ninguna"}`,
-      `Apuntes: ${documents.length > 0 ? documents.map((d: any) => `${d.titulo} [ID:${d.id}]`).join("; ") : "ninguno"}`,
-      `Archivos de biblioteca: ${files.length > 0 ? files.map((f: any) => `${f.nombre} (${f.tipo}) [ID:${f.id}]`).join("; ") : "ninguno"}`,
-      `Cuestionarios: ${quizzes.length > 0 ? quizzes.map((q: any) => `${q.nombre} (${q.total_questions || 0} preguntas) [ID:${q.id}]`).join("; ") : "ninguno"}`,
-      `Amistades: ${friendships.length} registros (${friendships.filter((f: any) => f.status === "accepted").length} aceptadas)`,
-      `Logros desbloqueados: ${achievements.length > 0 ? achievements.map((a: any) => a.achievements?.nombre || a.achievement_id).join("; ") : "ninguno"}`,
-    ].join("\n");
-
-    // Formatear mensajes recientes de grupos y canales de Discord
-    let discordMsgsStr = "Sin mensajes recientes en grupos de estudio.";
-    if (discordMembersData.length > 0) {
-      const serverIds = discordMembersData.map((m: any) => m.server_id).filter(Boolean);
-      try {
-        const { data: channels } = await serviceClient
-          .from("discord_channels")
-          .select("id, server_id, name, type")
-          .in("server_id", serverIds.slice(0, 5))
-          .eq("type", "text")
-          .limit(10);
-        
-        if (channels && channels.length > 0) {
-          const channelIds = channels.map((c: any) => c.id);
-          const { data: recentMsgs } = await serviceClient
-            .from("discord_messages")
-            .select("id, channel_id, user_id, content, created_at")
-            .in("channel_id", channelIds)
-            .order("created_at", { ascending: false })
-            .limit(20);
-
-          if (recentMsgs && recentMsgs.length > 0) {
-            const authorIds = [...new Set(recentMsgs.map((m: any) => m.user_id))];
-            const { data: authorProfiles } = await serviceClient
-              .from("profiles")
-              .select("user_id, nombre, username")
-              .in("user_id", authorIds);
-            const authorMap = new Map((authorProfiles || []).map((a: any) => [a.user_id, a.nombre || a.username || "Compañero"]));
-            const channelMap = new Map(channels.map((c: any) => [c.id, c.name]));
-
-            discordMsgsStr = recentMsgs.map((m: any) => {
-              const chName = channelMap.get(m.channel_id) || "general";
-              const author = authorMap.get(m.user_id) || (m.user_id === userId ? "Tú" : "Compañero");
-              const dateStr = m.created_at ? m.created_at.split("T")[0] : "";
-              return `- [#${chName}] ${author} (${dateStr}): "${m.content.slice(0, 160)}"`;
-            }).join("\n");
+      let metricasStr = "";
+      if (enCurso.length > 0) {
+        const metricasLines: string[] = [];
+        for (const subj of enCurso) {
+          const m = subjectStudyTime[subj.id];
+          if (m) {
+            const hours = (m.totalSeconds / 3600).toFixed(1);
+            const daysSinceStudy = m.lastStudied ? Math.floor((Date.now() - new Date(m.lastStudied).getTime()) / (1000 * 60 * 60 * 24)) : null;
+            let line = `- ${subj.nombre}: ${hours}hs, ${m.sessionCount} ses, ${m.pomodoroCount} pom`;
+            if (daysSinceStudy !== null) {
+              if (daysSinceStudy === 0) line += " | HOY";
+              else if (daysSinceStudy === 1) line += " | AYER";
+              else line += ` | hace ${daysSinceStudy}d`;
+            }
+            metricasLines.push(line);
+          } else {
+            metricasLines.push(`- ${subj.nombre}: 0hs | ⚠️ SIN ESTUDIAR`);
           }
         }
-      } catch (e) {
-        console.warn("Could not load discord messages:", e);
+        metricasStr = metricasLines.join("\n");
       }
-    }
 
-    const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
+      const materiasStr = swStatus.map((s: any) => {
+        let str = "- " + s.nombre + " (" + s.codigo + "): " + s.estado.toUpperCase();
+        if (s.nota) str += " Nota:" + s.nota;
+        if (s.final_examen) str += " Final:" + s.final_examen;
+        if (s.p1 || s.p2 || s.global) {
+          const exams = [];
+          if (s.p1) exams.push("P1:" + s.p1);
+          if (s.p2) exams.push("P2:" + s.p2);
+          if (s.global) exams.push("G:" + s.global);
+          str += " [" + exams.join(",") + "]";
+        }
+        return str;
+      }).join("\n");
 
-    const metricasSection = metricasStr
-      ? "\n=== METRICAS ESTUDIO (EN CURSO) ===\n" + metricasStr + "\n"
-      : "";
+      const eventosStr = events.length > 0
+        ? events.map((e: any) => "- " + e.fecha + (e.hora ? " " + e.hora : "") + ": " + e.titulo + " (" + e.tipo_examen + ") [ID:" + e.id + "]").join("\n")
+        : "Sin eventos proximos.";
 
-    // Build date context with day of week and upcoming days reference
-    const now = new Date();
-    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const hoyStr = now.toISOString().split("T")[0];
-    const hoyDia = diasSemana[now.getDay()];
+      const sesionesStr = sessions.length > 0
+        ? sessions.map((s: any) => "- " + s.fecha + ": " + Math.round((s.duracion_segundos || 0) / 60) + "min (" + s.tipo + ")" + (s.subject_id && nameById[s.subject_id] ? " - " + nameById[s.subject_id] : "")).join("\n")
+        : "Sin sesiones recientes.";
 
-    // Generate next 14 days as reference for the AI
-    const proximosDias: string[] = [];
-    for (let i = 0; i <= 13; i++) {
-      const d = new Date(now);
-      d.setDate(d.getDate() + i);
-      const label = i === 0 ? "HOY" : i === 1 ? "MAÑANA" : "";
-      proximosDias.push(`${d.toISOString().split("T")[0]} ${diasSemana[d.getDay()]}${label ? " (" + label + ")" : ""}`);
-    }
+      // Format Professors and Hours for Context
+      const profesoresStr = professorsData.length > 0
+        ? professorsData.map((p: any) => {
+          const hours = officeHoursData.filter((h: { professor_id: string; dia: string; hora_inicio: string; hora_fin: string }) => h.professor_id === p.id);
+          const hoursStr = hours.map((h: { dia: string; hora_inicio: string; hora_fin: string }) => `${h.dia} ${h.hora_inicio} a ${h.hora_fin}`).join(", ");
+          return `- ${p.nombre} (${p.rol || "Sin rol"}) [ID:${p.id}] Materia: ${nameById[p.subject_id] || "ID:" + p.subject_id} - Consultas: ${hoursStr || "No cargadas"}`;
+        }).join("\n")
+        : "Sin profesores cargados.";
 
-    const sysPrompt = "Sos " + personaName + ", asistente academico de " + userName + ".\n" +
-      "Personalidad: " + personalityPrompt + "\n" +
-      "HOY: " + hoyStr + " (" + hoyDia + ")" + contextLine + "\n" +
-      "CARRERA: " + (profile?.carrera || "No especificada") + " | FACULTAD: " + (profile?.facultad || "No especificada") + " | PLAN: " + (profile?.plan || "No especificado") + "\n" +
-      "CALENDARIO PROXIMOS DIAS:\n" + proximosDias.join("\n") + "\n\n" +
-      "=== RESUMEN ACADEMICO ===\n" +
-      "Promedio General: " + promedio + " (" + notasAprobadasDetalle.length + " materias con nota computadas)\n" +
-      "Detalle de materias aprobadas y notas: " + (notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n: any) => n.nombre + ": " + n.nota.toFixed(2)).join(", ") : "Ninguna nota registrada") + "\n" +
-      "Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
-      "Aprobadas: " + aprobadas.length + (aprobadas.length > 0 ? " (" + aprobadas.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
-      "Regulares: " + regulares.length + (regulares.length > 0 ? " (" + regulares.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
-      "En curso: " + enCurso.length + (enCurso.length > 0 ? " (" + enCurso.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
-      "Sin cursar: " + sinCursar.length + "\n" +
-      "Estudio reciente: " + (studyMin / 60).toFixed(1) + "hs\n" +
-      (stats ? "Nivel: " + stats.nivel + " | XP: " + stats.xp_total + "\n" : "") + "\n" +
-      "=== MATERIAS ===\n" + materiasStr + "\n\n" +
-      metricasSection +
-      "=== AGENDA ===\n" + eventosStr + "\n\n" +
-      "=== PROFESORES Y CONSULTAS ===\n" + profesoresStr + "\n\n" +
-      "=== GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES (CHATS / CANALES) ===\n" + discordMsgsStr + "\n\n" +
-      "=== RECURSOS DEL ESTUDIANTE ===\n" + recursosStr + "\n\n" +
-      "=== SESIONES ===\n" + sesionesStr + "\n" +
-      chatMemory + "\n\n" +
-      "=== INSTRUCCIONES CRITICAS ===\n" +
-      "1. Tenes acceso TOTAL a los datos del estudiante. Responde con datos REALES.\n" +
-      "2. Nombres abreviados: algebra=Algebra y Geometria Analitica, analisis 1=Analisis Matematico I, etc. Numeros 1,2,3 = I,II,III.\n" +
-      "3. ⚠️ REGLA MAS IMPORTANTE - CUANDO USAR HERRAMIENTAS:\n" +
-      "   SOLO usa herramientas (function calling) cuando el usuario EXPLICITAMENTE pida una ACCION CONCRETA como:\n" +
-      "   - 'agendame...', 'creame un evento...', 'anotame el parcial...' -> create_calendar_events\n" +
-      "   - 'creame flashcards de...', 'haceme un mazo de...' -> create_flashcards o manage_flashcards\n" +
-      "   - 'agregale cartas a...', 'modificame la flashcard...', 'borrá la carta...' -> manage_flashcards\n" +
-      "   - 'creame un cuestionario...', 'haceme preguntas de...' -> create_quiz o manage_quizzes\n" +
-      "   - 'agregale preguntas a...', 'modificá la pregunta...', 'borrá el cuestionario...' -> manage_quizzes\n" +
-      "   - 'marcame X como aprobada...', 'cambiame el estado de...' -> update_subject_status\n" +
-      "   - 'creame un documento/apunte sobre...' -> create_notion_document\n" +
-      "   - 'eliminame el evento...' -> delete_calendar_event\n" +
-      "   - 'añadí al profesor...', 'borrá al profesor...', 'cambiá el rol del profe...' -> manage_professors\n" +
-      "   - 'agendame la consulta...', 'el profe atiende tal día...', 'eliminá el horario del martes...' -> manage_consultations\n" +
-      "   - 'creame una rutina...', 'pausá/eliminá mi rutina...' -> manage_routines\n" +
-      "   NUNCA uses herramientas para:\n" +
-      "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
-      "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
-      "   - Preguntas academicas: 'explicame...', 'que es...', 'como funciona...' -> RESPONDE CON TEXTO\n" +
-      "   - Consultas sobre datos o rendimiento ('como voy', 'cuantas aprobe', 'mi promedio', 'mis notas'): RESPONDE CON TEXTO usando los datos de arriba. Si te preguntan 'cual es mi promedio', 'como es mi promedio', dale directamente su promedio general exacto (" + promedio + ") y si te pide el detalle, mencionales las materias aprobadas con sus notas.\n" +
-      "   - Charla casual, motivacion, o cualquier conversacion -> RESPONDE CON TEXTO\n" +
-      "   EN CASO DE DUDA: SIEMPRE RESPONDE CON TEXTO PLANO, NO USES HERRAMIENTAS.\n" +
-      "4. PODES inventar ejercicios y simulacros de examenes si te lo piden.\n" +
-      "5. Para fechas relativas calcula la fecha YYYY-MM-DD exacta desde la fecha actual.\n" +
-      "6. Responde en Español Argentino.\n" +
-      "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
-      "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
-      "9. GESTIÓN ILIMITADA Y EXACTA DE FLASHCARDS Y CUESTIONARIOS:\n" +
-      "   - CUMPLIMIENTO ESTRICTO DE CANTIDAD SOLICITADA: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios y flashcards de hasta 80 preguntas completas. Si el estudiante te pide una cantidad específica (ej: 10, 20, 30, 50 u 80 preguntas de quiz), DEBES GENERAR EXACTAMENTE ESA CANTIDAD en el llamado a la herramienta ('cards' o 'questions'). Analizá todo el contenido adjunto minuciosamente para extraer cada tema hasta alcanzar la cantidad exacta pedida. NUNCA resumas ni recortes a menos preguntas de las solicitadas.\n" +
-      "   - Si el estudiante no especifica cantidad pero adjunta un material o tema extenso, generá al menos 10 a 15 flashcards o 10 preguntas de quiz para asegurar una cobertura completa y profunda.\n" +
-      "   - ACCIÓN DIRECTA OBLIGATORIA: Cuando el usuario pide crear flashcards o cuestionarios a partir de un PDF, imagen o texto, LLAMÁ SIEMPRE a 'create_flashcards' o 'create_quiz'. NUNCA respondas sólo texto explicando lo que harías ni las dejes en un mensaje de texto sin llamar a la herramienta; deben crearse directamente en la base de datos para que el usuario las tenga en su mazo.\n" +
-      "   - Si pide una cantidad masiva como 50 o 100 cartas, creá el primer lote completo en el llamado de la herramienta y explícale con entusiasmo que ya se guardaron.\n" +
-      "   - Para modificar cartas existentes o agregar a un mazo existente, usá 'manage_flashcards'. Para modificar preguntas o agregar a un cuestionario existente, usá 'manage_quizzes'.\n" +
-      "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
-      "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).\n" +
-      "12. ACCESO A INTERACCIONES, PROFESORES Y GRUPOS DE ESTUDIO (FOROS Y CHATS):\n" +
-      "    Tenes acceso total a los profesores del estudiante, sus horarios de consulta, compañeros y a las conversaciones/mensajes de sus grupos de estudio (canales de chat/foros) detallados arriba.\n" +
-      "    - Si el estudiante te consulta sobre sus profesores ('cuándo atiende el profe', 'horario de consulta de...', 'qué profesores tengo'): responde con los datos de PROFESORES Y CONSULTAS.\n" +
-      "    - Si te consulta sobre mensajes de compañeros o grupos ('qué preguntaron en el grupo', 'qué hablaron en el canal', 'recordame mensajes importantes de profes/ayudantes', 'qué dudas tienen mis compañeros'): responde basándote en los mensajes de GRUPOS DE ESTUDIO Y CONVERSACIONES.\n" +
-      "    - Si te pide ayuda para organizar grupos de estudio ('armame un grupo con mis compañeros', 'con quién puedo estudiar'): menciónale a sus compañeros y sugiere temas o canales.\n" +
-      "    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.";
+      const recursosStr = [
+        `Rutinas activas: ${routines.length > 0 ? routines.map((r: any) => `${r.name} (${r.days_of_week?.join?.(", ") || "sin días"} ${r.start_time || ""}-${r.end_time || ""})`).join("; ") : "ninguna"}`,
+        `Apuntes: ${documents.length > 0 ? documents.map((d: any) => `${d.titulo} [ID:${d.id}]`).join("; ") : "ninguno"}`,
+        `Archivos de biblioteca: ${files.length > 0 ? files.map((f: any) => `${f.nombre} (${f.tipo}) [ID:${f.id}]`).join("; ") : "ninguno"}`,
+        `Cuestionarios: ${quizzes.length > 0 ? quizzes.map((q: any) => `${q.nombre} (${q.total_questions || 0} preguntas) [ID:${q.id}]`).join("; ") : "ninguno"}`,
+        `Amistades: ${friendships.length} registros (${friendships.filter((f: any) => f.status === "accepted").length} aceptadas)`,
+        `Logros desbloqueados: ${achievements.length > 0 ? achievements.map((a: any) => a.achievements?.nombre || a.achievement_id).join("; ") : "ninguno"}`,
+      ].join("\n");
+
+      // Formatear mensajes recientes de grupos y canales de Discord
+      let discordMsgsStr = "Sin mensajes recientes en grupos de estudio.";
+      if (discordMembersData.length > 0) {
+        const serverIds = discordMembersData.map((m: any) => m.server_id).filter(Boolean);
+        try {
+          const { data: channels } = await serviceClient
+            .from("discord_channels")
+            .select("id, server_id, name, type")
+            .in("server_id", serverIds.slice(0, 5))
+            .eq("type", "text")
+            .limit(10);
+
+          if (channels && channels.length > 0) {
+            const channelIds = channels.map((c: any) => c.id);
+            const { data: recentMsgs } = await serviceClient
+              .from("discord_messages")
+              .select("id, channel_id, user_id, content, created_at")
+              .in("channel_id", channelIds)
+              .order("created_at", { ascending: false })
+              .limit(20);
+
+            if (recentMsgs && recentMsgs.length > 0) {
+              const authorIds = [...new Set(recentMsgs.map((m: any) => m.user_id))];
+              const { data: authorProfiles } = await serviceClient
+                .from("profiles")
+                .select("user_id, nombre, username")
+                .in("user_id", authorIds);
+              const authorMap = new Map((authorProfiles || []).map((a: any) => [a.user_id, a.nombre || a.username || "Compañero"]));
+              const channelMap = new Map(channels.map((c: any) => [c.id, c.name]));
+
+              discordMsgsStr = recentMsgs.map((m: any) => {
+                const chName = channelMap.get(m.channel_id) || "general";
+                const author = authorMap.get(m.user_id) || (m.user_id === userId ? "Tú" : "Compañero");
+                const dateStr = m.created_at ? m.created_at.split("T")[0] : "";
+                return `- [#${chName}] ${author} (${dateStr}): "${m.content.slice(0, 160)}"`;
+              }).join("\n");
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load discord messages:", e);
+        }
+      }
+
+      const contextLine = context_page ? "\nSECCION ACTUAL: " + context_page : "";
+
+      const metricasSection = metricasStr
+        ? "\n=== METRICAS ESTUDIO (EN CURSO) ===\n" + metricasStr + "\n"
+        : "";
+
+      // Build date context with day of week and upcoming days reference
+      const now = new Date();
+      const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+      const hoyStr = now.toISOString().split("T")[0];
+      const hoyDia = diasSemana[now.getDay()];
+
+      // Generate next 14 days as reference for the AI
+      const proximosDias: string[] = [];
+      for (let i = 0; i <= 13; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() + i);
+        const label = i === 0 ? "HOY" : i === 1 ? "MAÑANA" : "";
+        proximosDias.push(`${d.toISOString().split("T")[0]} ${diasSemana[d.getDay()]}${label ? " (" + label + ")" : ""}`);
+      }
+
+      const sysPrompt = "Sos " + personaName + ", asistente academico de " + userName + ".\n" +
+        "Personalidad: " + personalityPrompt + "\n" +
+        "HOY: " + hoyStr + " (" + hoyDia + ")" + contextLine + "\n" +
+        "CARRERA: " + (profile?.carrera || "No especificada") + " | FACULTAD: " + (profile?.facultad || "No especificada") + " | PLAN: " + (profile?.plan || "No especificado") + "\n" +
+        "CALENDARIO PROXIMOS DIAS:\n" + proximosDias.join("\n") + "\n\n" +
+        "=== RESUMEN ACADEMICO ===\n" +
+        "Promedio General: " + promedio + " (" + notasAprobadasDetalle.length + " materias con nota computadas)\n" +
+        "Detalle de materias aprobadas y notas: " + (notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n: any) => n.nombre + ": " + n.nota.toFixed(2)).join(", ") : "Ninguna nota registrada") + "\n" +
+        "Progreso: " + aprobadas.length + "/" + subjects.length + " (" + progreso + "%)\n" +
+        "Aprobadas: " + aprobadas.length + (aprobadas.length > 0 ? " (" + aprobadas.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
+        "Regulares: " + regulares.length + (regulares.length > 0 ? " (" + regulares.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
+        "En curso: " + enCurso.length + (enCurso.length > 0 ? " (" + enCurso.map((s: any) => s.nombre).join(", ") + ")" : "") + "\n" +
+        "Sin cursar: " + sinCursar.length + "\n" +
+        "Estudio reciente: " + (studyMin / 60).toFixed(1) + "hs\n" +
+        (stats ? "Nivel: " + stats.nivel + " | XP: " + stats.xp_total + "\n" : "") + "\n" +
+        "=== MATERIAS ===\n" + materiasStr + "\n\n" +
+        metricasSection +
+        "=== AGENDA ===\n" + eventosStr + "\n\n" +
+        "=== PROFESORES Y CONSULTAS ===\n" + profesoresStr + "\n\n" +
+        "=== GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES (CHATS / CANALES) ===\n" + discordMsgsStr + "\n\n" +
+        "=== RECURSOS DEL ESTUDIANTE ===\n" + recursosStr + "\n\n" +
+        "=== SESIONES ===\n" + sesionesStr + "\n" +
+        chatMemory + "\n\n" +
+        "=== INSTRUCCIONES CRITICAS ===\n" +
+        "1. Tenes acceso TOTAL a los datos del estudiante. Responde con datos REALES.\n" +
+        "2. Nombres abreviados: algebra=Algebra y Geometria Analitica, analisis 1=Analisis Matematico I, etc. Numeros 1,2,3 = I,II,III.\n" +
+        "3. ⚠️ REGLA MAS IMPORTANTE - CUANDO USAR HERRAMIENTAS:\n" +
+        "   SOLO usa herramientas (function calling) cuando el usuario EXPLICITAMENTE pida una ACCION CONCRETA como:\n" +
+        "   - 'agendame...', 'creame un evento...', 'anotame el parcial...' -> create_calendar_events\n" +
+        "   - 'creame flashcards de...', 'haceme un mazo de...' -> create_flashcards o manage_flashcards\n" +
+        "   - 'agregale cartas a...', 'modificame la flashcard...', 'borrá la carta...' -> manage_flashcards\n" +
+        "   - 'creame un cuestionario...', 'haceme preguntas de...' -> create_quiz o manage_quizzes\n" +
+        "   - 'agregale preguntas a...', 'modificá la pregunta...', 'borrá el cuestionario...' -> manage_quizzes\n" +
+        "   - 'marcame X como aprobada...', 'cambiame el estado de...' -> update_subject_status\n" +
+        "   - 'creame un documento/apunte sobre...' -> create_notion_document\n" +
+        "   - 'eliminame el evento...' -> delete_calendar_event\n" +
+        "   - 'añadí al profesor...', 'borrá al profesor...', 'cambiá el rol del profe...' -> manage_professors\n" +
+        "   - 'agendame la consulta...', 'el profe atiende tal día...', 'eliminá el horario del martes...' -> manage_consultations\n" +
+        "   - 'creame una rutina...', 'pausá/eliminá mi rutina...' -> manage_routines\n" +
+        "   NUNCA uses herramientas para:\n" +
+        "   - Saludos: 'hola', 'como estas', 'buenas' -> RESPONDE CON TEXTO\n" +
+        "   - Preguntas sobre vos: 'como eres', 'quien sos', 'presentate', 'dime de ti' -> RESPONDE CON TEXTO describiendo tu personalidad\n" +
+        "   - Preguntas academicas: 'explicame...', 'que es...', 'como funciona...' -> RESPONDE CON TEXTO\n" +
+        "   - Consultas sobre datos o rendimiento ('como voy', 'cuantas aprobe', 'mi promedio', 'mis notas'): RESPONDE CON TEXTO usando los datos de arriba. Si te preguntan 'cual es mi promedio', 'como es mi promedio', dale directamente su promedio general exacto (" + promedio + ") y si te pide el detalle, mencionales las materias aprobadas con sus notas.\n" +
+        "   - Charla casual, motivacion, o cualquier conversacion -> RESPONDE CON TEXTO\n" +
+        "   EN CASO DE DUDA: SIEMPRE RESPONDE CON TEXTO PLANO, NO USES HERRAMIENTAS.\n" +
+        "4. PODES inventar ejercicios y simulacros de examenes si te lo piden.\n" +
+        "5. Para fechas relativas calcula la fecha YYYY-MM-DD exacta desde la fecha actual.\n" +
+        "6. Responde en Español Argentino.\n" +
+        "7. Solo analiza metricas de materias EN CURSO, no aprobadas/regulares.\n" +
+        "8. Para multiples eventos usa create_calendar_events con array completo.\n" +
+        "9. GESTIÓN ILIMITADA Y EXACTA DE FLASHCARDS Y CUESTIONARIOS:\n" +
+        "   - CUMPLIMIENTO ESTRICTO DE CANTIDAD SOLICITADA: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios y flashcards de hasta 80 preguntas completas. Si el estudiante te pide una cantidad específica (ej: 10, 20, 30, 50 u 80 preguntas de quiz), DEBES GENERAR EXACTAMENTE ESA CANTIDAD en el llamado a la herramienta ('cards' o 'questions'). Analizá todo el contenido adjunto minuciosamente para extraer cada tema hasta alcanzar la cantidad exacta pedida. NUNCA resumas ni recortes a menos preguntas de las solicitadas.\n" +
+        "   - Si el estudiante no especifica cantidad pero adjunta un material o tema extenso, generá al menos 10 a 15 flashcards o 10 preguntas de quiz para asegurar una cobertura completa y profunda.\n" +
+        "   - ACCIÓN DIRECTA OBLIGATORIA: Cuando el usuario pide crear flashcards o cuestionarios a partir de un PDF, imagen o texto, LLAMÁ SIEMPRE a 'create_flashcards' o 'create_quiz'. NUNCA respondas sólo texto explicando lo que harías ni las dejes en un mensaje de texto sin llamar a la herramienta; deben crearse directamente en la base de datos para que el usuario las tenga en su mazo.\n" +
+        "   - Si pide una cantidad masiva como 50 o 100 cartas, creá el primer lote completo en el llamado de la herramienta y explícale con entusiasmo que ya se guardaron.\n" +
+        "   - Para modificar cartas existentes o agregar a un mazo existente, usá 'manage_flashcards'. Para modificar preguntas o agregar a un cuestionario existente, usá 'manage_quizzes'.\n" +
+        "10. GESTION DE PROFESORES: Si el usuario menciona un nombre y una materia, buscá siempre el ID de la materia y usá manage_professors.\n" +
+        "11. GESTION DE CONSULTAS: Un profesor puede tener múltiples horarios. Usá manege_consultations para añadir, actualizar o eliminar horarios específicos (lunes, martes, etc.).\n" +
+        "12. ACCESO A INTERACCIONES, PROFESORES Y GRUPOS DE ESTUDIO (FOROS Y CHATS):\n" +
+        "    Tenes acceso total a los profesores del estudiante, sus horarios de consulta, compañeros y a las conversaciones/mensajes de sus grupos de estudio (canales de chat/foros) detallados arriba.\n" +
+        "    - Si el estudiante te consulta sobre sus profesores ('cuándo atiende el profe', 'horario de consulta de...', 'qué profesores tengo'): responde con los datos de PROFESORES Y CONSULTAS.\n" +
+        "    - Si te consulta sobre mensajes de compañeros o grupos ('qué preguntaron en el grupo', 'qué hablaron en el canal', 'recordame mensajes importantes de profes/ayudantes', 'qué dudas tienen mis compañeros'): responde basándote en los mensajes de GRUPOS DE ESTUDIO Y CONVERSACIONES.\n" +
+        "    - Si te pide ayuda para organizar grupos de estudio ('armame un grupo con mis compañeros', 'con quién puedo estudiar'): menciónale a sus compañeros y sugiere temas o canales.\n" +
+        "    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.";
     }
 
     const tools = [
@@ -1209,7 +1209,7 @@ serve(async (req) => {
             stream: true
           })
         });
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!streamRes || !streamRes.ok) {
@@ -1311,7 +1311,7 @@ serve(async (req) => {
             }
             else if (toolCallName === "update_calendar_event") {
               const updates: Record<string, unknown> = {};
-              for (const key of ["titulo", "fecha", "hora", "tipo_examen", "notas"] ) {
+              for (const key of ["titulo", "fecha", "hora", "tipo_examen", "notas"]) {
                 if (args[key] !== undefined) updates[key] = args[key];
               }
               if (updates.tipo_examen) updates.tipo_examen = mapET(String(updates.tipo_examen));

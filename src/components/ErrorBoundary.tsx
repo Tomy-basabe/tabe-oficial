@@ -22,6 +22,27 @@ export class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error("ErrorBoundary caught:", error, errorInfo);
+        const msg = (error?.message || "").toLowerCase();
+        const isChunkError =
+            msg.includes("failed to fetch dynamically imported module") ||
+            msg.includes("importing a module script failed") ||
+            msg.includes("unable to preload css") ||
+            msg.includes("loading chunk");
+
+        if (isChunkError && typeof window !== "undefined") {
+            const lastReload = Number(sessionStorage.getItem("tabe_chunk_reload_ts") || "0");
+            if (Date.now() - lastReload > 60000) {
+                sessionStorage.setItem("tabe_chunk_reload_ts", String(Date.now()));
+                if ("caches" in window) {
+                    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).finally(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    window.location.reload();
+                }
+                return;
+            }
+        }
         this.setState({ errorInfo });
     }
 

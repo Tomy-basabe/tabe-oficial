@@ -49,21 +49,40 @@ const areFriendshipsEqual = (a: FriendWithProfile[], b: FriendWithProfile[]) => 
   return true;
 };
 
+// Caché en memoria a nivel de módulo para navegación instantánea (0ms) en /amigos
+let _cachedFriends: FriendWithProfile[] | null = null;
+let _cachedPendingRequests: FriendWithProfile[] | null = null;
+let _cachedSentRequests: FriendWithProfile[] | null = null;
+let _cachedFriendStats: FriendStats[] | null = null;
+let _cachedMyProfile: Profile | null = null;
+let _cachedFriendsUserId: string | null = null;
+let _cachedFriendsTimestamp = 0;
+
 export function useFriends(options: { enableRealtime?: boolean } = {}) {
   const { enableRealtime = false } = options;
   const { user, isGuest } = useAuth();
   const userId = user?.id;
 
-  const [friends, setFriends] = useState<FriendWithProfile[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<FriendWithProfile[]>([]);
-  const [sentRequests, setSentRequests] = useState<FriendWithProfile[]>([]);
-  const [friendStats, setFriendStats] = useState<FriendStats[]>([]);
-  const [myProfile, setMyProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  if (userId && userId !== _cachedFriendsUserId) {
+    _cachedFriends = null;
+    _cachedPendingRequests = null;
+    _cachedSentRequests = null;
+    _cachedFriendStats = null;
+    _cachedMyProfile = null;
+    _cachedFriendsUserId = userId;
+    _cachedFriendsTimestamp = 0;
+  }
 
-  const hasLoadedRef = useRef(false);
-  const profileRef = useRef<Profile | null>(null);
-  const friendsRef = useRef<FriendWithProfile[]>([]);
+  const [friends, setFriends] = useState<FriendWithProfile[]>(() => _cachedFriends || []);
+  const [pendingRequests, setPendingRequests] = useState<FriendWithProfile[]>(() => _cachedPendingRequests || []);
+  const [sentRequests, setSentRequests] = useState<FriendWithProfile[]>(() => _cachedSentRequests || []);
+  const [friendStats, setFriendStats] = useState<FriendStats[]>(() => _cachedFriendStats || []);
+  const [myProfile, setMyProfile] = useState<Profile | null>(() => _cachedMyProfile);
+  const [loading, setLoading] = useState(() => _cachedFriends === null);
+
+  const hasLoadedRef = useRef(_cachedFriends !== null);
+  const profileRef = useRef<Profile | null>(_cachedMyProfile);
+  const friendsRef = useRef<FriendWithProfile[]>(_cachedFriends || []);
 
   // Sincronizar refs
   useEffect(() => {
@@ -181,6 +200,7 @@ export function useFriends(options: { enableRealtime?: boolean } = {}) {
         };
       });
 
+      _cachedFriendStats = friendStatsData;
       setFriendStats(friendStatsData);
     } catch (err) {
       console.warn("fetchFriendStatsInternal error:", err);
@@ -338,6 +358,11 @@ export function useFriends(options: { enableRealtime?: boolean } = {}) {
       });
 
       // Actualizar estados sólo si cambiaron para no gatillar re-renders espurios
+      _cachedFriends = accepted;
+      _cachedPendingRequests = pending;
+      _cachedSentRequests = sent;
+      _cachedFriendsUserId = userId || null;
+      _cachedFriendsTimestamp = Date.now();
       setFriends(prev => areFriendshipsEqual(prev, accepted) ? prev : accepted);
       setPendingRequests(prev => areFriendshipsEqual(prev, pending) ? prev : pending);
       setSentRequests(prev => areFriendshipsEqual(prev, sent) ? prev : sent);
@@ -347,6 +372,7 @@ export function useFriends(options: { enableRealtime?: boolean } = {}) {
 
       // Calcular stats inmediatamente
       const activeProf = existingProfile !== undefined ? existingProfile : profileRef.current;
+      if (activeProf) _cachedMyProfile = activeProf;
       await fetchFriendStatsInternal(accepted, activeProf);
     } catch (err) {
       console.error("Error in fetchFriendships:", err);
@@ -361,6 +387,10 @@ export function useFriends(options: { enableRealtime?: boolean } = {}) {
 
     const loadData = async () => {
       if (!userId && !isGuest) {
+        setLoading(false);
+        return;
+      }
+      if (_cachedFriends !== null && (Date.now() - _cachedFriendsTimestamp < 5 * 60 * 1000)) {
         setLoading(false);
         return;
       }

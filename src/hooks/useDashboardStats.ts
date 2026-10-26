@@ -104,6 +104,7 @@ function computeStudyStreak(allDates: string[], storedBestStreak = 0): { current
 let _cachedUserStats: UserStats | null = null;
 let _cachedStudySessions: StudySession[] | null = null;
 let _cachedStatsUserId: string | null = null;
+let _cachedStatsSyncTime = 0;
 
 const DASHBOARD_STATS_CACHE_KEY = "tabe_dashboard_stats_cache";
 const STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -142,6 +143,7 @@ function setStoredDashboardStats(userId: string, userStats: UserStats, studySess
 export function invalidateDashboardStatsCache() {
   _cachedUserStats = null;
   _cachedStudySessions = null;
+  _cachedStatsSyncTime = 0;
   try {
     localStorage.removeItem(DASHBOARD_STATS_CACHE_KEY);
   } catch (e) {}
@@ -161,18 +163,18 @@ export function useDashboardStats() {
     _cachedStatsUserId = user.id;
   }
 
-  // Check persistent cache in localStorage
+  // Check persistent cache in localStorage (hydrate even if stale for 0ms UI, revalidate in background)
   const dailyCache = user ? getStoredDashboardStats(user.id) : null;
   const isDailyCacheFresh = dailyCache !== null && (Date.now() - dailyCache.timestamp < STATS_CACHE_TTL_MS);
 
-  if (!_cachedUserStats && isDailyCacheFresh && dailyCache) {
+  if (!_cachedUserStats && dailyCache) {
     _cachedUserStats = dailyCache.userStats;
     _cachedStudySessions = dailyCache.studySessions;
   }
 
   const [userStats, setUserStats] = useState<UserStats | null>(_cachedUserStats);
   const [studySessions, setStudySessions] = useState<StudySession[]>(_cachedStudySessions || []);
-  const [loading, setLoading] = useState<boolean>(!_cachedUserStats && !isDailyCacheFresh);
+  const [loading, setLoading] = useState<boolean>(!_cachedUserStats && !dailyCache);
   const hasAutoHealedStreak = useRef(false);
 
   const fetchStats = useCallback(async (showLoading = !_cachedUserStats) => {
@@ -294,6 +296,7 @@ export function useDashboardStats() {
 
       _cachedUserStats = mergedStats;
       _cachedStudySessions = sessionsData;
+      _cachedStatsSyncTime = Date.now();
       if (user) {
         setStoredDashboardStats(user.id, mergedStats, sessionsData);
       }
@@ -310,13 +313,17 @@ export function useDashboardStats() {
   useEffect(() => {
     // Si hay caché reciente la mostramos de inmediato, pero siempre revalidamos en segundo plano
     const daily = user ? getStoredDashboardStats(user.id) : null;
-    const fresh = daily !== null && (Date.now() - daily.timestamp < STATS_CACHE_TTL_MS);
-    if (fresh && daily) {
-      setUserStats(daily.userStats);
-      setStudySessions(daily.studySessions);
+    if (daily) {
+      setUserStats(prev => prev || daily.userStats);
+      setStudySessions(prev => (prev.length > 0 ? prev : daily.studySessions));
       setLoading(false);
     }
-    fetchStats(!fresh && !_cachedUserStats);
+    const recentlySynced = _cachedUserStats !== null && (Date.now() - _cachedStatsSyncTime < 5 * 60 * 1000);
+    if (recentlySynced) {
+      setLoading(false);
+      return;
+    }
+    fetchStats(!daily && !_cachedUserStats);
   }, [fetchStats, user, isGuest]);
 
   // Refrescar inmediatamente si se invalida la caché de estadísticas desde cualquier pantalla

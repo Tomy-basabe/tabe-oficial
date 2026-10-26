@@ -157,37 +157,60 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
     autoMatchSubject(note.subject);
   };
 
-  const handleImport = async () => {
+  const handleImport = () => {
     if (!selectedNote || !targetSubjectId) {
       toast.error("Seleccioná una materia de destino");
       return;
     }
 
-    setImporting(true);
-    try {
-      const { data, error } = await supabase
-        .from("notion_documents")
-        .select("contenido, titulo, emoji, cover_url")
-        .eq("id", selectedNote.id)
-        .single();
+    const noteToImport = selectedNote;
+    const subjectId = targetSubjectId;
+    const title = noteToImport.titulo || "Sin título";
+    const toastId = `import-friend-note-${noteToImport.id}-${Date.now()}`;
 
-      if (error || !data) throw error || new Error("No se pudo obtener el contenido");
+    // 1. Cerrar el modal inmediatamente (sin esperas para el usuario)
+    onOpenChange(false);
 
-      await onImport(
-        data.contenido,
-        data.titulo || selectedNote.titulo || "Sin título",
-        targetSubjectId,
-        data.emoji || selectedNote.emoji || "book",
-        data.cover_url || selectedNote.cover_url || null,
-        selectedNote.id
-      );
+    // 2. Notificación en segundo plano no bloqueante
+    toast.loading(`Descargando apunte "${title}" en segundo plano...`, {
+      id: toastId,
+      description: "Podés seguir navegando o escribiendo. Te avisaremos cuando esté listo.",
+      duration: Infinity,
+    });
 
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message || "Error al importar el apunte");
-    } finally {
-      setImporting(false);
-    }
+    // 3. Descarga e importación en segundo plano
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("notion_documents")
+          .select("contenido, titulo, emoji, cover_url")
+          .eq("id", noteToImport.id)
+          .single();
+
+        if (error || !data) throw error || new Error("No se pudo obtener el contenido");
+
+        await onImport(
+          data.contenido,
+          data.titulo || noteToImport.titulo || "Sin título",
+          subjectId,
+          data.emoji || noteToImport.emoji || "book",
+          data.cover_url || noteToImport.cover_url || null,
+          noteToImport.id
+        );
+
+        toast.success(`¡Apunte "${title}" importado con éxito!`, {
+          id: toastId,
+          description: "Ya podés abrirlo y editarlo desde tus notas.",
+          duration: 4500,
+        });
+      } catch (err: any) {
+        toast.error(`Error al importar el apunte "${title}"`, {
+          id: toastId,
+          description: err.message || "Error al conectar con la base de datos.",
+          duration: 5000,
+        });
+      }
+    })();
   };
 
   const noteTitle = preselectedNote?.titulo || selectedNote?.titulo || "Sin título";

@@ -46,11 +46,11 @@ const AlertDialogContent = React.forwardRef<
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none">
         <AlertDialogPrimitive.Content
           ref={setRefs}
           className={cn(
-            "tabe-content-open pointer-events-auto relative w-[calc(100vw-2rem)] sm:w-full max-w-lg border bg-background p-6 shadow-lg duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-2xl",
+            "tabe-content-open tabe-mobile-sheet-dialog pointer-events-auto relative w-full sm:w-full max-w-lg border-t sm:border border-zinc-200/80 dark:border-zinc-800/90 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:pb-6 shadow-[0_-12px_40px_rgba(0,0,0,0.16)] sm:shadow-2xl duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-t-[26px] sm:rounded-2xl",
             className,
           )}
           {...props}

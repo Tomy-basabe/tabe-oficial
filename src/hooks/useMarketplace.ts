@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ALL_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 
 export interface PublicDeck {
   id: string;
@@ -131,24 +132,36 @@ export interface InventoryItem {
   quantity: number;
 }
 
-export function useMarketplace() {
+// Caché en memoria a nivel de m?dulo para navegaci?n instant?nea (0ms) en /comunidad
+let _cachedPublicDecks: PublicDeck[] | null = null;
+let _cachedPublicFiles: PublicFile[] | null = null;
+let _cachedPublicFolders: PublicFolder[] | null = null;
+let _cachedPublicQuizzes: PublicQuiz[] | null = null;
+let _cachedPublicApuntes: PublicApunte[] | null = null;
+let _cachedMyPublicDecks: PublicDeck[] | null = null;
+let _cachedUserInventory: InventoryItem[] | null = null;
+
+export function useMarketplace(options: { autoFetch?: boolean } = {}) {
+  const { autoFetch = true } = options;
   const { user } = useAuth();
-  const [publicDecks, setPublicDecks] = useState<PublicDeck[]>([]);
-  const [publicFiles, setPublicFiles] = useState<PublicFile[]>([]);
-  const [publicFolders, setPublicFolders] = useState<PublicFolder[]>([]);
-  const [publicQuizzes, setPublicQuizzes] = useState<PublicQuiz[]>([]);
-  const [publicApuntes, setPublicApuntes] = useState<PublicApunte[]>([]);
-  const [myPublicDecks, setMyPublicDecks] = useState<PublicDeck[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [publicDecks, setPublicDecks] = useState<PublicDeck[]>(() => _cachedPublicDecks || []);
+  const [publicFiles, setPublicFiles] = useState<PublicFile[]>(() => _cachedPublicFiles || []);
+  const [publicFolders, setPublicFolders] = useState<PublicFolder[]>(() => _cachedPublicFolders || []);
+  const [publicQuizzes, setPublicQuizzes] = useState<PublicQuiz[]>(() => _cachedPublicQuizzes || []);
+  const [publicApuntes, setPublicApuntes] = useState<PublicApunte[]>(() => _cachedPublicApuntes || []);
+  const [myPublicDecks, setMyPublicDecks] = useState<PublicDeck[]>(() => _cachedMyPublicDecks || []);
+  const [loading, setLoading] = useState<boolean>(() => autoFetch && _cachedPublicDecks === null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
+  const [facultadFilter, setFacultadFilter] = useState<string | null>(null);
+  const [carreraFilter, setCarreraFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"downloads" | "rating" | "recent">("downloads");
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
-  const [userInventory, setUserInventory] = useState<InventoryItem[]>([]);
+  const [userInventory, setUserInventory] = useState<InventoryItem[]>(() => _cachedUserInventory || []);
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const hasLoadedOnceRef = useRef(false);
+  const hasLoadedOnceRef = useRef(_cachedPublicDecks !== null);
 
   const fetchUserRatings = useCallback(async () => {
     if (!user) {
@@ -187,8 +200,9 @@ export function useMarketplace() {
   }, [user]);
 
   useEffect(() => {
+    if (!autoFetch) return;
     fetchUserRatings();
-  }, [fetchUserRatings]);
+  }, [autoFetch, fetchUserRatings]);
 
   const fetchPublicResources = useCallback(async () => {
     if (!hasLoadedOnceRef.current) {
@@ -279,12 +293,12 @@ export function useMarketplace() {
           is_anonymous: isAnon,
           creator: isAnon
             ? {
-                username: "Anónimo",
+                username: "Estudiante Anónimo",
                 display_id: 0,
                 nombre: "Estudiante Anónimo",
                 nivel: 1,
-                facultad: null,
-                carrera: null,
+                facultad: profile?.facultad || null,
+                carrera: profile?.carrera || null,
                 is_anonymous: true,
               }
             : profile
@@ -320,6 +334,40 @@ export function useMarketplace() {
         if (yearFilter) filtered = filtered.filter(d => d.subject?.year === yearFilter);
         if (subjectFilter) filtered = filtered.filter(d => d.subject_id === subjectFilter);
 
+        if (facultadFilter && facultadFilter !== "all") {
+          const facObj = ALL_FACULTADES.find(f => f.id === facultadFilter);
+          const targetId = facultadFilter.toLowerCase();
+          const targetLabel = (facObj?.label || "").toLowerCase();
+          const targetFull = (facObj?.fullLabel || "").toLowerCase();
+
+          filtered = filtered.filter(item => {
+            const creatorFac = (item.creator?.facultad || "").toLowerCase();
+            if (!creatorFac) return false;
+            return (
+              creatorFac === targetId ||
+              creatorFac.includes(targetId) ||
+              (targetLabel && creatorFac.includes(targetLabel)) ||
+              (targetFull && (creatorFac.includes(targetFull) || targetFull.includes(creatorFac)))
+            );
+          });
+        }
+
+        if (carreraFilter && carreraFilter !== "all") {
+          const carrObj = AVAILABLE_CAREERS.find(c => c.id === carreraFilter);
+          const targetId = carreraFilter.toLowerCase();
+          const targetLabel = (carrObj?.label || "").toLowerCase();
+
+          filtered = filtered.filter(item => {
+            const creatorCarr = (item.creator?.carrera || "").toLowerCase();
+            if (!creatorCarr) return false;
+            return (
+              creatorCarr === targetId ||
+              creatorCarr.includes(targetId) ||
+              (targetLabel && (creatorCarr.includes(targetLabel) || targetLabel.includes(creatorCarr)))
+            );
+          });
+        }
+
         return [...filtered].sort((a, b) => {
           if (sortBy === "rating") {
             const countA = Number(a.rating_count || 0);
@@ -336,11 +384,23 @@ export function useMarketplace() {
         });
       };
 
-      setPublicDecks(filter((decksRes.data || []).map(d => enrich(d, "deck"))));
-      setPublicFiles(filter((filesRes.data || []).map(f => enrich(f, "file"))));
-      setPublicFolders(filter((foldersRes.data || []).map(fld => enrich(fld, "folder"))));
-      setPublicQuizzes(filter((quizzesRes.data || []).map(q => enrich(q, "quiz"))));
-      setPublicApuntes(filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }, "apunte"))));
+      const nextDecks = filter((decksRes.data || []).map(d => enrich(d, "deck")));
+      const nextFiles = filter((filesRes.data || []).map(f => enrich(f, "file")));
+      const nextFolders = filter((foldersRes.data || []).map(fld => enrich(fld, "folder")));
+      const nextQuizzes = filter((quizzesRes.data || []).map(q => enrich(q, "quiz")));
+      const nextApuntes = filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }, "apunte")));
+
+      _cachedPublicDecks = nextDecks;
+      _cachedPublicFiles = nextFiles;
+      _cachedPublicFolders = nextFolders;
+      _cachedPublicQuizzes = nextQuizzes;
+      _cachedPublicApuntes = nextApuntes;
+
+      setPublicDecks(nextDecks);
+      setPublicFiles(nextFiles);
+      setPublicFolders(nextFolders);
+      setPublicQuizzes(nextQuizzes);
+      setPublicApuntes(nextApuntes);
 
     } catch (error) {
       console.error("Error fetching public resources:", error);
@@ -348,7 +408,7 @@ export function useMarketplace() {
       hasLoadedOnceRef.current = true;
       setLoading(false);
     }
-  }, [categoryFilter, searchTerm, yearFilter, subjectFilter, sortBy]);
+  }, [categoryFilter, searchTerm, yearFilter, subjectFilter, sortBy, facultadFilter, carreraFilter]);
 
   const fetchMyPublicDecks = useCallback(async () => {
     if (!user) return;
@@ -532,7 +592,7 @@ export function useMarketplace() {
     return [...new Set(categories.filter(Boolean))] as string[];
   }, []);
 
-  const importDeck = async (sourceDeckId: string, subjectId: string) => {
+  const importDeck = async (sourceDeckId: string, subjectId: string, silent: boolean = false) => {
     if (!user) return { error: "No autenticado" };
 
     const { data: sourceDeck } = await supabase.from("flashcard_decks").select("nombre, description").eq("id", sourceDeckId).single();
@@ -568,11 +628,11 @@ export function useMarketplace() {
     }
 
     await (supabase.rpc as any)("increment_download_count", { row_id: sourceDeckId, table_name: "flashcard_decks" });
-    toast.success("¡Mazo importado exitosamente!");
+    if (!silent) toast.success("¡Mazo importado exitosamente!");
     return { error: null, deckId: newDeck.id };
   };
 
-  const importQuiz = async (sourceQuizId: string, subjectId: string | null) => {
+  const importQuiz = async (sourceQuizId: string, subjectId: string | null, silent: boolean = false) => {
     if (!user) return { error: "No autenticado" };
 
     const { data: sourceQuiz } = await supabase.from("quiz_decks").select("nombre, description").eq("id", sourceQuizId).single();
@@ -616,7 +676,7 @@ export function useMarketplace() {
     }
 
     await (supabase.rpc as any)("increment_download_count", { row_id: sourceQuizId, table_name: "quiz_decks" });
-    toast.success("¡Cuestionario importado exitosamente!");
+    if (!silent) toast.success("¡Cuestionario importado exitosamente!");
     return { error: null, quizId: newQuiz.id };
   };
 
@@ -814,8 +874,9 @@ export function useMarketplace() {
   };
 
   useEffect(() => {
+    if (!autoFetch) return;
     if (user) fetchInventory();
-  }, [user, fetchInventory]);
+  }, [autoFetch, user, fetchInventory]);
 
   useEffect(() => {
     if (!loading) return;
@@ -826,9 +887,10 @@ export function useMarketplace() {
   }, [loading]);
 
   useEffect(() => {
+    if (!autoFetch) return;
     fetchPublicResources();
     fetchMyPublicDecks();
-  }, [fetchPublicResources, fetchMyPublicDecks]);
+  }, [autoFetch, fetchPublicResources, fetchMyPublicDecks]);
 
   return {
     publicDecks,

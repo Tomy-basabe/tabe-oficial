@@ -2,287 +2,287 @@
   "subjects": [
     {
       "id": "e1",
-      "codigo": "1",
+      "codigo": "IEI",
       "nombre": "Ingeniería Electromecánica I",
       "numero_materia": 1,
       "año": 1
     },
     {
       "id": "e2",
-      "codigo": "2",
+      "codigo": "AMI",
       "nombre": "Análisis Matemático I",
       "numero_materia": 2,
       "año": 1
     },
     {
       "id": "e3",
-      "codigo": "3",
+      "codigo": "AGA",
       "nombre": "Álgebra y Geometría Analítica",
       "numero_materia": 3,
       "año": 1
     },
     {
       "id": "e4",
-      "codigo": "4",
+      "codigo": "SR",
       "nombre": "Sistemas de Representación",
       "numero_materia": 4,
       "año": 1
     },
     {
       "id": "e5",
-      "codigo": "5",
+      "codigo": "QG",
       "nombre": "Química General",
       "numero_materia": 5,
       "año": 1
     },
     {
       "id": "e6",
-      "codigo": "6",
+      "codigo": "FISI",
       "nombre": "Física I",
       "numero_materia": 6,
       "año": 1
     },
     {
       "id": "e7",
-      "codigo": "7",
+      "codigo": "RG",
       "nombre": "Representación Gráfica",
       "numero_materia": 7,
       "año": 1
     },
     {
       "id": "e8",
-      "codigo": "8",
+      "codigo": "IS",
       "nombre": "Ingeniería y Sociedad",
       "numero_materia": 8,
       "año": 1
     },
     {
       "id": "e9",
-      "codigo": "9",
+      "codigo": "IEII",
       "nombre": "Ingeniería Electromecánica II",
       "numero_materia": 9,
       "año": 2
     },
     {
       "id": "e10",
-      "codigo": "10",
+      "codigo": "EST",
       "nombre": "Estabilidad",
       "numero_materia": 10,
       "año": 2
     },
     {
       "id": "e11",
-      "codigo": "11",
+      "codigo": "CM",
       "nombre": "Conocimiento de Materiales",
       "numero_materia": 11,
       "año": 2
     },
     {
       "id": "e12",
-      "codigo": "12",
+      "codigo": "AMII",
       "nombre": "Análisis Matemático II",
       "numero_materia": 12,
       "año": 2
     },
     {
       "id": "e13",
-      "codigo": "13",
+      "codigo": "FISII",
       "nombre": "Física II",
       "numero_materia": 13,
       "año": 2
     },
     {
       "id": "e14",
-      "codigo": "14",
+      "codigo": "PE",
       "nombre": "Probabilidad y Estadística",
       "numero_materia": 14,
       "año": 2
     },
     {
       "id": "e15",
-      "codigo": "15",
+      "codigo": "PC",
       "nombre": "Programación en Computación",
       "numero_materia": 15,
       "año": 2
     },
     {
       "id": "e22",
-      "codigo": "22",
+      "codigo": "INGI",
       "nombre": "Inglés I",
       "numero_materia": 22,
       "año": 2
     },
     {
       "id": "e16",
-      "codigo": "16",
+      "codigo": "IEIII",
       "nombre": "Ingeniería Electromecánica III",
       "numero_materia": 16,
       "año": 3
     },
     {
       "id": "e17",
-      "codigo": "17",
+      "codigo": "MM",
       "nombre": "Mecánica y Mecanismos",
       "numero_materia": 17,
       "año": 3
     },
     {
       "id": "e18",
-      "codigo": "18",
+      "codigo": "ELE",
       "nombre": "Electrotecnia",
       "numero_materia": 18,
       "año": 3
     },
     {
       "id": "e19",
-      "codigo": "19",
+      "codigo": "TM",
       "nombre": "Tecnología Mecánica",
       "numero_materia": 19,
       "año": 3
     },
     {
       "id": "e20",
-      "codigo": "20",
+      "codigo": "TT",
       "nombre": "Termodinámica Técnica",
       "numero_materia": 20,
       "año": 3
     },
     {
       "id": "e21",
-      "codigo": "21",
+      "codigo": "MIE",
       "nombre": "Matemática para Ing. Electromecánica",
       "numero_materia": 21,
       "año": 3
     },
     {
       "id": "e32",
-      "codigo": "32",
+      "codigo": "INGII",
       "nombre": "Inglés II",
       "numero_materia": 32,
       "año": 3
     },
     {
       "id": "e23",
-      "codigo": "23",
+      "codigo": "HSI",
       "nombre": "Higiene y Seguridad Industrial",
       "numero_materia": 23,
       "año": 3
     },
     {
       "id": "e41",
-      "codigo": "41",
+      "codigo": "ON",
       "nombre": "Oleohidráulica y Neumática",
       "numero_materia": 41,
       "año": 3
     },
     {
       "id": "e24",
-      "codigo": "24",
+      "codigo": "EM",
       "nombre": "Elementos de Máquinas",
       "numero_materia": 24,
       "año": 4
     },
     {
       "id": "e25",
-      "codigo": "25",
+      "codigo": "MFMF",
       "nombre": "Mecánica de los Fluidos y Máquinas Fluidodinámicas",
       "numero_materia": 25,
       "año": 4
     },
     {
       "id": "e26",
-      "codigo": "26",
+      "codigo": "MT",
       "nombre": "Máquinas Térmicas",
       "numero_materia": 26,
       "año": 4
     },
     {
       "id": "e27",
-      "codigo": "27",
+      "codigo": "MELE",
       "nombre": "Máquinas Eléctricas",
       "numero_materia": 27,
       "año": 4
     },
     {
       "id": "e28",
-      "codigo": "28",
+      "codigo": "MEB",
       "nombre": "Mediciones Eléctricas",
       "numero_materia": 28,
       "año": 4
     },
     {
       "id": "e29",
-      "codigo": "29",
+      "codigo": "LEG",
       "nombre": "Legislación",
       "numero_materia": 29,
       "año": 4
     },
     {
       "id": "e30",
-      "codigo": "30",
+      "codigo": "EI",
       "nombre": "Electrónica Industrial",
       "numero_materia": 30,
       "año": 4
     },
     {
       "id": "e31",
-      "codigo": "31",
+      "codigo": "ECO",
       "nombre": "Economía",
       "numero_materia": 31,
       "año": 4
     },
     {
       "id": "e33",
-      "codigo": "33",
+      "codigo": "RDIE",
       "nombre": "Redes de Distribución e Instalaciones Eléctricas",
       "numero_materia": 33,
       "año": 5
     },
     {
       "id": "e34",
-      "codigo": "34",
+      "codigo": "MET",
       "nombre": "Máquinas y Equipos de Transporte",
       "numero_materia": 34,
       "año": 5
     },
     {
       "id": "e35",
-      "codigo": "35",
+      "codigo": "GME",
       "nombre": "Gestión y Mantenimiento Electromecánico",
       "numero_materia": 35,
       "año": 5
     },
     {
       "id": "e36",
-      "codigo": "36",
+      "codigo": "ITM",
       "nombre": "Instalaciones Térmicas y Mecánicas",
       "numero_materia": 36,
       "año": 5
     },
     {
       "id": "e37",
-      "codigo": "37",
+      "codigo": "ACI",
       "nombre": "Automatización y Control Industrial",
       "numero_materia": 37,
       "año": 5
     },
     {
       "id": "e38",
-      "codigo": "38",
+      "codigo": "CST",
       "nombre": "Centrales y Sistemas de Transmisión",
       "numero_materia": 38,
       "año": 5
     },
     {
       "id": "e39",
-      "codigo": "39",
+      "codigo": "OI",
       "nombre": "Organización Industrial",
       "numero_materia": 39,
       "año": 5
     },
     {
       "id": "e40",
-      "codigo": "40",
+      "codigo": "PF",
       "nombre": "Proyecto Final",
       "numero_materia": 40,
       "año": 5

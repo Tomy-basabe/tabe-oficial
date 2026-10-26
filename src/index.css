@@ -1949,11 +1949,80 @@ button:not(:disabled):active,
   animation: tabeInnerButtonClose 0.13s cubic-bezier(0.32, 0, 0.67, 0) forwards;
 }
 
+/* ==========================================================================
+   PILAR 5: UI MÓVIL Y TABLET (ESTILO APPLE / NOTION / CHATGPT)
+   ========================================================================== */
+
+@keyframes tabeMobileSheetDialogOpen {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes tabeMobileSheetDialogClose {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.985);
+  }
+}
+
+@media (max-width: 639px) {
+  .tabe-mobile-sheet-dialog:not([data-state="closed"]) {
+    animation: tabeMobileSheetDialogOpen 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .tabe-mobile-sheet-dialog[data-state="closed"] {
+    animation: tabeMobileSheetDialogClose 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+    pointer-events: none;
+  }
+}
+
+/* Ergonomía táctil y refinamiento para Teléfono y Tablet (< 1024px) */
+@media (max-width: 1023px) {
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Evitar auto-zoom molesto de iOS Safari al enfocar inputs en móvil */
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+
+  /* Mejorar el espaciado de tarjetas y cabeceras en teléfono */
+  .tabe-page > div:first-child {
+    margin-top: 0.125rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tabe-stage-module,
   .tabe-color-impact-badge,
   .tabe-ambient-bloom,
   .tabe-content-open,
+  .tabe-mobile-sheet-dialog,
   .tabe-overlay-motion,
   .tabe-collapsible-motion,
   .tabe-inner-section-reveal,

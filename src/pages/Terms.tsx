@@ -5,6 +5,7 @@ import {
   FileText,
   Shield,
   BookOpen,
+  Globe,
   Scale,
   Brain,
   ShoppingBag,
@@ -30,9 +31,10 @@ const SECTIONS: SectionItem[] = [
   { id: "cuentas-seguridad", title: "3. Cuentas y Seguridad", icon: Lock, badge: "Acceso" },
   { id: "propiedad-intelectual", title: "4. Propiedad Intelectual y Apuntes", icon: FileText, badge: "Autoría" },
   { id: "marketplace", title: "5. Comunidad y Terceros", icon: ShoppingBag, badge: "Limitación" },
-  { id: "uso-aceptable", title: "6. Uso Aceptable y Prohibiciones", icon: AlertTriangle, badge: "Reglas" },
-  { id: "supresion-terminacion", title: "7. Supresión y Terminación", icon: UserCheck, badge: "Derechos" },
-  { id: "ley-jurisdiccion", title: "8. Legislación y Contacto", icon: Scale, badge: "Jurisdicción" },
+  { id: "visores-externos", title: "6. Enlaces Externos y «Mi Campus»", icon: Globe, badge: "Deslinde Legal" },
+  { id: "uso-aceptable", title: "7. Uso Aceptable y Prohibiciones", icon: AlertTriangle, badge: "Reglas" },
+  { id: "supresion-terminacion", title: "8. Supresión y Terminación", icon: UserCheck, badge: "Derechos" },
+  { id: "ley-jurisdiccion", title: "9. Legislación y Contacto", icon: Scale, badge: "Jurisdicción" },
 ];
 
 export default function Terms() {
@@ -120,9 +122,33 @@ export default function Terms() {
               </div>
             </section>
 
-            {/* Cláusula 6 */}
+                        {/* Cláusula 6 */}
+            <section id="visores-externos" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Cláusula 6</span>
+                <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
+                  6. Módulos de Navegación Externa, Visores Embebidos y Deslinde de Responsabilidad («Mi Campus» y Enlaces Externos)
+                </h2>
+              </div>
+              <div className="space-y-3 text-sm font-normal text-muted-foreground leading-relaxed">
+                <p>
+                  <strong>a) Rol Instrumental Neutro y Mero Conducto:</strong> TABE pone a disposición visores web integrados y herramientas de acceso directo (como el apartado <strong>«Mi Campus»</strong> y enlaces personalizados) concebidas para que el estudiante centralice la consulta de portales universitarios, aulas virtuales (Moodle, Blackboard) u otras herramientas de productividad en una única interfaz. TABE actúa exclusivamente como un conducto técnico y facilitador de navegación, sin operar, controlar ni supervisar el contenido ni los servicios provistos en dichos sitios externos.
+                </p>
+                <p>
+                  <strong>b) No Aprobación ni Respaldo de Sitios Incompatibles o Restringidos:</strong> TABE <strong>no aprueba, no respalda ni fomenta el uso de plataformas que rechacen la conexión, prohíban la visualización embebida o cuyas condiciones de servicio restrinjan el acceso mediante navegadores integrados o proxies de paso</strong> (tales como Discord, portales bancarios u otros servicios cerrados). Si una plataforma externa implementa restricciones técnicas o de licencia contra la incrustación, el usuario es el único responsable de acatar dichas políticas y debe acceder mediante las aplicaciones y canales oficiales provistos por el titular del servicio.
+                </p>
+                <p>
+                  <strong>c) Responsabilidad Exclusiva del Usuario e Indemnidad Total:</strong> La carga de enlaces externos y toda actividad realizada dentro de sitios de terceros corre bajo la exclusiva cuenta y riesgo del usuario. TABE deslinda cualquier responsabilidad por violaciones a términos de servicio de terceros, infracciones a la propiedad intelectual o actividades ilícitas realizadas por los usuarios a través del visor, debiendo el usuario mantener indemne a TABE ante cualquier contingencia.
+                </p>
+                <p>
+                  <strong>d) Reserva de Facultades de Bloqueo:</strong> TABE se reserva el derecho de inhabilitar cautelarmente cualquier URL o dominio en el visor ante sospecha fundada de fraude, malware, requerimiento judicial o solicitud de los titulares de dichos servicios.
+                </p>
+              </div>
+            </section>
+
+            {/* Cláusula 7 */}
             <section id="uso-aceptable" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
-              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 6</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">6. Reglas de Uso Aceptable y Prohibiciones</h2></div>
+              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 7</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">7. Reglas de Uso Aceptable y Prohibiciones</h2></div>
               <div className="space-y-3 text-sm font-normal text-muted-foreground leading-relaxed">
                 <p>Queda expresamente prohibido:</p>
                 <ul className="list-disc pl-5 space-y-1.5 text-foreground font-extrabold text-xs">
@@ -137,9 +163,9 @@ export default function Terms() {
               </div>
             </section>
 
-            {/* Cláusula 7 */}
+            {/* Cláusula 8 */}
             <section id="supresion-terminacion" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
-              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 7</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">7. Supresión de Cuenta y Derecho al Olvido</h2></div>
+              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 8</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">8. Supresión de Cuenta y Derecho al Olvido</h2></div>
               <div className="space-y-3 text-sm font-normal text-muted-foreground leading-relaxed">
                 <p>
                   De conformidad con la Ley 25.326 y normas internacionales de protección de datos, todo estudiante goza del derecho inalienable de eliminar su cuenta en cualquier momento.
@@ -150,9 +176,9 @@ export default function Terms() {
               </div>
             </section>
 
-            {/* Cláusula 8 */}
+            {/* Cláusula 9 */}
             <section id="ley-jurisdiccion" className="scroll-mt-24 py-10 first:pt-0 border-t border-border/60 first:border-t-0 space-y-4">
-              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 8</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">8. Legislación Aplicable y Jurisdicción</h2></div>
+              <div className="space-y-1"><span className="text-xs text-muted-foreground">Cláusula 9</span><h2 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">9. Legislación Aplicable y Jurisdicción</h2></div>
               <div className="space-y-3 text-sm font-normal text-muted-foreground leading-relaxed">
                 <p>
                   Estos Términos y Condiciones se rigen e interpretan bajo las leyes de la República Argentina. Cualquier controversia derivada del uso de la plataforma será sometida a los tribunales ordinarios competentes de la Ciudad de Buenos Aires, con renuncia expresa a cualquier otro fuero o jurisdicción.

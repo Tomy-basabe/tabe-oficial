@@ -155,7 +155,7 @@ export function AIBubbleWidget() {
 
     return (
         <>
-            {/* Chat Panel */}
+            {/* Chat Panel (Apple / ChatGPT / Notion Glass Sheet) */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -163,45 +163,41 @@ export function AIBubbleWidget() {
                         ref={(node) => {
                             if (node) orchestrateContentOpen(node, { skipContainerClass: true });
                         }}
-                        initial={{ opacity: 0, scale: 0.9, y: 16 }}
+                        initial={{ opacity: 0, scale: 0.94, y: 18 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 14, transition: { duration: 0.17, ease: [0.32, 0, 0.67, 0] } }}
+                        exit={{ opacity: 0, scale: 0.94, y: 14, transition: { duration: 0.17, ease: [0.32, 0, 0.67, 0] } }}
                         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                         className={cn(
-                            "fixed bottom-24 right-3 sm:right-4 z-[60] w-[375px] max-w-[calc(100vw-1.5rem)] rounded-2xl flex flex-col overflow-hidden relative origin-bottom-right",
-                            // Light Mode: Fondo degradé nítido con borde negro sólido y sombra neobrutalista
-                            "bg-gradient-to-b from-white via-slate-50 to-indigo-50/40 border-[3px] border-black shadow-[8px_8px_0_0_#000000]",
-                            // Dark Mode: Fondo cósmico profundo con borde cian tenue y glow tecnológico
-                            "dark:bg-gradient-to-b dark:from-[#0c1222] dark:via-[#090d18] dark:to-[#05070e] dark:border-cyan-500/40 dark:shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(6,182,212,0.18)]"
+                            "fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] right-3 sm:right-4 z-[60] w-[380px] max-w-[calc(100vw-1.5rem)] rounded-[24px] flex flex-col overflow-hidden relative origin-bottom-right",
+                            "bg-white/95 dark:bg-[#17171a]/95 backdrop-blur-2xl backdrop-saturate-150 border border-zinc-200/80 dark:border-zinc-800/90 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
                         )}
-                        style={{ maxHeight: "min(520px, 65vh)" }}
+                        style={{ maxHeight: "min(540px, 68dvh)" }}
                     >
-                        {/* Atmospheric background glows */}
-                        <div className="absolute -top-16 -right-16 w-44 h-44 bg-gradient-to-br from-indigo-500/15 via-purple-500/15 to-transparent dark:from-cyan-500/15 dark:via-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-                        <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-tr from-cyan-500/10 via-emerald-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+                        {/* Subtle ambient glow */}
+                        <div className="absolute -top-16 -right-16 w-44 h-44 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent dark:from-indigo-500/15 dark:via-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
                         {/* Header */}
-                        <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-black/10 dark:border-cyan-500/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md relative z-10">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1475e5] via-[#805ad5] to-[#00E5FF] p-1.5 text-white flex items-center justify-center border-2 border-black dark:border-cyan-400/60 shadow-[2px_2px_0_0_#000000] dark:shadow-[0_0_10px_rgba(6,182,212,0.4)] shrink-0">
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200/70 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md relative z-10">
+                            <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-white p-1.5 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs shrink-0">
                                 <ProfessionalAILogo className="w-full h-full" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                    <p className="text-sm font-black uppercase tracking-wide truncate text-foreground">
+                                    <p className="text-[13px] font-semibold tracking-tight truncate text-zinc-900 dark:text-zinc-100">
                                         {activePersona?.name || "T.A.B.E. IA"}
                                     </p>
-                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                                 </div>
                                 <div className="flex items-center gap-1.5 truncate">
-                                    <span className="text-[10px] font-bold text-muted-foreground truncate">
-                                        📍 {currentContext}
+                                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate">
+                                        {currentContext}
                                     </span>
                                     <span
-                                        className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 hidden sm:inline-block"
+                                        className="text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full border shrink-0 hidden sm:inline-block"
                                         style={{
-                                            borderColor: `${selectedModel?.color || '#00E5FF'}60`,
-                                            color: selectedModel?.color || '#00E5FF',
-                                            backgroundColor: `${selectedModel?.color || '#00E5FF'}15`,
+                                            borderColor: `${selectedModel?.color || '#6366f1'}40`,
+                                            color: selectedModel?.color || '#6366f1',
+                                            backgroundColor: `${selectedModel?.color || '#6366f1'}12`,
                                         }}
                                     >
                                         {selectedModel?.name?.split(" ")[0] || "IA"}
@@ -214,14 +210,14 @@ export function AIBubbleWidget() {
                                         setIsOpen(false);
                                         navigate("/TABEAI");
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                    className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                                     title="Abrir página completa de la IA"
                                 >
                                     <Maximize2 className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={handleToggle}
-                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                    className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
                                     title="Minimizar"
                                 >
                                     <Minimize2 className="w-4 h-4" />
@@ -230,15 +226,15 @@ export function AIBubbleWidget() {
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
+                        <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3 relative z-10" style={{ minHeight: "200px" }}>
                             {messages.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground/60">
-                                    <div className="w-14 h-14 flex items-center justify-center mb-2">
+                                <div className="flex flex-col items-center justify-center h-full text-center py-8 text-zinc-500 dark:text-zinc-400">
+                                    <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center mb-2.5 p-2.5">
                                         <ProfessionalAILogo className="w-full h-full" />
                                     </div>
-                                    <p className="text-xs font-bold">
+                                    <p className="text-xs font-medium leading-relaxed">
                                         Preguntame lo que quieras sobre<br />
-                                        <span className="font-black text-foreground uppercase">{currentContext}</span>
+                                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">{currentContext}</span>
                                     </p>
                                 </div>
                             )}
@@ -259,8 +255,8 @@ export function AIBubbleWidget() {
                                         className={cn(
                                             "text-sm leading-relaxed",
                                             msg.role === "user"
-                                                ? "max-w-[85%] rounded-2xl px-3.5 py-2 font-bold bg-[#1475e5] text-white border-2 border-black/20 dark:border-transparent rounded-br-sm shadow-sm"
-                                                : "flex-1 min-w-0 bg-transparent text-foreground font-normal py-0.5"
+                                                ? "max-w-[85%] rounded-2xl px-3.5 py-2 font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-br-xs shadow-xs"
+                                                : "flex-1 min-w-0 bg-transparent text-zinc-900 dark:text-zinc-100 font-normal py-0.5"
                                         )}
                                     >
                                         {!msg.content && isStreaming && (
@@ -277,35 +273,35 @@ export function AIBubbleWidget() {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <div className="px-3 py-2.5 border-t border-black/10 dark:border-cyan-500/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md relative z-10">
-                            <div className="flex items-center gap-2">
+                        {/* Input (ChatGPT pill bar style) */}
+                        <div className="px-3 py-2.5 border-t border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md relative z-10">
+                            <div className="flex items-center gap-1.5 bg-zinc-100/90 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/70 rounded-full pl-3.5 pr-1.5 py-1">
                                 <input
                                     ref={inputRef}
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Escribí tu mensaje..."
+                                    placeholder="Preguntar a TABE IA..."
                                     disabled={isStreaming}
-                                    className="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800/70 border-2 border-black/10 dark:border-cyan-500/30 rounded-xl text-sm font-bold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground placeholder:text-muted-foreground/60"
+                                    className="flex-1 py-1 bg-transparent text-[14px] font-normal focus:outline-none disabled:opacity-50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
                                 />
                                 <button
                                     onClick={() => navigate("/asistente?live=true")}
-                                    className="p-2 rounded-xl bg-[#00E5FF] hover:bg-[#00cce6] text-black transition-all border-2 border-black/20 shadow-sm cursor-pointer"
-                                    title="Iniciar Modo de Voz en Vivo (ChatGPT / Gemini Live)"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors cursor-pointer shrink-0"
+                                    title="Iniciar Modo de Voz en Vivo"
                                 >
-                                    <Radio className="w-4 h-4 stroke-[2.5] animate-pulse" />
+                                    <Radio className="w-3.5 h-3.5 animate-pulse" />
                                 </button>
                                 <button
                                     onClick={handleSend}
                                     disabled={isStreaming || !input.trim()}
-                                    className="p-2 rounded-xl bg-gradient-to-br from-[#1475e5] to-[#805ad5] text-white hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed border-2 border-black/20 shadow-sm cursor-pointer"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
                                 >
                                     {isStreaming ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
-                                        <Send className="w-4 h-4" />
+                                        <Send className="w-3.5 h-3.5" />
                                     )}
                                 </button>
                             </div>
@@ -314,28 +310,23 @@ export function AIBubbleWidget() {
                 )}
             </AnimatePresence>
 
-            {/* Floating Bubble Button */}
+            {/* Floating Bubble Button (Clean Apple / ChatGPT orb) */}
             <button
                 onClick={handleToggle}
                 className={cn(
-                    "fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-[60] w-12 h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center transition-all duration-300 group tour-header-ai",
+                    "fixed bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))] right-3.5 md:bottom-6 md:right-6 z-[60] w-11 h-11 lg:w-13 lg:h-13 rounded-full flex items-center justify-center transition-all duration-200 group tour-header-ai cursor-pointer",
                     isOpen
-                        ? "bg-card text-foreground border-[3px] border-foreground shadow-[3px_3px_0_0_hsl(var(--foreground))] scale-90"
-                        : cn(
-                            // Light Mode: Fondo negro y logo blanco con sombra brutalista
-                            "bg-black text-white border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,0.3)] hover:shadow-[6px_6px_0_0_rgba(0,0,0,0.4)] hover:scale-110",
-                            // Dark Mode: Fondo blanco y logo negro con halo blanco limpio
-                            "dark:bg-white dark:text-black dark:border-white dark:shadow-[0_0_20px_rgba(255,255,255,0.35)] dark:hover:shadow-[0_0_28px_rgba(255,255,255,0.55)]"
-                        )
+                        ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border border-zinc-700 dark:border-zinc-300 shadow-lg scale-95"
+                        : "bg-zinc-900/95 dark:bg-white/95 text-white dark:text-zinc-900 border border-zinc-800/80 dark:border-zinc-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.22)] dark:shadow-[0_8px_28px_rgba(255,255,255,0.16)] hover:scale-105 active:scale-95 backdrop-blur-md"
                 )}
                 title={isOpen ? "Cerrar IA" : "Abrir Asistente TABE IA"}
             >
                 {isOpen ? (
-                    <X className="w-5 h-5 stroke-[2.5]" />
+                    <X className="w-4 h-4 stroke-[2.2]" />
                 ) : (
                     <>
-                        <ProfessionalAILogo className="w-6 h-6 lg:w-7 lg:h-7" />
-                        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black dark:border-background shadow-sm animate-pulse" />
+                        <ProfessionalAILogo className="w-5 h-5 lg:w-6 lg:h-6" />
+                        <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900" />
                     </>
                 )}
             </button>

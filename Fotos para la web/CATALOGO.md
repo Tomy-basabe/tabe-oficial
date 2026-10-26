@@ -26,7 +26,7 @@ fotos para la Web/
 │   ├── funcion_respuesta_tarjeta.png → Tarjeta volteada con calificación
 │   └── funcion_resultados_sesion.png → Resumen de sesión de estudio
 ├── 06_cuestionarios/
-│   ├── vista_general.png          → Lista de quizzes disponibles
+│   ├── vista_general.png          → Lista de Cuestionarios disponibles
 │   ├── funcion_generar_quiz_ia.png → Generación con IA (tema, dificultad)
 │   └── funcion_resolver_quiz.png  → Pregunta de opción múltiple con timer
 ├── 07_marketplace/
