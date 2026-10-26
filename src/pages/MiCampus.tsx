@@ -149,12 +149,14 @@ export default function MiCampus() {
     } catch {}
   }, [sites, activeSite, viewMode]);
 
-  // Fuente del iframe con origen canónico y cache-buster para evitar 404 cacheado
+  // Fuente del iframe con origen canónico y cache-buster para evitar 404 cacheado y redirecciones 308
   const iframeSrc = useMemo(() => {
     const validUrl = activeSite?.url && activeSite.url.startsWith("http")
       ? activeSite.url
       : "https://campusvirtual.frm.utn.edu.ar";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const isLocal = typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    const origin = isLocal ? window.location.origin : "https://www.tabe.com.ar";
     return `${origin}/api/campus-proxy?url=${encodeURIComponent(validUrl)}&_k=${iframeKey}`;
   }, [activeSite?.url, iframeKey]);
 

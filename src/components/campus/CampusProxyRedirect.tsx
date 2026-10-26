@@ -1,11 +1,67 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AppWindow, ExternalLink, Globe, ShieldCheck } from "lucide-react";
+import { AppWindow, ExternalLink, Globe, ShieldCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CampusProxyRedirect() {
   const [searchParams] = useSearchParams();
   const rawUrl = searchParams.get("url") || "https://campusvirtual.frm.utn.edu.ar";
+  const [isFetchingRealHtml, setIsFetchingRealHtml] = useState<boolean>(true);
+
+  // Intentar cargar por red el HTML real del campus y reemplazar el documento del iframe
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadCampusDirectly() {
+      try {
+        const canonicalBase =
+          typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+            ? window.location.origin
+            : "https://www.tabe.com.ar";
+
+        const endpoint = `${canonicalBase}/api/campus-proxy?url=${encodeURIComponent(rawUrl)}&_sw_bypass=1`;
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+
+        const res = await fetch(endpoint, {
+          signal: controller.signal,
+          headers: {
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
+        });
+        clearTimeout(timeout);
+
+        if (isCancelled) return;
+
+        if (res.ok) {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("text/html")) {
+            const html = await res.text();
+            if (html && !html.includes("No pudimos encontrar la coordenada") && !html.includes("INACCESIBLE")) {
+              document.open();
+              document.write(html);
+              document.close();
+              return;
+            }
+          }
+        }
+      } catch {
+        // Fallback suave a la tarjeta de acceso
+      } finally {
+        if (!isCancelled) {
+          setIsFetchingRealHtml(false);
+        }
+      }
+    }
+
+    loadCampusDirectly();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [rawUrl]);
 
   const handleOpenAppWindow = () => {
     const width = Math.min(1360, window.screen.availWidth - 60);
@@ -36,6 +92,17 @@ export default function CampusProxyRedirect() {
       return "campusvirtual.frm.utn.edu.ar";
     }
   })();
+
+  if (isFetchingRealHtml) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#161618] p-4 text-center">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+        <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+          Cargando {domain}...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-[#121214] p-4 text-zinc-900 dark:text-zinc-100 font-sans">
