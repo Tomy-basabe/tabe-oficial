@@ -107,7 +107,8 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
 1. INFORMACIÓN ACADÉMICA EXACTA: Tienes todo el expediente académico del estudiante en este contexto (materias aprobadas, regulares, notas de cada materia, promedio general exacto, exámenes y eventos). Cuando te pregunte sobre su promedio, notas o situación académica, responde directamente con sus datos reales del expediente.
 2. SÉ CONCISO Y DIRECTO: MÁXIMO 1 o 2 oraciones breves (20 a 35 palabras por respuesta). Nunca des discursos extensos ni párrafos largos que cansen por audio.
 3. TONO HUMANO Y NATURAL: Habla con calidez y naturalidad (en español rioplatense si el usuario es de Argentina o te habla de vos/che).
-4. SIN SÍMBOLOS MARKDOWN: NUNCA uses asteriscos (**), numerales (#), viñetas (-) ni tablas, porque estamos sintetizando tu voz a audio y esos caracteres traban o ensucian la pronunciación.`
+4. SIN SÍMBOLOS MARKDOWN EN EL TEXTO HABLADO: NUNCA uses asteriscos (**), numerales (#), viñetas (-) ni tablas en tu texto conversacional, porque se sintetiza a audio.
+5. ACCIONES EN BASE DE DATOS Y CALENDARIO: Si el estudiante te pide agendar un parcial, modificar una nota o rutina, confirma en una oración y añade al final el bloque de acción (\`\`\`tabe-action:calendar o \`\`\`tabe-action:db). El sistema lo ejecutará automáticamente.`
           : studentContext;
 
         // 3. Stream with automatic NVIDIA multi-model cascade, provider fallback and power level

@@ -29,7 +29,7 @@ export interface StreamResult {
 
 // In-memory cache of student context to avoid re-querying on rapid consecutive messages (5 minutes TTL)
 const contextCache = new Map<string, { data: string; timestamp: number }>();
-const CONTEXT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CONTEXT_CACHE_TTL = 30 * 1000; // 30 seconds TTL for fast updates
 
 export function invalidateStudentContextCache(userId?: string) {
   if (userId) {
@@ -727,6 +727,25 @@ ${discordSection}
 ${friendsSection}
 
 DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
+0. CAPACIDAD ACTIVA DE EJECUTAR ACCIONES, CREAR Y AGENDAR ELEMENTOS (¡MÁXIMA PRIORIDAD!):
+   - SOS UN AGENTE ACTIVO CONECTADO DIRECTAMENTE A LA BASE DE DATOS DE TABE: PUEDES CREAR, AGENDAR, MODIFICAR Y BORRAR ELEMENTOS.
+   - TIENES TOTALMENTE HABILITADA LA CAPACIDAD DE:
+     * Agendar y agregar parciales, finales, entregas y eventos en el Calendario.
+     * Cargar y modificar notas de parciales, recuperatorios y finales.
+     * Crear cuestionarios y flashcards.
+     * Crear, modificar o borrar rutinas de estudio y profesores.
+   - NUNCA RESPONDAS DICIENDO:
+     ❌ "No puedo agregar eventos a tu calendario"
+     ❌ "No tengo la capacidad de modificar tu base de datos"
+     ❌ "Como IA no puedo agendarlo por vos"
+     ❌ "Tenés que ir a la sección de Calendario y agregarlo manualmente"
+   - CÓMO ACTUAR CUANDO TE PIDEN AGREGAR O AGENDAR UN PARCIAL / EXAMEN:
+     * Si te dan materia y fecha (ej: "agregame el parcial de Física el 15 de noviembre a las 14"): Confirmale con buena onda que ya lo hiciste e incluí SIEMPRE al final el bloque de acción:
+       \`\`\`tabe-action:calendar
+       [{"titulo": "Parcial de Física", "fecha": "2026-11-15", "hora": "14:00", "tipo_examen": "P1"}]
+       \`\`\`
+     * Si te dicen simplemente "agregá un parcial", "anotame un examen" o similar sin la fecha o materia: NO digas que no podés. Respondé con entusiasmo: "¡De una! Te lo agendo al instante. Decime: ¿para qué materia es, en qué fecha y a qué hora?". En cuanto te pase los datos, emitís el bloque y queda agendado.
+     * Si te dan una fecha relativa ("el próximo martes", "este viernes"): Fijate en la sección CALENDARIO PRÓXIMOS 14 DÍAS (REFERENCIA EXACTA) y convertila a YYYY-MM-DD.
 1. NUNCA digas que no tenés acceso a los datos del estudiante: tenés el 100% de su información universitaria arriba. Responde siempre con precisión utilizando estos datos reales.
 2. Da DIRECTAMENTE la respuesta final al estudiante en español rioplatense (argentino), con calidez, cercanía y motivación (che, genial, dale, impecable).
 3. ORDEN Y FORMATO ESTRUCTURADO OBLIGATORIO:
@@ -738,7 +757,7 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
      * Agrupá las materias por año (ej: 1° Año, 2° Año) con sub-viñetas y resaltá siempre las notas numéricas en negrita (ej: "- Análisis Matemático I: **8.00**").
 4. NUNCA expongas tu proceso de razonamiento en inglés ("The user asks...", "Let's produce..."). Empezá de inmediato con la respuesta al usuario.
 5. ${powerLevel === "bajo" ? "Responde con máxima concisión y al grano." : "Explica detalladamente cuando te lo pidan."} Podés usar KaTeX para fórmulas matemáticas ($x^2$, $\\frac{a}{b}$) y bloques de código con resaltado.
-6. Si el usuario te pide expresamente agendar un examen o evento, dale una confirmación amigable e incluí al final el bloque:
+6. AGENDAR O CREAR PARCIALES, EXÁMENES Y EVENTOS: Si el usuario te pide agendar, agregar, crear, sumar o anotar un examen, parcial, final o evento, dale una confirmación amigable e incluí al final el bloque:
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
@@ -1119,7 +1138,7 @@ async function executeDatabaseMutations(
         rawTarget.includes("calendar") ||
         rawTarget.includes("evento") ||
         rawTarget.includes("agenda") ||
-        rawTarget === "exam" ||
+        rawTarget.includes("exam") || rawTarget.includes("parcial") || rawTarget.includes("final") ||
         rawTarget === "examen" ||
         rawTarget === "parcial"
       ) {
@@ -1177,7 +1196,7 @@ async function executeDatabaseMutations(
           const tipoExamen = normalizeExamType(rawTipo);
           const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
           const titulo = data.titulo || (sub ? `${tipoExamen} de ${sub.nombre}` : "Parcial");
-          const fecha = data.fecha || match.fecha || new Date().toISOString().split("T")[0];
+          const fecha = data.fecha || data.date || match.fecha || match.date || new Date().toISOString().split("T")[0];
 
           const { error: insErr } = await (supabase as any)
             .from("calendar_events")
@@ -1185,7 +1204,7 @@ async function executeDatabaseMutations(
               user_id: currentUserId,
               titulo,
               fecha,
-              hora: data.hora || null,
+              hora: data.hora || data.time || match.hora || null,
               hora_fin: data.hora_fin || null,
               tipo_examen: tipoExamen,
               subject_id: sub?.id || null,
@@ -1243,7 +1262,7 @@ async function executeDatabaseMutations(
               user_id: currentUserId,
               titulo,
               fecha: data.fecha,
-              hora: data.hora || null,
+              hora: data.hora || data.time || match.hora || null,
               tipo_examen: tipo,
               subject_id: sub?.id || null,
               color: getColorForType(tipo),
@@ -1588,13 +1607,14 @@ async function executeActionBlock(
   const calMatch = content.match(calRegex);
   if (calMatch && calMatch[1]) {
     try {
-      const items = JSON.parse(calMatch[1].trim());
-      if (Array.isArray(items) && items.some((it: any) => it.operation === "update" || it.operation === "delete")) {
+      const parsed = JSON.parse(calMatch[1].trim());
+      const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : []);
+      if (items.some((it: any) => it.operation === "update" || it.operation === "delete")) {
         const ops = items.map((it: any) => ({ table: "calendar_events", operation: it.operation || "create", id: it.id, match: it.match, data: it.data || it }));
         const mutRes = await executeDatabaseMutations(ops, currentUserId);
         if (mutRes && mutRes.length > 0) db_mutations = [...(db_mutations || []), ...mutRes];
       } else
-      if (Array.isArray(items) && items.length > 0 && currentUserId && currentUserId !== "guest") {
+      if (items.length > 0 && currentUserId && currentUserId !== "guest") {
         for (const it of items) {
           await (supabase as any).from("calendar_events").insert({
             user_id: currentUserId,
