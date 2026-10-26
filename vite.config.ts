@@ -195,7 +195,7 @@ export default defineConfig(({ mode }) => {
               if (setCookies.length > 0) {
                 const sanitized = setCookies.map((c: string) =>
                   c.replace(/Domain=[^;]+;?/gi, "")
-                   .replace(/SameSite=[^;]+;?/gi, "SameSite=Lax")
+                   .replace(/SameSite=[^;]+;?/gi, "SameSite=None; Secure")
                 );
                 res.setHeader("Set-Cookie", sanitized);
               }
@@ -216,6 +216,7 @@ export default defineConfig(({ mode }) => {
               res.setHeader("Access-Control-Allow-Origin", "*");
               res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
               res.setHeader("Access-Control-Allow-Headers", "*");
+              res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
               res.removeHeader("X-Frame-Options");
               res.removeHeader("Content-Security-Policy");
               res.setHeader("X-Frame-Options", "ALLOWALL");
@@ -236,8 +237,24 @@ export default defineConfig(({ mode }) => {
                 const interceptorScript = `
 <script>
 (function() {
+  try {
+    Object.defineProperty(window, 'top', { get: function() { return window; } });
+    Object.defineProperty(window, 'parent', { get: function() { return window; } });
+  } catch(e) {}
+
   var appOrigin = window.location.origin;
   var proxyBase = appOrigin + '/api/campus-proxy?url=';
+
+  function isDownloadOrAsset(urlStr) {
+    if (!urlStr) return false;
+    var lower = urlStr.toLowerCase();
+    return (
+      lower.indexOf('forcedownload=1') !== -1 ||
+      lower.indexOf('/pluginfile.php') !== -1 ||
+      lower.indexOf('/mod/resource/') !== -1 ||
+      lower.match(/\\.(pdf|zip|rar|7z|docx?|xlsx?|pptx?|mp3|mp4|csv)(\\?|$)/)
+    );
+  }
 
   function rewrite(targetUrl) {
     if (!targetUrl || typeof targetUrl !== 'string') return null;
@@ -251,6 +268,9 @@ export default defineConfig(({ mode }) => {
     try {
       var resolved = new URL(raw, document.baseURI || window.location.href);
       if (resolved.origin === window.location.origin && resolved.pathname === window.location.pathname && resolved.hash) {
+        return null;
+      }
+      if (isDownloadOrAsset(resolved.href)) {
         return null;
       }
       return proxyBase + encodeURIComponent(resolved.href);
@@ -285,13 +305,20 @@ export default defineConfig(({ mode }) => {
     };
   }
 
-  // 3. Interceptar navegación respetando tabs de Bootstrap/Boost
+  // 3. Interceptar navegación respetando tabs de Bootstrap/Boost y abriendo descargas en ventana nueva
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (!a) return;
     var hrefAttr = a.getAttribute('href');
     if (!hrefAttr || hrefAttr.startsWith('#') || hrefAttr.startsWith('javascript:')) return;
     if (a.hasAttribute('data-toggle') || a.hasAttribute('data-action') || a.getAttribute('role') === 'tab') return;
+    
+    if (isDownloadOrAsset(a.href)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      return;
+    }
+
     if (a.target === '_blank') return;
 
     var next = rewrite(a.href);

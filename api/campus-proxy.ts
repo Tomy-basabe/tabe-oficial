@@ -72,10 +72,13 @@ function sendBody(res: any, code: number, body: any, contentType?: string) {
 }
 
 export default async function handler(req: any, res: any) {
-  // Configurar CORS
+  // Configurar CORS y no-cache estricto para evitar cualquier 404 cacheado
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "*");
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
 
   if (req.method === "OPTIONS") {
     sendStatus(res, 200);
@@ -123,11 +126,27 @@ export default async function handler(req: any, res: any) {
       redirect: "manual",
     };
 
-    if (req.method === "POST") {
-      if (typeof req.body === "string" || Buffer.isBuffer(req.body)) {
-        fetchOptions.body = req.body;
+    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+      let bodyBuffer: Buffer | null = null;
+      if (Buffer.isBuffer(req.body)) {
+        bodyBuffer = req.body;
+      } else if (typeof req.body === "string") {
+        bodyBuffer = Buffer.from(req.body, "utf-8");
       } else if (req.body && typeof req.body === "object") {
-        fetchOptions.body = new URLSearchParams(req.body).toString();
+        bodyBuffer = Buffer.from(new URLSearchParams(req.body).toString(), "utf-8");
+      } else if (typeof req[Symbol.asyncIterator] === "function") {
+        try {
+          const chunks: any[] = [];
+          for await (const chunk of req) {
+            chunks.push(chunk);
+          }
+          if (chunks.length > 0) {
+            bodyBuffer = Buffer.concat(chunks);
+          }
+        } catch (_) {}
+      }
+      if (bodyBuffer) {
+        fetchOptions.body = bodyBuffer;
       }
     }
 
@@ -149,7 +168,7 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // Reenviar cookies recibidas del campus
+    // Reenviar cookies recibidas del campus con SameSite=None; Secure para persistencia en iframe HTTPS
     const setCookies = typeof (response.headers as any).getSetCookie === "function"
       ? (response.headers as any).getSetCookie()
       : (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")!] : []);
@@ -157,7 +176,7 @@ export default async function handler(req: any, res: any) {
     if (setCookies.length > 0) {
       const sanitized = setCookies.map((c: string) =>
         c.replace(/Domain=[^;]+;?/gi, "")
-         .replace(/SameSite=[^;]+;?/gi, "SameSite=Lax")
+         .replace(/SameSite=[^;]+;?/gi, "SameSite=None; Secure")
       );
       res.setHeader("Set-Cookie", sanitized);
     }
@@ -195,8 +214,25 @@ export default async function handler(req: any, res: any) {
       const interceptorScript = `
 <script>
 (function() {
+  try {
+    // Neutralizar frame-busting scripts de Moodle y plataformas universitarias
+    Object.defineProperty(window, 'top', { get: function() { return window; } });
+    Object.defineProperty(window, 'parent', { get: function() { return window; } });
+  } catch(e) {}
+
   var appOrigin = window.location.origin;
   var proxyBase = appOrigin + '/api/campus-proxy?url=';
+
+  function isDownloadOrAsset(urlStr) {
+    if (!urlStr) return false;
+    var lower = urlStr.toLowerCase();
+    return (
+      lower.indexOf('forcedownload=1') !== -1 ||
+      lower.indexOf('/pluginfile.php') !== -1 ||
+      lower.indexOf('/mod/resource/') !== -1 ||
+      lower.match(/\\.(pdf|zip|rar|7z|docx?|xlsx?|pptx?|mp3|mp4|csv)(\\?|$)/)
+    );
+  }
 
   function rewrite(targetUrl) {
     if (!targetUrl || typeof targetUrl !== 'string') return null;
@@ -210,6 +246,10 @@ export default async function handler(req: any, res: any) {
     try {
       var resolved = new URL(raw, document.baseURI || window.location.href);
       if (resolved.origin === window.location.origin && resolved.pathname === window.location.pathname && resolved.hash) {
+        return null;
+      }
+      // Si es descarga de archivo de estudio, no forzar proxy para no topar con el límite de Vercel
+      if (isDownloadOrAsset(resolved.href)) {
         return null;
       }
       return proxyBase + encodeURIComponent(resolved.href);
@@ -244,13 +284,21 @@ export default async function handler(req: any, res: any) {
     };
   }
 
-  // 3. Interceptar navegación respetando tabs de Bootstrap/Boost
+  // 3. Interceptar navegación respetando tabs de Bootstrap/Boost y abriendo descargas en ventana nueva
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (!a) return;
     var hrefAttr = a.getAttribute('href');
     if (!hrefAttr || hrefAttr.startsWith('#') || hrefAttr.startsWith('javascript:')) return;
     if (a.hasAttribute('data-toggle') || a.hasAttribute('data-action') || a.getAttribute('role') === 'tab') return;
+    
+    // Si es descarga, abrir de forma limpia
+    if (isDownloadOrAsset(a.href)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      return;
+    }
+
     if (a.target === '_blank') return;
 
     var next = rewrite(a.href);
