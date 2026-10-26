@@ -104,26 +104,11 @@ export default function Dashboard() {
 
           {/* Bento: Stats Row */}
           <StaggerItem yOffset={16}>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 tour-dashboard-stats">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-5 tour-dashboard-stats">
               <motion.div
                 initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <Link to="/metricas" className="block h-full">
-                  <StatsCard
-                    title="Experiencia"
-                    value={`${userStats?.xp_total ?? 0} XP`}
-                    subtitle={`Nivel ${userStats?.nivel ?? 1}`}
-                    icon={Zap}
-                    variant="purple"
-                  />
-                </Link>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.12, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               >
                 <StatsCard
                   title="Aprobadas"
@@ -136,7 +121,7 @@ export default function Dashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               >
                 <StatsCard
                   title="Regulares"
@@ -149,7 +134,7 @@ export default function Dashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.24, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               >
                 <StatsCard
                   title="Estudio"
