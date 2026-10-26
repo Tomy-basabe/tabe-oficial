@@ -73,21 +73,24 @@ export interface PartialGrades {
   extra_partials?: ExtraPartial[];
   extra_globals?: ExtraGlobal[];
   extra_finals?: ExtraFinal[];
+  grade_weights?: Record<string, number>;
 }
 
 export function parseStoredExtraGrades(raw: any): {
   partials: ExtraPartial[];
   globals: ExtraGlobal[];
   finals: ExtraFinal[];
+  grade_weights?: Record<string, number>;
 } {
-  if (!raw) return { partials: [], globals: [], finals: [] };
+  if (!raw) return { partials: [], globals: [], finals: [], grade_weights: undefined };
   if (Array.isArray(raw)) {
-    return { partials: raw, globals: [], finals: [] };
+    return { partials: raw, globals: [], finals: [], grade_weights: undefined };
   }
   return {
     partials: Array.isArray(raw.partials) ? raw.partials : (Array.isArray(raw.extra_partials) ? raw.extra_partials : []),
     globals: Array.isArray(raw.globals) ? raw.globals : (Array.isArray(raw.extra_globals) ? raw.extra_globals : []),
     finals: Array.isArray(raw.finals) ? raw.finals : (Array.isArray(raw.extra_finals) ? raw.extra_finals : []),
+    grade_weights: raw.grade_weights && typeof raw.grade_weights === "object" ? raw.grade_weights : undefined,
   };
 }
 
@@ -620,6 +623,7 @@ export function useSubjects() {
           extra_partials: parsedExtras.partials,
           extra_globals: parsedExtras.globals,
           extra_finals: parsedExtras.finals,
+          grade_weights: parsedExtras.grade_weights,
         },
       };
     });
@@ -961,6 +965,7 @@ export function useSubjects() {
         partials: grades.extra_partials || [],
         globals: grades.extra_globals || [],
         finals: grades.extra_finals || [],
+        grade_weights: grades.grade_weights,
       };
 
       const gradeData = {

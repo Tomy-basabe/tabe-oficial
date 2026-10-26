@@ -261,7 +261,7 @@ export async function parseCareerPlanWithAI(
 /**
  * Calls AI service via Supabase Edge Function (ai-assistant-stream), with fallback to Gemini or OpenRouter
  */
-async function callAIService(params: {
+export async function callAIService(params: {
   systemPrompt: string;
   userPrompt: string;
   image?: { data: string; mime_type: string };

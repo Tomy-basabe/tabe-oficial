@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Award, Calendar, BookOpen, GraduationCap, Check, Scale, RotateCcw } from "lucide-react";
 import { ComicAudio } from "@/components/comic/ComicAudio";
 import { PartialGrades } from "@/hooks/useSubjects";
 
@@ -88,7 +88,8 @@ function buildGradesPayload(
   },
   extraP: { id: string; nota: string; rec: string }[],
   extraG: { id: string; nota: string; rec: string }[],
-  extraF: { id: string; nota: string; fecha?: string }[]
+  extraF: { id: string; nota: string; fecha?: string }[],
+  gradeWeights?: Record<string, number>
 ): PartialGrades {
   return {
     nota_parcial_1: parseGradeInput(inputsObj.nota_parcial_1),
@@ -113,6 +114,7 @@ function buildGradesPayload(
       nota: parseGradeInput(f.nota),
       fecha: f.fecha,
     })),
+    grade_weights: gradeWeights && Object.keys(gradeWeights).length > 0 ? gradeWeights : undefined,
   };
 }
 
@@ -154,6 +156,9 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     }))
   );
 
+  const [weights, setWeights] = useState<Record<string, number>>(() => grades.grade_weights || {});
+  const [showWeights, setShowWeights] = useState<boolean>(() => Boolean(grades.grade_weights && Object.keys(grades.grade_weights).length > 0));
+
   // Parse numeric values for UI display & indicators
   const numericValues = useMemo(() => ({
     nota_parcial_1: parseGradeInput(inputs.nota_parcial_1),
@@ -194,7 +199,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
   onUpdateRef.current = onUpdate;
 
   const lastSavedJsonRef = useRef<string>(
-    JSON.stringify(buildGradesPayload(inputs, extraPartials, extraGlobals, extraFinals))
+    JSON.stringify(buildGradesPayload(inputs, extraPartials, extraGlobals, extraFinals, weights))
   );
   const saveTimeoutRef = useRef<any>(null);
 
@@ -203,10 +208,12 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     targetInputs: typeof inputs,
     targetPartials: typeof extraPartials,
     targetGlobals: typeof extraGlobals,
-    targetFinals: typeof extraFinals
+    targetFinals: typeof extraFinals,
+    targetWeights?: typeof weights
   ) => {
     if (disabled) return;
-    const payload = buildGradesPayload(targetInputs, targetPartials, targetGlobals, targetFinals);
+    const currentW = targetWeights ?? weights;
+    const payload = buildGradesPayload(targetInputs, targetPartials, targetGlobals, targetFinals, currentW);
     const jsonStr = JSON.stringify(payload);
     if (jsonStr === lastSavedJsonRef.current) return;
     lastSavedJsonRef.current = jsonStr;
@@ -215,18 +222,19 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     } catch (err) {
       console.error("Error saving partial grades:", err);
     }
-  }, [disabled]);
+  }, [disabled, weights]);
 
   // Debounced auto-save
   const scheduleSave = useCallback((
     targetInputs: typeof inputs,
     targetPartials: typeof extraPartials,
     targetGlobals: typeof extraGlobals,
-    targetFinals: typeof extraFinals
+    targetFinals: typeof extraFinals,
+    targetWeights?: typeof weights
   ) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      performSaveQuietly(targetInputs, targetPartials, targetGlobals, targetFinals);
+      performSaveQuietly(targetInputs, targetPartials, targetGlobals, targetFinals, targetWeights);
     }, 800);
   }, [performSaveQuietly]);
 
@@ -239,14 +247,14 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
 
   const triggerImmediateSave = useCallback(() => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    performSaveQuietly(inputs, extraPartials, extraGlobals, extraFinals);
-  }, [inputs, extraPartials, extraGlobals, extraFinals, performSaveQuietly]);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, extraFinals, weights);
+  }, [inputs, extraPartials, extraGlobals, extraFinals, weights, performSaveQuietly]);
 
   // Input change handlers
   const updateInput = (key: keyof typeof inputs, value: string) => {
     setInputs((prev) => {
       const next = { ...prev, [key]: value };
-      scheduleSave(next, extraPartials, extraGlobals, extraFinals);
+      scheduleSave(next, extraPartials, extraGlobals, extraFinals, weights);
       return next;
     });
   };
@@ -255,7 +263,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     setExtraPartials((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
-      scheduleSave(inputs, copy, extraGlobals, extraFinals);
+      scheduleSave(inputs, copy, extraGlobals, extraFinals, weights);
       return copy;
     });
   };
@@ -264,7 +272,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     setExtraGlobals((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
-      scheduleSave(inputs, extraPartials, copy, extraFinals);
+      scheduleSave(inputs, extraPartials, copy, extraFinals, weights);
       return copy;
     });
   };
@@ -273,18 +281,81 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     setExtraFinals((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
-      scheduleSave(inputs, extraPartials, extraGlobals, copy);
+      scheduleSave(inputs, extraPartials, extraGlobals, copy, weights);
       return copy;
     });
+  };
+
+  // Weight handlers
+  const allPartialItems = useMemo(() => [
+    { id: "P1", label: "Parcial 1", eff: numericValues.nota_rec_parcial_1 ?? numericValues.nota_parcial_1 },
+    { id: "P2", label: "Parcial 2", eff: numericValues.nota_rec_parcial_2 ?? numericValues.nota_parcial_2 },
+    ...extraPartials.map((p, idx) => ({
+      id: p.id,
+      label: p.id,
+      eff: (parsedExtraPartials[idx]?.rec ?? parsedExtraPartials[idx]?.nota) ?? null,
+    })),
+  ], [numericValues, extraPartials, parsedExtraPartials]);
+
+  const hasConfiguredWeights = useMemo(() => {
+    return showWeights && Object.keys(weights).length > 0;
+  }, [showWeights, weights]);
+
+  const totalWeightsSum = useMemo(() => {
+    return allPartialItems.reduce((acc, item) => acc + (Number(weights[item.id]) || 0), 0);
+  }, [allPartialItems, weights]);
+
+  const handleWeightChange = (id: string, valStr: string) => {
+    const val = parseFloat(valStr);
+    const num = isNaN(val) || val < 0 ? 0 : Math.min(100, val);
+    const nextWeights = { ...weights, [id]: num };
+    setWeights(nextWeights);
+    scheduleSave(inputs, extraPartials, extraGlobals, extraFinals, nextWeights);
+  };
+
+  const handleDistributeEvenly = () => {
+    ComicAudio.playPop();
+    const count = allPartialItems.length;
+    if (count === 0) return;
+    const base = Math.floor(100 / count);
+    const rem = 100 - base * count;
+    const nextWeights: Record<string, number> = {};
+    allPartialItems.forEach((item, idx) => {
+      nextWeights[item.id] = base + (idx < rem ? 1 : 0);
+    });
+    setWeights(nextWeights);
+    scheduleSave(inputs, extraPartials, extraGlobals, extraFinals, nextWeights);
+  };
+
+  const handleDisableWeights = () => {
+    ComicAudio.playPop();
+    setWeights({});
+    setShowWeights(false);
+    scheduleSave(inputs, extraPartials, extraGlobals, extraFinals, {});
   };
 
   // Adding and removing items
   const addPartial = () => {
     ComicAudio.playPop();
     const nextNumber = 3 + extraPartials.length;
-    const next = [...extraPartials, { id: `P${nextNumber}`, nota: "", rec: "" }];
+    const newId = `P${nextNumber}`;
+    const next = [...extraPartials, { id: newId, nota: "", rec: "" }];
     setExtraPartials(next);
-    performSaveQuietly(inputs, next, extraGlobals, extraFinals);
+
+    // If weights were configured, re-distribute or keep
+    let nextWeights = { ...weights };
+    if (hasConfiguredWeights) {
+      const count = allPartialItems.length + 1;
+      const base = Math.floor(100 / count);
+      const rem = 100 - base * count;
+      const ids = ["P1", "P2", ...next.map(p => p.id)];
+      nextWeights = {};
+      ids.forEach((id, idx) => {
+        nextWeights[id] = base + (idx < rem ? 1 : 0);
+      });
+      setWeights(nextWeights);
+    }
+    performSaveQuietly(inputs, next, extraGlobals, extraFinals, nextWeights);
   };
 
   const removePartial = (index: number) => {
@@ -293,7 +364,20 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     copy.splice(index, 1);
     const next = copy.map((p, i) => ({ ...p, id: `P${i + 3}` }));
     setExtraPartials(next);
-    performSaveQuietly(inputs, next, extraGlobals, extraFinals);
+
+    let nextWeights = { ...weights };
+    if (hasConfiguredWeights) {
+      const ids = ["P1", "P2", ...next.map(p => p.id)];
+      const count = ids.length;
+      const base = Math.floor(100 / count);
+      const rem = 100 - base * count;
+      nextWeights = {};
+      ids.forEach((id, idx) => {
+        nextWeights[id] = base + (idx < rem ? 1 : 0);
+      });
+      setWeights(nextWeights);
+    }
+    performSaveQuietly(inputs, next, extraGlobals, extraFinals, nextWeights);
   };
 
   const addGlobal = () => {
@@ -301,7 +385,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     const nextNumber = 2 + extraGlobals.length;
     const next = [...extraGlobals, { id: `Global ${nextNumber}`, nota: "", rec: "" }];
     setExtraGlobals(next);
-    performSaveQuietly(inputs, extraPartials, next, extraFinals);
+    performSaveQuietly(inputs, extraPartials, next, extraFinals, weights);
   };
 
   const removeGlobal = (index: number) => {
@@ -310,24 +394,24 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     copy.splice(index, 1);
     const next = copy.map((g, i) => ({ ...g, id: `Global ${i + 2}` }));
     setExtraGlobals(next);
-    performSaveQuietly(inputs, extraPartials, next, extraFinals);
+    performSaveQuietly(inputs, extraPartials, next, extraFinals, weights);
   };
 
   const addFinal = () => {
     ComicAudio.playPop();
     const nextNumber = 2 + extraFinals.length;
-    const next = [...extraFinals, { id: `Llamado ${nextNumber}`, nota: "", fecha: "" }];
+    const next = [...extraFinals, { id: `Final ${nextNumber}`, nota: "", fecha: "" }];
     setExtraFinals(next);
-    performSaveQuietly(inputs, extraPartials, extraGlobals, next);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, next, weights);
   };
 
   const removeFinal = (index: number) => {
     ComicAudio.playPop();
     const copy = [...extraFinals];
     copy.splice(index, 1);
-    const next = copy.map((f, i) => ({ ...f, id: `Llamado ${i + 2}` }));
+    const next = copy.map((f, i) => ({ ...f, id: `Final ${i + 2}` }));
     setExtraFinals(next);
-    performSaveQuietly(inputs, extraPartials, extraGlobals, next);
+    performSaveQuietly(inputs, extraPartials, extraGlobals, next, weights);
   };
 
   // Count filled grades
@@ -339,23 +423,29 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
     return count;
   }, [numericValues, parsedExtraPartials, parsedExtraGlobals, parsedExtraFinals]);
 
-  // Partial average calculation
+  // Partial average calculation (weighted or simple)
   const promedioParciales = useMemo(() => {
-    const effectiveP1 = numericValues.nota_rec_parcial_1 ?? numericValues.nota_parcial_1;
-    const effectiveP2 = numericValues.nota_rec_parcial_2 ?? numericValues.nota_parcial_2;
-
-    const list: number[] = [];
-    if (effectiveP1 !== null) list.push(effectiveP1);
-    if (effectiveP2 !== null) list.push(effectiveP2);
-
-    for (const ep of parsedExtraPartials) {
-      const eff = ep.rec ?? ep.nota;
-      if (eff !== null) list.push(eff);
+    if (hasConfiguredWeights) {
+      let weightedSum = 0;
+      let totalWeightUsed = 0;
+      for (const item of allPartialItems) {
+        if (item.eff !== null) {
+          const w = Number(weights[item.id]) || 0;
+          if (w > 0) {
+            weightedSum += item.eff * w;
+            totalWeightUsed += w;
+          }
+        }
+      }
+      if (totalWeightUsed > 0) {
+        return weightedSum / totalWeightUsed;
+      }
     }
 
-    if (list.length === 0) return null;
-    return list.reduce((a, b) => a + b, 0) / list.length;
-  }, [numericValues, parsedExtraPartials]);
+    const simpleList = allPartialItems.map(i => i.eff).filter((n): n is number => n !== null);
+    if (simpleList.length === 0) return null;
+    return simpleList.reduce((a, b) => a + b, 0) / simpleList.length;
+  }, [allPartialItems, hasConfiguredWeights, weights]);
 
   return (
     <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden bg-white dark:bg-[#1f1f1f]">
@@ -398,12 +488,19 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
         <div className="p-3.5 space-y-4 animate-in fade-in duration-150">
           {/* Promedio indicator banner */}
           {promedioParciales !== null && (
-            <div className="text-center py-2 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-2">
-              <Award className="w-4 h-4 text-amber-500" />
-              <span>
-                Promedio parciales: <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{promedioParciales.toFixed(2)} pts</strong>
-                {promedioParciales >= (promedioParciales > 10 ? 60 : 4) ? " (En carrera / Regular)" : " (A reforzar)"}
-              </span>
+            <div className="text-center py-2 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-xs font-medium text-zinc-800 dark:text-zinc-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>
+                  Promedio parciales{hasConfiguredWeights ? " (Ponderado)" : ""}: <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{promedioParciales.toFixed(2)} pts</strong>
+                  {promedioParciales >= (promedioParciales > 10 ? 60 : 4) ? " (En carrera / Regular)" : " (A reforzar)"}
+                </span>
+              </div>
+              {hasConfiguredWeights && totalWeightsSum !== 100 && (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                  ⚠️ Pesos suman {totalWeightsSum}% (ajusta a 100%)
+                </span>
+              )}
             </div>
           )}
 
@@ -414,10 +511,95 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                 <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
                 Parciales y recuperatorios
               </span>
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                Aprobación: 4 o 60
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    ComicAudio.playPop();
+                    if (!showWeights && Object.keys(weights).length === 0) {
+                      handleDistributeEvenly();
+                    }
+                    setShowWeights(!showWeights);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors border",
+                    hasConfiguredWeights
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+                      : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  )}
+                  title="Configurar el peso porcentual de cada parcial para el cálculo del promedio"
+                >
+                  <Scale className="w-3 h-3" />
+                  {hasConfiguredWeights ? `Pesos ${totalWeightsSum}%` : "Pesos %"}
+                </button>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                  Aprobación: 4 o 60
+                </span>
+              </div>
             </div>
+
+            {/* WEIGHTS CONFIGURATION PANEL */}
+            {showWeights && (
+              <div className="p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 space-y-2 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
+                    <Scale className="w-3.5 h-3.5" />
+                    <span>Ponderación de parciales (%)</span>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                    totalWeightsSum === 100
+                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                      : "bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                  )}>
+                    {totalWeightsSum === 100 ? "Total: 100% ✓" : `Total: ${totalWeightsSum}% (debe dar 100%)`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {allPartialItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 text-xs">
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300 truncate mr-1">
+                        {item.id}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={weights[item.id] ?? ""}
+                          onChange={(e) => handleWeightChange(item.id, e.target.value)}
+                          disabled={disabled}
+                          placeholder="%"
+                          className="w-11 px-1 py-0.5 text-center text-xs font-semibold rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                        <span className="text-[10px] text-zinc-400">%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={handleDistributeEvenly}
+                    disabled={disabled}
+                    className="text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Distribuir equitativo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDisableWeights}
+                    disabled={disabled}
+                    className="text-zinc-500 dark:text-zinc-400 hover:text-rose-500 transition-colors"
+                  >
+                    Quitar ponderación (volver a simple)
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Parcial 1 */}
             <div className="grid grid-cols-2 gap-2">
@@ -573,7 +755,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
               disabled={disabled}
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
-              Agregar instancia global (Global {2 + extraGlobals.length})
+              Agregar global extra (Global {2 + extraGlobals.length})
             </button>
           </div>
 
@@ -588,20 +770,30 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
 
             <div>
               <GradeInput
-                label="Final (Llamado 1)"
+                label="Mesa de examen final"
                 value={inputs.nota_final_examen}
                 numericValue={numericValues.nota_final_examen}
                 onChange={(v) => updateInput("nota_final_examen", v)}
                 onBlur={triggerImmediateSave}
                 disabled={disabled}
-                placeholder="Nota final"
+                placeholder="Ej: 7"
               />
             </div>
 
             {/* Extra Finals */}
             {extraFinals.map((f, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <div className="flex-1">
+              <div key={idx} className="relative pt-1">
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => removeFinal(idx)}
+                    className="absolute -right-1 -top-1 p-1 bg-white dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 rounded-full border border-zinc-200 dark:border-zinc-700 shadow-2xs transition-colors z-10"
+                    title="Eliminar llamado"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+                <div className="grid grid-cols-2 gap-2">
                   <GradeInput
                     label={f.id}
                     value={f.nota}
@@ -609,19 +801,18 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
                     onChange={(v) => updateExtraFinalInput(idx, "nota", v)}
                     onBlur={triggerImmediateSave}
                     disabled={disabled}
-                    placeholder="Nota final"
                   />
+                  <div className="flex items-center py-1 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40">
+                    <input
+                      type="date"
+                      value={f.fecha || ""}
+                      onChange={(e) => updateExtraFinalInput(idx, "fecha", e.target.value)}
+                      onBlur={triggerImmediateSave}
+                      disabled={disabled}
+                      className="w-full text-xs bg-transparent text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                    />
+                  </div>
                 </div>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => removeFinal(idx)}
-                    className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-                    title="Eliminar llamado"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
             ))}
 
@@ -632,24 +823,7 @@ export function PartialGradesSection({ grades, onUpdate, disabled }: PartialGrad
               disabled={disabled}
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
-              Agregar otro llamado de final
-            </button>
-          </div>
-
-          {/* Auto-save Status Indicator */}
-          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 px-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 select-none">
-              <Check className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Autoguardado</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={triggerImmediateSave}
-              disabled={disabled}
-              className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
-            >
-              Listo
+              Agregar llamado a final extra (Llamado {2 + extraFinals.length})
             </button>
           </div>
         </div>

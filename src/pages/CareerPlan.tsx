@@ -53,7 +53,8 @@ export default function CareerPlan() {
     importCareerPlan,
     importCustomCareerPlan,
     deleteAllSubjects,
-    getYears
+    getYears,
+    refetch
   } = useSubjects();
 
   const { isPremium } = useSubscription();
@@ -640,6 +641,7 @@ export default function CareerPlan() {
           onUpdatePartialGrades={updatePartialGrades}
           onEditDetails={() => handleEditDetails(selectedSubject)}
           onEditDependencies={() => handleEditDependencies(selectedSubject)}
+          onRefresh={refetch}
         />
       )}
 

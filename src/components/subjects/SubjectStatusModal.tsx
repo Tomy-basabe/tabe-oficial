@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubjectWithStatus, SubjectStatus, PartialGrades } from "@/hooks/useSubjects";
-import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2,  AlertTriangle } from "lucide-react";
+import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2, AlertTriangle, Sparkles, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartialGradesSection } from "./PartialGradesSection";
 import { ComicAudio } from "@/components/comic/ComicAudio";
+import { SubjectSyllabusModal } from "./SubjectSyllabusModal";
 
 interface SubjectStatusModalProps {
   subject: SubjectWithStatus | null;
@@ -18,6 +19,7 @@ interface SubjectStatusModalProps {
   onEditDetails?: (subject: SubjectWithStatus) => void;
   onDelete?: (subjectId: string) => Promise<void>;
   readOnly?: boolean;
+  onRefresh?: () => void;
 }
 
 const statusOptions: { 
@@ -68,7 +70,8 @@ export function SubjectStatusModal({
   onEditDependencies,
   onEditDetails,
   onDelete,
-  readOnly = false
+  readOnly = false,
+  onRefresh
 }: SubjectStatusModalProps) {
   const saveStatus = onStatusChange || onUpdate;
   const saveGrades = onGradesChange || onUpdatePartialGrades;
@@ -77,6 +80,7 @@ export function SubjectStatusModal({
   const [nota, setNota] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSyllabusModal, setShowSyllabusModal] = useState(false);
 
   // Reset state when subject changes
   const subjectId = subject?.id;
@@ -149,6 +153,7 @@ export function SubjectStatusModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-lg bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto">
         <DialogHeader className="space-y-2 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
@@ -376,6 +381,38 @@ export function SubjectStatusModal({
               </div>
             )}
 
+            {/* Plan de Materia Button */}
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  ComicAudio.playPop();
+                  setShowSyllabusModal(true);
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 dark:border-amber-500/20 dark:bg-amber-500/10 dark:hover:bg-amber-500/15 transition-all text-left group shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Plan de Materia</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        TABE AI
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Subir PDF, Excel, imágenes o texto para autoconfigurar parciales, eventos y pesos
+                    </p>
+                  </div>
+                </div>
+                <div className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all">
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </button>
+            )}
+
             {/* Action Buttons */}
             {!readOnly && (
               <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
@@ -432,5 +469,17 @@ export function SubjectStatusModal({
         )}
       </DialogContent>
     </Dialog>
+    {showSyllabusModal && (
+      <SubjectSyllabusModal
+        open={showSyllabusModal}
+        onClose={() => setShowSyllabusModal(false)}
+        subject={subject}
+        onSuccess={() => {
+          onRefresh?.();
+          onClose();
+        }}
+      />
+    )}
+  </>
   );
 }
