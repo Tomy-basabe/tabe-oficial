@@ -413,13 +413,26 @@ export function UniversityLogo({
   }
 
   // UNSJ
-  if (norm.includes("unsj") || norm.includes("san juan")) {
+  if (norm.includes("unsj") || (norm.includes("san juan") && !norm.includes("congreso"))) {
     return (
       <OfficialLogo
         remoteUrl={faculty?.logoUrl || "https://fi.unsj.edu.ar/panel_fi/img/logo_unsj_min_.png"}
         fallbackLocal="/universities/unsj.png"
         alt="UNSJ - Universidad Nacional de San Juan"
         title="UNSJ - Universidad Nacional de San Juan"
+        className={className}
+        size={size}
+      />
+    );
+  }
+
+  // UCCuyo
+  if (norm.includes("uccuyo") || (norm.includes("cuyo") && norm.includes("catolica"))) {
+    return (
+      <OfficialLogo
+        remoteUrl={faculty?.logoUrl || "https://www.uccuyo.edu.ar/images/logo_uccuyo.png"}
+        alt="UCCuyo - Universidad Católica de Cuyo"
+        title="Universidad Católica de Cuyo"
         className={className}
         size={size}
       />

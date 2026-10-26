@@ -56,6 +56,8 @@ const FACULTY_COLORS: Record<string, { accent: string; badge: string; location: 
   IES_BELGRANO: { accent: "#0891b2", badge: "bg-[#0e7490] text-white", location: "Mendoza" },
   IES_MAIPU: { accent: "#059669", badge: "bg-[#047857] text-white", location: "Maipú, Mendoza" },
   UNSJ: { accent: "#8A1538", badge: "bg-[#7A0026] text-white", location: "San Juan" },
+  UCCUYO: { accent: "#1e3a8a", badge: "bg-[#172554] text-white", location: "San Juan" },
+  UCONGRESO_SJ: { accent: "#0284c7", badge: "bg-[#0369a1] text-white", location: "San Juan" },
   UNLP: { accent: "#002B49", badge: "bg-[#002B49] text-white", location: "La Plata, Buenos Aires" },
 };
 

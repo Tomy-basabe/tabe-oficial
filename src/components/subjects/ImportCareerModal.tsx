@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Loader2, Info, FileUp, Check, Clock, Search, X } from "lucide-react";
-import { ALL_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS, AVAILABLE_PROVINCIAS } from "@/lib/careerData";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { cn } from "@/lib/utils";
 import careerStatsRaw from "@/lib/careerStats.json";
@@ -18,6 +19,7 @@ interface ImportCareerModalProps {
 }
 
 export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: ImportCareerModalProps) => {
+  const [selectedProvincia, setSelectedProvincia] = useState<string>("ALL");
   const [selectedFacultad, setSelectedFacultad] = useState<string>("UTN");
   const [selectedCareer, setSelectedCareer] = useState<string>("sistemas");
   const [loading, setLoading] = useState(false);
@@ -28,14 +30,18 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
 
   const filteredFacultades = useMemo(() => {
     const q = searchFacultad.trim().toLowerCase();
-    if (!q) return ALL_FACULTADES;
-    return ALL_FACULTADES.filter(
-      (f) =>
+    return AVAILABLE_FACULTADES.filter((f) => {
+      if (selectedProvincia !== "ALL" && f.provinciaId !== selectedProvincia) {
+        return false;
+      }
+      if (!q) return true;
+      return (
         f.label.toLowerCase().includes(q) ||
         f.fullLabel.toLowerCase().includes(q) ||
         f.id.toLowerCase().includes(q)
-    );
-  }, [searchFacultad]);
+      );
+    });
+  }, [selectedProvincia, searchFacultad]);
 
   const careersInSelectedFacultad = useMemo(() => {
     return AVAILABLE_CAREERS.filter((c) => c.facultad === selectedFacultad);
@@ -114,6 +120,42 @@ export const ImportCareerModal = ({ open, onClose, onImport, onOpenAiImport }: I
         <div className="flex flex-1 min-h-0 overflow-hidden bg-white dark:bg-[#212121]">
           {/* Left: Lista de Facultades con buscador */}
           <div className="w-56 sm:w-64 shrink-0 border-r border-zinc-100 dark:border-zinc-800/80 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/30 overflow-hidden p-2.5 space-y-2">
+            {/* Selector de Provincia */}
+            <div className="space-y-1 shrink-0">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Provincia
+              </label>
+              <Select
+                value={selectedProvincia}
+                onValueChange={(val) => {
+                  setSelectedProvincia(val);
+                  setSearchFacultad("");
+                  const matchingFac = AVAILABLE_FACULTADES.find(
+                    (f) => val === "ALL" || f.provinciaId === val
+                  );
+                  if (matchingFac) {
+                    setSelectedFacultad(matchingFac.id);
+                    const firstCarr = AVAILABLE_CAREERS.find((c) => c.facultad === matchingFac.id);
+                    if (firstCarr) setSelectedCareer(firstCarr.id);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full h-8 bg-white dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 text-xs rounded-lg">
+                  <SelectValue placeholder="Provincia..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 z-50">
+                  <SelectItem value="ALL" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    🏛️ Todas las provincias
+                  </SelectItem>
+                  {AVAILABLE_PROVINCIAS.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="relative shrink-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
               <Input

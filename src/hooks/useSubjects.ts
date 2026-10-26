@@ -1030,6 +1030,9 @@ export function useSubjects() {
         if (career.file?.startsWith("carreras_mza/")) {
           const fileName = career.file.replace("carreras_mza/", "");
           templateModule = await import(`../data/carreras_mza/${fileName}.json`);
+        } else if (career.file?.startsWith("carreras_sanjuan/")) {
+          const fileName = career.file.replace("carreras_sanjuan/", "");
+          templateModule = await import(`../data/carreras_sanjuan/${fileName}.json`);
         } else {
           templateModule = await import(`../data/${career.file}.json`);
         }
