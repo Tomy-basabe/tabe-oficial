@@ -249,7 +249,31 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
         supabase.from("folder_ratings" as any).select("folder_id, rating") as any,
       ]);
 
-      const profileMap = new Map<string, ProfileData>((profilesResult.data || []).map((p: ProfileData) => [p.user_id, p]));
+      let rawProfiles: any[] = profilesResult.data || [];
+      if (userIds.length > 0 && (!rawProfiles || rawProfiles.length === 0)) {
+        try {
+          const { data: rpcData } = await supabase.rpc("get_public_profiles", { target_user_ids: userIds });
+          if (rpcData && rpcData.length > 0) {
+            rawProfiles = rpcData;
+          }
+        } catch (rpcErr) {
+          console.warn("Fallback get_public_profiles warning in useMarketplace:", rpcErr);
+        }
+      }
+
+      const profileMap = new Map<string, ProfileData>();
+      rawProfiles.forEach((p: any) => {
+        const item: ProfileData = {
+          user_id: p.user_id || p.id,
+          username: p.username || null,
+          display_id: p.display_id || 0,
+          nombre: p.nombre || null,
+          facultad: p.facultad || null,
+          carrera: p.carrera || null,
+        };
+        if (p.user_id) profileMap.set(p.user_id, item);
+        if (p.id) profileMap.set(p.id, item);
+      });
       const statsMap = new Map((statsResult.data || []).map(s => [s.user_id, s]));
       const subjectMap = new Map<string, SubjectData>();
       (subjectsResult.data || []).forEach((s: any) => {
@@ -327,7 +351,11 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
           const lowerSearch = searchTerm.toLowerCase();
           filtered = filtered.filter(d =>
             (d.nombre || "").toLowerCase().includes(lowerSearch) ||
-            (d.description || "").toLowerCase().includes(lowerSearch)
+            (d.description || "").toLowerCase().includes(lowerSearch) ||
+            (d.category || "").toLowerCase().includes(lowerSearch) ||
+            (d.subject?.nombre || "").toLowerCase().includes(lowerSearch) ||
+            (d.creator?.facultad || "").toLowerCase().includes(lowerSearch) ||
+            (d.creator?.carrera || "").toLowerCase().includes(lowerSearch)
           );
         }
         if (categoryFilter) filtered = filtered.filter(d => d.category === categoryFilter);
@@ -341,35 +369,39 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
           );
         }
 
+        const cleanText = (str: string) => (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
         if (facultadFilter && facultadFilter !== "all") {
-          const facObj = ALL_FACULTADES.find(f => f.id === facultadFilter);
-          const targetId = facultadFilter.toLowerCase();
-          const targetLabel = (facObj?.label || "").toLowerCase();
-          const targetFull = (facObj?.fullLabel || "").toLowerCase();
+          const facObj = ALL_FACULTADES.find(f => f.id.toLowerCase() === facultadFilter.toLowerCase());
+          const targetId = cleanText(facultadFilter);
+          const targetLabel = cleanText(facObj?.label || "");
+          const targetFull = cleanText(facObj?.fullLabel || "");
 
           filtered = filtered.filter(item => {
-            const creatorFac = (item.creator?.facultad || "").toLowerCase();
+            const creatorFac = cleanText(item.creator?.facultad || "");
             if (!creatorFac) return false;
             return (
               creatorFac === targetId ||
               creatorFac.includes(targetId) ||
-              (targetLabel && creatorFac.includes(targetLabel)) ||
+              targetId.includes(creatorFac) ||
+              (targetLabel && (creatorFac.includes(targetLabel) || targetLabel.includes(creatorFac))) ||
               (targetFull && (creatorFac.includes(targetFull) || targetFull.includes(creatorFac)))
             );
           });
         }
 
         if (carreraFilter && carreraFilter !== "all") {
-          const carrObj = AVAILABLE_CAREERS.find(c => c.id === carreraFilter);
-          const targetId = carreraFilter.toLowerCase();
-          const targetLabel = (carrObj?.label || "").toLowerCase();
+          const carrObj = AVAILABLE_CAREERS.find(c => c.id.toLowerCase() === carreraFilter.toLowerCase());
+          const targetId = cleanText(carreraFilter);
+          const targetLabel = cleanText(carrObj?.label || "");
 
           filtered = filtered.filter(item => {
-            const creatorCarr = (item.creator?.carrera || "").toLowerCase();
+            const creatorCarr = cleanText(item.creator?.carrera || "");
             if (!creatorCarr) return false;
             return (
               creatorCarr === targetId ||
               creatorCarr.includes(targetId) ||
+              targetId.includes(creatorCarr) ||
               (targetLabel && (creatorCarr.includes(targetLabel) || targetLabel.includes(creatorCarr)))
             );
           });

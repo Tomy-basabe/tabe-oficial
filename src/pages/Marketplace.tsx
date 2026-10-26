@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, Building2, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
+import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, Building2, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw, ChevronDown } from "lucide-react";
+import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
 import { ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
@@ -30,6 +31,237 @@ interface Subject {
   id: string;
   nombre: string;
   year: number;
+}
+
+
+interface SearchableOption {
+  id: string;
+  label: string;
+  sublabel?: string;
+  isFavorite?: boolean;
+}
+
+function SearchableComboboxFilter({
+  value,
+  onChange,
+  options,
+  placeholder,
+  allLabel,
+  icon,
+  disabled = false,
+  disabledPlaceholder,
+  isUniversity = false,
+}: {
+  value: string | null;
+  onChange: (val: string | null) => void;
+  options: SearchableOption[];
+  placeholder: string;
+  allLabel: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  disabledPlaceholder?: string;
+  isUniversity?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+      setTimeout(() => inputRef.current?.focus(), 60);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const selectedOption = options.find((o) => o.id === value);
+  const displayLabel = selectedOption ? selectedOption.label : (value && value !== "all" ? value : allLabel);
+
+  const clean = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const filteredOptions = React.useMemo(() => {
+    const q = clean(search);
+    if (!q) return options;
+    return options.filter(
+      (o) =>
+        clean(o.label).includes(q) ||
+        (o.sublabel && clean(o.sublabel).includes(q)) ||
+        clean(o.id).includes(q)
+    );
+  }, [options, search]);
+
+  if (disabled) {
+    return (
+      <div className="h-8 px-2.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100/50 dark:bg-zinc-800/30 text-zinc-400 dark:text-zinc-600 text-xs font-medium flex items-center justify-between opacity-60 cursor-not-allowed select-none">
+        <div className="flex items-center gap-1.5 truncate">
+          {icon}
+          <span className="truncate">{disabledPlaceholder || placeholder}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setSearch("");
+        }}
+        className={cn(
+          "w-full h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-between gap-1.5 transition-all cursor-pointer select-none",
+          value && value !== "all"
+            ? "border-indigo-300 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200"
+            : "border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-50/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        )}
+      >
+        <div className="flex items-center gap-1.5 truncate min-w-0">
+          {isUniversity && value && value !== "all" ? (
+            <UniversityLogo universityId={value} className="w-3.5 h-3.5 rounded-xs shrink-0" />
+          ) : (
+            icon
+          )}
+          <span className="truncate font-medium">{value && value !== "all" ? displayLabel : placeholder}</span>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 text-zinc-400">
+          {value && value !== "all" && (
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(null);
+              }}
+              className="p-0.5 hover:text-red-500 rounded-sm cursor-pointer"
+              title="Quitar filtro"
+            >
+              <X className="w-3 h-3" />
+            </span>
+          )}
+          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isOpen && "rotate-180")} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.14 }}
+            className="absolute left-0 top-full mt-1 w-full min-w-[280px] sm:min-w-[320px] max-w-[420px] bg-white dark:bg-[#1e1e20] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col"
+          >
+            <div className="p-2 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={isUniversity ? "Buscar facultad o universidad..." : "Buscar carrera..."}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-8 pl-8 pr-7 text-xs bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-64 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(null);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer",
+                  !value || value === "all"
+                    ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
+                    : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                )}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  {icon}
+                  <span>{allLabel}</span>
+                </div>
+                {(!value || value === "all") && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />}
+              </button>
+
+              {filteredOptions.length === 0 ? (
+                <div className="p-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                  No se encontraron resultados para "{search}"
+                </div>
+              ) : (
+                filteredOptions.map((opt) => {
+                  const isSelected = value === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(opt.id);
+                        setIsOpen(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-start justify-between gap-2 transition-colors cursor-pointer",
+                        isSelected
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
+                          : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                      )}
+                    >
+                      <div className="flex items-start gap-2 truncate min-w-0">
+                        {isUniversity && (
+                          <UniversityLogo universityId={opt.id} className="w-4 h-4 rounded-xs shrink-0 mt-0.5" />
+                        )}
+                        <div className="truncate">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="truncate font-medium">{opt.label}</span>
+                            {opt.isFavorite && (
+                              <span className="text-[9px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded border border-amber-500/30 shrink-0">
+                                Mi facultad
+                              </span>
+                            )}
+                          </div>
+                          {opt.sublabel && (
+                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-normal">
+                              {opt.sublabel}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 export default function Marketplace() {
@@ -193,6 +425,42 @@ export default function Marketplace() {
 
     return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [publicApuntes, publicDecks, publicFiles, publicFolders, publicQuizzes, subjects, yearFilter]);
+
+  // Opciones de Facultades completas y con favoritos
+  const allFacultadOptions = React.useMemo(() => {
+    let list: SearchableOption[] = ALL_FACULTADES.map((f) => ({
+      id: f.id,
+      label: f.label,
+      sublabel: f.fullLabel,
+      isFavorite: Boolean(userFacultadId && (f.id === userFacultadId || f.label === userFacultadLabel)),
+    }));
+
+    if (userFacultadId && !ALL_FACULTADES.some((f) => f.id === userFacultadId)) {
+      list = [
+        {
+          id: userFacultadId,
+          label: userFacultadLabel || userFacultadId,
+          sublabel: "Mi institución asignada",
+          isFavorite: true,
+        },
+        ...list,
+      ];
+    }
+    return list;
+  }, [userFacultadId, userFacultadLabel]);
+
+  // Carreras disponibles según la facultad seleccionada (o todas si no hay facultad fija)
+  const carreraOptions = React.useMemo(() => {
+    const list = facultadFilter && facultadFilter !== "all"
+      ? AVAILABLE_CAREERS.filter((c) => c.facultad === facultadFilter)
+      : AVAILABLE_CAREERS;
+    return list.map((c) => ({
+      id: c.id,
+      label: c.label,
+      sublabel: ALL_FACULTADES.find((f) => f.id === c.facultad)?.label,
+      isFavorite: Boolean(userCarreraLabel && c.label.toLowerCase().includes(userCarreraLabel.toLowerCase())),
+    }));
+  }, [facultadFilter, userCarreraLabel]);
 
   // Carreras disponibles según la facultad actualmente filtrada
   const filteredCareers = React.useMemo(() => {
@@ -498,6 +766,97 @@ export default function Marketplace() {
     );
   };
 
+
+  const EmptyTabState = ({
+    type,
+    title,
+    description,
+    buttonText,
+    icon: Icon,
+    iconColor,
+  }: {
+    type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte';
+    title: string;
+    description: string;
+    buttonText: string;
+    icon: any;
+    iconColor: string;
+  }) => {
+    const isAcademicFiltered = Boolean(facultadFilter && facultadFilter !== "all");
+    const activeFacLabel = userFacultadLabel || facultadFilter;
+
+    if (isAcademicFiltered) {
+      return (
+        <div className="col-span-full neo-bento-card p-10 text-center flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-center">
+            {facultadFilter ? (
+              <UniversityLogo universityId={facultadFilter} className="w-6 h-6 rounded-xs" />
+            ) : (
+              <Building2 className="w-6 h-6" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              Aún no hay publicaciones para {activeFacLabel}
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1 mx-auto leading-relaxed">
+              {carreraFilter
+                ? "No se encontraron recursos para la carrera seleccionada en esta facultad."
+                : "Todavía no se han compartido publicaciones para esta facultad."}{" "}
+              Puedes explorar los recursos de toda la comunidad o publicar el primero.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 pt-1 flex-wrap justify-center">
+            <Button
+              type="button"
+              onClick={() => {
+                setFacultadFilter(null);
+                setCarreraFilter(null);
+              }}
+              className="bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-medium h-8 px-3.5 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Ver recursos de toda la comunidad
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSelectedPublishType(type);
+                setPublishSelectOpen(true);
+              }}
+              className="text-xs font-medium h-8 px-3 rounded-lg cursor-pointer border-zinc-200 dark:border-zinc-800"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1.5" />
+              Publicar para {activeFacLabel}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
+        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-3", iconColor)}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
+          {searchTerm ? "Prueba a modificar los términos de búsqueda o filtros." : description}
+        </p>
+        <Button
+          onClick={() => {
+            setSelectedPublishType(type);
+            setPublishSelectOpen(true);
+          }}
+          className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
+        >
+          {buttonText}
+        </Button>
+      </div>
+    );
+  };
+
   const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
     const config = getTypeConfig(type);
     const Icon = config.icon;
@@ -542,6 +901,17 @@ export default function Marketplace() {
 
           {/* Badges de materia y categoría */}
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
+            {item.creator?.facultad && (
+              <span className="text-[11px] font-medium bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50 px-2 py-0.5 rounded-md flex items-center gap-1 max-w-[200px]" title={item.creator.facultad}>
+                <UniversityLogo universityId={item.creator.facultad} className="w-3.5 h-3.5 rounded-xs shrink-0" />
+                <span className="truncate">{item.creator.facultad}</span>
+              </span>
+            )}
+            {item.creator?.carrera && (
+              <span className="text-[11px] font-normal bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md truncate max-w-[180px]" title={item.creator.carrera}>
+                {item.creator.carrera}
+              </span>
+            )}
             {item.subject && (
               <span className="text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
                 <BookOpen className="w-3 h-3 text-zinc-400" />
@@ -768,15 +1138,58 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {/* Fila 2: Filtros Académicos en Cascada: Facultad -> Carrera -> Año -> Materia */}
+        {/* Fila 2: Filtros Académicos Seleccionables y Buscables: Facultad -> Carrera -> Año -> Materia */}
         <div className="pt-2.5 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5" />
-              Filtro Académico
-            </span>
+          {/* Barra de Acciones Rápidas de Comunidad */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 mr-1">
+                <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                Filtro Académico:
+              </span>
 
-            {/* Badges de filtros activos y botón de reset */}
+              {/* Botón 1: Mi Facultad (rápido 1 clic) */}
+              {userFacultadId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFacultadFilter(userFacultadId);
+                    setCarreraFilter(null);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer shadow-2xs select-none",
+                    facultadFilter === userFacultadId
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                  )}
+                  title={`Filtrar por ${userFacultadLabel || userFacultadId}`}
+                >
+                  <UniversityLogo universityId={userFacultadId} className="w-3.5 h-3.5 rounded-xs shrink-0" />
+                  <span>Mi facultad ({userFacultadLabel || userFacultadId})</span>
+                </button>
+              )}
+
+              {/* Botón 2: Toda la Comunidad (rápido 1 clic) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setFacultadFilter(null);
+                  setCarreraFilter(null);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer shadow-2xs select-none",
+                  !facultadFilter || facultadFilter === "all"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "border border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-50/80 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                )}
+                title="Ver recursos publicados por estudiantes de todas las facultades"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Toda la comunidad</span>
+              </button>
+            </div>
+
+            {/* Botón 3: Limpiar filtros si alguno está activo */}
             {(facultadFilter || carreraFilter || yearFilter || subjectFilter || categoryFilter) && (
               <button
                 type="button"
@@ -787,73 +1200,41 @@ export default function Marketplace() {
                   setSubjectFilter(null);
                   setCategoryFilter(null);
                 }}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors cursor-pointer ml-auto"
               >
-                <X className="w-3 h-3" />
-                Limpiar filtros
+                <RotateCcw className="w-3 h-3" />
+                <span>Limpiar filtros</span>
               </button>
             )}
           </div>
 
+          {/* Grid de 4 Filtros Académicos Seleccionables y Buscables */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {/* 1. Selector de Facultad */}
-            <Select 
-              value={facultadFilter || "all"} 
-              onValueChange={(val) => {
-                setFacultadFilter(val === "all" ? null : val);
+            {/* 1. Selector Buscable de Facultad con Logos Oficiales */}
+            <SearchableComboboxFilter
+              value={facultadFilter}
+              onChange={(val) => {
+                setFacultadFilter(val);
                 setCarreraFilter(null);
               }}
-            >
-              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg">
-                <div className="flex items-center gap-1.5 truncate">
-                  <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <SelectValue placeholder="Facultad" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
-                <SelectItem value="all">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">🏛️ Todas las facultades</span>
-                </SelectItem>
-                {userFacultadId && !ALL_FACULTADES.some(f => f.id === userFacultadId) && (
-                  <SelectItem value={userFacultadId}>
-                    <span className="font-medium text-indigo-600 dark:text-indigo-400">
-                      ⭐ {userFacultadLabel || userFacultadId} (Mi facultad)
-                    </span>
-                  </SelectItem>
-                )}
-                {ALL_FACULTADES.map((fac) => (
-                  <SelectItem key={fac.id} value={fac.id}>
-                    <span className={fac.id === userFacultadId ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""}>
-                      {fac.id === userFacultadId ? `⭐ ${fac.label} (Mi facultad)` : (fac.fullLabel || fac.label)}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={allFacultadOptions}
+              placeholder="Facultad o Universidad"
+              allLabel="🏛️ Todas las facultades"
+              icon={<Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+              isUniversity={true}
+            />
 
-            {/* 2. Selector de Carrera */}
-            <Select 
-              value={carreraFilter || "all"} 
-              onValueChange={(val) => setCarreraFilter(val === "all" ? null : val)}
-              disabled={!facultadFilter || facultadFilter === "all" || filteredCareers.length === 0}
-            >
-              <SelectTrigger className="h-8 text-xs font-medium bg-zinc-50/80 dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/80 rounded-lg disabled:opacity-50">
-                <div className="flex items-center gap-1.5 truncate">
-                  <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <SelectValue placeholder={filteredCareers.length === 0 && facultadFilter && facultadFilter !== "all" ? "Sin carreras cargadas" : "Carrera"} />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
-                <SelectItem value="all">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">🎓 Todas las carreras</span>
-                </SelectItem>
-                {filteredCareers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* 2. Selector Buscable de Carrera */}
+            <SearchableComboboxFilter
+              value={carreraFilter}
+              onChange={(val) => setCarreraFilter(val)}
+              options={carreraOptions}
+              placeholder="Carrera"
+              allLabel="🎓 Todas las carreras"
+              icon={<GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+              disabled={carreraOptions.length === 0}
+              disabledPlaceholder="Sin carreras registradas"
+            />
 
             {/* 3. Selector de Año */}
             <Select
@@ -906,32 +1287,26 @@ export default function Marketplace() {
             </Select>
           </div>
 
-          {/* Botones de acceso rápido y estado del filtro */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              {userFacultadId && facultadFilter !== userFacultadId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFacultadFilter(userFacultadId);
-                    setCarreraFilter(null);
-                  }}
-                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-[11px] font-medium transition-colors cursor-pointer"
-                  title="Volver a los recursos de mi facultad"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Mi facultad ({userFacultadLabel || userFacultadId})
-                </button>
-              )}
+          {/* Badge Informativo de Filtro Activo */}
+          {facultadFilter && facultadFilter !== "all" && (
+            <div className="flex items-center gap-2 pt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Filtrando publicaciones de:{" "}
+                <strong className="text-zinc-800 dark:text-zinc-200">
+                  {allFacultadOptions.find(f => f.id === facultadFilter)?.label || userFacultadLabel || facultadFilter}
+                </strong>
+                {carreraFilter && (
+                  <>
+                    {" • Carrera: "}
+                    <strong className="text-zinc-800 dark:text-zinc-200">
+                      {carreraOptions.find(c => c.id === carreraFilter)?.label || carreraFilter}
+                    </strong>
+                  </>
+                )}
+              </span>
             </div>
-
-            {facultadFilter && facultadFilter !== "all" && (
-              <div className="flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Filtrando por: <strong>{userFacultadLabel || facultadFilter}</strong></span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
@@ -1013,21 +1388,14 @@ export default function Marketplace() {
                 {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
               </AnimatePresence>
               {publicDecks.length === 0 && (
-                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
-                    <Layers className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron mazos</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                    {searchTerm ? "Prueba a modificar los filtros de búsqueda o categoría." : "Sé el primero en compartir un mazo de estudio con la comunidad."}
-                  </p>
-                  <Button 
-                    onClick={() => { setSelectedPublishType('deck'); setPublishSelectOpen(true); }}
-                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                  >
-                    Publicar un mazo
-                  </Button>
-                </div>
+                <EmptyTabState
+                  type="deck"
+                  title="No se encontraron mazos"
+                  description="Sé el primero en compartir un mazo de flashcards con la comunidad."
+                  buttonText="Publicar un mazo"
+                  icon={Layers}
+                  iconColor="bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400"
+                />
               )}
             </div>
           )}
@@ -1043,21 +1411,14 @@ export default function Marketplace() {
                 {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
               </AnimatePresence>
               {publicQuizzes.length === 0 && (
-                <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-                    <HelpCircle className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron cuestionarios</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                    Comparte un quiz de autoevaluación para ayudar a otros estudiantes a medir sus conocimientos.
-                  </p>
-                  <Button 
-                    onClick={() => { setSelectedPublishType('quiz'); setPublishSelectOpen(true); }}
-                    className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                  >
-                    Publicar un cuestionario
-                  </Button>
-                </div>
+                <EmptyTabState
+                  type="quiz"
+                  title="No se encontraron cuestionarios"
+                  description="Comparte un quiz de autoevaluación para ayudar a otros estudiantes a medir sus conocimientos."
+                  buttonText="Publicar un cuestionario"
+                  icon={HelpCircle}
+                  iconColor="bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400"
+                />
               )}
             </div>
           )}
@@ -1070,21 +1431,14 @@ export default function Marketplace() {
               {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
             </AnimatePresence>
             {publicApuntes.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron apuntes</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Publica tus notas y resúmenes de Notion para que tus compañeros puedan estudiar con ellos.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('apunte'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar un apunte
-                </Button>
-              </div>
+              <EmptyTabState
+                type="apunte"
+                title="No se encontraron apuntes"
+                description="Publica tus notas y resúmenes de Notion para que tus compañeros puedan estudiar con ellos."
+                buttonText="Publicar un apunte"
+                icon={GraduationCap}
+                iconColor="bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400"
+              />
             )}
           </div>
         </TabsContent>
@@ -1096,21 +1450,14 @@ export default function Marketplace() {
               {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
             </AnimatePresence>
             {publicFiles.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron archivos</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Comparte PDFs, guías o documentos de tu biblioteca académica.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar un archivo
-                </Button>
-              </div>
+              <EmptyTabState
+                type="file"
+                title="No se encontraron archivos"
+                description="Comparte PDFs, guías o documentos de tu biblioteca académica."
+                buttonText="Publicar un archivo"
+                icon={FileText}
+                iconColor="bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400"
+              />
             )}
           </div>
         </TabsContent>
@@ -1122,21 +1469,14 @@ export default function Marketplace() {
               {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
             </AnimatePresence>
             {publicFolders.length === 0 && (
-              <div className="col-span-full neo-bento-card p-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
-                  <Folder className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">No se encontraron carpetas</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">
-                  Comparte carpetas completas de recursos organizados por temas o asignaturas.
-                </p>
-                <Button 
-                  onClick={() => { setSelectedPublishType('file'); setPublishSelectOpen(true); }}
-                  className="mt-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium h-8 px-3 rounded-lg"
-                >
-                  Publicar una carpeta
-                </Button>
-              </div>
+              <EmptyTabState
+                type="folder"
+                title="No se encontraron carpetas"
+                description="Comparte carpetas completas de recursos organizados por temas o asignaturas."
+                buttonText="Publicar una carpeta"
+                icon={Folder}
+                iconColor="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+              />
             )}
           </div>
         </TabsContent>
