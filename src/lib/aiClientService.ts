@@ -809,7 +809,17 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     d) RUTINAS (target: "routines"): crear, cambiar horarios/días/nombre, pausar/activar ('is_active': true/false) o eliminar rutinas.
     e) PROFESORES Y CONSULTAS (target: "professors", target: "office_hours"): agregar, modificar o eliminar profesores y sus horarios de consulta.
     f) MAZOS DE FLASHCARDS Y CUESTIONARIOS (target: "flashcard_decks", target: "quiz_decks"): renombrar o eliminar mazos/cuestionarios.
-    g) APUNTES, ARCHIVOS Y SESIONES DE ESTUDIO (target: "notion_documents", target: "library_files", target: "study_sessions"): crear, modificar o borrar.
+    g) TIEMPO DE ESTUDIO Y SESIONES (target: "study_sessions"):
+       - Si el estudiante te pide cargar, anotar o registrar tiempo de estudio ("cargame 2 horas de estudio de Física", "anotá 45 minutos de estudio", "estudié 1 hora y media de Análisis hoy"):
+         * Usá target: "study_sessions", operation: "create".
+         * data: {
+             "subject_name": "Nombre de la materia (opcional)",
+             "duracion_segundos": 7200, (o "minutos": 120, o "horas": 2),
+             "fecha": "YYYY-MM-DD" (fecha del estudio, por defecto hoy),
+             "tipo": "manual"
+           }
+       - Si te pide borrar una sesión: target: "study_sessions", operation: "delete".
+    h) APUNTES Y ARCHIVOS (target: "notion_documents", target: "library_files"): crear, modificar o borrar.
     ⚠️ SEGURIDAD CRÍTICA Y DATOS SENSIBLES ESTRICTAMENTE PROHIBIDOS:
     - NUNCA intentes modificar ni borrar datos sensibles de la cuenta: Nombre del usuario, Apellido, Nombre de usuario (username), Contraseña (password), Correo electrónico (email), Teléfono, Suscripción/Plan de pago, Nivel/XP de user_stats, ni eliminar la cuenta.
     - Si el estudiante te pide cambiar su nombre, contraseña, email o datos de cuenta, explicale con calidez que por razones de seguridad y privacidad esos datos sensibles están protegidos y solo pueden modificarse manualmente desde Configuración.
@@ -1554,6 +1564,124 @@ async function executeDatabaseMutations(
           else if (match.titulo || match.title) query.ilike("titulo", match.titulo || match.title);
           await query;
           results.push({ target: "notion_documents", operation: "delete", message: "Apunte eliminado." });
+        }
+      }
+
+      // 8. STUDY_SESSIONS (Tiempo de estudio y métricas)
+      else if (
+        rawTarget === "study_sessions" ||
+        rawTarget === "study_session" ||
+        rawTarget.includes("sesion") ||
+        rawTarget.includes("estudio") ||
+        rawTarget.includes("tiempo") ||
+        rawTarget.includes("metric")
+      ) {
+        if (op === "create") {
+          const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name || match.materia);
+
+          // Calcular duracion_segundos de forma ultra tolerante
+          let totalSeconds = 0;
+          if (data.duracion_segundos !== undefined) {
+            totalSeconds = Number(data.duracion_segundos) || 0;
+          } else if (data.segundos !== undefined) {
+            totalSeconds = Number(data.segundos) || 0;
+          } else if (data.minutos !== undefined || data.minutes !== undefined) {
+            totalSeconds = Math.round((Number(data.minutos ?? data.minutes) || 0) * 60);
+          } else if (data.horas !== undefined || data.hours !== undefined) {
+            totalSeconds = Math.round((Number(data.horas ?? data.hours) || 0) * 3600);
+          } else if (data.duracion || data.duration) {
+            const rawD = String(data.duracion || data.duration).toLowerCase();
+            const hourMatch = rawD.match(/(\d+(?:\.\d+)?)\s*(?:h|hora)/);
+            const minMatch = rawD.match(/(\d+(?:\.\d+)?)\s*(?:m|min)/);
+            if (hourMatch) totalSeconds += parseFloat(hourMatch[1]) * 3600;
+            if (minMatch) totalSeconds += parseFloat(minMatch[1]) * 60;
+            if (totalSeconds === 0 && /^\d+$/.test(rawD.trim())) {
+              const n = parseInt(rawD.trim(), 10);
+              totalSeconds = n <= 12 ? n * 3600 : n * 60;
+            }
+          }
+
+          if (totalSeconds <= 0) {
+            totalSeconds = 3600; // Fallback a 1 hora si no se detectó número
+          }
+
+          const fecha = data.fecha || match.fecha || new Date().toISOString().split("T")[0];
+          const tipo = data.tipo || "manual";
+
+          const { error: insErr } = await (supabase as any)
+            .from("study_sessions")
+            .insert({
+              user_id: currentUserId,
+              fecha,
+              duracion_segundos: totalSeconds,
+              tipo,
+              completada: true,
+              subject_id: sub?.id || null,
+            });
+
+          if (!insErr) {
+            statsTouched = true;
+
+            // Actualizar horas totales, XP y créditos en user_stats
+            const hours = Math.floor(totalSeconds / 3600);
+            const xpGained = Math.round((totalSeconds / 60) * 0.5);
+            const creditsGained = Math.floor(totalSeconds / 1800);
+
+            try {
+              const { data: stats } = await (supabase as any)
+                .from("user_stats")
+                .select("*")
+                .eq("user_id", currentUserId)
+                .maybeSingle();
+
+              if (stats) {
+                const currentStats = stats as any;
+                await (supabase as any)
+                  .from("user_stats")
+                  .update({
+                    horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
+                    xp_total: (currentStats.xp_total || 0) + xpGained,
+                    credits: (currentStats.credits || 0) + creditsGained,
+                    nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
+                  })
+                  .eq("user_id", currentUserId);
+
+                await (supabase as any).rpc("check_and_unlock_achievements", { p_user_id: currentUserId });
+              }
+            } catch (statsErr) {
+              console.warn("[TABE AI] Error al actualizar user_stats:", statsErr);
+            }
+
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("tabe_study_sessions_updated"));
+            }
+
+            const formattedTime = totalSeconds >= 3600
+              ? `${(totalSeconds / 3600).toFixed(1).replace(".0", "")} hora(s)`
+              : `${Math.round(totalSeconds / 60)} minuto(s)`;
+
+            results.push({
+              target: "study_sessions",
+              operation: "create",
+              message: `Se registraron ${formattedTime} de estudio en ${sub ? sub.nombre : "tu registro general"} (+${xpGained} XP).`,
+            });
+          }
+        } else if (op === "delete") {
+          const sessionId = act.id || match.id;
+          if (sessionId) {
+            await (supabase as any).from("study_sessions").delete().eq("id", sessionId).eq("user_id", currentUserId);
+          } else {
+            const sub = resolveSubject(match.subject_name || match.materia || data.subject_name);
+            const query = (supabase as any).from("study_sessions").delete().eq("user_id", currentUserId);
+            if (sub) query.eq("subject_id", sub.id);
+            if (match.fecha || data.fecha) query.eq("fecha", match.fecha || data.fecha);
+            await query;
+          }
+          statsTouched = true;
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("tabe_study_sessions_updated"));
+          }
+          results.push({ target: "study_sessions", operation: "delete", message: "Sesión de estudio eliminada." });
         }
       }
     } catch (actErr) {

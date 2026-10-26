@@ -125,6 +125,9 @@ export function ManualStudyDialog({ open, onOpenChange, onSuccess, subjects, ini
 
       // Invalidar caché del dashboard para reflejar el nuevo tiempo inmediatamente
       invalidateDashboardStatsCache();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("tabe_study_sessions_updated"));
+      }
 
       toast.success(`¡Tiempo guardado! +${xpGained} XP y +${creditsGained} Créditos ganados`);
       onSuccess();

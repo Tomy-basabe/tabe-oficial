@@ -148,6 +148,17 @@ export default function Metrics() {
     };
   }, [fetchData]);
 
+  // Listen to local study sessions updates
+  useEffect(() => {
+    const handleStudySessionsUpdated = () => {
+      fetchData(false);
+    };
+    window.addEventListener("tabe_study_sessions_updated", handleStudySessionsUpdated);
+    return () => {
+      window.removeEventListener("tabe_study_sessions_updated", handleStudySessionsUpdated);
+    };
+  }, [fetchData]);
+
   // Listen to realtime study sessions updates
   useRealtimeSubscription({
     table: "study_sessions",
