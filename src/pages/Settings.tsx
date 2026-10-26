@@ -52,13 +52,23 @@ export default function Settings() {
 
   // Cargar facultad y carrera desde profiles
   const fetchAcademicProfile = async () => {
-    if (!user) return;
+    if (isGuest || !user) {
+      try {
+        const guestFac = localStorage.getItem("tabe_guest_facultad");
+        const guestCar = localStorage.getItem("tabe_guest_carrera");
+        setAcademicProfile({
+          facultad: guestFac || null,
+          carrera: guestCar || null,
+        });
+      } catch {}
+      return;
+    }
     try {
       const { data } = await supabase
         .from("profiles")
         .select("facultad, carrera")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
       if (data) {
         setAcademicProfile({
           facultad: data.facultad || null,
@@ -113,7 +123,6 @@ export default function Settings() {
   };
 
   const handleSaveAcademicChanges = async () => {
-    if (!user) return;
 
     if (!selectedFacultad) {
       toast.error("Por favor selecciona tu facultad o universidad");
@@ -133,6 +142,40 @@ export default function Settings() {
 
     try {
       setIsSavingAcademic(true);
+
+      if (isGuest || !user) {
+        localStorage.setItem("tabe_guest_facultad", resolvedFacName);
+        if (actionType === "only_facultad") {
+          toast.success("Facultad actualizada con éxito");
+        } else {
+          if (!selectedCareer) {
+            toast.error("Por favor selecciona una carrera");
+            setIsSavingAcademic(false);
+            return;
+          }
+          const confirmed = await confirm({
+            title: "¿Sobrescribir materias actuales?",
+            description: "Se reemplazarán las materias de tu espacio académico por las materias del nuevo plan oficial. ¿Deseas continuar?",
+            confirmText: "Sí, cargar nuevo plan",
+            cancelText: "Cancelar",
+            variant: "warning",
+          });
+          if (!confirmed) {
+            setIsSavingAcademic(false);
+            return;
+          }
+          toast.loading("Cargando materias del nuevo plan...", { id: "academic-plan" });
+          await deleteAllSubjects();
+          await importCareerPlan(selectedCareer, true);
+          const careerObj = AVAILABLE_CAREERS.find((c) => c.id === selectedCareer);
+          localStorage.setItem("tabe_guest_carrera", careerObj?.label || selectedCareer);
+          toast.success("¡Plan de carrera oficial importado con éxito!", { id: "academic-plan" });
+        }
+        await fetchAcademicProfile();
+        setIsAcademicModalOpen(false);
+        setIsSavingAcademic(false);
+        return;
+      }
 
       if (actionType === "only_facultad") {
         // Opción 1: Solo cambiar la facultad en el perfil sin tocar las materias
@@ -617,6 +660,32 @@ export default function Settings() {
                           </button>
                         )}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {isGuest && (
+                  <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 space-y-3 shadow-xs">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 stroke-[2]" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                          Sesión en Modo Demostración
+                        </h3>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          Tus materias y apuntes actuales se encuentran guardados temporalmente en este navegador. Registra tu cuenta gratis para sincronizar tu progreso en la nube y acceder desde tu teléfono o computadora.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-1 flex items-center gap-2">
+                      <RouterLink
+                        to="/registro"
+                        className="h-8 px-3.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <span>Registrarme y guardar mi progreso</span>
+                      </RouterLink>
                     </div>
                   </div>
                 )}
@@ -1214,6 +1283,194 @@ export default function Settings() {
         </div>
 
       </div>
+
+      {/* Modal para Modificar Facultad y Carrera / Plan Oficial */}
+      <Dialog open={isAcademicModalOpen} onOpenChange={setIsAcademicModalOpen}>
+        <DialogContent className="sm:max-w-lg bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800 shadow-2xl rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-left space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[11px] font-medium border border-indigo-200/60 dark:border-indigo-800/50">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Perfil Académico
+              </span>
+            </div>
+            <DialogTitle className="font-semibold text-lg sm:text-xl tracking-tight text-zinc-900 dark:text-zinc-100">
+              Modificar Facultad y Plan de Carrera
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Personaliza tu universidad o importa un plan de estudios oficial para tu carrera.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 pt-2">
+            {/* Selector de Provincia */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Provincia
+              </label>
+              <Select value={selectedProvincia} onValueChange={(val) => {
+                setSelectedProvincia(val);
+                setSelectedFacultad("");
+                setSelectedCareer("");
+              }}>
+                <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs rounded-xl">
+                  <SelectValue placeholder="Selecciona provincia..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 z-50">
+                  {ALL_PROVINCIAS.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Selector de Facultad */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Universidad o Instituto
+              </label>
+              <Select value={selectedFacultad} onValueChange={(val) => {
+                setSelectedFacultad(val);
+                setSelectedCareer("");
+              }}>
+                <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs rounded-xl">
+                  <SelectValue placeholder="Selecciona facultad o universidad..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 z-50">
+                  {facultadesForProvincia.map((f) => (
+                    <SelectItem key={f.id} value={f.id} className="text-xs">
+                      {f.fullLabel || f.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="OTHER" className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    + Otra institución (escribir manual)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Input para Otra Facultad */}
+            {selectedFacultad === "OTHER" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Nombre de tu Institución
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ej: Universidad Siglo 21 / Instituto Técnico"
+                  value={customFacultad}
+                  onChange={(e) => setCustomFacultad(e.target.value)}
+                  className="h-9 text-xs rounded-xl"
+                />
+              </div>
+            )}
+
+            {/* Tipo de Acción */}
+            <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block">
+                ¿Qué deseas actualizar?
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActionType("only_facultad")}
+                  className={cn(
+                    "p-3 rounded-xl border text-left transition-all cursor-pointer select-none",
+                    actionType === "only_facultad"
+                      ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-2xs"
+                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  <div className="flex items-center gap-2 font-medium text-xs">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Solo mi institución</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    No toca tus materias actuales ni altera tu progreso.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActionType("load_plan")}
+                  className={cn(
+                    "p-3 rounded-xl border text-left transition-all cursor-pointer select-none",
+                    actionType === "load_plan"
+                      ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200 shadow-2xs"
+                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  <div className="flex items-center gap-2 font-medium text-xs">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Cargar nuevo plan oficial</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    Importa las materias y correlatividades del plan de carrera.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Selector de Carrera si eligió cargar plan */}
+            {actionType === "load_plan" && (
+              <div className="space-y-1.5 pt-2">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Carrera oficial disponible
+                </label>
+                {availableCareersForModal.length > 0 ? (
+                  <Select value={selectedCareer} onValueChange={setSelectedCareer}>
+                    <SelectTrigger className="w-full h-9 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs rounded-xl">
+                      <SelectValue placeholder="Selecciona tu carrera..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56 z-50">
+                      {availableCareersForModal.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                    No hay planes automáticos predefinidos para esta institución aún. Puedes agregar tus materias manualmente en Mi Carrera.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAcademicModalOpen(false)}
+              className="h-8 text-xs rounded-lg cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveAcademicChanges}
+              disabled={isSavingAcademic || (actionType === "load_plan" && !selectedCareer && availableCareersForModal.length > 0)}
+              className="h-8 px-4 text-xs font-medium bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 rounded-lg cursor-pointer"
+            >
+              {isSavingAcademic ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5 mr-1.5" /> Guardar cambios
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modales Vinculados */}
       <MoodleConnectModal

@@ -36,6 +36,14 @@ export function CareerPlanOnboardingModal() {
     let isMounted = true;
 
     const checkAcademicStatus = async () => {
+      // Regla: en modo demo / invitado no se hace el cuestionario de facultad
+      if (isGuest || !user) {
+        if (isMounted) {
+          setLoadingCheck(false);
+          setIsOpen(false);
+        }
+        return;
+      }
       // Si el usuario ya lo respondió u omitió en esta versión, no volver a mostrar nunca
       if (localStorage.getItem(storageKey) === "true") {
         if (isMounted) setLoadingCheck(false);

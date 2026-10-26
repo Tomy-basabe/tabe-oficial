@@ -503,7 +503,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = () => {
     setIsGuest(true);
-    try { localStorage.setItem("tabe_guest_mode", "true"); } catch {}
+    try {
+      localStorage.setItem("tabe_guest_mode", "true");
+      localStorage.setItem("tabe_career_onboarding_v2_guest", "true");
+    } catch {}
     // Guest dummy profile - check localStorage first
     setProfile({ active_theme: null, active_badge: null, sidebar_config: null });
     applyTheme();
