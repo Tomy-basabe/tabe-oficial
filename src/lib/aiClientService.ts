@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { invalidateSubjectsCache } from "@/hooks/useSubjects";
+import { invalidateCalendarCache, getColorForType } from "@/hooks/useCalendarEvents";
+import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 import {
   AVAILABLE_AI_MODELS,
   DEFAULT_AI_MODEL,
@@ -9,11 +13,18 @@ import {
   NVIDIA_MODELS_PRIORITY,
 } from "@/config/aiModels";
 
+export interface AIStatusUpdate {
+  state: "thinking" | "streaming" | "idle" | "error";
+  label: string;
+  detail?: string;
+}
+
 export interface StreamResult {
   content: string;
   event_created?: any;
   flashcards_created?: { deck: any; cards_count: number };
   quiz_created?: { deck: any; questions_count: number };
+  db_mutations?: Array<{ target: string; operation: string; message: string }>;
 }
 
 // In-memory cache of student context to avoid re-querying on rapid consecutive messages (5 minutes TTL)
@@ -151,6 +162,8 @@ export async function buildStudentContext(
   const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const hoyStr = now.toISOString().split("T")[0];
   const hoyDia = diasSemana[now.getDay()];
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
 
   let profileSection = "Estudiante de TABE.";
   let summarySection = "Sin datos de carrera registrados aún.";
@@ -207,7 +220,7 @@ export async function buildStudentContext(
           .from("calendar_events")
           .select("id, titulo, fecha, hora, hora_fin, tipo_examen, notas, subject_id")
           .eq("user_id", userId)
-          .gte("fecha", hoyStr)
+          .gte("fecha", thirtyDaysAgoStr)
           .order("fecha", { ascending: true })
           .limit(30),
 
@@ -255,7 +268,7 @@ export async function buildStudentContext(
         // 10. Study sessions
         (supabase as any)
           .from("study_sessions")
-          .select("subject_id, duracion_segundos, fecha, tipo")
+          .select("id, subject_id, duracion_segundos, fecha, tipo")
           .eq("user_id", userId)
           .order("fecha", { ascending: false })
           .limit(20),
@@ -441,7 +454,7 @@ export async function buildStudentContext(
           for (const yr of Object.keys(byYear).sort((a, b) => Number(a) - Number(b))) {
             const list = byYear[Number(yr)];
             const lines = list.map((s) => {
-              let line = `  • ${s.nombre} [${s.codigo || "S/C"}]: ${s.estado.toUpperCase()}`;
+              let line = `  • ${s.nombre} [${s.codigo || "S/C"}] [ID: ${s.id}]: ${s.estado.toUpperCase()}`;
               if (s.nota != null) line += ` | NOTA FINAL: ${s.nota}`;
               if (s.final_examen != null) line += ` | Examen Final: ${s.final_examen}`;
               const parciales = [];
@@ -465,7 +478,7 @@ export async function buildStudentContext(
               const subName = e.subject_id && subjectNameById[e.subject_id] ? ` [Materia: ${subjectNameById[e.subject_id]}]` : "";
               const hora = e.hora ? ` a las ${e.hora}` : "";
               const notas = e.notas ? ` (Detalle: ${e.notas})` : "";
-              return `- ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
+              return `- [ID: ${e.id}] ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
             })
             .join("\n");
         }
@@ -477,7 +490,7 @@ export async function buildStudentContext(
             .map((d) => {
               const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
               const fav = d.is_favorite ? " ⭐ Favorito" : "";
-              return `- "${d.titulo}"${subName}${fav}`;
+              return `- [ID: ${d.id}] "${d.titulo}"${subName}${fav}`;
             })
             .join("\n");
         }
@@ -488,7 +501,7 @@ export async function buildStudentContext(
           flashcardsSection = decks
             .map((d) => {
               const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
-              return `- Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
+              return `- [ID: ${d.id}] Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
             })
             .join("\n");
         }
@@ -499,7 +512,7 @@ export async function buildStudentContext(
           quizzesSection = quizzes
             .map((q) => {
               const subName = q.subject_id && subjectNameById[q.subject_id] ? ` [Materia: ${subjectNameById[q.subject_id]}]` : "";
-              return `- Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
+              return `- [ID: ${q.id}] Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
             })
             .join("\n");
         }
@@ -510,7 +523,7 @@ export async function buildStudentContext(
           librarySection = files
             .map((f) => {
               const subName = f.subject_id && subjectNameById[f.subject_id] ? ` [Materia: ${subjectNameById[f.subject_id]}]` : "";
-              return `- "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
+              return `- [ID: ${f.id}] "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
             })
             .join("\n");
         }
@@ -525,7 +538,7 @@ export async function buildStudentContext(
                 ? r.days_of_week.map((d: number) => daysMap[d] || d).join(", ")
                 : "Días no especificados";
               const subName = r.subject_id && subjectNameById[r.subject_id] ? ` [Materia: ${subjectNameById[r.subject_id]}]` : "";
-              return `- "${r.name}" (${r.category || "Hábito"}): ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
+              return `- [ID: ${r.id}] "${r.name}" (${r.category || "Hábito"}) [${r.is_active ? "Activa" : "Pausada"}]: ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
             })
             .join("\n");
         }
@@ -537,7 +550,7 @@ export async function buildStudentContext(
             .map((s) => {
               const subName = s.subject_id && subjectNameById[s.subject_id] ? ` en ${subjectNameById[s.subject_id]}` : "";
               const mins = Math.round((s.duracion_segundos || 0) / 60);
-              return `- ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
+              return `- [ID: ${s.id || "sesion"}] ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
             })
             .join("\n");
         }
@@ -558,10 +571,10 @@ export async function buildStudentContext(
             const subjectName = p.subject_id && subjectNameById[p.subject_id] ? ` [Materia: ${subjectNameById[p.subject_id]}]` : "";
             const hours = officeHoursList.filter((h) => h.professor_id === p.id);
             const hoursStr = hours.length > 0
-              ? hours.map((h) => `${h.dia} de ${h.hora_inicio} a ${h.hora_fin}`).join(", ")
+              ? hours.map((h) => `${h.dia} de ${h.hora_inicio} a ${h.hora_fin} [HorarioID: ${h.id}]`).join(", ")
               : "Sin horarios de consulta especificados";
             const desc = p.descripcion ? ` (Notas: ${p.descripcion})` : "";
-            return `- ${p.nombre} (${p.rol || "Docente"})${subjectName}: Consultas ${hoursStr}${desc}`;
+            return `- [ID: ${p.id}] ${p.nombre} (${p.rol || "Docente"})${subjectName}: Consultas ${hoursStr}${desc}`;
           }).join("\n");
         }
 
@@ -648,10 +661,23 @@ export async function buildStudentContext(
     alto: "POTENCIA / RAZONAMIENTO: MÁXIMO. Razonamiento profundo y analítico, deducción lógica rigurosa paso a paso y resolución profunda.",
   }[powerLevel];
 
+  const diasSemanaRef = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const proximosDiasRef: string[] = [];
+  for (let i = 0; i <= 14; i++) {
+    const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().split("T")[0];
+    const diaNom = diasSemanaRef[d.getDay()];
+    const tag = i === 0 ? " (HOY)" : i === 1 ? " (MAÑANA)" : "";
+    proximosDiasRef.push(`${dateStr} ${diaNom}${tag}`);
+  }
+  const calendarioCheatSheet = proximosDiasRef.join(" | ");
+
   const contextText = `Sos ${personaName}, asistente y tutor académico de inteligencia artificial exclusivo de TABE (plataforma universitaria de Argentina).
 Personalidad: ${personaPrompt}
 MODALIDAD OPERATIVA: ${powerDirectives}
 FECHA ACTUAL: ${hoyStr} (${hoyDia})
+CALENDARIO PRÓXIMOS 14 DÍAS (REFERENCIA EXACTA):
+${calendarioCheatSheet}
 
 ==================================================
 100% DE LA INFORMACIÓN DEL ESTUDIANTE (CONEXIÓN TOTAL)
@@ -747,7 +773,50 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     - Si el estudiante te consulta sobre sus profesores ("cuándo atiende el profe", "a qué hora es la consulta de...", "qué horario tiene el profesor X", "qué rol tiene el profe"): responde con los datos reales de [12. PROFESORES Y HORARIOS DE CONSULTA].
     - Si te consulta sobre mensajes, chats, foros o preguntas de sus compañeros ("qué preguntaron en el grupo", "qué hablaron en el chat de Álgebra", "recordame mensajes importantes de profes/ayudantes", "qué dudas tienen mis compañeros", "respondeme las dudas frecuentes que dejaron en el foro"): responde basándote en los mensajes reales de [13. GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES], sintetizando dudas, respondiéndolas o destacando avisos clave.
     - Si te pide ayuda para organizar grupos de estudio ("ayudame a armar un grupo de estudio", "con quién puedo estudiar", "quién cursa conmigo"): apóyate en sus compañeros de [14. COMPAÑEROS DE ESTUDIO Y AMIGOS] y los canales existentes para sugerir temas, coordinar sesiones en común y aprovechar las consultas de los profesores.
-    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.`;
+    - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.
+14. GESTIÓN Y MODIFICACIÓN TOTAL DE LA BASE DE DATOS DEL USUARIO (\`\`\`tabe-action:db):
+    Tenés permiso y capacidad total para CREAR, MODIFICAR (ACTUALIZAR) y BORRAR (ELIMINAR) cualquier dato académico y registro del estudiante en su base de datos cuando te lo pida:
+    a) PARCIALES, EXÁMENES Y EVENTOS DEL CALENDARIO (target: "calendar_events"):
+       - Si el estudiante te pide cambiar la fecha, hora, tipo de examen o borrar/cancelar un parcial o evento de su calendario:
+         * Podés modificar 'fecha' (YYYY-MM-DD), 'hora' (HH:mm), 'tipo_examen' (P1, P2, P3, Global, Final, Recuperatorio P1, Recuperatorio P2, Recuperatorio Global, etc.), 'titulo', 'notas' o 'subject_name'.
+         * Podés borrar eventos del calendario (operation: "delete").
+         * Podés agendar nuevos exámenes o eventos (operation: "create").
+    b) NOTAS DE PARCIALES, RECUPERATORIOS, FINALES Y ESTADO DE MATERIAS (target: "subject_status"):
+       - Si el estudiante te dice que se sacó una nota en un parcial ("me saqué un 8 en el parcial 1 de Análisis", "modificá la nota del parcial 2 de Física a 7", "borrá la nota del parcial 1"):
+         * Cargar o modificar notas numéricas: 'nota_parcial_1' (P1), 'nota_rec_parcial_1' (Rec P1), 'nota_parcial_2' (P2), 'nota_rec_parcial_2' (Rec P2), 'nota_global' (Global), 'nota_rec_global' (Rec Global), 'nota_final_examen' (Final), 'nota' (Nota definitiva).
+         * Borrar notas: pasar null en la nota correspondiente (ej: {"nota_parcial_1": null}).
+         * Cambiar estado de materia: 'aprobada', 'regular', 'cursable', 'recursar'.
+    c) MATERIAS DEL PLAN (target: "subjects"): agregar materia nueva, modificar nombre/código/año o eliminar una materia.
+    d) RUTINAS (target: "routines"): crear, cambiar horarios/días/nombre, pausar/activar ('is_active': true/false) o eliminar rutinas.
+    e) PROFESORES Y CONSULTAS (target: "professors", target: "office_hours"): agregar, modificar o eliminar profesores y sus horarios de consulta.
+    f) MAZOS DE FLASHCARDS Y CUESTIONARIOS (target: "flashcard_decks", target: "quiz_decks"): renombrar o eliminar mazos/cuestionarios.
+    g) APUNTES, ARCHIVOS Y SESIONES DE ESTUDIO (target: "notion_documents", target: "library_files", target: "study_sessions"): crear, modificar o borrar.
+    ⚠️ SEGURIDAD CRÍTICA Y DATOS SENSIBLES ESTRICTAMENTE PROHIBIDOS:
+    - NUNCA intentes modificar ni borrar datos sensibles de la cuenta: Nombre del usuario, Apellido, Nombre de usuario (username), Contraseña (password), Correo electrónico (email), Teléfono, Suscripción/Plan de pago, Nivel/XP de user_stats, ni eliminar la cuenta.
+    - Si el estudiante te pide cambiar su nombre, contraseña, email o datos de cuenta, explicale con calidez que por razones de seguridad y privacidad esos datos sensibles están protegidos y solo pueden modificarse manualmente desde Configuración.
+    FORMATO OBLIGATORIO DE ACCIÓN DE BASE DE DATOS:
+    Cuando el estudiante te pida crear, modificar o borrar cualquiera de los datos permitidos, confirmale en tu respuesta en español rioplatense qué cambio hiciste e incluí OBLIGATORIAMENTE al final de tu mensaje el bloque:
+\`\`\`tabe-action:db
+[
+  {
+    "target": "calendar_events | subject_status | subjects | routines | professors | office_hours | flashcard_decks | quiz_decks | notion_documents | library_files | study_sessions",
+    "operation": "create | update | delete",
+    "id": "UUID si figura en el contexto (opcional)",
+    "match": {
+      "subject_name": "Nombre o apodo de materia",
+      "titulo": "Título del evento/apunte/mazo/profe",
+      "tipo_examen": "P1 | P2 | Final | etc.",
+      "fecha": "YYYY-MM-DD"
+    },
+    "data": {
+      "fecha": "YYYY-MM-DD",
+      "hora": "HH:mm",
+      "nota_parcial_1": 8,
+      "estado": "regular"
+    }
+  }
+]
+\`\`\``;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
@@ -894,14 +963,616 @@ function normalizeQuizPayload(data: any): any {
   };
 }
 
+/**
+ * Normaliza tipos de examen a valores válidos en la base de datos
+ */
+function normalizeExamType(raw: string): string {
+  const n = (raw || "").toLowerCase().trim();
+  const m: Record<string, string> = {
+    "parcial1": "P1", "parcial 1": "P1", "p1": "P1", "primer parcial": "P1",
+    "parcial2": "P2", "parcial 2": "P2", "p2": "P2", "segundo parcial": "P2",
+    "global": "Global", "final": "Final",
+    "recuperatorio": "Recuperatorio P1",
+    "recuperatorio p1": "Recuperatorio P1", "recuperatorio 1": "Recuperatorio P1",
+    "recuperatorio p2": "Recuperatorio P2", "recuperatorio 2": "Recuperatorio P2",
+    "recuperatorio global": "Recuperatorio Global",
+    "estudio": "Estudio", "estudiar": "Estudio",
+    "tp": "TP", "trabajo practico": "TP", "trabajo práctico": "TP",
+    "entrega": "Entrega", "clase": "Clase", "cursada": "Clase", "otro": "Otro",
+  };
+  if (m[n]) return m[n];
+  const pMatch = n.match(/parcial\s*(\d+)/i) || n.match(/^p(\d+)$/i);
+  if (pMatch) return `P${pMatch[1]}`;
+  return "Otro";
+}
+
+/**
+ * Motor universal de mutaciones en base de datos para TABE AI.
+ * Ejecuta creaciones, modificaciones y eliminaciones de parciales, notas, rutinas, etc.
+ * con protección estricta contra modificación de datos sensibles.
+ */
+async function executeDatabaseMutations(
+  rawActionContent: string,
+  currentUserId: string
+): Promise<Array<{ target: string; operation: string; message: string }>> {
+  if (!currentUserId || currentUserId === "guest") return [];
+
+  let cleaned = rawActionContent.trim();
+  cleaned = cleaned.replace(/^```(?:tabe-action:db|json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  let actions: any[] = [];
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      actions = parsed;
+    } else if (parsed && typeof parsed === "object") {
+      if (Array.isArray(parsed.actions)) actions = parsed.actions;
+      else if (Array.isArray(parsed.operations)) actions = parsed.operations;
+      else actions = [parsed];
+    }
+  } catch (err) {
+    console.warn("[TABE AI DB] Error al parsear acción de BD:", err, cleaned);
+    return [];
+  }
+
+  if (actions.length === 0) return [];
+
+  const results: Array<{ target: string; operation: string; message: string }> = [];
+  const norm = (s: string) =>
+    (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  let userSubjects: any[] = [];
+  try {
+    const { data: subs } = await (supabase as any)
+      .from("subjects")
+      .select("id, nombre, codigo, año, numero_materia")
+      .eq("user_id", currentUserId);
+    userSubjects = subs || [];
+  } catch {}
+
+  const stopWords = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "con", "i", "ii", "iii", "iv", "v", "1", "2", "3"]);
+  const getAcronyms = (name: string): string[] => {
+    const words = norm(name).split(" ").filter(Boolean);
+    const meaningfulWords = words.filter((w) => !stopWords.has(w));
+    const acrMeaningful = meaningfulWords.map((w) => w[0]).join("").toUpperCase();
+    const acrAll = words.map((w) => w[0]).join("").toUpperCase();
+    return Array.from(new Set([acrMeaningful, acrAll].filter((a) => a.length >= 2)));
+  };
+
+  const resolveSubject = (query: any): any | null => {
+    if (!query || typeof query !== "string") return null;
+    const cleanQ = query.trim();
+    if (!cleanQ) return null;
+
+    const exactUuid = userSubjects.find((s) => s.id === cleanQ);
+    if (exactUuid) return exactUuid;
+
+    const nq = norm(cleanQ);
+    const exactName = userSubjects.find((s) => norm(s.nombre) === nq || norm(s.codigo) === nq);
+    if (exactName) return exactName;
+
+    const nqRoman = nq.replace(/\b1\b/g, "i").replace(/\b2\b/g, "ii").replace(/\b3\b/g, "iii");
+    const nqArabic = nq.replace(/\biii\b/g, "3").replace(/\bii\b/g, "2").replace(/\bi\b/g, "1");
+    for (const s of userSubjects) {
+      const sn = norm(s.nombre);
+      if (sn === nqRoman || sn === nqArabic) return s;
+    }
+
+    const cleanUpper = cleanQ.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (cleanUpper.length >= 2 && cleanUpper.length <= 5) {
+      const acrMatches = userSubjects.filter((s) => getAcronyms(s.nombre).includes(cleanUpper));
+      if (acrMatches.length > 0) return acrMatches[0];
+    }
+
+    for (const s of userSubjects) {
+      const sn = norm(s.nombre);
+      if (sn.includes(nq) || nq.includes(sn)) return s;
+    }
+
+    return null;
+  };
+
+  let subjectsTouched = false;
+  let calendarTouched = false;
+  let statsTouched = false;
+
+  for (const act of actions) {
+    if (!act || typeof act !== "object") continue;
+
+    const rawTarget = String(act.target || act.table || act.tabla || act.entity || "").toLowerCase().trim();
+    const rawOp = String(act.operation || act.action || act.op || act.type || "update").toLowerCase().trim();
+
+    let op = "update";
+    if (["create", "insert", "add", "new", "crear", "agregar"].includes(rawOp)) op = "create";
+    else if (["delete", "remove", "clear", "erase", "borrar", "eliminar"].includes(rawOp)) op = "delete";
+
+    // ── GUARDIA DE SEGURIDAD ESTRICTA: Datos sensibles bloqueados ──
+    if (
+      rawTarget.includes("profile") ||
+      rawTarget.includes("user") ||
+      rawTarget.includes("auth") ||
+      rawTarget.includes("password") ||
+      rawTarget.includes("contrase") ||
+      rawTarget.includes("email") ||
+      rawTarget.includes("correo") ||
+      rawTarget.includes("account") ||
+      rawTarget.includes("cuenta") ||
+      rawTarget.includes("subscription") ||
+      rawTarget.includes("suscrip") ||
+      rawTarget.includes("xp")
+    ) {
+      console.warn("[TABE AI Security] Intento bloqueado de modificar datos sensibles:", rawTarget);
+      results.push({
+        target: rawTarget,
+        operation: op,
+        message: "Por seguridad, los datos sensibles de tu cuenta (nombre, contraseña, correo, etc.) solo pueden ser modificados manualmente desde Configuración.",
+      });
+      continue;
+    }
+
+    const data = act.data || {};
+    const match = act.match || {};
+
+    try {
+      // 1. CALENDAR_EVENTS (Parciales, finales, exámenes)
+      if (
+        rawTarget.includes("calendar") ||
+        rawTarget.includes("evento") ||
+        rawTarget.includes("agenda") ||
+        rawTarget === "exam" ||
+        rawTarget === "examen" ||
+        rawTarget === "parcial"
+      ) {
+        const { data: userEvents } = await (supabase as any)
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", currentUserId)
+          .order("fecha", { ascending: true });
+
+        const allEvts = userEvents || [];
+
+        const findTargetEvent = () => {
+          if (act.id) {
+            const byId = allEvts.find((e: any) => e.id === act.id);
+            if (byId) return byId;
+          }
+          if (match.id) {
+            const byId = allEvts.find((e: any) => e.id === match.id);
+            if (byId) return byId;
+          }
+
+          const matchSub = resolveSubject(match.subject_name || match.subject_id || match.materia || data.subject_name || data.materia);
+          const matchSubId = matchSub?.id;
+          const matchTipo = match.tipo_examen || match.tipo || data.tipo_examen || data.tipo;
+          const normTipo = matchTipo ? normalizeExamType(matchTipo) : null;
+          const matchTitulo = match.titulo || match.title || match.nombre || data.titulo;
+          const matchFecha = match.fecha || match.date;
+
+          let bestEvent: any = null;
+          let bestScore = 0;
+
+          for (const ev of allEvts) {
+            let score = 0;
+            if (matchFecha && ev.fecha === matchFecha) score += 6;
+            if (matchSubId && ev.subject_id === matchSubId) score += 6;
+            if (normTipo && (ev.tipo_examen === normTipo || norm(ev.titulo).includes(norm(normTipo)))) score += 4;
+            if (matchTitulo) {
+              const nTitle = norm(matchTitulo);
+              const evTitle = norm(ev.titulo);
+              if (evTitle === nTitle) score += 8;
+              else if (evTitle.includes(nTitle) || nTitle.includes(evTitle)) score += 5;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestEvent = ev;
+            }
+          }
+
+          return bestScore >= 4 ? bestEvent : null;
+        };
+
+        if (op === "create") {
+          const rawTipo = data.tipo_examen || data.tipo || match.tipo_examen || "P1";
+          const tipoExamen = normalizeExamType(rawTipo);
+          const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
+          const titulo = data.titulo || (sub ? `${tipoExamen} de ${sub.nombre}` : "Parcial");
+          const fecha = data.fecha || match.fecha || new Date().toISOString().split("T")[0];
+
+          const { error: insErr } = await (supabase as any)
+            .from("calendar_events")
+            .insert({
+              user_id: currentUserId,
+              titulo,
+              fecha,
+              hora: data.hora || null,
+              hora_fin: data.hora_fin || null,
+              tipo_examen: tipoExamen,
+              subject_id: sub?.id || null,
+              notas: data.notas || null,
+              ubicacion: data.ubicacion || null,
+              color: getColorForType(tipoExamen),
+            });
+
+          if (!insErr) {
+            calendarTouched = true;
+            results.push({
+              target: "calendar_events",
+              operation: "create",
+              message: `Parcial/evento "${titulo}" agendado para el ${fecha}.`,
+            });
+          }
+        } else if (op === "update") {
+          const targetEv = findTargetEvent();
+          const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
+
+          if (targetEv) {
+            const updates: any = {};
+            if (data.titulo !== undefined) updates.titulo = data.titulo;
+            if (data.fecha !== undefined) updates.fecha = data.fecha;
+            if (data.hora !== undefined) updates.hora = data.hora || null;
+            if (data.hora_fin !== undefined) updates.hora_fin = data.hora_fin || null;
+            if (data.tipo_examen !== undefined || data.tipo !== undefined) {
+              const newTipo = normalizeExamType(data.tipo_examen || data.tipo);
+              updates.tipo_examen = newTipo;
+              updates.color = getColorForType(newTipo);
+            }
+            if (data.notas !== undefined) updates.notas = data.notas || null;
+            if (data.ubicacion !== undefined) updates.ubicacion = data.ubicacion || null;
+            if (sub) updates.subject_id = sub.id;
+
+            const { error: upErr } = await (supabase as any)
+              .from("calendar_events")
+              .update(updates)
+              .eq("id", targetEv.id)
+              .eq("user_id", currentUserId);
+
+            if (!upErr) {
+              calendarTouched = true;
+              const evName = updates.titulo || targetEv.titulo;
+              results.push({
+                target: "calendar_events",
+                operation: "update",
+                message: `Evento "${evName}" modificado correctamente.`,
+              });
+            }
+          } else if (data.fecha) {
+            const tipo = normalizeExamType(data.tipo_examen || data.tipo || match.tipo_examen || "P1");
+            const titulo = data.titulo || (sub ? `${tipo} de ${sub.nombre}` : (match.titulo || "Parcial"));
+            await (supabase as any).from("calendar_events").insert({
+              user_id: currentUserId,
+              titulo,
+              fecha: data.fecha,
+              hora: data.hora || null,
+              tipo_examen: tipo,
+              subject_id: sub?.id || null,
+              color: getColorForType(tipo),
+            });
+            calendarTouched = true;
+            results.push({
+              target: "calendar_events",
+              operation: "create",
+              message: `Parcial "${titulo}" agendado para el ${data.fecha}.`,
+            });
+          }
+        } else if (op === "delete") {
+          const targetEv = findTargetEvent();
+          if (targetEv) {
+            const { error: delErr } = await (supabase as any)
+              .from("calendar_events")
+              .delete()
+              .eq("id", targetEv.id)
+              .eq("user_id", currentUserId);
+
+            if (!delErr) {
+              calendarTouched = true;
+              results.push({
+                target: "calendar_events",
+                operation: "delete",
+                message: `Evento "${targetEv.titulo}" eliminado del calendario.`,
+              });
+            }
+          }
+        }
+      }
+
+      // 2. SUBJECT_STATUS (Notas y estados de materias)
+      else if (
+        rawTarget.includes("status") ||
+        rawTarget.includes("nota") ||
+        rawTarget.includes("grade") ||
+        rawTarget.includes("calificaci") ||
+        rawTarget === "materia_estado" ||
+        rawTarget === "materia_nota"
+      ) {
+        const sub = resolveSubject(
+          act.id ||
+          match.subject_id ||
+          match.subject_name ||
+          match.materia ||
+          match.nombre ||
+          data.subject_id ||
+          data.subject_name ||
+          data.materia
+        );
+
+        if (sub) {
+          const { data: existingStatus } = await (supabase as any)
+            .from("user_subject_status")
+            .select("*")
+            .eq("user_id", currentUserId)
+            .eq("subject_id", sub.id)
+            .maybeSingle();
+
+          const parseNumOrNull = (val: any): number | null | undefined => {
+            if (val === null || val === "" || val === "null") return null;
+            if (val === undefined) return undefined;
+            const n = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+            return isNaN(n) ? undefined : n;
+          };
+
+          if (op === "delete") {
+            const fieldToDelete = match.field || act.field || null;
+            if (fieldToDelete) {
+              const colMap: Record<string, string> = {
+                p1: "nota_parcial_1", parcial1: "nota_parcial_1", parcial_1: "nota_parcial_1", nota_parcial_1: "nota_parcial_1",
+                p2: "nota_parcial_2", parcial2: "nota_parcial_2", parcial_2: "nota_parcial_2", nota_parcial_2: "nota_parcial_2",
+                rec_p1: "nota_rec_parcial_1", rec1: "nota_rec_parcial_1",
+                rec_p2: "nota_rec_parcial_2", rec2: "nota_rec_parcial_2",
+                global: "nota_global", final: "nota_final_examen", nota: "nota"
+              };
+              const col = colMap[norm(fieldToDelete)] || fieldToDelete;
+              await (supabase as any)
+                .from("user_subject_status")
+                .update({ [col]: null })
+                .eq("user_id", currentUserId)
+                .eq("subject_id", sub.id);
+            } else {
+              await (supabase as any)
+                .from("user_subject_status")
+                .delete()
+                .eq("user_id", currentUserId)
+                .eq("subject_id", sub.id);
+            }
+            subjectsTouched = true;
+            statsTouched = true;
+            results.push({
+              target: "subject_status",
+              operation: "delete",
+              message: `Notas de ${sub.nombre} eliminadas.`,
+            });
+          } else {
+            const updates: any = {};
+
+            if (data.estado !== undefined) {
+              const rawSt = norm(data.estado);
+              if (rawSt.includes("aprob") || rawSt.includes("promocion")) updates.estado = "aprobada";
+              else if (rawSt.includes("regul")) updates.estado = "regular";
+              else if (rawSt.includes("curs") || rawSt.includes("sin")) updates.estado = "cursable";
+              else if (rawSt.includes("rec") || rawSt.includes("libr")) updates.estado = "recursar";
+              else updates.estado = data.estado;
+
+              if (updates.estado === "aprobada" && !data.fecha_aprobacion && !existingStatus?.fecha_aprobacion) {
+                updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
+              }
+            }
+
+            const p1 = parseNumOrNull(data.nota_parcial_1 ?? data.p1 ?? data.parcial_1 ?? data.parcial1);
+            if (p1 !== undefined) updates.nota_parcial_1 = p1;
+
+            const recP1 = parseNumOrNull(data.nota_rec_parcial_1 ?? data.rec_p1 ?? data.recuperatorio_1 ?? data.rec1);
+            if (recP1 !== undefined) updates.nota_rec_parcial_1 = recP1;
+
+            const p2 = parseNumOrNull(data.nota_parcial_2 ?? data.p2 ?? data.parcial_2 ?? data.parcial2);
+            if (p2 !== undefined) updates.nota_parcial_2 = p2;
+
+            const recP2 = parseNumOrNull(data.nota_rec_parcial_2 ?? data.rec_p2 ?? data.recuperatorio_2 ?? data.rec2);
+            if (recP2 !== undefined) updates.nota_rec_parcial_2 = recP2;
+
+            const glob = parseNumOrNull(data.nota_global ?? data.global);
+            if (glob !== undefined) updates.nota_global = glob;
+
+            const recGlob = parseNumOrNull(data.nota_rec_global ?? data.rec_global);
+            if (recGlob !== undefined) updates.nota_rec_global = recGlob;
+
+            const finalExam = parseNumOrNull(data.nota_final_examen ?? data.final ?? data.examen_final);
+            if (finalExam !== undefined) updates.nota_final_examen = finalExam;
+
+            const finalGrade = parseNumOrNull(data.nota ?? data.nota_final ?? data.nota_definitiva);
+            if (finalGrade !== undefined) updates.nota = finalGrade;
+
+            if (data.fecha_aprobacion !== undefined) updates.fecha_aprobacion = data.fecha_aprobacion;
+
+            if (existingStatus) {
+              await (supabase as any)
+                .from("user_subject_status")
+                .update(updates)
+                .eq("id", existingStatus.id);
+            } else {
+              await (supabase as any)
+                .from("user_subject_status")
+                .insert({
+                  user_id: currentUserId,
+                  subject_id: sub.id,
+                  estado: updates.estado || "cursable",
+                  ...updates,
+                });
+            }
+
+            subjectsTouched = true;
+            statsTouched = true;
+            results.push({
+              target: "subject_status",
+              operation: "update",
+              message: `Notas/estado de ${sub.nombre} actualizados con éxito.`,
+            });
+          }
+        }
+      }
+
+      // 3. SUBJECTS (Materias del plan)
+      else if (rawTarget === "subjects" || rawTarget === "materia" || rawTarget === "materias") {
+        if (op === "create" && data.nombre) {
+          const { error: insErr } = await (supabase as any).from("subjects").insert({
+            user_id: currentUserId,
+            nombre: data.nombre,
+            codigo: data.codigo || data.nombre.slice(0, 4).toUpperCase(),
+            año: data.año || data.anio || 1,
+            numero_materia: data.numero_materia || 1,
+          });
+          if (!insErr) {
+            subjectsTouched = true;
+            results.push({ target: "subjects", operation: "create", message: `Materia "${data.nombre}" agregada a tu plan.` });
+          }
+        } else if (op === "delete") {
+          const sub = resolveSubject(act.id || match.subject_name || match.nombre || data.nombre);
+          if (sub) {
+            await (supabase as any).from("subject_dependencies").delete().eq("subject_id", sub.id);
+            await (supabase as any).from("user_subject_status").delete().eq("subject_id", sub.id);
+            await (supabase as any).from("subjects").delete().eq("id", sub.id).eq("user_id", currentUserId);
+            subjectsTouched = true;
+            results.push({ target: "subjects", operation: "delete", message: `Materia "${sub.nombre}" eliminada del plan.` });
+          }
+        }
+      }
+
+      // 4. ROUTINES (Rutinas y hábitos)
+      else if (rawTarget.includes("routin") || rawTarget.includes("rutina") || rawTarget.includes("habito")) {
+        if (op === "create") {
+          const sub = resolveSubject(data.subject_id || data.subject_name || data.materia);
+          await (supabase as any).from("routines").insert({
+            user_id: currentUserId,
+            name: data.name || data.nombre || "Rutina de estudio",
+            category: data.category || "estudio",
+            start_time: data.start_time || "09:00",
+            end_time: data.end_time || "10:00",
+            days_of_week: Array.isArray(data.days_of_week) ? data.days_of_week : [1, 2, 3, 4, 5],
+            subject_id: sub?.id || null,
+            is_active: data.is_active !== undefined ? data.is_active : true,
+          });
+          results.push({ target: "routines", operation: "create", message: "Rutina creada." });
+        } else if (op === "update") {
+          const routineId = act.id || match.id;
+          const query = (supabase as any).from("routines").update(data).eq("user_id", currentUserId);
+          if (routineId) query.eq("id", routineId);
+          else if (match.name || match.nombre) query.ilike("name", match.name || match.nombre);
+          await query;
+          results.push({ target: "routines", operation: "update", message: "Rutina actualizada." });
+        } else if (op === "delete") {
+          const routineId = act.id || match.id;
+          const query = (supabase as any).from("routines").delete().eq("user_id", currentUserId);
+          if (routineId) query.eq("id", routineId);
+          else if (match.name || match.nombre) query.ilike("name", match.name || match.nombre);
+          await query;
+          results.push({ target: "routines", operation: "delete", message: "Rutina eliminada." });
+        }
+      }
+
+      // 5. PROFESSORS (Profesores)
+      else if (rawTarget.includes("profesor") || rawTarget.includes("professor") || rawTarget.includes("docente")) {
+        const sub = resolveSubject(data.subject_id || data.subject_name || data.materia);
+        if (op === "create") {
+          await (supabase as any).from("professors").insert({
+            user_id: currentUserId,
+            nombre: data.nombre || data.name,
+            rol: data.rol || "teoria",
+            descripcion: data.descripcion || null,
+            subject_id: sub?.id || null,
+          });
+          results.push({ target: "professors", operation: "create", message: `Profesor ${data.nombre} añadido.` });
+        } else if (op === "delete") {
+          const profId = act.id || match.id;
+          const query = (supabase as any).from("professors").delete().eq("user_id", currentUserId);
+          if (profId) query.eq("id", profId);
+          else if (match.nombre || match.name) query.ilike("nombre", match.nombre || match.name);
+          await query;
+          results.push({ target: "professors", operation: "delete", message: "Profesor eliminado." });
+        }
+      }
+
+      // 6. FLASHCARDS & QUIZZES
+      else if (rawTarget.includes("flashcard") || rawTarget.includes("mazo")) {
+        if (op === "delete") {
+          const deckId = act.id || match.id;
+          if (deckId) {
+            await (supabase as any).from("flashcards").delete().eq("deck_id", deckId).eq("user_id", currentUserId);
+            await (supabase as any).from("flashcard_decks").delete().eq("id", deckId).eq("user_id", currentUserId);
+          } else if (match.nombre || match.name) {
+            const { data: d } = await (supabase as any).from("flashcard_decks").select("id").eq("user_id", currentUserId).ilike("nombre", match.nombre || match.name).maybeSingle();
+            if (d?.id) {
+              await (supabase as any).from("flashcards").delete().eq("deck_id", d.id).eq("user_id", currentUserId);
+              await (supabase as any).from("flashcard_decks").delete().eq("id", d.id).eq("user_id", currentUserId);
+            }
+          }
+          results.push({ target: "flashcard_decks", operation: "delete", message: "Mazo de flashcards eliminado." });
+        }
+      } else if (rawTarget.includes("quiz") || rawTarget.includes("cuestionario")) {
+        if (op === "delete") {
+          const quizId = act.id || match.id;
+          let targetQuizId = quizId;
+          if (!targetQuizId && (match.nombre || match.name)) {
+            const { data: qd } = await (supabase as any).from("quiz_decks").select("id").eq("user_id", currentUserId).ilike("nombre", match.nombre || match.name).maybeSingle();
+            targetQuizId = qd?.id;
+          }
+          if (targetQuizId) {
+            const { data: qList } = await (supabase as any).from("quiz_questions").select("id").eq("deck_id", targetQuizId);
+            if (qList && qList.length > 0) {
+              await (supabase as any).from("quiz_options").delete().in("question_id", qList.map((q: any) => q.id));
+              await (supabase as any).from("quiz_questions").delete().eq("deck_id", targetQuizId);
+            }
+            await (supabase as any).from("quiz_decks").delete().eq("id", targetQuizId).eq("user_id", currentUserId);
+            results.push({ target: "quiz_decks", operation: "delete", message: "Cuestionario eliminado." });
+          }
+        }
+      }
+
+      // 7. NOTION DOCUMENTS
+      else if (rawTarget.includes("notion") || rawTarget.includes("apunte") || rawTarget.includes("document")) {
+        if (op === "delete") {
+          const docId = act.id || match.id;
+          const query = (supabase as any).from("notion_documents").delete().eq("user_id", currentUserId);
+          if (docId) query.eq("id", docId);
+          else if (match.titulo || match.title) query.ilike("titulo", match.titulo || match.title);
+          await query;
+          results.push({ target: "notion_documents", operation: "delete", message: "Apunte eliminado." });
+        }
+      }
+    } catch (actErr) {
+      console.warn("[TABE AI DB] Error ejecutando mutación:", act, actErr);
+    }
+  }
+
+  if (subjectsTouched) {
+    invalidateSubjectsCache();
+  }
+  if (calendarTouched) {
+    invalidateCalendarCache(currentUserId);
+  }
+  if (statsTouched) {
+    invalidateDashboardStatsCache();
+  }
+  invalidateStudentContextCache(currentUserId);
+
+  if (results.length > 0 && typeof window !== "undefined") {
+    const successMessages = results.map((r) => r.message).join("\n");
+    toast.success("TABE AI actualizó tu información:", {
+      description: successMessages,
+      duration: 4000,
+    });
+  }
+
+  return results;
+}
+
 async function executeActionBlock(
   content: string,
   userId: string
-): Promise<{ event_created?: any; flashcards_created?: any; quiz_created?: any; cleanedContent: string }> {
+): Promise<{ event_created?: any; flashcards_created?: any; quiz_created?: any; db_mutations?: any[]; cleanedContent: string }> {
   let cleanedContent = content;
   let event_created = null;
   let flashcards_created = null;
   let quiz_created = null;
+  let db_mutations: any[] | null = null;
 
   // Resolver ID de usuario autenticado
   let currentUserId = userId;
@@ -918,6 +1589,11 @@ async function executeActionBlock(
   if (calMatch && calMatch[1]) {
     try {
       const items = JSON.parse(calMatch[1].trim());
+      if (Array.isArray(items) && items.some((it: any) => it.operation === "update" || it.operation === "delete")) {
+        const ops = items.map((it: any) => ({ table: "calendar_events", operation: it.operation || "create", id: it.id, match: it.match, data: it.data || it }));
+        const mutRes = await executeDatabaseMutations(ops, currentUserId);
+        if (mutRes && mutRes.length > 0) db_mutations = [...(db_mutations || []), ...mutRes];
+      } else
       if (Array.isArray(items) && items.length > 0 && currentUserId && currentUserId !== "guest") {
         for (const it of items) {
           await (supabase as any).from("calendar_events").insert({
@@ -926,15 +1602,31 @@ async function executeActionBlock(
             fecha: it.fecha,
             hora: it.hora || null,
             tipo_examen: it.tipo_examen || "Otro",
-            color: "#00d9ff",
+            color: getColorForType(it.tipo_examen || "Otro"),
           });
         }
         event_created = items;
+        invalidateCalendarCache(currentUserId);
       }
     } catch (e) {
       console.warn("Failed to parse calendar action:", e);
     }
     cleanedContent = cleanedContent.replace(calMatch[0], "").trim();
+  }
+
+  // 1.5 DB Mutations action (crear, modificar o borrar parciales, notas, materias, rutinas, etc.)
+  const dbRegex = /```tabe-action:db\s*([\s\S]*?)(?:```|$)/i;
+  const dbMatch = content.match(dbRegex);
+  if (dbMatch && dbMatch[1]) {
+    try {
+      const mutResult = await executeDatabaseMutations(dbMatch[1].trim(), currentUserId);
+      if (mutResult && mutResult.length > 0) {
+        db_mutations = [...(db_mutations || []), ...mutResult];
+      }
+    } catch (e) {
+      console.warn("Failed to parse/execute db action:", e);
+    }
+    cleanedContent = cleanedContent.replace(dbMatch[0], "").trim();
   }
 
   // 2. Flashcards action
@@ -1263,14 +1955,16 @@ async function executeActionBlock(
       cleanedContent = `¡Listo! Creé el mazo de flashcards **"${dName}"** con ${cCount} tarjetas de estudio.`;
     } else if (event_created) {
       cleanedContent = "¡Listo! Agendé los eventos en tu calendario.";
+    } else if (db_mutations && db_mutations.length > 0) {
+      cleanedContent = `¡Listo! He actualizado tu información en la base de datos (${db_mutations.length} cambio${db_mutations.length > 1 ? "s" : ""} realizado${db_mutations.length > 1 ? "s" : ""}).`;
     }
   }
 
-  if (event_created || flashcards_created || quiz_created) {
+  if (event_created || flashcards_created || quiz_created || (db_mutations && db_mutations.length > 0)) {
     if (currentUserId) invalidateStudentContextCache(currentUserId);
   }
 
-  return { event_created, flashcards_created, quiz_created, cleanedContent };
+  return { event_created, flashcards_created, quiz_created, db_mutations: db_mutations || undefined, cleanedContent };
 }
 
 /**
@@ -1418,7 +2112,7 @@ export async function streamAIChat(params: {
 
   // Parse any action block and execute it
   try {
-    const { event_created, flashcards_created, quiz_created, cleanedContent } = await executeActionBlock(
+    const { event_created, flashcards_created, quiz_created, db_mutations, cleanedContent } = await executeActionBlock(
       finalContent,
       userId
     );
@@ -1428,6 +2122,7 @@ export async function streamAIChat(params: {
       event_created,
       flashcards_created,
       quiz_created,
+      db_mutations,
     });
   } catch (err) {
     console.warn('Error in executeActionBlock onComplete:', err);

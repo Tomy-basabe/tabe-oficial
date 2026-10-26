@@ -1018,6 +1018,8 @@ export default function AIAssistant() {
             const cCount = result.flashcards_created.cards_count ?? 0;
             const dName = result.flashcards_created.deck?.nombre || "Mazo";
             finalCleaned = `¡Listo! Creé el mazo de flashcards **"${dName}"** con ${cCount} tarjetas de estudio.`;
+          } else if (result.db_mutations && result.db_mutations.length > 0) {
+            finalCleaned = `¡Listo! He actualizado tus datos (${result.db_mutations.length} cambio${result.db_mutations.length > 1 ? "s" : ""} aplicado${result.db_mutations.length > 1 ? "s" : ""}).`;
           } else {
             finalCleaned = cleanAIResponse(fullContent);
           }

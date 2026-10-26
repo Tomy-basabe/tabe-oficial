@@ -134,6 +134,20 @@ export const isExamType = (tipo: string): boolean => {
   );
 };
 
+export function invalidateCalendarCache(userId?: string) {
+  _cachedEvents = null;
+  try {
+    if (userId) {
+      localStorage.removeItem(`${CALENDAR_CACHE_KEY_PREFIX}${userId}`);
+    } else if (_cachedUserId) {
+      localStorage.removeItem(`${CALENDAR_CACHE_KEY_PREFIX}${_cachedUserId}`);
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("tabe-calendar-updated"));
+    }
+  } catch {}
+}
+
 export function useCalendarEvents() {
   const { user, isGuest } = useAuth();
   const userId = user?.id;
@@ -358,6 +372,16 @@ export function useCalendarEvents() {
     }, [fetchEvents]),
     enabled: !!userId,
   });
+
+  // Listen for direct mutations triggered by TABE AI
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleAIUpdate = () => {
+      fetchEvents(0, { silent: true });
+    };
+    window.addEventListener("tabe-calendar-updated", handleAIUpdate);
+    return () => window.removeEventListener("tabe-calendar-updated", handleAIUpdate);
+  }, [fetchEvents]);
 
   // Generate all events including recurrence instances
   const events = useMemo(() => {

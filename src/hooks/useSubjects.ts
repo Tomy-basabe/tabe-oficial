@@ -174,6 +174,18 @@ function setStoredDailySubjects(userId: string, subjects: Subject[], userStatuse
   } catch (e) {}
 }
 
+export function invalidateSubjectsCache() {
+  _cachedSubjects = null;
+  _cachedUserStatuses = null;
+  _cachedDependencies = null;
+  try {
+    localStorage.removeItem(SUBJECTS_DAILY_CACHE_KEY);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("tabe-subjects-updated"));
+    }
+  } catch (e) {}
+}
+
 export function useSubjects() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
@@ -466,6 +478,14 @@ export function useSubjects() {
     }, [debouncedRefetch]),
     enabled: !!user,
   });
+
+  // Listen for direct mutations triggered by TABE AI
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleAIUpdate = () => debouncedRefetch();
+    window.addEventListener("tabe-subjects-updated", handleAIUpdate);
+    return () => window.removeEventListener("tabe-subjects-updated", handleAIUpdate);
+  }, [debouncedRefetch]);
 
   // Pre-build lookup maps for O(1) access instead of repeated .find() calls
   const userStatusMap = useMemo(() => {
