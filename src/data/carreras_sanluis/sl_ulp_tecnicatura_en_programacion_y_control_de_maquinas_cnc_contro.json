@@ -1,0 +1,273 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MITGAI",
+      "nombre": "Matematicas I: Trigonometria y Geometria Analitica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "FMECF",
+      "nombre": "Fisica Mecanica, Esfuerzos de Corte y Friccion",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "CMTTA",
+      "nombre": "Ciencia de Materiales y Tratamientos Termicos de Aceros",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "DTMTG",
+      "nombre": "Dibujo Tecnico Mecanico, Tolerancias Geometricas (GD&T) y CAD 2D",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "MDPMR",
+      "nombre": "Metrologia Dimensional de Precision: Micrometros, Relojes Comparadores y Calibres",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "HCIMD",
+      "nombre": "Herramientas de Corte: Insertos de Metal Duro, Recubrimientos y Fresas",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "SOMSV",
+      "nombre": "Seguridad Ocupacional y Manejo Seguro de Virutas y Fluidos de Corte",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "FCNCC",
+      "nombre": "Fundamentos del Control Numerico Computarizado y Coordenadas Cartesianas",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "PMCGM",
+      "nombre": "Programacion Manual en Codigo G y M (ISO) para Torno CNC aprobada(1,4,8)",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "OSTCC",
+      "nombre": "Operacion y Seteo de Torno CNC: Cero Pieza, Compensacion de Herramienta",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "PMCGM",
+      "nombre": "Programacion Manual en Codigo G y M (ISO) para Centro de Mecanizado (Fresa CNC) aprobada(1,4,8)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "OSCMC",
+      "nombre": "Operacion y Seteo de Centro de Mecanizado CNC de 3 Ejes",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "FCRTM",
+      "nombre": "Fluidos de Corte y Refrigeracion: Taladrinas, Mantenimiento y Concentraciones",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "FACCD",
+      "nombre": "Fabricacion Asistida por Computadora (CAM 2D y 3D): Generacion de Codigo G aprobada(4,8,9,11)",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "MCAVH",
+      "nombre": "Mecanizado CNC de Alta Velocidad (HSM) y Trayectorias Optimizadas aprobada(2,6,14)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "CCPMM",
+      "nombre": "Control de Calidad de Piezas Mecanizadas con Maquinas de Medicion por Coordenadas (CMM) aprobada(5,10,12)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "MPCGG",
+      "nombre": "Mantenimiento Preventivo y Calibracion Geometrica de Guias y Husillos CNC",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "PPSIM",
+      "nombre": "Practica Profesionalizante Supervisada en Industrias Metalmecanicas / Matricerias",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "PFITM",
+      "nombre": "Proyecto Final Integrador Tecnico en Mecanizado CNC (Pieza Compleja Terminada) aprobada(8,9,10,11,12,13,14,15,16,17,18)",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "DARFH",
+      "nombre": "Dibujo Anatomico y Representacion de la Figura Humana",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "PPFCE",
+      "nombre": "Perspectiva, Punto de Fuga y Composicion de Escenarios",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "SPDCA",
+      "nombre": "Software de Pintura Digital y Concept Art para Videojuegos",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "FDDPB",
+      "nombre": "Fundamentos del Diseno 3D y Poligonizacion Basica",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "CITE",
+      "nombre": "Color, Iluminacion y Texturas Estilizadas",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "HAVDE",
+      "nombre": "Historia del Arte Visual y Direccion Estetica en Videojuegos",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "MVIIAI",
+      "nombre": "Motores de Videojuegos I: Importacion de Assets",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "MDPOE",
+      "nombre": "Modelado 3D de Props y Objetos de Entorno Low-Poly",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "MDHPE",
+      "nombre": "Modelado 3D High-Poly y Escultura Digital de Personajes",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "ROMNJ",
+      "nombre": "Retopologia Optimizada y Mapas de Normales para Juegos",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "TPAVS",
+      "nombre": "Texturizado PBR Avanzado para Videojuegos (Substance 3D Painter) aprobada(5,8,10)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "CMPSD",
+      "nombre": "Creacion de Materiales Procedurales (Substance 3D Designer) aprobada(5,11)",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "IMVUE",
+      "nombre": "Iluminacion en Motores de Videojuegos (Unreal Engine / Unity) aprobada(5,7)",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "RBPPA",
+      "nombre": "Rigging Basico y Piel de Personajes para Animacion",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "CECVE",
+      "nombre": "Creacion de Entornos Completos para Videojuegos (Environment Art) aprobada(8,11,13)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "EVVVP",
+      "nombre": "Efectos Visuales para Videojuegos (VFX: Particulas, Shaders y Magia en Tiempo Real) aprobada(5,13)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "OGDCL",
+      "nombre": "Optimizacion de Geometria, Draw Calls y LODs (Levels of Detail) aprobada(8,10,15)",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "DAPIG",
+      "nombre": "Direccion de Arte para Proyectos Indie y Grandes Producciones (AAA) aprobada(6,15)",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "PPSED",
+      "nombre": "Practica Profesionalizante Supervisada en Estudios de Desarrollo de Videojuegos",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PFIGA",
+      "nombre": "Proyecto Final Integrador de Game Art (Creacion de Asset Pack o Escenario Jugable de Tesis) aprobada(8,9,10,11,12,13,14,15,16,17,18,19)",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s7",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    }
+  ]
+}

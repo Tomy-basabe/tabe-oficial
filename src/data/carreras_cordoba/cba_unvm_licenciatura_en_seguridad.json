@@ -1,0 +1,324 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "FSD",
+      "nombre": "Fundamentos de la Seguridad Democratica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "NDPGC",
+      "nombre": "Nociones de Derecho Penal y Garantias Constitucionales",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "SVD",
+      "nombre": "Sociologia de la Violencia y el Delito",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "HISA",
+      "nombre": "Historia de las Instituciones de Seguridad en Argentina",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "MIAS",
+      "nombre": "Metodologia de la Investigacion Aplicada a la Seguridad",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "CPC",
+      "nombre": "Criminologia y Politica Criminal",
+      "numero_materia": 6,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s7",
+      "codigo": "SCPD",
+      "nombre": "Seguridad Ciudadana y Prevencion del Delito",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "SPSPC",
+      "nombre": "Sistemas Policiales y Seguridad Publica Comparada",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "DPPE",
+      "nombre": "Derecho Procesal Penal y Evidencia",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "ECAD",
+      "nombre": "Estadistica Criminal y Analisis de Datos",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "GREPC",
+      "nombre": "Gestion de Riesgos, Emergencias y Proteccion Civil",
+      "numero_materia": 11,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "ICDC",
+      "nombre": "Investigacion Criminal y Delitos Complejos",
+      "numero_materia": 12,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "SUPAD",
+      "nombre": "Seguridad Urbana y Planificacion Ambiental del Delito",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "DHNUF",
+      "nombre": "Derechos Humanos y Normas de Uso de la Fuerza",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "CDI",
+      "nombre": "Ciberseguridad y Delitos Informaticos",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "PESL",
+      "nombre": "Planificacion Estrategica de la Seguridad Local",
+      "numero_materia": 16,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "ICP",
+      "nombre": "Inteligencia Criminal y Prospectiva",
+      "numero_materia": 17,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "ACDFS",
+      "nombre": "Auditoria y Control Democratico de Fuerzas de Seguridad",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "TATE",
+      "nombre": "Taller de Tesis",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PPS",
+      "nombre": "Practica Profesional Supervisada",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "TFLST",
+      "nombre": "Trabajo Final de Licenciatura en Seguridad (Tesis) aprobada(19,20)",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    }
+  ]
+}

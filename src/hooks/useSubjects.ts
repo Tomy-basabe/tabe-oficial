@@ -1058,6 +1058,12 @@ export function useSubjects() {
         } else if (career.file?.startsWith("carreras_sanjuan/")) {
           const fileName = career.file.replace("carreras_sanjuan/", "");
           templateModule = await import(`../data/carreras_sanjuan/${fileName}.json`);
+        } else if (career.file?.startsWith("carreras_cordoba/")) {
+          const fileName = career.file.replace("carreras_cordoba/", "");
+          templateModule = await import(`../data/carreras_cordoba/${fileName}.json`);
+        } else if (career.file?.startsWith("carreras_sanluis/")) {
+          const fileName = career.file.replace("carreras_sanluis/", "");
+          templateModule = await import(`../data/carreras_sanluis/${fileName}.json`);
         } else {
           templateModule = await import(`../data/${career.file}.json`);
         }

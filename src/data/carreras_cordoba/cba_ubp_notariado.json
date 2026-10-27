@@ -1,0 +1,90 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "DNITII",
+      "nombre": "Derecho Notarial I (Teoria del Instrumento Publico)",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "DRIII",
+      "nombre": "Derecho Registral I (Inmuebles)",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "PNIREI",
+      "nombre": "Practica Notarial I (Redaccion de Escrituras)",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s4",
+      "codigo": "DNRCE",
+      "nombre": "Deontologia Notarial y Responsabilidad Civil del Escribano",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "DNIAAI",
+      "nombre": "Derecho Notarial II (Actas y Autorizaciones) aprobada(1,3)",
+      "numero_materia": 5,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "DRICBI",
+      "nombre": "Derecho Registral II (Comercio, Buques y Automotores) aprobada(2)",
+      "numero_materia": 6,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s7",
+      "codigo": "RTNSI",
+      "nombre": "Regimen Tributario Notarial (Sellos e ITI) aprobada(1,2)",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "PNITPI",
+      "nombre": "Practica Notarial II y Taller de Protocolo Notarial",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    }
+  ]
+}

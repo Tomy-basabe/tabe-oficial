@@ -1,0 +1,149 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "EMTC",
+      "nombre": "Epistemologia y Modelos Teoricos del Cuidado",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "BEASC",
+      "nombre": "Bioestadistica y Epidemiologia Aplicada a la Salud Comunitaria",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "GLSSEI",
+      "nombre": "Gestion y Liderazgo en Servicios de Salud y Enfermeria I",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "MICE",
+      "nombre": "Metodologia de la Investigacion Cientifica en Enfermeria",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "ECAPS",
+      "nombre": "Enfermeria Comunitaria Avanzada y Promocion de la Salud",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "PDCS",
+      "nombre": "Pedagogia y Didactica en Ciencias de la Salud",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "GACSEI",
+      "nombre": "Gestion y Auditoria de la Calidad en Servicios de Enfermeria II",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "CCEAC",
+      "nombre": "Cuidados Criticos y Emergencias de Alta Complejidad",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "BDHLS",
+      "nombre": "Bioetica, Derechos Humanos y Legislacion Sanitaria",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "PPIGA",
+      "nombre": "Practica Profesional Integrada de Gestion y Atencion Especializada",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "TFLET",
+      "nombre": "Trabajo Final de Licenciatura en Enfermeria (Tesis) aprobada(2,3,4,7,8,9,10)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    }
+  ]
+}

@@ -11,4 +11,5 @@ export const ComicAudio = {
   playSprout: () => {},
   playWater: () => {},
   playFanfare: () => {},
+  playWin: () => {},
 };

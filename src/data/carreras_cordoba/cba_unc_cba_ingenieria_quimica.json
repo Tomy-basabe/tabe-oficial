@@ -1,0 +1,654 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "IIQ",
+      "nombre": "Introduccion a la Ingenieria Quimica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "INMA",
+      "nombre": "Introduccion a la Matematica",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "AMII",
+      "nombre": "Analisis Matematico I",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "ALLI",
+      "nombre": "Algebra Lineal",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "QUGE",
+      "nombre": "Quimica General",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "SIRE",
+      "nombre": "Sistemas de Representacion",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "FII",
+      "nombre": "Fisica I",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "AMIII",
+      "nombre": "Analisis Matematico II",
+      "numero_materia": 8,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "QUIN",
+      "nombre": "Quimica Inorganica",
+      "numero_materia": 9,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "FIII",
+      "nombre": "Fisica II",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "AMIIII",
+      "nombre": "Analisis Matematico III",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "QUOR",
+      "nombre": "Quimica Organica",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "BME",
+      "nombre": "Balance de Materia y Energia",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "TPII",
+      "nombre": "Termodinamica de Procesos I",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "QAGI",
+      "nombre": "Quimica Analitica General e Instrumental",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "PRES",
+      "nombre": "Probabilidad y Estadistica",
+      "numero_materia": 16,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "IMN",
+      "nombre": "Informatica y Metodos Numericos",
+      "numero_materia": 17,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "MOIN",
+      "nombre": "Modulo de Ingles",
+      "numero_materia": 18,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "TPIEFI",
+      "nombre": "Termodinamica de Procesos II (Equilibrio de Fases y Quimico) aprobada(12,13,14)",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "FTICMI",
+      "nombre": "Fenomenos de Transporte I (Cantidad de Movimiento) aprobada(8,10,11)",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "FCQ",
+      "nombre": "Fisicoquimica y Cinetica Quimica",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "FTITCI",
+      "nombre": "Fenomenos de Transporte II (Transferencia de Calor y Masa) aprobada(11,19,20)",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "OUIFSI",
+      "nombre": "Operaciones Unitarias I (Fluidos y Solidos) aprobada(13,20)",
+      "numero_materia": 23,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "MBI",
+      "nombre": "Microbiologia y Bioquimica Industrial",
+      "numero_materia": 24,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "CMC",
+      "nombre": "Ciencia de los Materiales y Corrosion",
+      "numero_materia": 25,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s26",
+      "codigo": "ESAP",
+      "nombre": "Electrotecnia y Servicios Auxiliares de Planta",
+      "numero_materia": 26,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s27",
+      "codigo": "OUITCI",
+      "nombre": "Operaciones Unitarias II (Transferencia de Calor y Evaporacion) aprobada(19,22,23)",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "IRQIRI",
+      "nombre": "Ingenieria de las Reacciones Quimicas I (Reactores Ideales) aprobada(17,19,21,22)",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s29",
+      "codigo": "OUIDAI",
+      "nombre": "Operaciones Unitarias III (Destilacion, Absorcion, Extraccion, Secado) aprobada(19,22,27)",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s30",
+      "codigo": "IRQIRI",
+      "nombre": "Ingenieria de las Reacciones Quimicas II (Reactores Heterogeneos y Cataliticos) aprobada(28)",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s31",
+      "codigo": "ICAP",
+      "nombre": "Instrumentacion y Control Automatico de Procesos",
+      "numero_materia": 31,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "IBRB",
+      "nombre": "Ingenieria de Bioprocesos y Reactores Biologicos",
+      "numero_materia": 32,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s33",
+      "codigo": "SOPQ",
+      "nombre": "Simulacion y Optimizacion de Procesos Quimicos",
+      "numero_materia": 33,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s34",
+      "codigo": "DIPQ",
+      "nombre": "Diseno e Integracion de Procesos Quimicos",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "IATEI",
+      "nombre": "Ingenieria Ambiental y Tratamiento de Efluentes Industriales",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s36",
+      "codigo": "ECEPP",
+      "nombre": "Economia, Costos y Evaluacion de Proyectos de Plantas Quimicas",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s37",
+      "codigo": "HSPHR",
+      "nombre": "Higiene, Seguridad de Procesos (HAZOP) y Riesgo Quimico aprobada(26,27,28)",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s38",
+      "codigo": "OICL",
+      "nombre": "Organizacion Industrial, Calidad y Legislacion",
+      "numero_materia": 38,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s39",
+      "codigo": "ELES",
+      "nombre": "Electiva de Especialidad",
+      "numero_materia": 39,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s40",
+      "codigo": "PPSPQ",
+      "nombre": "Practica Profesional Supervisada en Planta Quimica",
+      "numero_materia": 40,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s41",
+      "codigo": "PIIQD",
+      "nombre": "Proyecto Integrador de Ingenieria Quimica (Diseno de Planta Industrial) aprobada(33,34,35,36,37,38,40)",
+      "numero_materia": 41,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s7",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": null,
+      "requiere_aprobada": "s36"
+    },
+    {
+      "subject_id": "s39",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s39",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    }
+  ]
+}

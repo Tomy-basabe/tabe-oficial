@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubjectWithStatus, SubjectStatus, PartialGrades } from "@/hooks/useSubjects";
-import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2, AlertTriangle, Sparkles, ChevronRight } from "lucide-react";
+import { CheckCircle2, Clock, BookOpen, Lock, RotateCcw, Trophy, Star, Link2, Trash2, Settings2, AlertTriangle, FileText, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartialGradesSection } from "./PartialGradesSection";
 import { ComicAudio } from "@/components/comic/ComicAudio";
@@ -389,21 +389,21 @@ export function SubjectStatusModal({
                   ComicAudio.playPop();
                   setShowSyllabusModal(true);
                 }}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 dark:border-amber-500/20 dark:bg-amber-500/10 dark:hover:bg-amber-500/15 transition-all text-left group shadow-2xs"
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-zinc-200/90 dark:border-zinc-800 bg-zinc-50/70 hover:bg-zinc-100/90 dark:bg-zinc-900/40 dark:hover:bg-zinc-800/60 transition-all text-left group shadow-2xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <FileText className="w-4 h-4" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Plan de Materia</span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                        TABE AI
+                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Plan de Materia</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-md bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300/60 dark:border-zinc-700">
+                        Syllabus
                       </span>
                     </div>
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Subir PDF, Excel, imágenes o texto para autoconfigurar parciales, eventos y pesos
+                      Cargar programa o cronograma para configurar parciales, eventos y ponderación
                     </p>
                   </div>
                 </div>

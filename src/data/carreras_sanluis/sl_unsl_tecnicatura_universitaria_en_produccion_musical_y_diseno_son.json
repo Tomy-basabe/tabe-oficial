@@ -1,0 +1,264 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "LMAII",
+      "nombre": "Lenguaje Musical y Audioperceptiva I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "APE",
+      "nombre": "Acustica, Psicoacustica y Electroacustica",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "HMGS",
+      "nombre": "Historia de la Musica y de la Grabacion Sonora",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "TAIMCI",
+      "nombre": "Tecnologia de Audio I (Microfonos, Cables y Consolas)",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "ADIDFI",
+      "nombre": "Audio Digital I (DAW, Flujos de Trabajo y Grabacion) regular(2,4)",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "PFTII",
+      "nombre": "Piano Funcional y Teclados I",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "ITA",
+      "nombre": "Ingles Tecnico para Audio",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "LMAIII",
+      "nombre": "Lenguaje Musical y Armonia II",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "ADIEAI",
+      "nombre": "Audio Digital II (Edicion Avanzada y Mezcla In-The-Box) aprobada(5)",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "TAIPSI",
+      "nombre": "Tecnologia de Audio II (Procesadores de Senal Dinamicos y de Tiempo) aprobada(4), regular(9)",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "GETM",
+      "nombre": "Grabacion en Estudio y Tecnicas Microfonicas",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "SSDSII",
+      "nombre": "Sintesis de Sonido y Diseno Sonoro I (Sintetizadores, Samplers y MIDI) aprobada(2,5,6)",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "DSMAVI",
+      "nombre": "Diseno Sonoro para Medios Audiovisuales y Videojuegos I",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "SEVRS",
+      "nombre": "Sonorizacion de Espectaculos en Vivo y Refuerzo Sonoro (PA) aprobada(2,4)",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "MBM",
+      "nombre": "Mezcla y Balance Multitrack",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "MAEEL",
+      "nombre": "Masterizacion de Audio y Estandares de Emision (LUFS) aprobada(10,15)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "SSDSII",
+      "nombre": "Sintesis de Sonido y Diseno Sonoro II (Audio Fx y Foley) aprobada(12,13)",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "PMERC",
+      "nombre": "Produccion Musical Ejecutiva, A&R y Contratos Fonograficos",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "LMDAS",
+      "nombre": "Legislacion Musical, Derecho de Autor y Sociedades de Gestion (SADAIC, AADI, CAPIF) aprobada(3)",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PPSEG",
+      "nombre": "Practica Profesionalizante Supervisada en Estudios de Grabacion / Productoras / En Vivo",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "PFIPM",
+      "nombre": "Proyecto Final Integrador de Produccion Musical y Diseno Sonoro (EP / Banda Sonora) aprobada(8,9,10,11,12,13,14,15,16,17,18,19,20)",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    }
+  ]
+}

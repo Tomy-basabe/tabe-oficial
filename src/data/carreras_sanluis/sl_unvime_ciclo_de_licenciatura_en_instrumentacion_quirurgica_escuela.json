@@ -1,0 +1,149 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MICS",
+      "nombre": "Metodologia de la Investigacion Clinica en Salud",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "GACQC",
+      "nombre": "Gestion y Administracion de Centros Quirurgicos Complejos",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "BAPQ",
+      "nombre": "Bioestadistica Aplicada a los Procesos Quirurgicos",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "BACII",
+      "nombre": "Bioseguridad Avanzada y Control de Infecciones Intraquirurgicas",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "TCMIR",
+      "nombre": "Tecnologias de Cirugia Minimanente Invasiva y Robotica",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "BDALQ",
+      "nombre": "Bioetica, Deontologia y Aspectos Legales Quirurgicos",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "ACSQ",
+      "nombre": "Auditoria y Calidad en Servicios Quirurgicos",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "PDFRQ",
+      "nombre": "Pedagogia, Didactica y Formacion de Recursos en Quirofano",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "FFQA",
+      "nombre": "Farmacovigilancia y Farmacologia Quirurgica Avanzada",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "PPSGC",
+      "nombre": "Practica Profesional Supervisada de Gestion y Cirugia Compleja",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "TFLIQ",
+      "nombre": "Trabajo Final de Licenciatura en Instrumentacion Quirurgica (Tesina) aprobada(1,2,3,4,5,6,7,8,9,10)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    }
+  ]
+}

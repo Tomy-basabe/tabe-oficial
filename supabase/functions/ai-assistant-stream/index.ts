@@ -230,7 +230,8 @@ serve(async (req) => {
     // Detección temprana de necesidad de herramientas para optimizar consultas
     const lastUserMsg = [...(messages || [])].reverse().find((m: any) => m.role === "user")?.content || "";
     const actionRegex = /\b(agend|crea|crear|haceme|armame|agrega|agregale|elimina|eliminame|borra|borrame|modifica|modificame|cambia|anota|anotame|guarda|actualiza|flashcard|quiz|cuestionario|simulacro|mazo|parcial|examen|profesor|profe|rutina|apunte|notion|materia.*aprobada)\b/i;
-    const shouldPassTools = actionRegex.test(typeof lastUserMsg === "string" ? lastUserMsg : "");
+    const isStructuredParser = context_page === "CAREER_PLAN_IMPORT" || context_page === "SUBJECT_SYLLABUS_PARSER";
+    const shouldPassTools = !isStructuredParser && actionRegex.test(typeof lastUserMsg === "string" ? lastUserMsg : "");
 
     let personaName = "T.A.B.E. IA";
     let personalityPrompt = "Sos un asistente academico motivador y cercano. Usas lenguaje informal argentino.";
@@ -923,7 +924,7 @@ serve(async (req) => {
       "- NO escribas introducciones largas: comenzá directamente ejecutando la herramienta para evitar demoras o cortes.";
 
     const combinedSysPrompt = clientSystemPrompt
-      ? `${clientSystemPrompt}\n\n=== CONTEXTO ADICIONAL Y RAG EN SERVIDOR ===\n${ragContext}${bulkPromptNote}`
+      ? (isStructuredParser ? clientSystemPrompt : `${clientSystemPrompt}\n\n=== CONTEXTO ADICIONAL Y RAG EN SERVIDOR ===\n${ragContext}${bulkPromptNote}`)
       : `${sysPrompt}${ragContext}${bulkPromptNote}`;
 
     // High capacity limit: Llama 3.3 70B supports 128k context (~500k chars). 45k chars allows full 100% academic history without truncation.
@@ -968,7 +969,7 @@ serve(async (req) => {
     if (hasImage && GEMINI_API_KEY) {
       for (const geminiModel of ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]) {
         try {
-          const isCareerImport = context_page === "CAREER_PLAN_IMPORT";
+          const isStructuredParserCall = context_page === "CAREER_PLAN_IMPORT" || context_page === "SUBJECT_SYLLABUS_PARSER";
           streamRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
             method: "POST",
             headers: {
@@ -978,8 +979,8 @@ serve(async (req) => {
             body: JSON.stringify({
               model: geminiModel,
               messages: groqMessages,
-              tools: isCareerImport ? undefined : tools,
-              tool_choice: isCareerImport ? undefined : "auto",
+              tools: isStructuredParserCall ? undefined : tools,
+              tool_choice: isStructuredParserCall ? undefined : "auto",
               temperature: 0.2,
               max_tokens: 16384,
               stream: true
