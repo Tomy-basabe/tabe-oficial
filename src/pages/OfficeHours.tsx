@@ -695,21 +695,23 @@ export default function OfficeHours() {
 
       {/* ── NOTION-STYLE FILTER & SEARCH BAR ── */}
       <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3.5 shadow-2xs space-y-3">
-        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center">
+        {/* Fila 1: Buscador y Selectores de Filtro */}
+        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por profesor, materia o notas..."
-              className="w-full h-8.5 pl-9 pr-8 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all"
+              className="w-full h-9 pl-10 pr-9 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all font-normal"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-md cursor-pointer"
+                title="Borrar búsqueda"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -717,9 +719,58 @@ export default function OfficeHours() {
           </div>
 
           {/* Filter Dropdowns */}
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-            {/* Year Filter Pills */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            {/* Subject Select */}
+            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+              <SelectTrigger className="h-9 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 min-w-[170px] max-w-[240px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-400 font-medium truncate">
+                <SelectValue placeholder="Materia" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md rounded-xl shadow-md text-xs max-h-[280px]">
+                <SelectItem value="all">Todas las materias</SelectItem>
+                {availableSubjects.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="truncate">
+                    {s.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Role Select */}
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger className="h-9 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-400 font-medium">
+                <SelectValue placeholder="Rol" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md rounded-xl shadow-md text-xs">
+                <SelectItem value="all">Todos los roles</SelectItem>
+                <SelectItem value="teoria">Teoría</SelectItem>
+                <SelectItem value="practica">Práctica</SelectItem>
+                <SelectItem value="none">Sin rol específico</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Reset Filters */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 px-2.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-xl flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer font-medium"
+                title="Limpiar filtros"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpiar</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Fila 2: Filtro por Año en píldoras holgadas */}
+        {years.length > 0 && (
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
+              Año:
+            </span>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -727,7 +778,7 @@ export default function OfficeHours() {
                   setSelectedSubjectId("all");
                 }}
                 className={cn(
-                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  "relative px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none shrink-0",
                   selectedYear === "all"
                     ? "text-white dark:text-zinc-900"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -753,7 +804,7 @@ export default function OfficeHours() {
                       setSelectedSubjectId("all");
                     }}
                     className={cn(
-                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      "relative px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none shrink-0",
                       isSelected
                         ? "text-white dark:text-zinc-900"
                         : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -771,50 +822,8 @@ export default function OfficeHours() {
                 );
               })}
             </div>
-
-            {/* Subject Select */}
-            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-              <SelectTrigger className="h-8.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 min-w-[170px] max-w-[240px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-400 truncate">
-                <SelectValue placeholder="Materia" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md rounded-xl shadow-md text-xs max-h-[280px]">
-                <SelectItem value="all">Todas las materias</SelectItem>
-                {availableSubjects.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="truncate">
-                    {s.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Role Select */}
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="h-8.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-400">
-                <SelectValue placeholder="Rol" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#1f1f23]/95 backdrop-blur-md rounded-xl shadow-md text-xs">
-                <SelectItem value="all">Todos los roles</SelectItem>
-                <SelectItem value="teoria">Teoría</SelectItem>
-                <SelectItem value="practica">Práctica</SelectItem>
-                <SelectItem value="none">Sin rol específico</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Reset Filters */}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="h-8.5 px-2.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-                title="Limpiar filtros"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Limpiar</span>
-              </Button>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Quick Summary Pill Bar */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/60 text-[11px] text-zinc-500 dark:text-zinc-400">

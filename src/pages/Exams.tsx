@@ -475,35 +475,86 @@ export default function Exams() {
 
       {/* Notion-Style Filter & Search Bar */}
       <div className="bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3 sm:p-4 shadow-2xs space-y-3">
-        {/* Search & Selects */}
-        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center">
+        {/* Fila 1: Buscador y Selectores de Filtro */}
+        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
           <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por título, materia, temario o tipo..."
-              className="w-full h-9 pl-8.5 pr-8 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-600 transition-all font-normal"
+              className="w-full h-9 pl-10 pr-9 text-xs rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-600 transition-all font-normal"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5 rounded cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-md cursor-pointer"
+                title="Borrar búsqueda"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-            {/* Filtro por Año en píldoras animadas */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            {/* Filtro por Materia */}
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger className="h-9 text-xs rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[150px] max-w-[220px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium truncate">
+                <SelectValue placeholder="Materia" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-xl shadow-md text-xs max-h-[260px]">
+                <SelectItem value="all">Todas las materias</SelectItem>
+                {availableSubjects.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="truncate">
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtro por Tipo */}
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="h-9 text-xs rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-xl shadow-md text-xs">
+                {EXAM_TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Limpiar */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 px-2.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-xl flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer font-medium"
+                title="Limpiar filtros"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpiar</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Fila 2: Filtro por Año en píldoras holgadas */}
+        {availableYears.length > 0 && (
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
+              Año:
+            </span>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 shrink-0">
               <button
                 type="button"
                 onClick={() => { setSelectedYear("all"); setSelectedSubject("all"); }}
                 className={cn(
-                  "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                  "relative px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none shrink-0",
                   selectedYear === "all"
                     ? "text-white dark:text-zinc-900"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -526,7 +577,7 @@ export default function Exams() {
                     type="button"
                     onClick={() => { setSelectedYear(y); setSelectedSubject("all"); }}
                     className={cn(
-                      "relative px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none",
+                      "relative px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap select-none shrink-0",
                       isSelected
                         ? "text-white dark:text-zinc-900"
                         : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -544,51 +595,8 @@ export default function Exams() {
                 );
               })}
             </div>
-
-            {/* Filtro por Materia */}
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[150px] max-w-[220px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium truncate">
-                <SelectValue placeholder="Materia" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs max-h-[260px]">
-                <SelectItem value="all">Todas las materias</SelectItem>
-                {availableSubjects.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="truncate">
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Filtro por Tipo */}
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="h-9 text-xs rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 min-w-[125px] shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent className="border border-zinc-200/80 dark:border-zinc-800 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-lg shadow-md text-xs">
-                {EXAM_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Limpiar */}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="h-9 px-2.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer font-medium"
-                title="Limpiar filtros"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Limpiar</span>
-              </Button>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Quick Filter Tabs: Notion View Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-t border-zinc-100 dark:border-zinc-800/60">
