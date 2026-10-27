@@ -59,6 +59,24 @@ const FACULTY_COLORS: Record<string, { accent: string; badge: string; location: 
   UCCUYO: { accent: "#1e3a8a", badge: "bg-[#172554] text-white", location: "San Juan" },
   UCONGRESO_SJ: { accent: "#0284c7", badge: "bg-[#0369a1] text-white", location: "San Juan" },
   UNLP: { accent: "#002B49", badge: "bg-[#002B49] text-white", location: "La Plata, Buenos Aires" },
+  // CÓRDOBA
+  UNC_CBA: { accent: "#7B1113", badge: "bg-[#7B1113] text-white", location: "Córdoba" },
+  UTN_FRC: { accent: "#0072CE", badge: "bg-[#003865] text-white", location: "Córdoba" },
+  UTN_FRSF_CBA: { accent: "#0072CE", badge: "bg-[#003865] text-white", location: "San Francisco, Córdoba" },
+  UTN_FRVM: { accent: "#0072CE", badge: "bg-[#003865] text-white", location: "Villa María, Córdoba" },
+  UNRC: { accent: "#0284c7", badge: "bg-[#0369a1] text-white", location: "Río Cuarto, Córdoba" },
+  UNVM: { accent: "#1e3a8a", badge: "bg-[#172554] text-white", location: "Villa María, Córdoba" },
+  UCC_CBA: { accent: "#047857", badge: "bg-[#065f46] text-white", location: "Córdoba" },
+  UBP: { accent: "#ea580c", badge: "bg-[#c2410c] text-white", location: "Córdoba" },
+  UES21_CBA: { accent: "#ea580c", badge: "bg-[#ea580c] text-white", location: "Córdoba" },
+  IUA: { accent: "#0284c7", badge: "bg-[#0284c7] text-white", location: "Córdoba" },
+  IUCBC: { accent: "#0d9488", badge: "bg-[#0f766e] text-white", location: "Córdoba" },
+  // SAN LUIS
+  UNSL: { accent: "#1e40af", badge: "bg-[#1e3a8a] text-white", location: "San Luis" },
+  UNVIME: { accent: "#059669", badge: "bg-[#047857] text-white", location: "Villa Mercedes, San Luis" },
+  UNLC: { accent: "#d97706", badge: "bg-[#b45309] text-white", location: "Merlo, San Luis" },
+  ULP: { accent: "#dc2626", badge: "bg-[#b91c1c] text-white", location: "La Punta, San Luis" },
+  UCCUYO_SL: { accent: "#1e3a8a", badge: "bg-[#172554] text-white", location: "San Luis" },
 };
 
 // Generar dinámicamente las universidades a partir de las facultades disponibles
@@ -90,6 +108,7 @@ interface CareerItem {
   degreeType: string;
   years: number;
   durationLabel: string;
+  totalSubjects: number;
   icon: any;
   color: string;
 }
@@ -133,6 +152,7 @@ export default function Careers() {
 
       const finalYears = maxYear || 5;
       const durationLabel = `${finalYears} ${finalYears === 1 ? "año" : "años"}`;
+      const totalSubs = careerStats[fileKey]?.[0] || careerStats[career.id]?.[0] || 0;
 
       list.push({
         id: career.id,
@@ -144,6 +164,7 @@ export default function Careers() {
         degreeType,
         years: finalYears,
         durationLabel,
+        totalSubjects: totalSubs,
         icon,
         color: uniDef.accentColor || "#0072CE",
       });
@@ -414,14 +435,15 @@ export default function Careers() {
                             {career.faculty}
                           </p>
 
-                          {/* Duración destacada */}
+                          {/* Duración y Materias destacadas */}
                           <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 mb-2">
                             <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">
                               <Clock className="w-3.5 h-3.5 text-blue-500" />
-                              Duración: {career.durationLabel}
+                              {career.durationLabel}
                             </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                              {career.degreeType}
+                            <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">
+                              <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                              {career.totalSubjects ? `${career.totalSubjects} materias` : career.degreeType}
                             </span>
                           </div>
                         </div>
