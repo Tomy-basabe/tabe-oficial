@@ -25,6 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { isUserFromUtnFrm } from "@/lib/careerData";
 
 export interface CampusSite {
   id: string;
@@ -53,44 +56,46 @@ const getAutoFavicon = (rawUrl: string): string => {
 };
 
 export default function MiCampus() {
+  const { user } = useAuth();
+
   // Lista de sitios guardados
   const [sites, setSites] = useState<CampusSite[]>(() => {
     try {
+      const isInitialUtn = isUserFromUtnFrm({
+        facultad: typeof window !== "undefined" ? localStorage.getItem("tabe_guest_facultad") : null,
+        carrera: typeof window !== "undefined" ? localStorage.getItem("tabe_guest_carrera") : null,
+      });
+
       const savedSites = localStorage.getItem(STORAGE_SITES_KEY);
       if (savedSites) {
         const parsed = JSON.parse(savedSites);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          if (isInitialUtn) {
+            return parsed;
+          }
+          // Si el usuario no es UTN, purgar el default-utn que venía hardcodeado
+          const cleaned = parsed.filter(
+            (s) => s.id !== "default-utn" && !s.url.includes("campusvirtual.frm.utn.edu.ar")
+          );
+          return cleaned;
         }
       }
 
-      // Migración suave desde los valores anteriores
-      const legacyUrl = localStorage.getItem(LEGACY_URL_KEY);
-      const legacyName = localStorage.getItem(LEGACY_NAME_KEY);
-      const initialUrl = legacyUrl && legacyUrl !== "undefined" && legacyUrl !== "null" && legacyUrl.startsWith("http")
-        ? legacyUrl
-        : "https://campusvirtual.frm.utn.edu.ar";
-      const initialName = legacyName && legacyName !== "undefined" && legacyName !== "null" && legacyName.trim()
-        ? legacyName
-        : "Campus UTN FRM";
+      // Solo si es alumno de UTN FRM se precarga el Campus UTN FRM
+      if (isInitialUtn) {
+        return [
+          {
+            id: "default-utn",
+            name: "Campus UTN FRM",
+            url: "https://campusvirtual.frm.utn.edu.ar",
+            logoUrl: getAutoFavicon("https://campusvirtual.frm.utn.edu.ar"),
+          },
+        ];
+      }
 
-      return [
-        {
-          id: "default-utn",
-          name: initialName,
-          url: initialUrl,
-          logoUrl: getAutoFavicon(initialUrl),
-        },
-      ];
+      return [];
     } catch {
-      return [
-        {
-          id: "default-utn",
-          name: "Campus UTN FRM",
-          url: "https://campusvirtual.frm.utn.edu.ar",
-          logoUrl: getAutoFavicon("https://campusvirtual.frm.utn.edu.ar"),
-        },
-      ];
+      return [];
     }
   });
 
@@ -115,15 +120,10 @@ export default function MiCampus() {
   // Modo de conexión: 'proxy' (seguro, elimina bloqueos iframe) o 'direct' (carga directa sin pasar por servidor)
   const [loadMode, setLoadMode] = useState<"proxy" | "direct">("proxy");
 
-  // Determinar sitio activo
+  // Determinar sitio activo (puede ser null si el usuario no tiene sitios configurados)
   const activeSite = useMemo(() => {
     const found = sites.find((s) => s.id === activeSiteId);
-    return found || sites[0] || {
-      id: "fallback",
-      name: "Campus UTN FRM",
-      url: "https://campusvirtual.frm.utn.edu.ar",
-      logoUrl: "",
-    };
+    return found || sites[0] || null;
   }, [sites, activeSiteId]);
 
   // Estados para modal/panel de agregar o editar
@@ -138,6 +138,66 @@ export default function MiCampus() {
   const [isLoadingIframe, setIsLoadingIframe] = useState<boolean>(true);
   const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sincronizar contexto universitario para precargar Campus UTN FRM solo a alumnos de esa regional
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function syncCampusSitesForFaculty() {
+      let userFac = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_facultad") || "" : "";
+      let userCar = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_carrera") || "" : "";
+
+      if (user) {
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("facultad, carrera")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (data?.facultad) userFac = data.facultad;
+          if (data?.carrera) userCar = data.carrera;
+        } catch (_) {}
+      }
+
+      if (isCancelled) return;
+
+      const isUtn = isUserFromUtnFrm({ facultad: userFac, carrera: userCar });
+
+      setSites((prevSites) => {
+        if (isUtn) {
+          // Si es de UTN FRM y no tiene ningún sitio, precargarle el campus de la facultad
+          if (prevSites.length === 0) {
+            const utnSite: CampusSite = {
+              id: "default-utn",
+              name: "Campus UTN FRM",
+              url: "https://campusvirtual.frm.utn.edu.ar",
+              logoUrl: getAutoFavicon("https://campusvirtual.frm.utn.edu.ar"),
+            };
+            setActiveSiteId("default-utn");
+            return [utnSite];
+          }
+          return prevSites;
+        } else {
+          // Si NO es de UTN FRM, purgar el default-utn para que configure su propio campus
+          const filtered = prevSites.filter(
+            (s) => s.id !== "default-utn" && !s.url.includes("campusvirtual.frm.utn.edu.ar")
+          );
+          if (filtered.length !== prevSites.length) {
+            if (filtered.length > 0) {
+              setActiveSiteId(filtered[0].id);
+            }
+            return filtered;
+          }
+          return prevSites;
+        }
+      });
+    }
+
+    syncCampusSitesForFaculty();
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
 
   // Escuchar mensajes del fallback del proxy para abrir ventana app con 1 clic
   useEffect(() => {
@@ -265,15 +325,10 @@ export default function MiCampus() {
 
   // Eliminar sitio
   const handleDeleteSite = (id: string) => {
-    if (sites.length <= 1) {
-      toast.error("Debes tener al menos un enlace en tu Campus.");
-      return;
-    }
-
     const filtered = sites.filter((s) => s.id !== id);
     setSites(filtered);
     if (activeSiteId === id) {
-      setActiveSiteId(filtered[0].id);
+      setActiveSiteId(filtered[0]?.id || "");
     }
     setIsFormOpen(false);
     toast.success("Sitio eliminado.");
@@ -331,7 +386,7 @@ export default function MiCampus() {
         {/* Lado izquierdo: Tabs de sitios guardados */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
           {sites.map((site) => {
-            const isActive = site.id === activeSite.id;
+            const isActive = activeSite ? site.id === activeSite.id : false;
             const displayLogo = site.logoUrl || getAutoFavicon(site.url);
 
             return (
@@ -383,23 +438,25 @@ export default function MiCampus() {
         </div>
 
         {/* Centro / Detalle sutil del sitio activo (Pantallas medianas y grandes) */}
-        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800/60 text-xs shrink-0 max-w-[320px]">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-          <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-            {activeSite.name}
-          </span>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
-            {activeSite.url.replace(/^https?:\/\//, "")}
-          </span>
-          <button
-            type="button"
-            onClick={() => handleOpenEdit(activeSite)}
-            className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors cursor-pointer"
-            title="Editar nombre o enlace de este portal"
-          >
-            <Edit2 className="w-3 h-3" />
-          </button>
-        </div>
+        {activeSite && (
+          <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800/60 text-xs shrink-0 max-w-[320px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+              {activeSite.name}
+            </span>
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
+              {activeSite.url.replace(/^https?:\/\//, "")}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleOpenEdit(activeSite)}
+              className="p-1 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors cursor-pointer"
+              title="Editar nombre o enlace de este portal"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
 
         {/* Lado derecho: Acciones y conmutador de vista */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -461,8 +518,9 @@ export default function MiCampus() {
           {/* Botón Principal: Abrir como Ventana App */}
           <Button
             size="sm"
+            disabled={!activeSite}
             onClick={() => openAsAppWindow()}
-            className="h-7 px-2.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 cursor-pointer shadow-2xs"
+            className="h-7 px-2.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 cursor-pointer shadow-2xs disabled:opacity-40"
             title="Abrir como ventana independiente tipo app (sesión completa y sin bloqueos)"
           >
             <AppWindow className="w-3.5 h-3.5" />
@@ -470,17 +528,19 @@ export default function MiCampus() {
           </Button>
 
           {/* Abrir en Pestaña Directa */}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="h-7 w-7 p-0 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
-            title="Abrir en pestaña nueva del navegador"
-          >
-            <a href={activeSite.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </Button>
+          {activeSite ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-7 w-7 p-0 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
+              title="Abrir en pestaña nueva del navegador"
+            >
+              <a href={activeSite.url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          ) : null}
 
           {/* Recargar iframe */}
           <Button
@@ -632,7 +692,25 @@ export default function MiCampus() {
       </AnimatePresence>
 
       {/* CONTENIDO PRINCIPAL SEGÚN EL MODO SELECCIONADO */}
-      {viewMode === "launcher" ? (
+      {sites.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#161618]">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 border border-blue-500/20">
+            <Globe className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            Configurá el acceso a tu Campus Virtual
+          </h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mt-1 mb-5">
+            Agregá la dirección web de tu campus, aula virtual o autogestión para ingresar y consultar tus materias directamente desde TABE.
+          </p>
+          <Button
+            onClick={handleOpenCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium h-9 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            Agregar mi Campus <Plus className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ) : viewMode === "launcher" && activeSite ? (
         /* MODO LANZADOR / ACCESO RÁPIDO (TARJETAS GLASSMORPHIC) */
         <div className="flex-1 w-full min-h-0 overflow-y-auto pr-1 flex flex-col gap-4">
           {/* Tarjeta Destacada del Campus Activo */}
@@ -716,7 +794,7 @@ export default function MiCampus() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {sites.map((site) => {
-                const isActive = site.id === activeSite.id;
+                const isActive = activeSite ? site.id === activeSite.id : false;
                 const displayLogo = site.logoUrl || getAutoFavicon(site.url);
 
                 return (

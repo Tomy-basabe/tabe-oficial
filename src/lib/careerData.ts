@@ -898,3 +898,47 @@ export const AVAILABLE_PROVINCIAS: ProvinciaOption[] = ALL_PROVINCIAS.filter((p)
 
 // End of career data
 
+
+
+/**
+ * Verifica si un nombre o identificador de facultad corresponde a la UTN FRM (Facultad Regional Mendoza)
+ */
+export function isUtnFrmFaculty(facultadStr?: string | null): boolean {
+  if (!facultadStr) return false;
+  const f = facultadStr.trim().toLowerCase();
+  if (f === 'utn' || f === 'utn_frm' || f === 'utn frm') return true;
+  const isUtn = f.includes('utn') || f.includes('tecnologica') || f.includes('tecnológica');
+  const isFrm = f.includes('frm') || (f.includes('mendoza') && !f.includes('san rafael') && !f.includes('frsr'));
+  const notOtherRegionals =
+    !f.includes('frsr') &&
+    !f.includes('frc') &&
+    !f.includes('frba') &&
+    !f.includes('frsf') &&
+    !f.includes('frro') &&
+    !f.includes('frt') &&
+    !f.includes('frvm');
+
+  return isUtn && isFrm && notOtherRegionals;
+}
+
+/**
+ * Verifica si una carrera pertenece a la UTN FRM
+ */
+export function isUtnFrmCareer(careerIdOrLabel?: string | null): boolean {
+  if (!careerIdOrLabel) return false;
+  const clean = careerIdOrLabel.trim().toLowerCase();
+  const match = AVAILABLE_CAREERS.find(
+    (c) => c.id.toLowerCase() === clean || c.label.toLowerCase() === clean
+  );
+  return match?.facultad === 'UTN';
+}
+
+/**
+ * Determina si el contexto del usuario (facultad o carrera) corresponde a UTN FRM
+ */
+export function isUserFromUtnFrm(academic?: { facultad?: string | null; carrera?: string | null }): boolean {
+  if (!academic) return false;
+  if (isUtnFrmFaculty(academic.facultad)) return true;
+  if (isUtnFrmCareer(academic.carrera)) return true;
+  return false;
+}

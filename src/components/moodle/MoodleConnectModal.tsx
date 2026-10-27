@@ -9,10 +9,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { isUserFromUtnFrm } from "@/lib/careerData";
 import {
   MoodleSession,
   MoodleParsedEvent,
   DEFAULT_CAMPUS_URL,
+  UTN_FRM_CAMPUS_URL,
+  USER_CAMPUS_URL_KEY,
   MOODLE_FEED_URL_KEY,
   getStoredMoodleSession,
   disconnectMoodle,
@@ -45,8 +49,9 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
   const { user } = useAuth();
   const [session, setSession] = useState<MoodleSession | null>(null);
 
-  // Formulario
-  const [campusUrl, setCampusUrl] = useState(DEFAULT_CAMPUS_URL);
+  // Perfil universitario y formulario
+  const [isUtnUser, setIsUtnUser] = useState(false);
+  const [campusUrl, setCampusUrl] = useState("");
   const [feedUrl, setFeedUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -70,11 +75,49 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
       if (savedFeed) {
         setFeedUrl(savedFeed);
       }
+
+      // Detectar facultad del usuario
+      async function detectFaculty() {
+        let userFac = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_facultad") || "" : "";
+        let userCar = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_carrera") || "" : "";
+
+        if (user) {
+          try {
+            const { data } = await supabase
+              .from("profiles")
+              .select("facultad, carrera")
+              .eq("user_id", user.id)
+              .maybeSingle();
+            if (data?.facultad) userFac = data.facultad;
+            if (data?.carrera) userCar = data.carrera;
+          } catch (_) {}
+        }
+
+        const isUtn = isUserFromUtnFrm({ facultad: userFac, carrera: userCar });
+        setIsUtnUser(isUtn);
+
+        if (isUtn) {
+          setCampusUrl(UTN_FRM_CAMPUS_URL);
+        } else {
+          const userSavedCampus = typeof window !== "undefined" ? localStorage.getItem(USER_CAMPUS_URL_KEY) || "" : "";
+          setCampusUrl(userSavedCampus || (stored?.campusUrl && !stored.campusUrl.includes("frm.utn.edu.ar") ? stored.campusUrl : ""));
+        }
+      }
+
+      detectFaculty();
     }
-  }, [open]);
+  }, [open, user]);
 
   const handleOpenExportPage = () => {
-    const cleanBase = campusUrl.trim().replace(/\/+$/, "");
+    let raw = campusUrl.trim();
+    if (!raw) {
+      toast.error("Ingresá la dirección web de tu campus virtual para continuar");
+      return;
+    }
+    if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
+      raw = `https://${raw}`;
+    }
+    const cleanBase = raw.replace(/\/+$/, "");
     window.open(`${cleanBase}/calendar/export.php`, "_blank");
   };
 
@@ -95,7 +138,7 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
 
     try {
       const { session: newSession, events: parsedEvents, courseNames: detectedCourses } =
-        await connectMoodleByFeedUrl(feedUrl, "UTN FRM");
+        await connectMoodleByFeedUrl(feedUrl, isUtnUser ? "UTN FRM" : "Campus Virtual");
 
       setSession(newSession);
       setEvents(parsedEvents);
@@ -207,7 +250,7 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
                         Vinculado
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-500 truncate">Campus Virtual UTN FRM</p>
+                    <p className="text-[11px] text-zinc-500 truncate">{session.sitename || (isUtnUser ? "Campus Virtual UTN FRM" : "Campus Virtual")}</p>
                     {courseNames.length > 0 && (
                       <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium mt-0.5">
                         {courseNames.length} materias ({events.length} entregas/eventos)
@@ -292,21 +335,63 @@ export function MoodleConnectModal({ open, onClose, onSyncComplete }: MoodleConn
             /* VISTA VINCULAR (PASO A PASO) */
             <div className="space-y-3.5">
               <div className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 space-y-2.5">
-                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-orange-500" />
-                  <span>Paso 1: Abrí tu calendario en el campus</span>
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Hacé clic para ir directo a la pantalla oficial de exportación de tu campus virtual:
-                </p>
-                <button
-                  type="button"
-                  onClick={handleOpenExportPage}
-                  className="w-full h-9 rounded-lg font-medium text-xs border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
-                >
-                  <span>Abrir exportación en mi Campus</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </button>
+                {isUtnUser ? (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-orange-500" />
+                        <span>Paso 1: Abrí tu calendario en el campus (UTN FRM)</span>
+                      </p>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        UTN FRM
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Hacé clic para ir directo a la pantalla oficial de exportación de tu campus virtual:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenExportPage}
+                      className="w-full h-9 rounded-lg font-medium text-xs border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <span>Abrir exportación en Campus UTN FRM</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-orange-500" />
+                      <span>Paso 1: Ingresá la dirección de tu Campus Virtual</span>
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Escribí el enlace de tu Moodle o portal institucional para ir a la pantalla de exportación:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="url"
+                        placeholder="https://campusvirtual.tuuniversidad.edu.ar"
+                        value={campusUrl}
+                        onChange={(e) => {
+                          setCampusUrl(e.target.value);
+                          try {
+                            localStorage.setItem(USER_CAMPUS_URL_KEY, e.target.value);
+                          } catch (_) {}
+                        }}
+                        className="text-xs h-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleOpenExportPage}
+                        disabled={!campusUrl.trim()}
+                        className="h-9 px-3 rounded-lg font-medium text-xs border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 shadow-2xs shrink-0 disabled:opacity-50 cursor-pointer"
+                      >
+                        <span>Ir a exportar</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/70 bg-zinc-50/40 dark:bg-zinc-900/30 text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400">

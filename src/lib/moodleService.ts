@@ -2,7 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const MOODLE_SESSION_KEY = "tabe_moodle_session";
 export const MOODLE_FEED_URL_KEY = "tabe_moodle_feed_url";
-export const DEFAULT_CAMPUS_URL = "https://campusvirtual.frm.utn.edu.ar";
+export const UTN_FRM_CAMPUS_URL = "https://campusvirtual.frm.utn.edu.ar";
+export const USER_CAMPUS_URL_KEY = "tabe_user_moodle_campus_url";
+export const DEFAULT_CAMPUS_URL = UTN_FRM_CAMPUS_URL;
 
 export interface MoodleSession {
   campusUrl: string;
@@ -325,12 +327,27 @@ export async function connectMoodleByFeedUrl(
     detectedUserId = u.searchParams.get("userid") || undefined;
   } catch (_) {}
 
+  let baseUrl = "";
+  let isUtn = feedUrl.toLowerCase().includes("frm.utn.edu.ar") || (campusName && campusName.toLowerCase().includes("utn"));
+  try {
+    const u = new URL(feedUrl.replace(/^webcal:\/\//i, "https://"));
+    baseUrl = u.origin;
+    if (typeof window !== "undefined" && baseUrl) {
+      localStorage.setItem(USER_CAMPUS_URL_KEY, baseUrl);
+    }
+  } catch (_) {}
+
+  const resolvedCampusName = isUtn ? "UTN FRM" : (campusName && campusName !== "UTN FRM" ? campusName : "Campus Virtual");
+  const displayStudent = isUtn
+    ? (detectedUserId ? `Alumno UTN (#${detectedUserId})` : "Estudiante UTN")
+    : (detectedUserId ? `Estudiante (#${detectedUserId})` : "Estudiante");
+
   const session: MoodleSession = {
-    campusUrl: feedUrl,
+    campusUrl: baseUrl || feedUrl,
     feedUrl: feedUrl.trim(),
     userId: detectedUserId,
-    fullname: detectedUserId ? `Alumno UTN (#${detectedUserId})` : "Estudiante UTN",
-    sitename: campusName,
+    fullname: displayStudent,
+    sitename: resolvedCampusName,
     connectedAt: new Date().toISOString(),
     lastSync: new Date().toISOString(),
   };
