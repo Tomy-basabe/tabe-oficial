@@ -82,16 +82,16 @@ export default function Achievements() {
     unlockDate: string | null;
   } | null>(null);
 
-  // Comprobar logros silenciosamente al cargar para mantener el estado actualizado en segundo plano
+  // Comprobar logros en diferido para garantizar 60fps y apertura ultra fluida
   useEffect(() => {
-    const checkSilently = async () => {
+    const timer = setTimeout(async () => {
       try {
         await checkAndUnlockAchievements();
       } catch (err) {
         console.warn("Silent achievement check:", err);
       }
-    };
-    checkSilently();
+    }, 1200);
+    return () => clearTimeout(timer);
   }, []);
 
   // Abrir detalle
@@ -670,15 +670,11 @@ export default function Achievements() {
 
               return (
                 <motion.div
-                  layout
                   key={achievement.id}
-                  initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
-                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
-                  transition={{
-                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
-                    opacity: { duration: 0.22 },
-                  }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                 >
                   <AchievementCard
                     achievement={achievement}
@@ -702,15 +698,11 @@ export default function Achievements() {
 
               return (
                 <motion.div
-                  layout
                   key={achievement.id}
-                  initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
-                  animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, scale: 0.9, y: -8, filter: "blur(6px)", transition: { duration: 0.2 } }}
-                  transition={{
-                    layout: { type: "spring", stiffness: 380, damping: 32, mass: 0.75 },
-                    opacity: { duration: 0.22 },
-                  }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                 >
                   <AchievementCard
                     achievement={achievement}

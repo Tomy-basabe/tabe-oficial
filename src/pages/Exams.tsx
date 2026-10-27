@@ -27,7 +27,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cleanDisplayNotes } from "@/lib/googleCalendarSync";
+import { cleanDisplayNotes, isGoogleCalendarConnected } from "@/lib/googleCalendarSync";
+import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
+import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
+import { isMoodleConnected, performMoodleAutoSync } from "@/lib/moodleService";
+import { useAuth } from "@/contexts/AuthContext";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AddEventModal } from "@/components/calendar/AddEventModal";
 import { getExamTheme } from "@/lib/examThemes";
@@ -62,6 +66,35 @@ export default function Exams() {
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const { user } = useAuth();
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showMoodleModal, setShowMoodleModal] = useState(false);
+  const [isMoodleSyncing, setIsMoodleSyncing] = useState(false);
+
+  const isGCalConn = isGoogleCalendarConnected(user);
+  const isMoodleConn = isMoodleConnected(user?.user_metadata);
+
+  const handleMoodleSyncClick = async () => {
+    if (isMoodleSyncing) return;
+    if (!isMoodleConnected(user?.user_metadata)) {
+      setShowMoodleModal(true);
+      return;
+    }
+    setIsMoodleSyncing(true);
+    try {
+      const userId = user?.id || "guest-user";
+      const res = await performMoodleAutoSync(userId, user?.user_metadata);
+      if (res.success) {
+        toast.success("Exámenes de Moodle actualizados", { icon: "🎓" });
+      } else {
+        toast.error(res.message || "Error al sincronizar con Moodle");
+      }
+    } catch {
+      toast.error("Error al sincronizar con Moodle");
+    } finally {
+      setIsMoodleSyncing(false);
+    }
+  };
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -342,6 +375,39 @@ export default function Exams() {
               <span>Tablero</span>
             </button>
           </div>
+
+          {/* Botón Google Calendar */}
+          <button
+            type="button"
+            onClick={() => setShowGoogleModal(true)}
+            title={isGCalConn ? "Google Calendar sincronizado" : "Conectar Google Calendar"}
+            className="h-9 px-2.5 sm:px-3 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                isGCalConn ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-rose-500"
+              )}
+            />
+            <span className="hidden sm:inline">Google</span>
+          </button>
+
+          {/* Botón Campus Virtual Moodle */}
+          <button
+            type="button"
+            onClick={handleMoodleSyncClick}
+            disabled={isMoodleSyncing}
+            title={isMoodleConn ? "Campus Moodle conectado (Clic para sincronizar)" : "Conectar Campus Virtual"}
+            className="h-9 px-2.5 sm:px-3 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                isMoodleConn ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" : "bg-amber-500"
+              )}
+            />
+            <span className="hidden sm:inline">Moodle</span>
+          </button>
 
           <Link
             to="/tabe-ai/examenes"
@@ -967,6 +1033,18 @@ export default function Exams() {
           </div>
         )}
       </div>
+
+      {/* Modales de Sincronización Google Calendar y Moodle */}
+      <GoogleCalendarSyncModal
+        open={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onOpenImport={() => {}}
+      />
+
+      <MoodleConnectModal
+        open={showMoodleModal}
+        onClose={() => setShowMoodleModal(false)}
+      />
 
       {/* Modal para Crear / Editar Examen */}
       <AddEventModal

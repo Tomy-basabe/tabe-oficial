@@ -742,7 +742,6 @@ export default function Settings() {
               <div className="space-y-4 animate-in fade-in duration-150">
                 
                 {/* Campus Virtual / Moodle */}
-                {!isGuest && (
                   <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3.5 min-w-0">
@@ -792,10 +791,8 @@ export default function Settings() {
                       </div>
                     </div>
                   </div>
-                )}
 
                 {/* Google Calendar */}
-                {!isGuest && (
                   <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3.5 min-w-0">
@@ -835,7 +832,6 @@ export default function Settings() {
                       </div>
                     </div>
                   </div>
-                )}
 
                 {/* Asistente Virtual: WhatsApp y Telegram Bot */}
                 {!isGuest && (

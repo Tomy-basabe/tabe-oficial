@@ -79,33 +79,62 @@ export default function CareerPlan() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAiImportModal, setShowAiImportModal] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
-  const [userAcademic, setUserAcademic] = useState<{ facultad: string | null; carrera: string | null }>({
-    facultad: null,
-    carrera: null,
+  const [userAcademic, setUserAcademic] = useState<{ facultad: string | null; carrera: string | null }>(() => {
+    const savedCarrera = typeof window !== "undefined"
+      ? (localStorage.getItem("tabe_user_carrera") || localStorage.getItem("tabe_guest_carrera") || null)
+      : null;
+    const savedFacultad = typeof window !== "undefined"
+      ? (localStorage.getItem("tabe_user_facultad") || localStorage.getItem("tabe_guest_facultad") || null)
+      : null;
+    return {
+      facultad: savedFacultad,
+      carrera: savedCarrera,
+    };
   });
 
   useEffect(() => {
-    if (!useAuth) return;
     async function loadAcademicProfile() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data } = await supabase
-          .from("profiles")
-          .select("facultad, carrera")
-          .eq("user_id", user.id)
-          .single();
-        if (data) {
-          setUserAcademic({
-            facultad: data.facultad || null,
-            carrera: data.carrera || null,
-          });
+        if (user) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("facultad, carrera")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (data && (data.facultad || data.carrera)) {
+            setUserAcademic({
+              facultad: data.facultad || null,
+              carrera: data.carrera || null,
+            });
+            if (data.carrera) localStorage.setItem("tabe_user_carrera", data.carrera);
+            if (data.facultad) localStorage.setItem("tabe_user_facultad", data.facultad);
+          }
         }
       } catch (err) {
         console.error("Error al cargar perfil académico en CareerPlan:", err);
       }
     }
     loadAcademicProfile();
+
+    const handleCareerChanged = (e: any) => {
+      if (e?.detail) {
+        setUserAcademic((prev) => ({
+          facultad: e.detail.facultad || prev.facultad,
+          carrera: e.detail.carrera || prev.carrera,
+        }));
+      } else {
+        loadAcademicProfile();
+      }
+    };
+
+    window.addEventListener("tabe_career_changed", handleCareerChanged);
+    window.addEventListener("tabe-subjects-updated", loadAcademicProfile);
+
+    return () => {
+      window.removeEventListener("tabe_career_changed", handleCareerChanged);
+      window.removeEventListener("tabe-subjects-updated", loadAcademicProfile);
+    };
   }, []);
 
   const years = getYears();
@@ -259,17 +288,7 @@ export default function CareerPlan() {
             </div>
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
-                Tu progreso académico
-              </span>
-              {years.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[11px] font-medium text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
-                  <Clock className="w-3 h-3" />
-                  Duración: {years.length} {years.length === 1 ? "año" : "años"}
-                </span>
-              )}
-            </div>
+
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
               {userAcademic.carrera || "Plan de Carrera"}
             </h1>

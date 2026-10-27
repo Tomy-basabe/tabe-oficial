@@ -217,7 +217,8 @@ export default function Calendar() {
     }
     setIsMoodleSyncing(true);
     try {
-      const res = await performMoodleAutoSync(user!.id, user?.user_metadata);
+      const userId = user?.id || "guest-user";
+      const res = await performMoodleAutoSync(userId, user?.user_metadata);
       if (res.success) {
         await refetch();
         toast.success("Campus Virtual sincronizado", { icon: "🎓", duration: 2000 });

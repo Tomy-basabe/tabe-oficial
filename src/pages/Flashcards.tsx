@@ -217,7 +217,14 @@ export default function Flashcards() {
   const fetchSubjects = async () => {
     try {
       if (isGuest) {
-        const guestSubs: Subject[] = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
+        let guestSubs: Subject[] = [];
+        try {
+          const raw = localStorage.getItem("tabe_guest_subjects");
+          if (raw) guestSubs = JSON.parse(raw);
+        } catch (_) {}
+        if (!guestSubs || guestSubs.length === 0) {
+          guestSubs = [{ id: "mock", nombre: "Uso de Tablero", codigo: "TAB1", año: 1 }];
+        }
         setCachedFlashcardSubjects(guestSubs);
         setSubjects(guestSubs);
         return guestSubs;
@@ -243,6 +250,18 @@ export default function Flashcards() {
     }
     return getCachedFlashcardSubjects();
   };
+
+  useEffect(() => {
+    const handleSubjectsUpdated = () => {
+      try {
+        sessionStorage.removeItem(FLASHCARDS_SUBJECTS_CACHE_KEY);
+        localStorage.removeItem(FLASHCARDS_SUBJECTS_CACHE_KEY);
+      } catch (_) {}
+      fetchSubjects();
+    };
+    window.addEventListener("tabe-subjects-updated", handleSubjectsUpdated);
+    return () => window.removeEventListener("tabe-subjects-updated", handleSubjectsUpdated);
+  }, [user, isGuest]);
 
   const fetchDecks = async (showLoading = false) => {
     if (!user && !isGuest) {
@@ -1123,29 +1142,33 @@ export default function Flashcards() {
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
-        {/* Buscador de mazos */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar mazo o materia..."
-            className="w-full pl-9.5 pr-8 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
+      <div className="space-y-3 pt-1">
+        {/* Fila 1: Buscador de mazos */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar mazo o materia..."
+              className="w-full h-9 pl-10 pr-9 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 shadow-2xs transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1 cursor-pointer"
+                title="Limpiar búsqueda"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Filtros de año y materia */}
-        <div className="flex flex-col gap-2.5 flex-1">
+        {/* Fila 2: Filtros de año y materia independientes */}
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/80 overflow-x-auto">
               <button

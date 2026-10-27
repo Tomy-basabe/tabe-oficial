@@ -802,6 +802,8 @@ export function useSubjects() {
         if (aprError) throw aprError;
       }
 
+      invalidateSubjectsCache();
+      window.dispatchEvent(new CustomEvent("tabe-subjects-updated"));
       await fetchData(false);
       toast.success("Materia creada correctamente");
       return newSubject;
@@ -941,6 +943,8 @@ export function useSubjects() {
 
       if (error) throw error;
 
+      invalidateSubjectsCache();
+      window.dispatchEvent(new CustomEvent("tabe-subjects-updated"));
       await fetchData(false);
       toast.success("Materia eliminada correctamente");
     } catch (error) {
@@ -1150,6 +1154,17 @@ export function useSubjects() {
 
       if (profileError) console.error("Error updating profile:", profileError);
 
+      try {
+        localStorage.setItem("tabe_user_carrera", career.label);
+        localStorage.setItem("tabe_user_facultad", fullFacultad);
+        localStorage.setItem("tabe_guest_carrera", career.label);
+        localStorage.setItem("tabe_guest_facultad", fullFacultad);
+      } catch (_) {}
+
+      invalidateSubjectsCache();
+      window.dispatchEvent(new CustomEvent("tabe_career_changed", { detail: { facultad: fullFacultad, carrera: career.label } }));
+      window.dispatchEvent(new CustomEvent("tabe-subjects-updated"));
+
       toast.success(`¡Plan de ${career.label} cargado exitosamente!`, { id: 'import-career' });
       await fetchData(false);
     } catch (error: any) {
@@ -1351,6 +1366,21 @@ export function useSubjects() {
           })
           .eq("user_id", user.id);
       }
+
+      try {
+        if (data.careerName) {
+          localStorage.setItem("tabe_user_carrera", data.careerName);
+          localStorage.setItem("tabe_guest_carrera", data.careerName);
+        }
+        if (data.facultad) {
+          localStorage.setItem("tabe_user_facultad", data.facultad);
+          localStorage.setItem("tabe_guest_facultad", data.facultad);
+        }
+      } catch (_) {}
+
+      invalidateSubjectsCache();
+      window.dispatchEvent(new CustomEvent("tabe_career_changed", { detail: { facultad: data.facultad, carrera: data.careerName } }));
+      window.dispatchEvent(new CustomEvent("tabe-subjects-updated"));
 
       toast.success("¡Plan de carrera importado con éxito!", { id: "import-custom-plan" });
       await fetchData(false);
