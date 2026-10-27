@@ -1507,23 +1507,76 @@ async function executeDatabaseMutations(
       ) {
         const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
 
-        if (op === "create") {
+        if (op === "create" || op === "update") {
           const profName = (data.nombre || data.name || match.nombre || match.name || "Profesor de Consulta").trim();
           const profRol = data.rol || (data.tipo === "practica" ? "practica" : "teoria");
           const profDesc = data.descripcion || data.notas || null;
 
           // Helper para normalizar día de la semana
-          const normDay = (rawDay: string): string | null => {
-            if (!rawDay) return null;
+          const normDay = (rawDay: any): string | null => {
+            if (rawDay === null || rawDay === undefined) return null;
+
+            // Si es número (1: lunes, 2: martes, 3: miercoles, 4: jueves, 5: viernes, 6: sabado)
+            if (typeof rawDay === "number" || /^\d+$/.test(String(rawDay).trim())) {
+              const num = parseInt(String(rawDay).trim(), 10);
+              if (num === 1) return "lunes";
+              if (num === 2) return "martes";
+              if (num === 3) return "miercoles";
+              if (num === 4) return "jueves";
+              if (num === 5) return "viernes";
+              if (num === 6) return "sabado";
+              if (num === 0 || num === 7) return "domingo";
+            }
+
             const d = String(rawDay).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-            if (d.startsWith("lun") || d === "mon" || d === "monday") return "lunes";
-            if (d.startsWith("mar") || d === "tue" || d === "tuesday") return "martes";
-            if (d.startsWith("mie") || d === "wed" || d === "wednesday") return "miercoles";
-            if (d.startsWith("jue") || d === "thu" || d === "thursday") return "jueves";
-            if (d.startsWith("vie") || d === "fri" || d === "friday") return "viernes";
-            if (d.startsWith("sab") || d === "sat" || d === "saturday") return "sabado";
-            if (d.startsWith("dom") || d === "sun" || d === "sunday") return "domingo";
+
+            // Si es fecha YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+              try {
+                const parsed = new Date(d.slice(0, 10) + "T12:00:00");
+                if (!isNaN(parsed.getTime())) {
+                  const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+                  return days[parsed.getDay()] || null;
+                }
+              } catch {}
+            }
+
+            if (d.includes("mar") || d.includes("tue")) return "martes";
+            if (d.includes("mie") || d.includes("wed")) return "miercoles";
+            if (d.includes("jue") || d.includes("thu")) return "jueves";
+            if (d.includes("vie") || d.includes("fri")) return "viernes";
+            if (d.includes("sab") || d.includes("sat")) return "sabado";
+            if (d.includes("dom") || d.includes("sun")) return "domingo";
+            if (d.includes("lun") || d.includes("mon")) return "lunes";
             return null;
+          };
+
+          const extractDaysFromAny = (input: any): string[] => {
+            if (!input) return [];
+            if (Array.isArray(input)) {
+              const res: string[] = [];
+              for (const x of input) {
+                const nd = normDay(x);
+                if (nd && !res.includes(nd)) res.push(nd);
+              }
+              return res;
+            }
+            const str = String(input).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const found: string[] = [];
+            // Prioridad a martes si aparece "mar" para evitar falsos positivos
+            if (str.includes("mar") || str.includes("tue")) found.push("martes");
+            if (str.includes("mie") || str.includes("wed")) found.push("miercoles");
+            if (str.includes("jue") || str.includes("thu")) found.push("jueves");
+            if (str.includes("vie") || str.includes("fri")) found.push("viernes");
+            if (str.includes("sab") || str.includes("sat")) found.push("sabado");
+            if (str.includes("dom") || str.includes("sun")) found.push("domingo");
+            if (str.includes("lun") || str.includes("mon")) found.push("lunes");
+
+            if (found.length === 0) {
+              const nd = normDay(input);
+              if (nd) found.push(nd);
+            }
+            return found;
           };
 
           // Helper para normalizar hora (HH:mm)
@@ -1554,7 +1607,12 @@ async function executeDatabaseMutations(
           if (Array.isArray(rawList)) {
             for (const item of rawList) {
               if (typeof item === "object" && item !== null) {
-                const dia = normDay(item.dia || item.day || item.dias);
+                let dia = normDay(item.dia || item.day || item.dias);
+                if (!dia && (item.horario || item.horas || item.rango || item.texto || item.descripcion)) {
+                  const detected = extractDaysFromAny(item.horario || item.horas || item.rango || item.texto || item.descripcion);
+                  if (detected.length > 0) dia = detected[0];
+                }
+
                 let hora_inicio = normTime(item.hora_inicio || item.start_time || item.inicio || item.desde || item.hora);
                 let hora_fin = normTime(item.hora_fin || item.end_time || item.fin || item.hasta);
 
@@ -1572,30 +1630,40 @@ async function executeDatabaseMutations(
                   }
                   schedulesToInsert.push({ dia, hora_inicio, hora_fin });
                 }
+              } else if (typeof item === "string") {
+                const daysFound = extractDaysFromAny(item);
+                const parts = item.split(/\s*(?:a|-|hasta|to)\s*/i);
+                let h1 = normTime(parts[0]);
+                let h2 = normTime(parts[1]);
+                if (!h1) h1 = "14:00";
+                if (!h2) {
+                  const [h, m] = h1.split(":").map(Number);
+                  h2 = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                }
+                for (const d of daysFound) {
+                  schedulesToInsert.push({ dia: d, hora_inicio: h1, hora_fin: h2 });
+                }
               }
             }
           }
 
-          // Días y horarios directos en data
-          const directDays: string[] = [];
-          if (Array.isArray(data.dias)) {
-            for (const d of data.dias) {
-              const norm = normDay(d);
-              if (norm) directDays.push(norm);
-            }
-          } else if (typeof data.dias === "string") {
-            const tokens = data.dias.split(/[,yey\s]+/i);
-            for (const t of tokens) {
-              const norm = normDay(t);
-              if (norm && !directDays.includes(norm)) directDays.push(norm);
-            }
-          } else if (data.dia || data.day) {
-            const norm = normDay(data.dia || data.day);
-            if (norm) directDays.push(norm);
+          // Días y horarios directos en data y match
+          const directDays: string[] = [
+            ...extractDaysFromAny(data.dias),
+            ...extractDaysFromAny(data.dia || data.day),
+            ...extractDaysFromAny(match.dia || match.dias || match.day),
+            ...extractDaysFromAny(data.fecha || match.fecha),
+          ];
+
+          // Días detectados en cualquier texto libre de horario o notas
+          const textSources = `${data.horario || ""} ${data.horarios_texto || ""} ${data.rango || ""} ${data.descripcion || ""} ${data.notas || ""} ${data.hora || ""}`;
+          const textDays = extractDaysFromAny(textSources);
+          for (const td of textDays) {
+            if (!directDays.includes(td)) directDays.push(td);
           }
 
-          let directStart = normTime(data.hora_inicio || data.start_time || data.inicio || data.hora);
-          let directEnd = normTime(data.hora_fin || data.end_time || data.fin);
+          let directStart = normTime(data.hora_inicio || data.start_time || data.inicio || data.hora || match.hora);
+          let directEnd = normTime(data.hora_fin || data.end_time || data.fin || match.hora_fin);
 
           if (!directStart && (data.horario || data.horarios_texto || data.rango)) {
             const parts = String(data.horario || data.horarios_texto || data.rango).split(/\s*(?:a|-|hasta|to)\s*/i);
@@ -1616,13 +1684,16 @@ async function executeDatabaseMutations(
             }
           }
 
-          // Fallback con hora sin día
+          // Fallback final si vino hora pero no se detectó ningún día
           if (schedulesToInsert.length === 0 && directStart) {
             if (!directEnd) {
               const [h, m] = directStart.split(":").map(Number);
               directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
             }
-            schedulesToInsert.push({ dia: "lunes", hora_inicio: directStart, hora_fin: directEnd });
+            const allText = JSON.stringify(data) + " " + JSON.stringify(match);
+            const foundAll = extractDaysFromAny(allText);
+            const finalDay = foundAll[0] || "martes";
+            schedulesToInsert.push({ dia: finalDay, hora_inicio: directStart, hora_fin: directEnd });
           }
 
           // 1. Verificar si ya existe este profesor para el usuario
@@ -1635,10 +1706,14 @@ async function executeDatabaseMutations(
 
           if (existingProfs && existingProfs.length > 0) {
             profId = existingProfs[0].id;
-            if (sub?.id && !existingProfs[0].subject_id) {
+            const updateFields: any = {};
+            if (sub?.id) updateFields.subject_id = sub.id;
+            if (data.descripcion) updateFields.descripcion = data.descripcion;
+            if (data.rol) updateFields.rol = profRol;
+            if (Object.keys(updateFields).length > 0) {
               await (supabase as any)
                 .from("professors")
-                .update({ subject_id: sub.id })
+                .update(updateFields)
                 .eq("id", profId);
             }
           } else {
@@ -1662,9 +1737,15 @@ async function executeDatabaseMutations(
             profId = newProf?.id;
           }
 
-          // 2. Insertar todos los horarios en professor_office_hours
+          // 2. Si vienen horarios y el profesor ya existía o se está actualizando,
+          // reemplazar los horarios previos para no dejar días erróneos (ej. lunes reemplazado por martes)
           let insertedCount = 0;
           if (profId && schedulesToInsert.length > 0) {
+            await (supabase as any)
+              .from("professor_office_hours")
+              .delete()
+              .eq("professor_id", profId);
+
             for (const sched of schedulesToInsert) {
               const { error: schedErr } = await (supabase as any)
                 .from("professor_office_hours")
@@ -1683,13 +1764,13 @@ async function executeDatabaseMutations(
             window.dispatchEvent(new CustomEvent("tabe:office-hours-updated"));
           }
 
-          const hoursSummary = insertedCount > 0
-            ? ` con ${insertedCount} ${insertedCount === 1 ? "horario de consulta" : "horarios de consulta"} en tu calendario semanal`
-            : "";
+          const daysFormatted = schedulesToInsert.map(s => s.dia).join(", ");
           results.push({
             target: "professors",
-            operation: "create",
-            message: `Profesor ${profName} agregado con éxito${hoursSummary}.`,
+            operation: op,
+            message: `Profesor ${profName} guardado con éxito${
+              insertedCount > 0 ? ` para los días ${daysFormatted} (${schedulesToInsert[0]?.hora_inicio} a ${schedulesToInsert[0]?.hora_fin})` : ""
+            }.`,
           });
         } else if (op === "delete") {
           const profId = act.id || match.id;
