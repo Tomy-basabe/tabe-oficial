@@ -64,7 +64,9 @@ export interface AIPromptBarProps {
   // Multimodal image
   attachedImage: AttachedImageInfo | null;
   onRemoveImage: () => void;
-  onAttachClick: () => void;
+  onAttachClick?: () => void;
+  onAttachFile?: (file: File) => void;
+  onPasteImage?: (file: File) => void;
 
   // Embedded Model Selector
   selectedModel: AIModelOption;
@@ -133,6 +135,8 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
   attachedImage,
   onRemoveImage,
   onAttachClick,
+  onAttachFile,
+  onPasteImage,
   selectedModel,
   powerLevel,
   onSelectPowerLevel,
@@ -151,6 +155,39 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAttachClick = () => {
+    if (internalFileInputRef.current) {
+      internalFileInputRef.current.value = "";
+      internalFileInputRef.current.click();
+    } else if (onAttachClick) {
+      onAttachClick();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (onPasteImage) {
+            onPasteImage(file);
+          } else if (onAttachFile) {
+            onAttachFile(file);
+          } else {
+            onSend("", [file]);
+          }
+          return;
+        }
+      }
+    }
+  };
 
   // Auto-resize textarea smoothly without arbitrary height jumps
   useEffect(() => {
@@ -214,7 +251,14 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
       setIsDragOver(false);
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
-        onSend("", files);
+        const file = files[0];
+        if (file.type.startsWith("image/") && onPasteImage) {
+          onPasteImage(file);
+        } else if (onAttachFile) {
+          onAttachFile(file);
+        } else {
+          onSend("", files);
+        }
       }
     },
     [onSend]
@@ -234,6 +278,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onPaste={handlePaste}
       className={cn(
         "relative w-full rounded-3xl border border-zinc-200/90 dark:border-white/10 focus-within:border-zinc-400 dark:focus-within:border-white/20 bg-white dark:bg-[#212121] shadow-md transition-all duration-200 px-4 pt-3 pb-2.5",
         isDragOver && "border-primary border-dashed bg-zinc-50 dark:bg-zinc-900/50",
@@ -405,6 +450,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={
             showSearch
               ? "Buscar en la web académica..."
@@ -426,7 +472,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
           {/* Attach Button (+) */}
           <button
             type="button"
-            onClick={onAttachClick}
+            onClick={handleAttachClick}
             disabled={isLoading || isRecordingVoice}
             className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-white/10 dark:hover:bg-white/15 text-zinc-700 dark:text-zinc-200 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
             title="Adjuntar imagen, apunte o archivo"
@@ -600,6 +646,26 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
           )}
         </div>
       </div>
+      {/* Selector de archivos nativo de la barra de prompts */}
+      <input
+        type="file"
+        ref={internalFileInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            if (onAttachFile) {
+              onAttachFile(file);
+            } else if (file.type.startsWith("image/") && onPasteImage) {
+              onPasteImage(file);
+            } else {
+              onSend("", [file]);
+            }
+            e.target.value = "";
+          }
+        }}
+        className="hidden"
+        accept="image/*,.pdf,.txt,.md,audio/*"
+      />
     </div>
   );
 };

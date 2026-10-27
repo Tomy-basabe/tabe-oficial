@@ -843,8 +843,51 @@ export default function AIAssistant() {
     }
   };
 
+  // ---- Direct File Processor (desde botón +, drag&drop o paste) ----
+  const handleDirectFile = async (file: File) => {
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      if (file.type.startsWith("image/")) {
+        processImageFile(file);
+      } else if (file.type.startsWith("audio/") || file.name.match(/\.(mp3|wav|m4a|ogg|aac|opus)$/i)) {
+        toast.info("Transcribiendo audio con IA... 🎧");
+        const text = await transcribeAudio(file);
+        if (text) {
+          const isLongAudio = text.length > 100;
+          const promptSuffix = isLongAudio
+            ? "\n\n👉 *Por favor generame un resumen estructurado de esta clase con puntos clave, conceptos y fechas mencionadas.*"
+            : "";
+          setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ **[Grabación/Audio de clase]:**\n${text}${promptSuffix}`);
+        }
+      } else if (file.type === "application/pdf") {
+        const { extractTextFromPdf } = await import("@/lib/pdf-utils");
+        const text = await extractTextFromPdf(file);
+        setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
+        toast.success("PDF procesado");
+      } else if (file.type === "text/plain" || file.name.endsWith(".md")) {
+        const text = await file.text();
+        setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
+        toast.success("Archivo procesado");
+      } else {
+        toast.error("Formato no soportado. Usa imagen, audio, PDF o TXT.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error al leer el archivo.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   // ---- File upload ----
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleDirectFile(file);
+  };
+
+  const _legacyFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -1079,6 +1122,9 @@ export default function AIAssistant() {
         imageToSend = { data: base64Data, mime_type: file.type || "image/jpeg" };
         previewToSend = URL.createObjectURL(file);
       }
+    } else if (attachedImage) {
+      imageToSend = { data: attachedImage.base64, mime_type: attachedImage.mimeType };
+      previewToSend = attachedImage.preview;
     }
 
     if (!message.trim() && !imageToSend) return;
@@ -1496,20 +1542,12 @@ export default function AIAssistant() {
                       value={inputValue}
                       onChange={setInputValue}
                       onSend={(msg, files) => {
-                        if (files && files.length > 0) {
-                          handlePromptBoxSend(msg, files);
-                        } else {
-                          executeSendMessage(
-                            msg,
-                            attachedImage
-                              ? { data: attachedImage.base64, mime_type: attachedImage.mimeType }
-                              : undefined,
-                            attachedImage?.preview
-                          );
-                        }
+                        handlePromptBoxSend(msg, files);
                       }}
+                      onPasteImage={processImageFile}
+                      onAttachFile={handleDirectFile}
                       isLoading={isStreaming || isUploading}
-                      placeholder="Pregúntale a TABE AI..."
+                      placeholder="Pregúntale a TABE AI o pega una imagen..."
                       attachedImage={attachedImage}
                       onRemoveImage={() => setAttachedImage(null)}
                       onAttachClick={() => fileInputRef.current?.click()}
@@ -1542,6 +1580,15 @@ export default function AIAssistant() {
                         return (
                           <div key={message.id} className="flex justify-end my-4 select-text">
                             <div className="max-w-[85%] sm:max-w-[70%] rounded-3xl px-5 py-3 bg-[#f4f4f4] dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 text-[15px] leading-relaxed shadow-2xs">
+                              {message.imageUrl && (
+                                <div className="mb-2.5 overflow-hidden rounded-2xl border border-black/5 dark:border-white/10 max-w-sm">
+                                  <img
+                                    src={message.imageUrl}
+                                    alt="Adjunto"
+                                    className="w-full h-auto max-h-72 object-contain bg-black/5 dark:bg-black/20"
+                                  />
+                                </div>
+                              )}
                               {renderContent(message.content, message.role)}
                             </div>
                           </div>
@@ -1620,6 +1667,8 @@ export default function AIAssistant() {
                 onSend={(msg, files) => {
                   handlePromptBoxSend(msg, files);
                 }}
+                onPasteImage={processImageFile}
+                onAttachFile={handleDirectFile}
                 isLoading={isStreaming || isUploading}
                 placeholder={
                   isUploading
