@@ -6,7 +6,8 @@ import { useSubjects } from "@/hooks/useSubjects";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
-import { Clock, Plus, Trash2, X, User, ChevronLeft, ChevronRight, Loader2, Pencil, GraduationCap, Search, RotateCcw, CalendarDays, LayoutGrid, Check, Calendar, BookOpen, Copy, ExternalLink, MapPin, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { ComicAudio } from "@/components/comic/ComicAudio";
+import { Clock, Plus, Trash2, X, User, ChevronLeft, ChevronRight, Loader2, Pencil, GraduationCap, Search, RotateCcw, CalendarDays, LayoutGrid, Check, Calendar, BookOpen, Copy, ExternalLink, MapPin, ArrowRight, CheckCircle2, AlertCircle, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -166,6 +167,12 @@ let _cachedOfficeHours: OfficeHour[] | null = null;
 let _cachedOfficeUserId: string | null = null;
 let _cachedOfficeTimestamp = 0;
 
+export function invalidateOfficeHoursCache() {
+  _cachedProfessors = null;
+  _cachedOfficeHours = null;
+  _cachedOfficeTimestamp = 0;
+}
+
 export default function OfficeHours() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
@@ -181,6 +188,8 @@ export default function OfficeHours() {
   const [professors, setProfessors] = useState<Professor[]>(() => _cachedProfessors || []);
   const [officeHours, setOfficeHours] = useState<OfficeHour[]>(() => _cachedOfficeHours || []);
   const [loading, setLoading] = useState(() => _cachedProfessors === null);
+  const [professorToDelete, setProfessorToDelete] = useState<Professor | null>(null);
+  const [isDeletingProfessor, setIsDeletingProfessor] = useState(false);
 
   // View Mode: Grilla o Tarjetas
   const [viewMode, setViewMode] = useState<"grid" | "cards">("grid");
@@ -265,8 +274,18 @@ export default function OfficeHours() {
   }, [user?.id, isGuest, allSubjects]);
 
   useEffect(() => {
-    if (_cachedProfessors !== null && (Date.now() - _cachedOfficeTimestamp < 5 * 60 * 1000)) {
+    const handleExternalUpdate = () => {
+      invalidateOfficeHoursCache();
+      fetchData();
+    };
+    window.addEventListener("tabe:office-hours-updated", handleExternalUpdate);
+    return () => window.removeEventListener("tabe:office-hours-updated", handleExternalUpdate);
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (_cachedProfessors !== null && (Date.now() - _cachedOfficeTimestamp < 60 * 1000)) {
       setLoading(false);
+      fetchData(); // revalidar suavemente en segundo plano
       return;
     }
     fetchData();
@@ -482,28 +501,32 @@ export default function OfficeHours() {
     }
   };
 
-  // Eliminar profesor
-  const handleDeleteProfessor = async (profId: string) => {
-    const profToDelete = professors.find(p => p.id === profId);
-    const ok = await confirm({
-      title: "¿Eliminar profesor?",
-      description: `¿Estás seguro de eliminar a "${profToDelete?.nombre || "este profesor"}" y sus horarios de consulta asignados? Esta acción no se puede deshacer.`,
-      confirmText: "Eliminar profesor",
-      cancelText: "Cancelar",
-      variant: "danger",
-    });
-    if (!ok) return;
+  // Eliminar profesor - Abre el modal pulido de confirmación
+  const handleDeleteProfessor = (profId: string) => {
+    const prof = professors.find(p => p.id === profId);
+    if (prof) {
+      ComicAudio.playPop();
+      setProfessorToDelete(prof);
+    }
+  };
 
+  const executeDeleteProfessor = async (profId: string) => {
+    setIsDeletingProfessor(true);
     try {
+      ComicAudio.playPop();
       await supabase.from("professor_office_hours").delete().eq("professor_id", profId);
       const { error } = await supabase.from("professors").delete().eq("id", profId);
       if (error) throw error;
       toast.success("Profesor eliminado correctamente");
+      setProfessorToDelete(null);
       setDetailEntry(null);
+      invalidateOfficeHoursCache();
       fetchData();
     } catch (err: any) {
       console.error("Error deleting professor:", err);
       toast.error(err?.message || "Error al eliminar profesor");
+    } finally {
+      setIsDeletingProfessor(false);
     }
   };
 
@@ -1462,17 +1485,34 @@ export default function OfficeHours() {
 
             {/* Quick Actions in Detail Modal */}
             <div className="flex items-center justify-between gap-2 pt-1">
-              <button
-                onClick={() => {
-                  const targetProf = professors.find((p) => p.id === detailEntry.professorId);
-                  if (targetProf) handleCopyProfessorInfo(targetProf);
-                }}
-                className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg transition-colors cursor-pointer"
-                title="Copiar datos al portapapeles"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copiar</span>
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    const targetProf = professors.find((p) => p.id === detailEntry.professorId);
+                    if (targetProf) handleCopyProfessorInfo(targetProf);
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                  title="Copiar datos al portapapeles"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copiar</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const targetProf = professors.find((p) => p.id === detailEntry.professorId);
+                    if (targetProf) {
+                      ComicAudio.playPop();
+                      setProfessorToDelete(targetProf);
+                      setDetailEntry(null);
+                    }
+                  }}
+                  className="p-2 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                  title="Eliminar este profesor"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <Button
@@ -1713,15 +1753,31 @@ export default function OfficeHours() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setShowModal(false)}
-                className="h-9 px-4 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg cursor-pointer"
-              >
-                Cancelar
-              </Button>
+            <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+              {editingProfessor ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    ComicAudio.playPop();
+                    setProfessorToDelete(editingProfessor);
+                    setShowModal(false);
+                  }}
+                  className="text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar profesor</span>
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowModal(false)}
+                  className="h-9 px-4 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg cursor-pointer"
+                >
+                  Cancelar
+                </Button>
               <Button
                 type="button"
                 onClick={handleSave}
@@ -1737,6 +1793,109 @@ export default function OfficeHours() {
                   "Guardar Cambios"
                 ) : (
                   "Agregar Profesor"
+                )}
+              </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE PROFESOR (ESTILO LINEAR/NOTION) ── */}
+      {professorToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => {
+            if (!isDeletingProfessor) setProfessorToDelete(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-[#18181b] rounded-2xl border border-zinc-200/90 dark:border-zinc-800 shadow-2xl overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera con Icono de Alerta */}
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center shadow-xs">
+                <Trash2 className="w-6 h-6 stroke-[1.75]" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  ¿Eliminar profesor de consulta?
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
+                  Se dará de baja al docente y todos los horarios asignados en la grilla semanal. Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+
+            {/* Tarjeta de previsualización del profesor a eliminar */}
+            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 flex items-center gap-3">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border border-black/5 dark:border-white/5",
+                  PROFESSOR_COLOR_THEMES[professorToDelete.color_index || 0]?.avatarBg ||
+                    "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                )}
+              >
+                {professorToDelete.nombre.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                    {professorToDelete.nombre}
+                  </h4>
+                  {professorToDelete.rol && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-medium px-1.5 py-0.2 rounded-md border",
+                        professorToDelete.rol === "teoria"
+                          ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60"
+                          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
+                      )}
+                    >
+                      {professorToDelete.rol === "teoria" ? "Teoría" : "Práctica"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                  {professorToDelete.subject_nombre || "Sin materia"}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs">
+                  <Clock className="w-3 h-3 text-zinc-400" />
+                  {officeHours.filter((oh) => oh.professor_id === professorToDelete.id).length} turnos
+                </span>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex items-center gap-2.5 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDeletingProfessor}
+                onClick={() => setProfessorToDelete(null)}
+                className="flex-1 h-9.5 text-xs font-medium rounded-xl border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={isDeletingProfessor}
+                onClick={() => executeDeleteProfessor(professorToDelete.id)}
+                className="flex-1 h-9.5 text-xs font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {isDeletingProfessor ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Eliminando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar Profesor</span>
+                  </>
                 )}
               </Button>
             </div>

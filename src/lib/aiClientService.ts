@@ -1497,25 +1497,235 @@ async function executeDatabaseMutations(
         }
       }
 
-      // 5. PROFESSORS (Profesores)
-      else if (rawTarget.includes("profesor") || rawTarget.includes("professor") || rawTarget.includes("docente")) {
-        const sub = resolveSubject(data.subject_id || data.subject_name || data.materia);
+      // 5. PROFESSORS (Profesores y Horarios de Consulta)
+      else if (
+        rawTarget.includes("profesor") ||
+        rawTarget.includes("professor") ||
+        rawTarget.includes("docente") ||
+        rawTarget.includes("office_hour") ||
+        rawTarget.includes("consulta")
+      ) {
+        const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
+
         if (op === "create") {
-          await (supabase as any).from("professors").insert({
-            user_id: currentUserId,
-            nombre: data.nombre || data.name,
-            rol: data.rol || "teoria",
-            descripcion: data.descripcion || null,
-            subject_id: sub?.id || null,
+          const profName = (data.nombre || data.name || match.nombre || match.name || "Profesor de Consulta").trim();
+          const profRol = data.rol || (data.tipo === "practica" ? "practica" : "teoria");
+          const profDesc = data.descripcion || data.notas || null;
+
+          // Helper para normalizar día de la semana
+          const normDay = (rawDay: string): string | null => {
+            if (!rawDay) return null;
+            const d = String(rawDay).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            if (d.startsWith("lun") || d === "mon" || d === "monday") return "lunes";
+            if (d.startsWith("mar") || d === "tue" || d === "tuesday") return "martes";
+            if (d.startsWith("mie") || d === "wed" || d === "wednesday") return "miercoles";
+            if (d.startsWith("jue") || d === "thu" || d === "thursday") return "jueves";
+            if (d.startsWith("vie") || d === "fri" || d === "friday") return "viernes";
+            if (d.startsWith("sab") || d === "sat" || d === "saturday") return "sabado";
+            if (d.startsWith("dom") || d === "sun" || d === "sunday") return "domingo";
+            return null;
+          };
+
+          // Helper para normalizar hora (HH:mm)
+          const normTime = (rawTime: any): string | null => {
+            if (rawTime === null || rawTime === undefined) return null;
+            let str = String(rawTime).trim().toLowerCase();
+            str = str.replace(/hs?|hrs?/g, "").trim();
+            const parts = str.split(":");
+            if (parts.length >= 2) {
+              const h = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10) || 0;
+              if (!isNaN(h) && h >= 0 && h < 24) {
+                return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+              }
+            } else if (parts.length === 1 && parts[0] !== "") {
+              const h = parseInt(parts[0], 10);
+              if (!isNaN(h) && h >= 0 && h < 24) {
+                return `${String(h).padStart(2, "0")}:00`;
+              }
+            }
+            return null;
+          };
+
+          // Extraer lista de horarios
+          const schedulesToInsert: { dia: string; hora_inicio: string; hora_fin: string }[] = [];
+
+          const rawList = data.horarios || data.schedules || data.office_hours || data.clases_consulta || data.turnos || data.consultas;
+          if (Array.isArray(rawList)) {
+            for (const item of rawList) {
+              if (typeof item === "object" && item !== null) {
+                const dia = normDay(item.dia || item.day || item.dias);
+                let hora_inicio = normTime(item.hora_inicio || item.start_time || item.inicio || item.desde || item.hora);
+                let hora_fin = normTime(item.hora_fin || item.end_time || item.fin || item.hasta);
+
+                if (!hora_inicio && (item.horario || item.horas || item.rango)) {
+                  const parts = String(item.horario || item.horas || item.rango).split(/\s*(?:a|-|hasta|to)\s*/i);
+                  if (parts[0]) hora_inicio = normTime(parts[0]);
+                  if (parts[1]) hora_fin = normTime(parts[1]);
+                }
+
+                if (dia) {
+                  if (!hora_inicio) hora_inicio = "14:00";
+                  if (!hora_fin) {
+                    const [h, m] = hora_inicio.split(":").map(Number);
+                    hora_fin = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                  }
+                  schedulesToInsert.push({ dia, hora_inicio, hora_fin });
+                }
+              }
+            }
+          }
+
+          // Días y horarios directos en data
+          const directDays: string[] = [];
+          if (Array.isArray(data.dias)) {
+            for (const d of data.dias) {
+              const norm = normDay(d);
+              if (norm) directDays.push(norm);
+            }
+          } else if (typeof data.dias === "string") {
+            const tokens = data.dias.split(/[,yey\s]+/i);
+            for (const t of tokens) {
+              const norm = normDay(t);
+              if (norm && !directDays.includes(norm)) directDays.push(norm);
+            }
+          } else if (data.dia || data.day) {
+            const norm = normDay(data.dia || data.day);
+            if (norm) directDays.push(norm);
+          }
+
+          let directStart = normTime(data.hora_inicio || data.start_time || data.inicio || data.hora);
+          let directEnd = normTime(data.hora_fin || data.end_time || data.fin);
+
+          if (!directStart && (data.horario || data.horarios_texto || data.rango)) {
+            const parts = String(data.horario || data.horarios_texto || data.rango).split(/\s*(?:a|-|hasta|to)\s*/i);
+            if (parts[0]) directStart = normTime(parts[0]);
+            if (parts[1]) directEnd = normTime(parts[1]);
+          }
+
+          if (directDays.length > 0) {
+            if (!directStart) directStart = "14:00";
+            if (!directEnd) {
+              const [h, m] = directStart.split(":").map(Number);
+              directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+            }
+            for (const d of directDays) {
+              if (!schedulesToInsert.some(s => s.dia === d && s.hora_inicio === directStart)) {
+                schedulesToInsert.push({ dia: d, hora_inicio: directStart, hora_fin: directEnd });
+              }
+            }
+          }
+
+          // Fallback con hora sin día
+          if (schedulesToInsert.length === 0 && directStart) {
+            if (!directEnd) {
+              const [h, m] = directStart.split(":").map(Number);
+              directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+            }
+            schedulesToInsert.push({ dia: "lunes", hora_inicio: directStart, hora_fin: directEnd });
+          }
+
+          // 1. Verificar si ya existe este profesor para el usuario
+          let profId: string | null = null;
+          const { data: existingProfs } = await (supabase as any)
+            .from("professors")
+            .select("id, nombre, subject_id")
+            .eq("user_id", currentUserId)
+            .ilike("nombre", profName);
+
+          if (existingProfs && existingProfs.length > 0) {
+            profId = existingProfs[0].id;
+            if (sub?.id && !existingProfs[0].subject_id) {
+              await (supabase as any)
+                .from("professors")
+                .update({ subject_id: sub.id })
+                .eq("id", profId);
+            }
+          } else {
+            const { data: newProf, error: profErr } = await (supabase as any)
+              .from("professors")
+              .insert({
+                user_id: currentUserId,
+                nombre: profName,
+                rol: profRol,
+                descripcion: profDesc,
+                subject_id: sub?.id || null,
+                color_index: Math.floor(Math.random() * 8),
+              })
+              .select("id")
+              .single();
+
+            if (profErr) {
+              console.error("[TABE AI] Error creating professor:", profErr);
+              throw profErr;
+            }
+            profId = newProf?.id;
+          }
+
+          // 2. Insertar todos los horarios en professor_office_hours
+          let insertedCount = 0;
+          if (profId && schedulesToInsert.length > 0) {
+            for (const sched of schedulesToInsert) {
+              const { error: schedErr } = await (supabase as any)
+                .from("professor_office_hours")
+                .insert({
+                  professor_id: profId,
+                  user_id: currentUserId,
+                  dia: sched.dia,
+                  hora_inicio: sched.hora_inicio,
+                  hora_fin: sched.hora_fin,
+                });
+              if (!schedErr) insertedCount++;
+            }
+          }
+
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("tabe:office-hours-updated"));
+          }
+
+          const hoursSummary = insertedCount > 0
+            ? ` con ${insertedCount} ${insertedCount === 1 ? "horario de consulta" : "horarios de consulta"} en tu calendario semanal`
+            : "";
+          results.push({
+            target: "professors",
+            operation: "create",
+            message: `Profesor ${profName} agregado con éxito${hoursSummary}.`,
           });
-          results.push({ target: "professors", operation: "create", message: `Profesor ${data.nombre} añadido.` });
         } else if (op === "delete") {
           const profId = act.id || match.id;
-          const query = (supabase as any).from("professors").delete().eq("user_id", currentUserId);
-          if (profId) query.eq("id", profId);
-          else if (match.nombre || match.name) query.ilike("nombre", match.nombre || match.name);
-          await query;
-          results.push({ target: "professors", operation: "delete", message: "Profesor eliminado." });
+          let targetProfId = profId;
+
+          if (!targetProfId && (match.nombre || match.name || data.nombre || data.name)) {
+            const targetName = match.nombre || match.name || data.nombre || data.name;
+            const { data: profs } = await (supabase as any)
+              .from("professors")
+              .select("id, nombre")
+              .eq("user_id", currentUserId)
+              .ilike("nombre", targetName);
+
+            if (profs && profs.length > 0) {
+              targetProfId = profs[0].id;
+            }
+          }
+
+          if (targetProfId) {
+            await (supabase as any)
+              .from("professor_office_hours")
+              .delete()
+              .eq("professor_id", targetProfId);
+
+            await (supabase as any)
+              .from("professors")
+              .delete()
+              .eq("id", targetProfId)
+              .eq("user_id", currentUserId);
+
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("tabe:office-hours-updated"));
+            }
+
+            results.push({ target: "professors", operation: "delete", message: "Profesor y sus horarios de consulta eliminados." });
+          }
         }
       }
 
