@@ -28,21 +28,35 @@ export interface SyllabusParsedResult {
   resumenRegimen?: string;
 }
 
-const SYLLABUS_SYSTEM_PROMPT = `Sos un asistente universitario de TABE AI especializado en analizar programas de asignaturas, reglamentos de cátedra, planificaciones y cronogramas (syllabus).
-Tu objetivo es analizar minuciosamente los documentos provistos (PDFs, Excel, imágenes o texto) para una materia universitaria específica y extraer:
-1. EVENTOS DE EVALUACIÓN Y CALENDARIO: Fechas de parciales, recuperatorios, entregas de trabajos prácticos (TP), exámenes globales/integradores o coloquios, y llamados a final.
-2. ESTRUCTURA DE PARCIALES: Cuántos parciales tiene en total la materia. La plataforma TABE viene por defecto con 2 parciales (P1 y P2) y 1 examen global. Si la materia tiene más de 2 parciales (por ejemplo 3, 4, 5 parciales, o 2 parciales teóricos y 2 prácticos = 4 parciales), debes listar los parciales adicionales (P3, P4, etc.).
-3. PESO PORCENTUAL DE CADA PARCIAL (% para el promedio): Extrae la ponderación o porcentaje que la cátedra asigna a cada parcial para regularizar o promocionar (por ejemplo: P1=30%, P2=30%, P3=40%, o P1=25%, P2=25%, P3=25%, P4=25%). Si el programa no indica porcentajes exactos pero exige N parciales iguales, distribuye el 100% equitativamente entre todos los parciales de la materia. La suma de todos los pesos DEBE DAR EXACTAMENTE 100.
+const SYLLABUS_SYSTEM_PROMPT = `Sos un asistente universitario de TABE AI especializado en analizar programas de asignaturas, reglamentos de cátedra, planificaciones, cronogramas y syllabus.
+Tu objetivo es analizar minuciosamente TODOS los documentos provistos (PDFs, planillas Excel, imágenes/fotos y texto escrito) para una materia universitaria específica y consolidar un ÚNICO plan unificado.
 
-REGLAS OBLIGATORIAS:
-1. Responde ÚNICAMENTE con un bloque JSON válido dentro de triple tilde invertida: \`\`\`json { ... } \`\`\`.
-2. NO incluyas introducciones ni explicaciones fuera del bloque JSON.
-3. El formato de fecha DEBE ser estrictamente "YYYY-MM-DD". Si el documento no especifica el año, utiliza el año calendario en curso (${new Date().getFullYear()}).
-4. Si hay horas explicitadas (ej: "18:30 hs", "08:00"), indícalas en formato "HH:mm". Si no figuran, pon null.
-5. El JSON debe tener exactamente esta estructura:
+REGLAS DE ORO PARA EL ANÁLISIS:
+1. EVENTOS DE EVALUACIÓN Y CALENDARIO:
+   - Extrae fechas de parciales (1°, 2°, 3°, etc.), recuperatorios correspondientes, entregas de trabajos prácticos (TPs), exámenes globales/integradores o coloquios, y llamados a final.
+   - Si en una imagen hay fechas de parciales y en otro archivo hay fechas de TPs o recuperatorios, DEBES INCLUIR TODOS los eventos encontrados en ambas fuentes.
+2. ESTRUCTURA DE PARCIALES:
+   - TABE incluye por defecto 2 parciales (P1 y P2) y 1 examen global.
+   - Si la cátedra exige más de 2 parciales (por ejemplo 3, 4, 5 parciales, o 2 parciales teóricos y 2 prácticos = 4 parciales en total), debes listar los parciales adicionales en "parciales_extra" a partir de P3 en adelante.
+3. PESO PORCENTUAL DE CADA PARCIAL (% para el promedio):
+   - Extrae la ponderación o porcentaje que la cátedra asigna a cada parcial para regularizar o promocionar (por ejemplo: P1=30%, P2=30%, P3=40%, o P1=25%, P2=25%, P3=25%, P4=25%).
+   - Si el programa no indica porcentajes explícitos pero exige N parciales iguales, distribuye el 100% equitativamente entre todos los parciales activos de la materia.
+   - La suma de todos los pesos DEBE DAR EXACTAMENTE 100.
+
+⚠️ REGLA SUPREMA DE FUSIÓN MULTIFUENTE OBLIGATORIA:
+- El estudiante suele subir MATERIAL COMBINADO: por ejemplo, una planilla Excel con las fechas de cursada, una o varias fotos del pizarrón/apuntes con los recuperatorios, y texto aclaratorio donde explica requisitos especiales.
+- ES ESTRICTAMENTE OBLIGATORIO PROCESAR Y FUSIONAR CADA UNO DE LOS ARCHIVOS, IMÁGENES Y TEXTOS ADJUNTOS.
+- NUNCA ignores un archivo ni una imagen porque ya leíste el primero. Cada fuente complementa a las demás.
+- Si hay notas escritas por el estudiante, dale máxima prioridad a las aclaraciones que él mismo redactó.
+
+FORMATO DE SALIDA REQUERIDO:
+Responde ÚNICAMENTE con un bloque JSON válido dentro de triple tilde invertida: \`\`\`json { ... } \`\`\`.
+Sin texto introductorio ni conclusiones fuera del JSON.
+
+Estructura exacta:
 {
   "total_parciales": 4,
-  "resumen_regimen": "Breve resumen de 1 o 2 oraciones del régimen de evaluación según el programa",
+  "resumen_regimen": "Breve resumen claro de 1 o 2 oraciones del régimen de evaluación integrando todas las fuentes provistas",
   "parciales_extra": [
     {
       "id": "P3",
@@ -70,7 +84,7 @@ REGLAS OBLIGATORIAS:
       "fecha": "2025-05-29",
       "hora": null,
       "tipo_examen": "Recuperatorio P1",
-      "descripcion": "Recuperatorio para quienes no alcanzaron la nota mínima"
+      "descripcion": "Recuperatorio parcial 1"
     },
     {
       "titulo": "Entrega TP 1 - [Nombre Materia]",
@@ -105,54 +119,82 @@ export async function parseSubjectSyllabusWithAI(params: {
     throw new Error("Por favor sube al menos un archivo (PDF, Excel, Imagen) o pega el texto del plan de la materia.");
   }
 
-  onProgress?.("Procesando información y archivos del plan...");
+  onProgress?.("Leyendo y procesando todos los archivos y notas provistas...");
 
-  let combinedText = pastedText && pastedText.trim().length > 0
-    ? `\n=== TEXTO PROVISTO POR EL ESTUDIANTE ===\n${pastedText.trim()}\n`
-    : "";
-
+  const textSections: string[] = [];
   const imageFiles: File[] = [];
 
+  // 1. Prioritize user notes if provided
+  if (pastedText && pastedText.trim().length > 0) {
+    textSections.push(`=== NOTAS Y COMENTARIOS DEL ESTUDIANTE ===\n${pastedText.trim()}\n`);
+  }
+
+  // 2. Process each file independently with clear attribution
+  let fileIndex = 1;
   for (const file of files) {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    const isExcel = ["xlsx", "xls", "csv"].includes(ext || "");
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const isExcel = ["xlsx", "xls", "csv"].includes(ext);
     const isPdf = ext === "pdf" || file.type === "application/pdf";
-    const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext || "") || file.type.startsWith("image/");
+    const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || file.type.startsWith("image/");
 
     if (isExcel) {
-      onProgress?.(`Leyendo planilla Excel: ${file.name}...`);
+      onProgress?.(`Leyendo planilla Excel [${fileIndex}/${files.length}]: ${file.name}...`);
       const excelText = await extractTextFromExcel(file);
-      combinedText += `\n--- ARCHIVO EXCEL: ${file.name} ---\n${excelText}\n`;
+      // Give each Excel file ample budget (up to 35k chars)
+      const cleanExcel = excelText.slice(0, 35000);
+      textSections.push(`=== ARCHIVO ${fileIndex} (EXCEL): "${file.name}" ===\n${cleanExcel}\n`);
+      fileIndex++;
     } else if (isPdf) {
-      onProgress?.(`Extrayendo texto del PDF: ${file.name}...`);
+      onProgress?.(`Extrayendo texto de PDF [${fileIndex}/${files.length}]: ${file.name}...`);
       const pdfText = await extractTextFromPdf(file);
-      combinedText += `\n--- ARCHIVO PDF: ${file.name} ---\n${pdfText}\n`;
+      // Filter out repetitive bibliography if document is huge, but preserve evaluation & dates
+      const cleanPdf = pdfText.slice(0, 35000);
+      textSections.push(`=== ARCHIVO ${fileIndex} (PDF): "${file.name}" ===\n${cleanPdf}\n`);
+      fileIndex++;
     } else if (isImage) {
       imageFiles.push(file);
     }
   }
 
+  // 3. Process all images
   let imagePayloads: Array<{ data: string; mime_type: string }> = [];
   if (imageFiles.length > 0) {
     onProgress?.(`Optimizando ${imageFiles.length} imagen(es) para análisis de visión...`);
     imagePayloads = await optimizeMultipleImages(imageFiles);
+    textSections.push(`=== IMÁGENES ADJUNTAS (${imageFiles.length} imagen(es)) ===\nArchivos de imagen provistos: ${imageFiles.map((f, i) => `[Foto ${i + 1}: ${f.name}]`).join(", ")}\n(Analiza detalladamente todas las imágenes adjuntas buscando fechas, parciales, porcentajes y entregas)`);
   }
 
-  const userPrompt = `Materia a analizar: "${subjectName}".
-Analiza detalladamente el plan de cátedra, cronograma o programa adjunto para esta materia y extrae todos los eventos de calendario (parciales, recuperatorios, TPs, globales), la estructura de parciales (si son más de los 2 estándar de TABE) y los pesos porcentuales (%) de cada parcial para el promedio.
+  const combinedContent = textSections.join("\n\n");
 
-${combinedText.trim().length > 0 ? `DOCUMENTOS Y CONTENIDO:\n${combinedText.slice(0, 45000)}` : ""}`;
+  const sourcesSummary: string[] = [];
+  if (pastedText && pastedText.trim().length > 0) sourcesSummary.push("Texto/Notas del estudiante");
+  const docFiles = files.filter(f => !["png", "jpg", "jpeg", "webp"].includes(f.name.split(".").pop()?.toLowerCase() || ""));
+  if (docFiles.length > 0) sourcesSummary.push(`${docFiles.length} documento(s) (PDF/Excel)`);
+  if (imageFiles.length > 0) sourcesSummary.push(`${imageFiles.length} imagen(es)/captura(s)`);
 
-  onProgress?.("TABE AI está analizando el régimen de cursado y fechas clave...");
+  const userPrompt = `Materia universitaria a analizar: "${subjectName}".
+
+ATENCIÓN: Se han adjuntado MÚLTIPLES FUENTES DE INFORMACIÓN:
+${sourcesSummary.map(s => `- ${s}`).join("\n")}
+
+DEBES ANALIZAR, INTEGRAR Y CONSOLIDAR TODAS LAS FUENTES EN UN ÚNICO PLAN DE MATERIA:
+1. Extrae TODOS los eventos de evaluación (parciales, recuperatorios, TPs, entregas de laboratorio, globales, coloquios y finales) encontrados en CUALQUIERA de las fuentes.
+2. Identifica la cantidad total de parciales (si son más de 2 estándar de TABE, agrega P3, P4, etc.).
+3. Determina el peso porcentual (%) de cada parcial para el promedio de la cursada asegurando que sumen exactamente 100%.
+4. No omitas ningún dato presente en las imágenes, textos o archivos adjuntos.
+
+${combinedContent.length > 0 ? `CONTENIDO EXTRAÍDO DE LOS DOCUMENTOS Y NOTAS:\n${combinedContent.slice(0, 100000)}` : ""}`;
+
+  onProgress?.("TABE AI está analizando e integrando todas las fuentes...");
 
   const rawAIResponse = await callAIService({
     systemPrompt: SYLLABUS_SYSTEM_PROMPT,
     userPrompt,
-    image: imagePayloads[0],
     images: imagePayloads,
+    contextPage: "SUBJECT_SYLLABUS_PARSER",
   });
 
-  onProgress?.("Estructurando eventos y pesos...");
+  onProgress?.("Consolidando eventos, parciales y ponderación...");
 
   return sanitizeSyllabusAIResponse(rawAIResponse, subjectName);
 }
@@ -162,6 +204,12 @@ function sanitizeSyllabusAIResponse(raw: string, subjectName: string): SyllabusP
   const match = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (match && match[1]) {
     cleanJson = match[1].trim();
+  } else {
+    const firstBrace = cleanJson.indexOf("{");
+    const lastBrace = cleanJson.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleanJson = cleanJson.slice(firstBrace, lastBrace + 1);
+    }
   }
 
   let parsed: any;
@@ -250,7 +298,7 @@ function sanitizeSyllabusAIResponse(raw: string, subjectName: string): SyllabusP
 
   return {
     materiaNombre: subjectName,
-    totalParcialesDetectados: totalParciales,
+    totalParcialesDetectados: Math.max(totalParciales, 2 + parcialesExtraSugeridos.length),
     parcialesExtraSugeridos,
     globalesExtraSugeridos: Number(parsed.globales_extra) || 0,
     pesosSugeridos,

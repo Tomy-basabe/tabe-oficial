@@ -266,8 +266,10 @@ export async function callAIService(params: {
   userPrompt: string;
   image?: { data: string; mime_type: string };
   images?: Array<{ data: string; mime_type: string }>;
+  contextPage?: string;
 }): Promise<string> {
-  const { systemPrompt, userPrompt, image, images } = params;
+  const { systemPrompt, userPrompt, image, images, contextPage = "CAREER_PLAN_IMPORT" } = params;
+  const allImagesToSend = (images && images.length > 0) ? images : (image ? [image] : []);
 
   // 1. Try Supabase Edge Function ai-assistant-stream
   try {
@@ -296,12 +298,11 @@ export async function callAIService(params: {
         body: JSON.stringify({
           messages: [{ role: "user", content: userPrompt }],
           system_prompt: systemPrompt,
-          context_page: "CAREER_PLAN_IMPORT",
+          context_page: contextPage,
           requested_model_id: "tabe-ai",
           requested_provider: "local",
           power_level: "alto",
-          image: image || (images && images[0]),
-          images,
+          images: allImagesToSend,
         }),
       });
 
@@ -346,13 +347,15 @@ export async function callAIService(params: {
       const contents: any[] = [];
       const parts: any[] = [{ text: userPrompt }];
 
-      if (image) {
-        parts.push({
-          inlineData: {
-            mimeType: image.mime_type,
-            data: image.data,
-          },
-        });
+      for (const img of allImagesToSend) {
+        if (img?.data) {
+          parts.push({
+            inlineData: {
+              mimeType: img.mime_type || "image/jpeg",
+              data: img.data.includes(",") ? img.data.split(",")[1] : img.data,
+            },
+          });
+        }
       }
 
       contents.push({ role: "user", parts });
@@ -386,9 +389,21 @@ export async function callAIService(params: {
   // 3. Direct OpenRouter fallback
   if (OPENROUTER_API_KEY) {
     try {
+      let userMsgContent: any = userPrompt;
+      if (allImagesToSend.length > 0) {
+        userMsgContent = [
+          { type: "text", text: userPrompt },
+          ...allImagesToSend.map(img => ({
+            type: "image_url",
+            image_url: {
+              url: `data:${img.mime_type || "image/jpeg"};base64,${img.data.includes(",") ? img.data.split(",")[1] : img.data}`
+            }
+          }))
+        ];
+      }
       const messages: any[] = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userMsgContent },
       ];
 
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {

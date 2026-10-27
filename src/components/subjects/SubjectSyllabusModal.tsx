@@ -59,10 +59,12 @@ export function SubjectSyllabusModal({
   const [enableWeights, setEnableWeights] = useState(true);
   const [weights, setWeights] = useState<Record<string, number>>({});
 
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetAll = () => {
     setStep("upload");
+    setIsDragging(false);
     setFiles([]);
     setPastedText("");
     setLoading(false);
@@ -363,7 +365,32 @@ export function SubjectSyllabusModal({
             {/* File drop zone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-zinc-200 dark:border-zinc-700/80 hover:border-zinc-400 dark:hover:border-zinc-500 rounded-xl p-5 text-center cursor-pointer transition-colors bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-900/70"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+                  const incoming = Array.from(e.dataTransfer.files);
+                  setFiles(prev => [...prev, ...incoming]);
+                  ComicAudio.playPop();
+                }
+              }}
+              className={cn(
+                "border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all",
+                isDragging
+                  ? "border-amber-500 bg-amber-500/10 scale-[1.01]"
+                  : "border-zinc-200 dark:border-zinc-700/80 hover:border-zinc-400 dark:hover:border-zinc-500 bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-900/70"
+              )}
             >
               <input
                 ref={fileInputRef}
@@ -442,9 +469,9 @@ export function SubjectSyllabusModal({
             <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80 text-[11px] text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
               <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <strong>¿Qué detecta TABE AI?</strong>
+                <strong className="text-zinc-800 dark:text-zinc-200">Fusión multi-archivo de TABE AI:</strong>
                 <p className="mt-0.5">
-                  Extraerá las fechas de parciales, recuperatorios, TPs y globales para el calendario; si hay más de 2 parciales los agregará a tu planilla, y configurará el peso (%) de cada examen para tu promedio. Podrás revisar y desmarcar lo que no quieras antes de guardar.
+                  Puedes subir varios archivos juntos (ej: un Excel con cronograma, fotos de apuntes y texto explicativo). TABE AI integrará la información de <strong>todas las fuentes combinadas</strong> sin omitir ninguna para armar tu calendario de eventos, parciales extra y ponderación porcentual de notas.
                 </p>
               </div>
             </div>
