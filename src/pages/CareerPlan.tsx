@@ -167,6 +167,7 @@ export default function CareerPlan() {
 
   // Helper to extract numeric grade from subject (nota, final_examen, global)
   const getSubjectGrade = useCallback((s: SubjectWithStatus): number | null => {
+    if (s.status !== "aprobada") return null;
     if (s.nota !== null && s.nota !== undefined && !isNaN(Number(s.nota)) && Number(s.nota) > 0) {
       return Number(s.nota);
     }

@@ -266,7 +266,7 @@ export function SubjectStatusModal({
             )}
 
             {/* Current Final Grade Badge */}
-            {subject.nota && (
+            {subject.status === "aprobada" && subject.nota && (
               <div className="flex items-center justify-center gap-2 p-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">

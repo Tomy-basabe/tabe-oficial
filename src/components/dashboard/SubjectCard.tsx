@@ -117,7 +117,7 @@ export const SubjectCard = memo(function SubjectCard({
         <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
           {codigo}
         </span>
-        {nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 ? (
+        {status === "aprobada" && nota !== null && nota !== undefined && !isNaN(Number(nota)) && Number(nota) > 0 ? (
           <span className="font-semibold text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-700/80">
             Nota: {nota}
           </span>

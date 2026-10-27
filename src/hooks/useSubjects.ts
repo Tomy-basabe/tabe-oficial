@@ -604,11 +604,13 @@ export function useSubjects() {
       ].filter((n): n is number => n !== null && n !== undefined && !isNaN(n) && n > 0);
       const bestFinal = allFinals.length > 0 ? Math.max(...allFinals) : userStatus?.nota_final_examen ?? null;
 
+      const isApproved = status === "aprobada";
+
       return {
         ...subject,
         status,
-        nota: userStatus?.nota ?? bestFinal ?? userStatus?.nota_global ?? null,
-        fecha_aprobacion: userStatus?.fecha_aprobacion ?? null,
+        nota: isApproved ? (userStatus?.nota ?? bestFinal ?? userStatus?.nota_global ?? null) : null,
+        fecha_aprobacion: isApproved ? (userStatus?.fecha_aprobacion ?? null) : null,
         requisitos_faltantes: status === "bloqueada" ? getMissingRequirements(subject.id) : [],
         dependencies: subjectDeps,
         userStatusId: userStatus?.id,
@@ -619,7 +621,7 @@ export function useSubjects() {
           nota_rec_parcial_2: userStatus?.nota_rec_parcial_2 ?? null,
           nota_global: userStatus?.nota_global ?? null,
           nota_rec_global: userStatus?.nota_rec_global ?? null,
-          nota_final_examen: bestFinal,
+          nota_final_examen: isApproved ? bestFinal : null,
           extra_partials: parsedExtras.partials,
           extra_globals: parsedExtras.globals,
           extra_finals: parsedExtras.finals,
@@ -646,13 +648,18 @@ export function useSubjects() {
       const existingStatus = userStatuses.find(s => s.subject_id === subjectId);
       const previousEstado = existingStatus?.estado;
 
-      const statusData = {
+      const isApproved = estado === "aprobada";
+      const statusData: any = {
         user_id: user.id,
         subject_id: subjectId,
         estado,
-        nota: nota ?? null,
-        fecha_aprobacion: estado === "aprobada" ? new Date().toISOString().split('T')[0] : null,
+        nota: isApproved ? (nota ?? null) : null,
+        fecha_aprobacion: isApproved ? new Date().toISOString().split('T')[0] : null,
       };
+
+      if (!isApproved) {
+        statusData.nota_final_examen = null;
+      }
 
       if (existingStatus) {
         const { error } = await supabase
