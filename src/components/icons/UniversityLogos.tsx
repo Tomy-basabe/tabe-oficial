@@ -2,6 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 import { ALL_FACULTADES } from "@/lib/careerData";
+import { getUniversityLogoUrl } from "@/data/universityLogos";
 
 interface LogoProps {
   className?: string;
@@ -36,7 +37,7 @@ export function OfficialLogo({
   }, [remoteUrl, fallbackLocal]);
 
   if (hasError && !fallbackLocal) {
-    return <GenericInstituteLogo className={className} size={size} />;
+    return <GenericInstituteLogo className={className} size={size} label={alt} />;
   }
 
   return (
@@ -44,6 +45,7 @@ export function OfficialLogo({
       src={currentSrc}
       alt={alt}
       title={title || alt}
+      referrerPolicy="no-referrer"
       className={cn("shrink-0 object-contain", className)}
       style={size ? { width: size, height: size } : undefined}
       loading="lazy"
@@ -244,16 +246,123 @@ export function InsutecLogo({ className = "w-6 h-6", size }: LogoProps) {
   );
 }
 
-export function GenericInstituteLogo({ className = "w-6 h-6", size }: LogoProps) {
+export function IESTomasGodoyCruzLogo({ className = "w-6 h-6", size }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={cn("shrink-0", className)}
+      style={size ? { width: size, height: size } : undefined}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="100" height="100" rx="20" fill="#0E3A75" />
+      <circle cx="50" cy="50" r="38" stroke="#F59E0B" strokeWidth="3" fill="#12488E" />
+      <path d="M50 24L62 38H38L50 24Z" fill="#F59E0B" />
+      <rect x="47" y="38" width="6" height="24" fill="#F59E0B" />
+      <text x="50" y="74" textAnchor="middle" fill="#FFFFFF" fontSize="13" fontWeight="900" fontFamily="sans-serif">
+        ITGC
+      </text>
+      <text x="50" y="85" textAnchor="middle" fill="#93C5FD" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+        9-002
+      </text>
+    </svg>
+  );
+}
+
+export function INSUTECLogo({ className = "w-6 h-6", size }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={cn("shrink-0", className)}
+      style={size ? { width: size, height: size } : undefined}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="100" height="100" rx="20" fill="#0F172A" />
+      <circle cx="50" cy="50" r="38" stroke="#06B6D4" strokeWidth="3" fill="#0369A1" />
+      <circle cx="50" cy="42" r="16" stroke="#38BDF8" strokeWidth="4" strokeDasharray="6 3" />
+      <path d="M42 42L50 34L58 42" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="50" y="73" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" fontFamily="sans-serif">
+        INSUTEC
+      </text>
+      <text x="50" y="84" textAnchor="middle" fill="#BAE6FD" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+        9-019
+      </text>
+    </svg>
+  );
+}
+
+export function IESBelgranoLogo({ className = "w-6 h-6", size }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={cn("shrink-0", className)}
+      style={size ? { width: size, height: size } : undefined}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="100" height="100" rx="20" fill="#0891B2" />
+      <circle cx="50" cy="50" r="38" stroke="#FFFFFF" strokeWidth="3" fill="#0E7490" />
+      <circle cx="50" cy="38" r="12" fill="#F59E0B" />
+      <text x="50" y="66" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="900" fontFamily="sans-serif">
+        BELGRANO
+      </text>
+      <text x="50" y="78" textAnchor="middle" fill="#A5F3FC" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+        IES 9-008
+      </text>
+    </svg>
+  );
+}
+
+export function IESMaipuLogo({ className = "w-6 h-6", size }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={cn("shrink-0", className)}
+      style={size ? { width: size, height: size } : undefined}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="100" height="100" rx="20" fill="#047857" />
+      <circle cx="50" cy="50" r="38" stroke="#34D399" strokeWidth="3" fill="#065F46" />
+      <path d="M50 26C42 36 34 46 50 60C66 46 58 36 50 26Z" fill="#34D399" />
+      <text x="50" y="74" textAnchor="middle" fill="#FFFFFF" fontSize="12" fontWeight="900" fontFamily="sans-serif">
+        MAIPÚ
+      </text>
+      <text x="50" y="85" textAnchor="middle" fill="#A7F3D0" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+        IES 9-023
+      </text>
+    </svg>
+  );
+}
+
+export function GenericInstituteLogo({
+  className = "w-6 h-6",
+  size,
+  label = "UNIV",
+}: LogoProps & { label?: string }) {
+  const cleanLabel = (label || "UNIV")
+    .replace(/universidad|facultad|instituto|nacional|regional|sede|provincial/gi, "")
+    .trim();
+  const initials =
+    cleanLabel
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .join("")
+      .slice(0, 4)
+      .toUpperCase() || "UNIV";
+
   return (
     <div
       className={cn(
-        "shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 flex items-center justify-center border border-zinc-200 dark:border-zinc-700",
+        "shrink-0 rounded-lg bg-linear-to-br from-blue-700 via-indigo-800 to-slate-900 text-white flex items-center justify-center font-black tracking-tight border border-blue-400/30 shadow-2xs select-none",
         className
       )}
-      style={size ? { width: size, height: size } : undefined}
+      style={size ? { width: size, height: size, fontSize: Math.max(7, Math.round(size * 0.3)) } : { fontSize: "10px" }}
+      title={label}
     >
-      <Building2 className="w-4 h-4" />
+      {initials}
     </div>
   );
 }
@@ -280,6 +389,21 @@ export function UniversityLogo({
       f.label.toLowerCase() === norm ||
       f.fullLabel.toLowerCase().includes(norm)
   );
+
+  // 2. Prioridad máxima al catálogo centralizado en universityLogos.ts (140 facultades locales verificadas)
+  const resolvedLogo = getUniversityLogoUrl(faculty?.id || universityId);
+  if (resolvedLogo) {
+    return (
+      <OfficialLogo
+        remoteUrl={resolvedLogo}
+        fallbackLocal={resolvedLogo.startsWith("/") ? resolvedLogo : undefined}
+        alt={faculty?.label || universityId}
+        title={faculty?.fullLabel || universityId}
+        className={className}
+        size={size}
+      />
+    );
+  }
 
   // UTN (Mendoza, San Rafael, Córdoba, FRBA, etc.)
   if (norm.includes("utn") || norm.includes("tecnologica")) {
@@ -469,30 +593,22 @@ export function UniversityLogo({
 
   // Tomás Godoy Cruz
   if (norm.includes("itgc") || norm.includes("godoy") || norm.includes("9-002")) {
-    return (
-      <OfficialLogo
-        remoteUrl={faculty?.logoUrl || "https://ies9002.mendoza.edu.ar/wp-content/uploads/2020/06/logo-itgc.png"}
-        fallbackLocal="/universities/ies-tomas-godoy-cruz.jpg"
-        alt="IES 9-002 Tomás Godoy Cruz"
-        title="IES 9-002 Tomás Godoy Cruz"
-        className={cn("rounded-xs", className)}
-        size={size}
-      />
-    );
+    return <IESTomasGodoyCruzLogo className={className} size={size} />;
   }
 
   // INSUTEC
   if (norm.includes("insutec") || norm.includes("9-019")) {
-    return (
-      <OfficialLogo
-        remoteUrl={faculty?.logoUrl || "https://www.insutec.edu.ar/wp-content/uploads/2025/03/logo.png"}
-        fallbackLocal="/universities/insutec.png"
-        alt="INSUTEC 9-019"
-        title="Instituto Superior Tecnológico INSUTEC 9-019"
-        className={className}
-        size={size}
-      />
-    );
+    return <INSUTECLogo className={className} size={size} />;
+  }
+
+  // IES Belgrano 9-008
+  if (norm.includes("belgrano") || norm.includes("9-008") || norm === "ies_belgrano") {
+    return <IESBelgranoLogo className={className} size={size} />;
+  }
+
+  // IES Maipú 9-023
+  if (norm.includes("maipu") || norm.includes("9-023") || norm === "ies_maipu") {
+    return <IESMaipuLogo className={className} size={size} />;
   }
 
   // Si tiene logoUrl en la configuración oficial
@@ -508,6 +624,6 @@ export function UniversityLogo({
     );
   }
 
-  // Fallback institucional general
-  return <GenericInstituteLogo className={className} size={size} />;
+  // Fallback institucional general (monograma con sigla oficial en lugar de edificio genérico)
+  return <GenericInstituteLogo className={className} size={size} label={faculty?.label || universityId} />;
 }

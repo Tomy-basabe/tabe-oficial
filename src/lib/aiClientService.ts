@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { addInAppNotification } from "@/lib/notificationsStore";
 import { toast } from "sonner";
 import { invalidateSubjectsCache } from "@/hooks/useSubjects";
 import { invalidateCalendarCache, getColorForType } from "@/hooks/useCalendarEvents";
@@ -66,6 +67,18 @@ export function cleanAIResponse(text: string): string {
   // 5. Remove leaked English reasoning preambles
   const preambleRegex = /^\s*(?:The user (?:asks|wants|requested|is asking)[\s\S]*?(?:That's it\.?|Here is the response:?|Let's produce something like:[\s\S]*?That's it\.?))\s*/i;
   cleaned = cleaned.replace(preambleRegex, "");
+
+  // 6. Eliminar cualquier ID, UUID o código técnico que el modelo haya colado accidentalmente en el texto
+  cleaned = cleaned.replace(/\[?(?:ID|HorarioID|SubjectID|ProfID):\s*([a-f0-9-]{8,}|[0-9]+)\]?/gi, "");
+  cleaned = cleaned.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "");
+
+  // 7. Sanitizar menciones técnicas a "base de datos" para que el lenguaje sea 100% natural y humano
+  cleaned = cleaned.replace(/\b(?:en|a|de|tu)\s+(?:la\s+)?base\s+de\s+datos\b/gi, (m) => {
+    if (/en\s+(?:la\s+)?base/i.test(m)) return "en tu cuenta";
+    if (/a\s+(?:la\s+)?base/i.test(m)) return "en tu cuenta";
+    return "tu cuenta";
+  });
+  cleaned = cleaned.replace(/\bbase\s+de\s+datos\b/gi, "cuenta");
 
   return cleaned.trimStart();
 }
@@ -454,7 +467,7 @@ export async function buildStudentContext(
           for (const yr of Object.keys(byYear).sort((a, b) => Number(a) - Number(b))) {
             const list = byYear[Number(yr)];
             const lines = list.map((s) => {
-              let line = `  • ${s.nombre} [${s.codigo || "S/C"}] [ID: ${s.id}]: ${s.estado.toUpperCase()}`;
+              let line = `  • ${s.nombre} [${s.codigo || "S/C"}]: ${s.estado.toUpperCase()}`;
               if (s.nota != null) line += ` | NOTA FINAL: ${s.nota}`;
               if (s.final_examen != null) line += ` | Examen Final: ${s.final_examen}`;
               const parciales = [];
@@ -478,7 +491,7 @@ export async function buildStudentContext(
               const subName = e.subject_id && subjectNameById[e.subject_id] ? ` [Materia: ${subjectNameById[e.subject_id]}]` : "";
               const hora = e.hora ? ` a las ${e.hora}` : "";
               const notas = e.notas ? ` (Detalle: ${e.notas})` : "";
-              return `- [ID: ${e.id}] ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
+              return `- ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
             })
             .join("\n");
         }
@@ -490,7 +503,7 @@ export async function buildStudentContext(
             .map((d) => {
               const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
               const fav = d.is_favorite ? " ⭐ Favorito" : "";
-              return `- [ID: ${d.id}] "${d.titulo}"${subName}${fav}`;
+              return `- "${d.titulo}"${subName}${fav}`;
             })
             .join("\n");
         }
@@ -501,7 +514,7 @@ export async function buildStudentContext(
           flashcardsSection = decks
             .map((d) => {
               const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
-              return `- [ID: ${d.id}] Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
+              return `- Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
             })
             .join("\n");
         }
@@ -512,7 +525,7 @@ export async function buildStudentContext(
           quizzesSection = quizzes
             .map((q) => {
               const subName = q.subject_id && subjectNameById[q.subject_id] ? ` [Materia: ${subjectNameById[q.subject_id]}]` : "";
-              return `- [ID: ${q.id}] Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
+              return `- Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
             })
             .join("\n");
         }
@@ -523,7 +536,7 @@ export async function buildStudentContext(
           librarySection = files
             .map((f) => {
               const subName = f.subject_id && subjectNameById[f.subject_id] ? ` [Materia: ${subjectNameById[f.subject_id]}]` : "";
-              return `- [ID: ${f.id}] "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
+              return `- "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
             })
             .join("\n");
         }
@@ -538,7 +551,7 @@ export async function buildStudentContext(
                 ? r.days_of_week.map((d: number) => daysMap[d] || d).join(", ")
                 : "Días no especificados";
               const subName = r.subject_id && subjectNameById[r.subject_id] ? ` [Materia: ${subjectNameById[r.subject_id]}]` : "";
-              return `- [ID: ${r.id}] "${r.name}" (${r.category || "Hábito"}) [${r.is_active ? "Activa" : "Pausada"}]: ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
+              return `- "${r.name}" (${r.category || "Hábito"}) [${r.is_active ? "Activa" : "Pausada"}]: ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
             })
             .join("\n");
         }
@@ -550,7 +563,7 @@ export async function buildStudentContext(
             .map((s) => {
               const subName = s.subject_id && subjectNameById[s.subject_id] ? ` en ${subjectNameById[s.subject_id]}` : "";
               const mins = Math.round((s.duracion_segundos || 0) / 60);
-              return `- [ID: ${s.id || "sesion"}] ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
+              return `- ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
             })
             .join("\n");
         }
@@ -571,10 +584,10 @@ export async function buildStudentContext(
             const subjectName = p.subject_id && subjectNameById[p.subject_id] ? ` [Materia: ${subjectNameById[p.subject_id]}]` : "";
             const hours = officeHoursList.filter((h) => h.professor_id === p.id);
             const hoursStr = hours.length > 0
-              ? hours.map((h) => `${h.dia} de ${h.hora_inicio} a ${h.hora_fin} [HorarioID: ${h.id}]`).join(", ")
+              ? hours.map((h) => `${h.dia} de ${h.hora_inicio} a ${h.hora_fin}`).join(", ")
               : "Sin horarios de consulta especificados";
             const desc = p.descripcion ? ` (Notas: ${p.descripcion})` : "";
-            return `- [ID: ${p.id}] ${p.nombre} (${p.rol || "Docente"})${subjectName}: Consultas ${hoursStr}${desc}`;
+            return `- ${p.nombre} (${p.rol || "Docente"})${subjectName}: Consultas ${hoursStr}${desc}`;
           }).join("\n");
         }
 
@@ -727,8 +740,18 @@ ${discordSection}
 ${friendsSection}
 
 DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
+⛔ REGLAS DE ORO DE COMUNICACIÓN (PROHIBIDO NOMBRAR LA BASE DE DATOS Y MOSTRAR IDs):
+1. PROHIBICIÓN TOTAL DE NOMBRAR LA "BASE DE DATOS", "DB", "TABLAS" O "SUPABASE":
+   - NUNCA le digas al estudiante frases como "tengo acceso a tu base de datos", "lo guardé en la base de datos", "se actualizó en tu base de datos", "en la tabla...", ni nada similar.
+   - Hablá SIEMPRE de forma humana, natural y cercana como un tutor universitario:
+     * En lugar de "tengo acceso a tu base de datos" -> Decí "Tengo tu plan de estudios y tus materias cargadas en tu cuenta" o "Veo tus notas y materias acá".
+     * En lugar de "lo guardé en tu base de datos" -> Decí "¡Listo! Ya lo agendé en tu calendario" o "¡Listo! Ya registré la consulta en tu cuenta".
+2. PROHIBICIÓN TOTAL DE MOSTRAR O MENCIONAR IDs O CÓDIGOS TÉCNICOS:
+   - NUNCA menciones identificadores internos, UUIDs (como "4a2b9c...", "ID: ...", "HorarioID: ...") ni códigos técnicos en tus respuestas al estudiante.
+   - Refiérete SIEMPRE a las materias, profesores, fechas y horarios por su nombre natural (ej: "Álgebra", "Profesor Juan Pérez", "Martes de 14 a 16 hs", "Primer Parcial").
+
 0. CAPACIDAD ACTIVA DE EJECUTAR ACCIONES, CREAR Y AGENDAR ELEMENTOS (¡MÁXIMA PRIORIDAD!):
-   - SOS UN AGENTE ACTIVO CONECTADO DIRECTAMENTE A LA BASE DE DATOS DE TABE: PUEDES CREAR, AGENDAR, MODIFICAR Y BORRAR ELEMENTOS.
+   - SOS EL ASISTENTE ACADÉMICO INTEGRAL DE TABE: TENÉS INTEGRACIÓN DIRECTA CON LA CUENTA DEL ESTUDIANTE Y PODÉS AGENDAR EXÁMENES, REGISTRAR HORARIOS DE PROFESORES, CAMBIAR NOTAS Y CREAR MATERIAL DE ESTUDIO AL INSTANTE.
    - TIENES TOTALMENTE HABILITADA LA CAPACIDAD DE:
      * Agendar y agregar parciales, finales, entregas y eventos en el Calendario.
      * Cargar y modificar notas de parciales, recuperatorios y finales.
@@ -736,7 +759,7 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
      * Crear, modificar o borrar rutinas de estudio y profesores.
    - NUNCA RESPONDAS DICIENDO:
      ❌ "No puedo agregar eventos a tu calendario"
-     ❌ "No tengo la capacidad de modificar tu base de datos"
+     ❌ "No tengo la capacidad de modificar tus materias o notas"
      ❌ "Como IA no puedo agendarlo por vos"
      ❌ "Tenés que ir a la sección de Calendario y agregarlo manualmente"
    - CÓMO ACTUAR CUANDO TE PIDEN AGREGAR O AGENDAR UN PARCIAL / EXAMEN:
@@ -771,7 +794,7 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
      Revisa siempre el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS] antes de generar el cuestionario:
      * Reconoce acrónimos y apodos comunes de inmediato: "RD" = "Redes de Datos", "BD" = "Bases de Datos", "SO" = "Sistemas Operativos", "Redes" = "Redes de Datos", "Álgebra" = "Álgebra y Geometría Analítica", "Análisis" = "Análisis Matemático", etc. Si el apodo o acrónimo apunta con claridad a una única materia de su plan, vincúlala directamente usando su nombre oficial completo en "subject_name".
      * PREGUNTAR ANTE DUDAS O AMBIGÜEDAD: Si el estudiante menciona un término ambiguo que puede referirse a 2 o más materias de su plan (por ejemplo: dice "Datos" y cursa "Redes de Datos" y "Bases de Datos", o dice "Sistemas" y tiene "Sistemas Operativos" y "Análisis de Sistemas"): NO crees el cuestionario a ciegas ni adivines. Respóndele primero con amabilidad preguntándole a cuál de las materias candidatas desea vincular el cuestionario, listando las opciones con viñetas o números para que elija. En cuanto el estudiante elija o confirme la materia, genera inmediatamente el cuestionario vinculado con el bloque de acción.
-   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la base de datos de Supabase con el nombre oficial de la materia en "subject_name":
+   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la cuenta del estudiante con el nombre oficial de la materia en "subject_name":
 \`\`\`tabe-action:quiz
 {"quiz_name": "Nombre del Quiz", "subject_name": "Nombre Oficial de la Materia", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
@@ -793,8 +816,8 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     - Si te consulta sobre mensajes, chats, foros o preguntas de sus compañeros ("qué preguntaron en el grupo", "qué hablaron en el chat de Álgebra", "recordame mensajes importantes de profes/ayudantes", "qué dudas tienen mis compañeros", "respondeme las dudas frecuentes que dejaron en el foro"): responde basándote en los mensajes reales de [13. GRUPOS DE ESTUDIO, FOROS Y CONVERSACIONES], sintetizando dudas, respondiéndolas o destacando avisos clave.
     - Si te pide ayuda para organizar grupos de estudio ("ayudame a armar un grupo de estudio", "con quién puedo estudiar", "quién cursa conmigo"): apóyate en sus compañeros de [14. COMPAÑEROS DE ESTUDIO Y AMIGOS] y los canales existentes para sugerir temas, coordinar sesiones en común y aprovechar las consultas de los profesores.
     - NUNCA digas que no tenés acceso a foros, chats, mensajes o interacciones de profesores/compañeros: tenés la información cargada y disponible.
-14. GESTIÓN Y MODIFICACIÓN TOTAL DE LA BASE DE DATOS DEL USUARIO (\`\`\`tabe-action:db):
-    Tenés permiso y capacidad total para CREAR, MODIFICAR (ACTUALIZAR) y BORRAR (ELIMINAR) cualquier dato académico y registro del estudiante en su base de datos cuando te lo pida:
+14. GESTIÓN Y ACTUALIZACIÓN TOTAL DE LA CUENTA DEL ESTUDIANTE (\`\`\`tabe-action:db):
+    Tenés permiso y capacidad total para AGENDAR, REGISTRAR, MODIFICAR y BORRAR cualquier parcial, consulta, nota o rutina en la cuenta del estudiante cuando te lo pida:
     a) PARCIALES, EXÁMENES Y EVENTOS DEL CALENDARIO (target: "calendar_events"):
        - Si el estudiante te pide cambiar la fecha, hora, tipo de examen o borrar/cancelar un parcial o evento de su calendario:
          * Podés modificar 'fecha' (YYYY-MM-DD), 'hora' (HH:mm), 'tipo_examen' (P1, P2, P3, Global, Final, Recuperatorio P1, Recuperatorio P2, Recuperatorio Global, etc.), 'titulo', 'notas' o 'subject_name'.
@@ -807,7 +830,34 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
          * Cambiar estado de materia: 'aprobada', 'regular', 'cursable', 'recursar'.
     c) MATERIAS DEL PLAN (target: "subjects"): agregar materia nueva, modificar nombre/código/año o eliminar una materia.
     d) RUTINAS (target: "routines"): crear, cambiar horarios/días/nombre, pausar/activar ('is_active': true/false) o eliminar rutinas.
-    e) PROFESORES Y CONSULTAS (target: "professors", target: "office_hours"): agregar, modificar o eliminar profesores y sus horarios de consulta.
+    e) PROFESORES Y CONSULTAS DE PROFES (target: "professors" o "office_hours"):
+       - Cuando el estudiante te pida registrar, agregar o agendar una consulta de profesor ("agregá consulta de Álgebra los martes de 14 a 16 con el profe Juan", "agendá consulta de Física los viernes a las 10"):
+         * target: "professors" (o "office_hours")
+         * operation: "create" (o "update")
+         * data: {
+             "nombre": "Nombre del profesor (ej: Juan Pérez, o 'Profesor de Álgebra')",
+             "materia": "Nombre de la materia (ej: Álgebra)",
+             "rol": "teoria" | "practica",
+             "dia": "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado",
+             "hora_inicio": "14:00",
+             "hora_fin": "16:00"
+           }
+       - Para borrar consulta o profesor: operation: "delete", match: { "nombre": "Nombre profe o materia" }.
+    ⚡ REGLAS CRÍTICAS DE VELOCIDAD Y ACCIONES MÚLTIPLES (ALTA PRIORIDAD):
+    1. Si el estudiante te pide realizar una o varias acciones (ej: agregar consulta de profes, cambiar una fecha, registrar estudio, etc.):
+       - Incluí el bloque \`\`\`tabe-action:db DIRECTAMENTE en tu respuesta.
+       - MÁXIMA VELOCIDAD Y CONCISIÓN: Respondé en MÁXIMO 1 o 2 oraciones breves y cálidas confirmando lo realizado (ej: "¡Listo! Registré la consulta de Álgebra para los martes de 14 a 16 hs."). NUNCA des explicaciones largas, rodeos ni discursos que demoren la respuesta.
+    2. ACCIONES MÚLTIPLES SIMULTÁNEAS:
+       - Si el estudiante te pide varias cosas a la vez (ej: "agregá la consulta de Álgebra los martes a las 14 y la de Física los jueves a las 18, y cambiale la fecha al parcial 1"):
+         INCLUÍ TODAS LAS ACCIONES DENTRO DEL MISMO ARRAY del bloque \`\`\`tabe-action:db.
+         Cada acción debe ser un objeto independiente en el array:
+         \`\`\`tabe-action:db
+         [
+           { "target": "professors", "operation": "create", "data": { "nombre": "Prof. Juan", "materia": "Álgebra", "dia": "martes", "hora_inicio": "14:00", "hora_fin": "16:00" } },
+           { "target": "professors", "operation": "create", "data": { "nombre": "Prof. Gómez", "materia": "Física", "dia": "jueves", "hora_inicio": "18:00", "hora_fin": "20:00" } },
+           { "target": "calendar_events", "operation": "update", "match": { "subject_name": "Álgebra", "tipo_examen": "P1" }, "data": { "fecha": "2026-05-20" } }
+         ]
+         \`\`\`
     f) MAZOS DE FLASHCARDS Y CUESTIONARIOS (target: "flashcard_decks", target: "quiz_decks"): renombrar o eliminar mazos/cuestionarios.
     g) TIEMPO DE ESTUDIO Y SESIONES (target: "study_sessions"):
        - Si el estudiante te pide cargar, anotar o registrar tiempo de estudio ("cargame 2 horas de estudio de Física", "anotá 45 minutos de estudio", "estudié 1 hora y media de Análisis hoy"):
@@ -823,7 +873,7 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     ⚠️ SEGURIDAD CRÍTICA Y DATOS SENSIBLES ESTRICTAMENTE PROHIBIDOS:
     - NUNCA intentes modificar ni borrar datos sensibles de la cuenta: Nombre del usuario, Apellido, Nombre de usuario (username), Contraseña (password), Correo electrónico (email), Teléfono, Suscripción/Plan de pago, Nivel/XP de user_stats, ni eliminar la cuenta.
     - Si el estudiante te pide cambiar su nombre, contraseña, email o datos de cuenta, explicale con calidez que por razones de seguridad y privacidad esos datos sensibles están protegidos y solo pueden modificarse manualmente desde Configuración.
-    FORMATO OBLIGATORIO DE ACCIÓN DE BASE DE DATOS:
+    FORMATO OBLIGATORIO DE ACCIÓN DE ACTUALIZACIÓN:
     Cuando el estudiante te pida crear, modificar o borrar cualquiera de los datos permitidos, confirmale en tu respuesta en español rioplatense qué cambio hiciste e incluí OBLIGATORIAMENTE al final de tu mensaje el bloque:
 \`\`\`tabe-action:db
 [
@@ -1069,8 +1119,12 @@ async function executeDatabaseMutations(
   };
 
   const resolveSubject = (query: any): any | null => {
-    if (!query || typeof query !== "string") return null;
-    const cleanQ = query.trim();
+    if (!query) return null;
+    let cleanQ = "";
+    if (typeof query === "string") cleanQ = query.trim();
+    else if (typeof query === "object" && query !== null) {
+      cleanQ = String(query.nombre || query.name || query.materia || query.id || "").trim();
+    }
     if (!cleanQ) return null;
 
     const exactUuid = userSubjects.find((s) => s.id === cleanQ);
@@ -1505,18 +1559,81 @@ async function executeDatabaseMutations(
         rawTarget.includes("office_hour") ||
         rawTarget.includes("consulta")
       ) {
-        const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name);
+        let sub = resolveSubject(
+          data.subject_id ||
+          data.subject_name ||
+          data.materia ||
+          data.subject ||
+          data.asignatura ||
+          data.materia_nombre ||
+          data.nombre_materia ||
+          match.subject_id ||
+          match.subject_name ||
+          match.materia ||
+          match.subject ||
+          act.subject_name ||
+          act.materia
+        );
+
+        // Si no se detectó materia explícita, buscar en el nombre del profesor o descripción
+        if (!sub) {
+          const combinedSearch = `${data.nombre || ""} ${data.profesor || ""} ${data.name || ""} ${match.nombre || ""} ${data.descripcion || ""} ${act.nombre || ""}`;
+          for (const s of userSubjects) {
+            const sn = norm(s.nombre);
+            if (sn.length >= 3 && norm(combinedSearch).includes(sn)) {
+              sub = s;
+              break;
+            }
+          }
+        }
+
+        // GARANTÍA CRÍTICA DE ESQUEMA POSTGRESQL (professors.subject_id NOT NULL):
+        let targetSubjectId = sub?.id || (userSubjects.length > 0 ? userSubjects[0].id : null);
+        if (!targetSubjectId) {
+          const defaultSubName = data.materia || data.subject_name || "General";
+          const { data: newSub } = await (supabase as any)
+            .from("subjects")
+            .insert({
+              user_id: currentUserId,
+              nombre: defaultSubName,
+              año: 1
+            })
+            .select("id, nombre")
+            .single();
+          if (newSub) {
+            targetSubjectId = newSub.id;
+            sub = newSub;
+            userSubjects.push(newSub);
+          }
+        }
 
         if (op === "create" || op === "update") {
-          const profName = (data.nombre || data.name || match.nombre || match.name || "Profesor de Consulta").trim();
-          const profRol = data.rol || (data.tipo === "practica" ? "practica" : "teoria");
-          const profDesc = data.descripcion || data.notas || null;
+          const profName = (
+            data.nombre ||
+            data.name ||
+            data.profesor ||
+            data.docente ||
+            data.prof ||
+            match.nombre ||
+            match.name ||
+            match.profesor ||
+            act.nombre ||
+            act.profesor ||
+            (sub ? `Prof. de ${sub.nombre}` : "Profesor de Consulta")
+          ).trim();
 
-          // Helper para normalizar día de la semana
+          let profRol = "teoria";
+          const rawRol = String(data.rol || data.tipo || match.rol || "").toLowerCase();
+          if (rawRol.includes("prac") || rawRol.includes("jtp") || rawRol.includes("ayud")) {
+            profRol = "practica";
+          }
+
+          const profDesc = data.descripcion || data.notas || data.ubicacion || null;
+
+          // Helper para normalizar día de la semana (Postgres CHECK IN: 'lunes','martes','miercoles','jueves','viernes','sabado')
           const normDay = (rawDay: any): string | null => {
             if (rawDay === null || rawDay === undefined) return null;
 
-            // Si es número (1: lunes, 2: martes, 3: miercoles, 4: jueves, 5: viernes, 6: sabado)
             if (typeof rawDay === "number" || /^\d+$/.test(String(rawDay).trim())) {
               const num = parseInt(String(rawDay).trim(), 10);
               if (num === 1) return "lunes";
@@ -1525,18 +1642,19 @@ async function executeDatabaseMutations(
               if (num === 4) return "jueves";
               if (num === 5) return "viernes";
               if (num === 6) return "sabado";
-              if (num === 0 || num === 7) return "domingo";
+              return null; // Domingo no permitido por constraint
             }
 
             const d = String(rawDay).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-            // Si es fecha YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
               try {
                 const parsed = new Date(d.slice(0, 10) + "T12:00:00");
                 if (!isNaN(parsed.getTime())) {
-                  const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-                  return days[parsed.getDay()] || null;
+                  const days = ["", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+                  const dayIdx = parsed.getDay();
+                  if (dayIdx >= 1 && dayIdx <= 6) return days[dayIdx];
+                  return null;
                 }
               } catch {}
             }
@@ -1546,7 +1664,6 @@ async function executeDatabaseMutations(
             if (d.includes("jue") || d.includes("thu")) return "jueves";
             if (d.includes("vie") || d.includes("fri")) return "viernes";
             if (d.includes("sab") || d.includes("sat")) return "sabado";
-            if (d.includes("dom") || d.includes("sun")) return "domingo";
             if (d.includes("lun") || d.includes("mon")) return "lunes";
             return null;
           };
@@ -1563,13 +1680,11 @@ async function executeDatabaseMutations(
             }
             const str = String(input).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const found: string[] = [];
-            // Prioridad a martes si aparece "mar" para evitar falsos positivos
             if (str.includes("mar") || str.includes("tue")) found.push("martes");
             if (str.includes("mie") || str.includes("wed")) found.push("miercoles");
             if (str.includes("jue") || str.includes("thu")) found.push("jueves");
             if (str.includes("vie") || str.includes("fri")) found.push("viernes");
             if (str.includes("sab") || str.includes("sat")) found.push("sabado");
-            if (str.includes("dom") || str.includes("sun")) found.push("domingo");
             if (str.includes("lun") || str.includes("mon")) found.push("lunes");
 
             if (found.length === 0) {
@@ -1579,11 +1694,9 @@ async function executeDatabaseMutations(
             return found;
           };
 
-          // Helper para normalizar hora (HH:mm)
           const normTime = (rawTime: any): string | null => {
             if (rawTime === null || rawTime === undefined) return null;
-            let str = String(rawTime).trim().toLowerCase();
-            str = str.replace(/hs?|hrs?/g, "").trim();
+            let str = String(rawTime).trim().toLowerCase().replace(/hs?|hrs?/g, "").trim();
             const parts = str.split(":");
             if (parts.length >= 2) {
               const h = parseInt(parts[0], 10);
@@ -1600,9 +1713,7 @@ async function executeDatabaseMutations(
             return null;
           };
 
-          // Extraer lista de horarios
           const schedulesToInsert: { dia: string; hora_inicio: string; hora_fin: string }[] = [];
-
           const rawList = data.horarios || data.schedules || data.office_hours || data.clases_consulta || data.turnos || data.consultas;
           if (Array.isArray(rawList)) {
             for (const item of rawList) {
@@ -1613,32 +1724,36 @@ async function executeDatabaseMutations(
                   if (detected.length > 0) dia = detected[0];
                 }
 
-                let hora_inicio = normTime(item.hora_inicio || item.start_time || item.inicio || item.desde || item.hora);
+                let hora_inicio = normTime(item.hora_inicio || item.start_time || item.inicio || item.desde || item.hora) || "14:00";
                 let hora_fin = normTime(item.hora_fin || item.end_time || item.fin || item.hasta);
 
-                if (!hora_inicio && (item.horario || item.horas || item.rango)) {
-                  const parts = String(item.horario || item.horas || item.rango).split(/\s*(?:a|-|hasta|to)\s*/i);
-                  if (parts[0]) hora_inicio = normTime(parts[0]);
-                  if (parts[1]) hora_fin = normTime(parts[1]);
+                if (!hora_fin) {
+                  const [h, m] = hora_inicio.split(":").map(Number);
+                  hora_fin = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                }
+
+                const [sh, sm] = hora_inicio.split(":").map(Number);
+                const [eh, em] = hora_fin.split(":").map(Number);
+                if (eh * 60 + (em || 0) <= sh * 60 + (sm || 0)) {
+                  hora_fin = `${String(Math.min((sh || 14) + 2, 22)).padStart(2, "0")}:${String(sm || 0).padStart(2, "0")}`;
                 }
 
                 if (dia) {
-                  if (!hora_inicio) hora_inicio = "14:00";
-                  if (!hora_fin) {
-                    const [h, m] = hora_inicio.split(":").map(Number);
-                    hora_fin = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
-                  }
                   schedulesToInsert.push({ dia, hora_inicio, hora_fin });
                 }
               } else if (typeof item === "string") {
                 const daysFound = extractDaysFromAny(item);
                 const parts = item.split(/\s*(?:a|-|hasta|to)\s*/i);
-                let h1 = normTime(parts[0]);
+                let h1 = normTime(parts[0]) || "14:00";
                 let h2 = normTime(parts[1]);
-                if (!h1) h1 = "14:00";
                 if (!h2) {
                   const [h, m] = h1.split(":").map(Number);
                   h2 = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                }
+                const [sh, sm] = h1.split(":").map(Number);
+                const [eh, em] = h2.split(":").map(Number);
+                if (eh * 60 + (em || 0) <= sh * 60 + (sm || 0)) {
+                  h2 = `${String(Math.min((sh || 14) + 2, 22)).padStart(2, "0")}:${String(sm || 0).padStart(2, "0")}`;
                 }
                 for (const d of daysFound) {
                   schedulesToInsert.push({ dia: d, hora_inicio: h1, hora_fin: h2 });
@@ -1647,7 +1762,7 @@ async function executeDatabaseMutations(
             }
           }
 
-          // Días y horarios directos en data y match
+          // Días y horarios directos
           const directDays: string[] = [
             ...extractDaysFromAny(data.dias),
             ...extractDaysFromAny(data.dia || data.day),
@@ -1655,68 +1770,57 @@ async function executeDatabaseMutations(
             ...extractDaysFromAny(data.fecha || match.fecha),
           ];
 
-          // Días detectados en cualquier texto libre de horario o notas
           const textSources = `${data.horario || ""} ${data.horarios_texto || ""} ${data.rango || ""} ${data.descripcion || ""} ${data.notas || ""} ${data.hora || ""}`;
-          const textDays = extractDaysFromAny(textSources);
-          for (const td of textDays) {
+          for (const td of extractDaysFromAny(textSources)) {
             if (!directDays.includes(td)) directDays.push(td);
           }
 
-          let directStart = normTime(data.hora_inicio || data.start_time || data.inicio || data.hora || match.hora);
+          let directStart = normTime(data.hora_inicio || data.start_time || data.inicio || data.hora || match.hora) || "14:00";
           let directEnd = normTime(data.hora_fin || data.end_time || data.fin || match.hora_fin);
-
-          if (!directStart && (data.horario || data.horarios_texto || data.rango)) {
-            const parts = String(data.horario || data.horarios_texto || data.rango).split(/\s*(?:a|-|hasta|to)\s*/i);
-            if (parts[0]) directStart = normTime(parts[0]);
-            if (parts[1]) directEnd = normTime(parts[1]);
+          if (!directEnd) {
+            const [h, m] = directStart.split(":").map(Number);
+            directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+          }
+          const [dsh, dsm] = directStart.split(":").map(Number);
+          const [deh, dem] = directEnd.split(":").map(Number);
+          if (deh * 60 + (dem || 0) <= dsh * 60 + (dsm || 0)) {
+            directEnd = `${String(Math.min((dsh || 14) + 2, 22)).padStart(2, "0")}:${String(dsm || 0).padStart(2, "0")}`;
           }
 
           if (directDays.length > 0) {
-            if (!directStart) directStart = "14:00";
-            if (!directEnd) {
-              const [h, m] = directStart.split(":").map(Number);
-              directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
-            }
             for (const d of directDays) {
               if (!schedulesToInsert.some(s => s.dia === d && s.hora_inicio === directStart)) {
                 schedulesToInsert.push({ dia: d, hora_inicio: directStart, hora_fin: directEnd });
               }
             }
+          } else if (schedulesToInsert.length === 0) {
+            const todayNum = new Date().getDay();
+            const defaultDay = (todayNum >= 1 && todayNum <= 6) ? ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][todayNum - 1] : "martes";
+            schedulesToInsert.push({ dia: defaultDay, hora_inicio: directStart, hora_fin: directEnd });
           }
 
-          // Fallback final si vino hora pero no se detectó ningún día
-          if (schedulesToInsert.length === 0 && directStart) {
-            if (!directEnd) {
-              const [h, m] = directStart.split(":").map(Number);
-              directEnd = `${String(Math.min((h || 14) + 2, 22)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+          // 1. Buscar o crear profesor
+          let profId: string | null = act.id || match.id || null;
+          if (!profId) {
+            const { data: existingProfs } = await (supabase as any)
+              .from("professors")
+              .select("id, nombre, subject_id")
+              .eq("user_id", currentUserId)
+              .ilike("nombre", profName);
+
+            if (existingProfs && existingProfs.length > 0) {
+              profId = existingProfs[0].id;
+              const updateFields: any = {};
+              if (targetSubjectId) updateFields.subject_id = targetSubjectId;
+              if (profDesc) updateFields.descripcion = profDesc;
+              if (profRol) updateFields.rol = profRol;
+              if (Object.keys(updateFields).length > 0) {
+                await (supabase as any).from("professors").update(updateFields).eq("id", profId);
+              }
             }
-            const allText = JSON.stringify(data) + " " + JSON.stringify(match);
-            const foundAll = extractDaysFromAny(allText);
-            const finalDay = foundAll[0] || "martes";
-            schedulesToInsert.push({ dia: finalDay, hora_inicio: directStart, hora_fin: directEnd });
           }
 
-          // 1. Verificar si ya existe este profesor para el usuario
-          let profId: string | null = null;
-          const { data: existingProfs } = await (supabase as any)
-            .from("professors")
-            .select("id, nombre, subject_id")
-            .eq("user_id", currentUserId)
-            .ilike("nombre", profName);
-
-          if (existingProfs && existingProfs.length > 0) {
-            profId = existingProfs[0].id;
-            const updateFields: any = {};
-            if (sub?.id) updateFields.subject_id = sub.id;
-            if (data.descripcion) updateFields.descripcion = data.descripcion;
-            if (data.rol) updateFields.rol = profRol;
-            if (Object.keys(updateFields).length > 0) {
-              await (supabase as any)
-                .from("professors")
-                .update(updateFields)
-                .eq("id", profId);
-            }
-          } else {
+          if (!profId) {
             const { data: newProf, error: profErr } = await (supabase as any)
               .from("professors")
               .insert({
@@ -1724,21 +1828,18 @@ async function executeDatabaseMutations(
                 nombre: profName,
                 rol: profRol,
                 descripcion: profDesc,
-                subject_id: sub?.id || null,
+                subject_id: targetSubjectId,
                 color_index: Math.floor(Math.random() * 8),
               })
               .select("id")
               .single();
 
-            if (profErr) {
-              console.error("[TABE AI] Error creating professor:", profErr);
-              throw profErr;
+            if (!profErr && newProf?.id) {
+              profId = newProf.id;
             }
-            profId = newProf?.id;
           }
 
-          // 2. Si vienen horarios y el profesor ya existía o se está actualizando,
-          // reemplazar los horarios previos para no dejar días erróneos (ej. lunes reemplazado por martes)
+          // 2. Guardar horarios de consulta
           let insertedCount = 0;
           if (profId && schedulesToInsert.length > 0) {
             await (supabase as any)
@@ -1746,21 +1847,22 @@ async function executeDatabaseMutations(
               .delete()
               .eq("professor_id", profId);
 
-            for (const sched of schedulesToInsert) {
-              const { error: schedErr } = await (supabase as any)
-                .from("professor_office_hours")
-                .insert({
+            const { error: schedErr } = await (supabase as any)
+              .from("professor_office_hours")
+              .insert(
+                schedulesToInsert.map(s => ({
                   professor_id: profId,
                   user_id: currentUserId,
-                  dia: sched.dia,
-                  hora_inicio: sched.hora_inicio,
-                  hora_fin: sched.hora_fin,
-                });
-              if (!schedErr) insertedCount++;
-            }
+                  dia: s.dia,
+                  hora_inicio: s.hora_inicio,
+                  hora_fin: s.hora_fin,
+                }))
+              );
+            if (!schedErr) insertedCount = schedulesToInsert.length;
           }
 
           if (typeof window !== "undefined") {
+            try { sessionStorage.setItem("tabe:office-hours-dirty", "true"); } catch {}
             window.dispatchEvent(new CustomEvent("tabe:office-hours-updated"));
           }
 
@@ -1802,6 +1904,7 @@ async function executeDatabaseMutations(
               .eq("user_id", currentUserId);
 
             if (typeof window !== "undefined") {
+              try { sessionStorage.setItem("tabe:office-hours-dirty", "true"); } catch {}
               window.dispatchEvent(new CustomEvent("tabe:office-hours-updated"));
             }
 
@@ -2021,86 +2124,102 @@ async function executeActionBlock(
     } catch {}
   }
 
-  // 1. Calendar action
-  const calRegex = /```tabe-action:calendar\s*([\s\S]*?)(?:```|$)/;
-  const calMatch = content.match(calRegex);
-  if (calMatch && calMatch[1]) {
-    try {
-      const parsed = JSON.parse(calMatch[1].trim());
-      const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : []);
-      if (items.some((it: any) => it.operation === "update" || it.operation === "delete")) {
-        const ops = items.map((it: any) => ({ table: "calendar_events", operation: it.operation || "create", id: it.id, match: it.match, data: it.data || it }));
-        const mutRes = await executeDatabaseMutations(ops, currentUserId);
-        if (mutRes && mutRes.length > 0) db_mutations = [...(db_mutations || []), ...mutRes];
-      } else
-      if (items.length > 0 && currentUserId && currentUserId !== "guest") {
-        for (const it of items) {
-          await (supabase as any).from("calendar_events").insert({
-            user_id: currentUserId,
-            titulo: it.titulo,
-            fecha: it.fecha,
-            hora: it.hora || null,
-            tipo_examen: it.tipo_examen || "Otro",
-            color: getColorForType(it.tipo_examen || "Otro"),
-          });
+  // 1. Extraer y procesar TODOS los bloques tabe-action del mensaje (soporte multi-bloque y multi-acción)
+  const actionRegex = /```tabe-action:([a-z0-9_-]+)\s*([\s\S]*?)(?:```|$)/gi;
+  let actionMatch: RegExpExecArray | null;
+  const blocksToProcess: Array<{ type: string; raw: string; fullMatch: string }> = [];
+
+  while ((actionMatch = actionRegex.exec(content)) !== null) {
+    blocksToProcess.push({
+      type: (actionMatch[1] || "").toLowerCase().trim(),
+      raw: (actionMatch[2] || "").trim(),
+      fullMatch: actionMatch[0],
+    });
+  }
+
+  for (const block of blocksToProcess) {
+    cleanedContent = cleanedContent.replace(block.fullMatch, "").trim();
+
+    if (
+      block.type === "db" ||
+      block.type === "professors" ||
+      block.type === "office_hours" ||
+      block.type === "consultas" ||
+      block.type === "routines" ||
+      block.type === "subjects" ||
+      block.type === "subject_status"
+    ) {
+      try {
+        const mutResult = await executeDatabaseMutations(block.raw, currentUserId);
+        if (mutResult && mutResult.length > 0) {
+          db_mutations = [...(db_mutations || []), ...mutResult];
         }
-        event_created = items;
-        invalidateCalendarCache(currentUserId);
+      } catch (e) {
+        console.warn("Failed to parse/execute db action:", e);
       }
-    } catch (e) {
-      console.warn("Failed to parse calendar action:", e);
-    }
-    cleanedContent = cleanedContent.replace(calMatch[0], "").trim();
-  }
-
-  // 1.5 DB Mutations action (crear, modificar o borrar parciales, notas, materias, rutinas, etc.)
-  const dbRegex = /```tabe-action:db\s*([\s\S]*?)(?:```|$)/i;
-  const dbMatch = content.match(dbRegex);
-  if (dbMatch && dbMatch[1]) {
-    try {
-      const mutResult = await executeDatabaseMutations(dbMatch[1].trim(), currentUserId);
-      if (mutResult && mutResult.length > 0) {
-        db_mutations = [...(db_mutations || []), ...mutResult];
-      }
-    } catch (e) {
-      console.warn("Failed to parse/execute db action:", e);
-    }
-    cleanedContent = cleanedContent.replace(dbMatch[0], "").trim();
-  }
-
-  // 2. Flashcards action
-  const fcRegex = /```tabe-action:flashcards\s*([\s\S]*?)(?:```|$)/;
-  const fcMatch = content.match(fcRegex);
-  if (fcMatch && fcMatch[1]) {
-    try {
-      const data = JSON.parse(fcMatch[1].trim());
-      if (data.deck_name && Array.isArray(data.cards) && data.cards.length > 0 && currentUserId && currentUserId !== "guest") {
-        const { data: deck } = await (supabase as any)
-          .from("flashcard_decks")
-          .insert({
-            user_id: currentUserId,
-            nombre: data.deck_name,
-            total_cards: data.cards.length,
-          })
-          .select()
-          .single();
-
-        if (deck) {
-          await (supabase as any).from("flashcards").insert(
-            data.cards.map((c: any) => ({
-              deck_id: deck.id,
+    } else if (block.type === "calendar") {
+      try {
+        const parsed = JSON.parse(block.raw);
+        const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : []);
+        if (items.some((it: any) => it.operation === "update" || it.operation === "delete")) {
+          const ops = items.map((it: any) => ({ table: "calendar_events", operation: it.operation || "create", id: it.id, match: it.match, data: it.data || it }));
+          const mutRes = await executeDatabaseMutations(ops, currentUserId);
+          if (mutRes && mutRes.length > 0) db_mutations = [...(db_mutations || []), ...mutRes];
+        } else if (items.length > 0 && currentUserId && currentUserId !== "guest") {
+          for (const it of items) {
+            await (supabase as any).from("calendar_events").insert({
               user_id: currentUserId,
-              pregunta: c.pregunta,
-              respuesta: c.respuesta,
-            }))
-          );
-          flashcards_created = { deck, cards_count: data.cards.length };
+              titulo: it.titulo,
+              fecha: it.fecha,
+              hora: it.hora || null,
+              tipo_examen: it.tipo_examen || "Otro",
+              color: getColorForType(it.tipo_examen || "Otro"),
+            });
+          }
+          event_created = items;
+          invalidateCalendarCache(currentUserId);
         }
+      } catch (e) {
+        console.warn("Failed to parse calendar action:", e);
       }
-    } catch (e) {
-      console.warn("Failed to parse flashcard action:", e);
+    } else if (block.type === "flashcards") {
+      try {
+        const data = JSON.parse(block.raw);
+        if (data.deck_name && Array.isArray(data.cards) && data.cards.length > 0 && currentUserId && currentUserId !== "guest") {
+          const { data: deck } = await (supabase as any)
+            .from("flashcard_decks")
+            .insert({
+              user_id: currentUserId,
+              nombre: data.deck_name,
+              total_cards: data.cards.length,
+            })
+            .select()
+            .single();
+
+          if (deck) {
+            await (supabase as any).from("flashcards").insert(
+              data.cards.map((c: any) => ({
+                deck_id: deck.id,
+                user_id: currentUserId,
+                pregunta: c.pregunta,
+                respuesta: c.respuesta,
+              }))
+            );
+            flashcards_created = { deck, cards_count: data.cards.length };
+            addInAppNotification({
+              title: "¡Carga 100% completada! 🗂️",
+              message: `Mazo "${data.deck_name}" creado con ${data.cards.length} flashcards de estudio.`,
+              type: "flashcards",
+              actionUrl: "/flashcards",
+              progress: 100,
+              status: "completed",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to parse flashcard action:", e);
+      }
     }
-    cleanedContent = cleanedContent.replace(fcMatch[0], "").trim();
   }
 
   // 3. Quiz action (soporte de hasta 80 preguntas con autoreparación de truncamiento y batch insert)
@@ -2366,6 +2485,14 @@ async function executeActionBlock(
           }
 
           quiz_created = { deck, questions_count: totalQCount };
+          addInAppNotification({
+            title: "¡Carga 100% completada! 📝",
+            message: `Cuestionario "${quizData.quiz_name}" guardado exitosamente con ${totalQCount} preguntas.`,
+            type: "quiz",
+            actionUrl: "/cuestionarios",
+            progress: 100,
+            status: "completed",
+          });
 
           // Invalidar caché local de cuestionarios y notificar a la aplicación
           try {
@@ -2395,7 +2522,18 @@ async function executeActionBlock(
     } else if (event_created) {
       cleanedContent = "¡Listo! Agendé los eventos en tu calendario.";
     } else if (db_mutations && db_mutations.length > 0) {
-      cleanedContent = `¡Listo! He actualizado tu información en la base de datos (${db_mutations.length} cambio${db_mutations.length > 1 ? "s" : ""} realizado${db_mutations.length > 1 ? "s" : ""}).`;
+      const isProf = db_mutations.some((m) => m.target === "professors" || m.target === "office_hours");
+      const isCal = db_mutations.some((m) => m.target === "calendar_events");
+      const isSub = db_mutations.some((m) => m.target === "subjects" || m.target === "subject_status");
+      if (isProf) {
+        cleanedContent = "¡Listo! Registré los profesores y horarios de consulta en tu cuenta.";
+      } else if (isCal) {
+        cleanedContent = "¡Listo! Agendé los eventos en tu calendario.";
+      } else if (isSub) {
+        cleanedContent = "¡Listo! Actualicé las notas y el estado de tus materias en tu plan.";
+      } else {
+        cleanedContent = "¡Listo! Ya guardé los cambios en tu cuenta.";
+      }
     }
   }
 

@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -100,6 +101,13 @@ export function AIBubbleWidget() {
                 );
             },
             (result) => {
+                if (result.event_created) toast.success("Evento agregado");
+                if (result.flashcards_created) toast.success("Flashcards creadas");
+                if (result.db_mutations && result.db_mutations.length > 0) {
+                    result.db_mutations.forEach((m: any) => {
+                        if (m.message) toast.success(m.message);
+                    });
+                }
                 if (result.content && result.content !== "") {
                     setMessages((prev) =>
                         prev.map((m) =>

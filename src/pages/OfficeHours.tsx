@@ -171,12 +171,22 @@ export function invalidateOfficeHoursCache() {
   _cachedProfessors = null;
   _cachedOfficeHours = null;
   _cachedOfficeTimestamp = 0;
+  if (typeof window !== "undefined") {
+    try { sessionStorage.removeItem("tabe:office-hours-dirty"); } catch {}
+  }
 }
 
 export default function OfficeHours() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
   const { rawSubjects: allSubjects, getYears, loading: subjectsLoading } = useSubjects();
+
+  if (typeof window !== "undefined" && sessionStorage.getItem("tabe:office-hours-dirty") === "true") {
+    try { sessionStorage.removeItem("tabe:office-hours-dirty"); } catch {}
+    _cachedProfessors = null;
+    _cachedOfficeHours = null;
+    _cachedOfficeTimestamp = 0;
+  }
 
   if (user && user.id !== _cachedOfficeUserId) {
     _cachedProfessors = null;

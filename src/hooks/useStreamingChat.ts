@@ -28,10 +28,18 @@ export function useStreamingChat(
       image?: { data: string; mime_type: string }
     ) => {
       setIsStreaming(true);
+      const lastUserMsg = messages[messages.length - 1]?.content || "";
+      const isHeavy =
+        /cuestionario|quiz|simulacro|preguntas|flashcards|resum|todas las consultas|profes|parciales|completo/i.test(lastUserMsg) ||
+        !!image ||
+        lastUserMsg.length > 200;
+
       setAiStatus({
         state: "thinking",
-        label: "Pensando...",
-        detail: "Analizando contexto y apuntes...",
+        label: isHeavy ? "Procesando en segundo plano..." : "Pensando...",
+        detail: isHeavy
+          ? "Te avisaremos en la campanita 🔔 cuando esté 100% cargado."
+          : "Analizando contexto y apuntes...",
       });
 
       if (isGuest) {
@@ -108,7 +116,7 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
 2. SÉ CONCISO Y DIRECTO: MÁXIMO 1 o 2 oraciones breves (20 a 35 palabras por respuesta). Nunca des discursos extensos ni párrafos largos que cansen por audio.
 3. TONO HUMANO Y NATURAL: Habla con calidez y naturalidad (en español rioplatense si el usuario es de Argentina o te habla de vos/che).
 4. SIN SÍMBOLOS MARKDOWN EN EL TEXTO HABLADO: NUNCA uses asteriscos (**), numerales (#), viñetas (-) ni tablas en tu texto conversacional, porque se sintetiza a audio.
-5. ACCIONES EN BASE DE DATOS Y CALENDARIO: Si el estudiante te pide agendar un parcial, modificar una nota o rutina, confirma en una oración y añade al final el bloque de acción (\`\`\`tabe-action:calendar o \`\`\`tabe-action:db). El sistema lo ejecutará automáticamente.`
+5. AGENDAR Y ACTUALIZAR EN TU CUENTA: Si el estudiante te pide agendar un parcial, modificar una nota o rutina, confirma en una oración cálida y natural (sin mencionar bases de datos ni IDs) y añade al final el bloque de acción (\`\`\`tabe-action:calendar o \`\`\`tabe-action:db). El sistema lo ejecutará automáticamente.`
           : studentContext;
 
         // 3. Stream with automatic NVIDIA multi-model cascade, provider fallback and power level

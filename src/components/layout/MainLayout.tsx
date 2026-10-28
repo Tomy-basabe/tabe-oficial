@@ -23,6 +23,7 @@ import { GlobalPomodoroWidget } from "@/components/pomodoro/GlobalPomodoroWidget
 import { AIBubbleWidget } from "@/components/ai/AIBubbleWidget";
 import { GuestModeBanner } from "@/components/layout/GuestModeBanner";
 import { GlobalNotificationManager } from "@/components/notifications/GlobalNotificationManager";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -399,6 +400,7 @@ export function MainLayout() {
 
             {/* Quick Actions on Mobile/Tablet Header */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <NotificationBell variant="header" />
               <Link
                 to="/metricas"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 active:scale-95 transition-all shadow-2xs"
@@ -459,6 +461,11 @@ export function MainLayout() {
                 </div>
               )}
             </div>
+            {!isCollapsed && (
+              <div className="flex items-center gap-1">
+                <NotificationBell variant="sidebar" />
+              </div>
+            )}
           </div>
 
         {/* Navigation */}
@@ -758,6 +765,16 @@ export function MainLayout() {
           )}>
             {isCollapsed ? (
               <>
+                {/* Notificaciones (Colapsado) */}
+                <div className="relative group/foot-notif">
+                  <NotificationBell variant="sidebar" />
+                  <div className="hidden group-hover/foot-notif:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1 shadow-md items-center whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+                    <span className="font-medium text-xs tracking-tight text-zinc-900 dark:text-zinc-100">
+                      Notificaciones
+                    </span>
+                  </div>
+                </div>
+
                 {/* Cambiar tema (Colapsado) */}
                 <div className="relative group/foot-theme">
                   <button

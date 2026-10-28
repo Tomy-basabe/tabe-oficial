@@ -33,6 +33,7 @@ import { HoldButton } from "@/components/ui/HoldButton";
 import { ParticleTitle } from "@/components/ui/particle-title";
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { TabeLogo } from "@/components/ui/TabeLogo";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1050,6 +1051,11 @@ export default function AIAssistant() {
           const qName = result.quiz_created.deck?.nombre || "Cuestionario";
           toast.success(`¡Cuestionario "${qName}" creado con éxito! (${qCount} preguntas)`);
         }
+        if (result.db_mutations && result.db_mutations.length > 0) {
+          result.db_mutations.forEach((m: any) => {
+            if (m.message) toast.success(m.message);
+          });
+        }
 
         let finalCleaned = cleanAIResponse(result.content || "");
         if (!finalCleaned.trim()) {
@@ -1370,6 +1376,9 @@ export default function AIAssistant() {
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{userStats?.racha_actual || 0}</span>
             </div>
+
+            {/* Campanita de Notificaciones de acciones en segundo plano */}
+            <NotificationBell variant="header" />
 
             {/* Delete current chat if active */}
             {currentSessionId && (

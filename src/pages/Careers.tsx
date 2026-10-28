@@ -16,11 +16,21 @@ import {
   ArrowDownAZ,
   Flame,
   Filter,
+  Map as MapIcon,
+  LayoutGrid,
+  FileText,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
+import { ArgentinaInteractiveMap, MapUniversity } from "@/components/careers/ArgentinaInteractiveMap";
+import {
+  UniversityCareerDrawer,
+  UniversityDrawerItem,
+  DrawerCareerItem,
+} from "@/components/careers/UniversityCareerDrawer";
+import { FACULTY_LOCATIONS } from "@/data/argentinaMapData";
 import { cn } from "@/lib/utils";
 import {
   AVAILABLE_CAREERS,
@@ -42,6 +52,7 @@ interface UniversityDefinition {
   accentColor: string;
   provinciaId: string;
   provinciaName: string;
+  cityName?: string;
 }
 
 const PROVINCIA_LABELS: Record<string, string> = {
@@ -111,6 +122,8 @@ const UNIVERSITIES: UniversityDefinition[] = AVAILABLE_FACULTADES.map((f) => {
     ALL_PROVINCIAS.find((p) => p.id === f.provinciaId)?.label ||
     f.provinciaId;
 
+  const geoLoc = FACULTY_LOCATIONS[f.id];
+
   return {
     id: f.id,
     name: f.fullLabel || f.label,
@@ -121,6 +134,7 @@ const UNIVERSITIES: UniversityDefinition[] = AVAILABLE_FACULTADES.map((f) => {
     accentColor: conf.accent,
     provinciaId: f.provinciaId,
     provinciaName: provName,
+    cityName: geoLoc?.cityName || conf.location,
   };
 });
 
@@ -157,6 +171,9 @@ export default function Careers() {
   const [selectedUniversity, setSelectedUniversity] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortOption>("provincia");
+  const [viewMode, setViewMode] = useState<"map" | "grid">("map");
+  const [activeDrawerUni, setActiveDrawerUni] = useState<UniversityDefinition | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   const allCareers: CareerItem[] = useMemo(() => {
     const list: CareerItem[] = [];
@@ -326,6 +343,56 @@ export default function Careers() {
     return groups;
   }, [displayedUniversities, sortBy]);
 
+  // Universidades mapeadas para el mapa interactivo
+  const mapUniversities: MapUniversity[] = useMemo(() => {
+    return UNIVERSITIES.map((uni) => {
+      const careersInUni = allCareers.filter((c) => c.universityId === uni.id);
+      const matchesSearch =
+        !searchQuery.trim() ||
+        careersInUni.some((c) =>
+          c.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+        );
+
+      return {
+        id: uni.id,
+        name: uni.name,
+        shortName: uni.shortName,
+        facultyInfo: uni.facultyInfo,
+        location: uni.cityName || uni.location,
+        provinciaId: uni.provinciaId,
+        provinciaName: uni.provinciaName,
+        careersCount: careersInUni.length,
+        hasMatches: matchesSearch,
+      };
+    }).filter((u) => u.careersCount > 0);
+  }, [allCareers, searchQuery]);
+
+  // Manejar apertura de universidad en el Drawer
+  const handleOpenUniversity = (uniDef: UniversityDefinition | MapUniversity) => {
+    const fullUni = UNIVERSITIES.find((u) => u.id === uniDef.id) || (uniDef as UniversityDefinition);
+    setActiveDrawerUni(fullUni);
+    setIsDrawerOpen(true);
+  };
+
+  // Carreras de la universidad seleccionada para el Drawer
+  const drawerCareers: DrawerCareerItem[] = useMemo(() => {
+    if (!activeDrawerUni) return [];
+    return allCareers
+      .filter((c) => c.universityId === activeDrawerUni.id)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        universityId: c.universityId,
+        degreeType: c.degreeType,
+        years: c.years,
+        durationLabel: c.durationLabel,
+        totalSubjects: c.totalSubjects,
+        icon: c.icon,
+        color: c.color,
+        file: AVAILABLE_CAREERS.find((ac) => ac.id === c.id)?.file,
+      }));
+  }, [allCareers, activeDrawerUni]);
+
   const totalCareersCount = allCareers.length;
   const filteredCareersCount = displayedUniversities.reduce((acc, u) => acc + u.careers.length, 0);
 
@@ -407,177 +474,9 @@ export default function Careers() {
         </div>
       </section>
 
-      {/* Barra de Filtros: Nivel 1 - Provincias + Selector de Orden */}
-      <section className="sticky top-16 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-zinc-200/60 dark:border-zinc-800/60 py-2.5 shadow-2xs">
-        <div className="container mx-auto px-4 md:px-6 space-y-2">
-          {/* Fila de Provincias y Ordenamiento */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            {/* Tabs de Provincias */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mr-1 hidden sm:inline-block">
-                Provincia:
-              </span>
-
-              <button
-                onClick={() => handleProvinceChange("ALL")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
-                  selectedProvince === "ALL"
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                    : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
-                )}
-              >
-                <MapPin className="w-3 h-3" />
-                <span>Todas</span>
-                <span
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.2 rounded-md font-medium",
-                    selectedProvince === "ALL"
-                      ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                      : "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  {totalCareersCount}
-                </span>
-              </button>
-
-              {provinceStats.map((prov) => {
-                const isSelected = selectedProvince === prov.id;
-                return (
-                  <button
-                    key={prov.id}
-                    onClick={() => handleProvinceChange(prov.id)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
-                      isSelected
-                        ? "bg-blue-600 text-white shadow-2xs"
-                        : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
-                    )}
-                  >
-                    <span>{prov.label}</span>
-                    <span
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.2 rounded-md font-medium",
-                        isSelected
-                          ? "bg-white/20 text-white"
-                          : "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400"
-                      )}
-                    >
-                      {prov.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selector de Orden */}
-            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-              <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mr-1">
-                Ordenar:
-              </span>
-              <div className="inline-flex rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900 p-0.5 text-xs">
-                <button
-                  onClick={() => setSortBy("provincia")}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
-                    sortBy === "provincia"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                  )}
-                  title="Ordenar y agrupar por Provincia"
-                >
-                  <MapPin className="w-3 h-3 text-blue-500" />
-                  <span>Por Provincia</span>
-                </button>
-                <button
-                  onClick={() => setSortBy("universidad")}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
-                    sortBy === "universidad"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                  )}
-                  title="Ordenar facultades de la A a la Z"
-                >
-                  <ArrowDownAZ className="w-3 h-3 text-zinc-500" />
-                  <span>A - Z</span>
-                </button>
-                <button
-                  onClick={() => setSortBy("carreras_desc")}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
-                    sortBy === "carreras_desc"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                  )}
-                  title="Facultades con más carreras primero"
-                >
-                  <Flame className="w-3 h-3 text-amber-500" />
-                  <span>+ Carreras</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Fila de Universidades / Facultades */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 scrollbar-none border-t border-zinc-100 dark:border-zinc-800/60">
-            <button
-              onClick={() => setSelectedUniversity("ALL")}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
-                selectedUniversity === "ALL"
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                  : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
-              )}
-            >
-              <Building2 className="w-3 h-3" />
-              <span>
-                {selectedProvince === "ALL"
-                  ? "Todas las Universidades"
-                  : `Universidades de ${PROVINCIA_LABELS[selectedProvince] || selectedProvince}`}
-              </span>
-            </button>
-
-            {availableUniversitiesForFilter.map((uni) => {
-              const isSelected = selectedUniversity === uni.id;
-              const count = allCareers.filter((c) => c.universityId === uni.id).length;
-              if (count === 0) return null;
-
-              return (
-                <button
-                  key={uni.id}
-                  onClick={() => setSelectedUniversity(uni.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0",
-                    isSelected
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs"
-                      : "bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60"
-                  )}
-                >
-                  <div className="w-4 h-4 shrink-0 rounded-md overflow-hidden flex items-center justify-center bg-white dark:bg-zinc-900 p-0.5 border border-zinc-200/60 dark:border-zinc-700/60">
-                    <UniversityLogo universityId={uni.id} className="w-3.5 h-3.5" />
-                  </div>
-                  <span>{uni.shortName}</span>
-                  <span
-                    className={cn(
-                      "text-[10px] px-1 py-0.2 rounded font-medium",
-                      isSelected
-                        ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                        : "bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400"
-                    )}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Contenido Principal: Agrupado por Provincia y Universidades */}
-      <main className="py-10 md:py-14 flex-1">
-        <div className="container mx-auto px-4 md:px-6 max-w-7xl space-y-12">
+      {/* Contenido Principal: Mapa Interactivo de Argentina y Directorio Inferior */}
+      <main className="py-6 md:py-10 flex-1">
+        <div className="container mx-auto px-4 md:px-6 max-w-7xl space-y-10">
           {displayedUniversities.length === 0 ? (
             <div className="text-center py-16 p-8 bg-white dark:bg-[#1a1a1a] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs max-w-md mx-auto space-y-3">
               <Search className="w-8 h-8 text-zinc-400 mx-auto" />
@@ -599,6 +498,79 @@ export default function Careers() {
               >
                 Restablecer Filtros
               </button>
+            </div>
+          ) : viewMode === "map" ? (
+            <div className="space-y-10">
+              {/* Mapa Interactivo de Argentina con Ubicaciones Reales */}
+              <ArgentinaInteractiveMap
+                universities={mapUniversities}
+                selectedProvince={selectedProvince}
+                onSelectProvince={handleProvinceChange}
+                selectedUniversityId={activeDrawerUni?.id || null}
+                onSelectUniversity={(uni) => handleOpenUniversity(uni)}
+                searchQuery={searchQuery}
+              />
+
+              {/* Directorio Rápido de Facultades bajo el Mapa */}
+              <div className="space-y-5 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-200/80 dark:border-zinc-800/80">
+                  <div className="space-y-0.5">
+                    <h3 className="text-lg sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-blue-500" />
+                      <span>
+                        {selectedProvince === "ALL"
+                          ? "Facultades y Sedes Universitarias de Argentina"
+                          : `Facultades en ${PROVINCIA_LABELS[selectedProvince] || selectedProvince}`}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                      Tocá cualquier institución para explorar sus carreras oficiales y el plan de estudios detallado.
+                    </p>
+                  </div>
+
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 self-start sm:self-auto shrink-0">
+                    {displayedUniversities.length} {displayedUniversities.length === 1 ? "institución" : "instituciones"}
+                  </span>
+                </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {displayedUniversities.map((uni) => (
+                    <div
+                      key={uni.id}
+                      onClick={() => handleOpenUniversity(uni)}
+                      className="group p-4 bg-white dark:bg-[#1a1a1a] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start gap-3.5 mb-3">
+                          <div className="w-12 h-12 rounded-xl p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shrink-0 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden">
+                            <UniversityLogo universityId={uni.id} className="w-full h-full object-contain block" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-500 transition-colors line-clamp-1">
+                              {uni.name}
+                            </h4>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                              {uni.cityName || uni.location}
+                            </p>
+                            <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40">
+                              {uni.careers.length} {uni.careers.length === 1 ? "carrera" : "carreras"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <span className="flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ver plan de carrera</span>
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             groupedSections.map((section) => {
@@ -662,7 +634,14 @@ export default function Careers() {
                           </div>
 
                           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                            <span className="px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
+                            <button
+                              onClick={() => handleOpenUniversity(uni)}
+                              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/50 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Ver plan en panel</span>
+                            </button>
+                            <span className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 text-xs font-medium">
                               {uni.careers.length}{" "}
                               {uni.careers.length === 1 ? "Carrera" : "Carreras"}
                             </span>
@@ -749,6 +728,14 @@ export default function Careers() {
           )}
         </div>
       </main>
+
+      {/* Drawer Lateral Notion-style para ver carreras y materias del plan */}
+      <UniversityCareerDrawer
+        university={activeDrawerUni}
+        careers={drawerCareers}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
 
       <LandingFooter />
     </div>
