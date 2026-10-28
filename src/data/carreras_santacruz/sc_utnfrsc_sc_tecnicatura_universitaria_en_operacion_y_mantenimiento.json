@@ -1,0 +1,350 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MITT",
+      "nombre": "Matematicas I y Trigonometria Tecnica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "FMHC",
+      "nombre": "Fisica Mecanica, Hidrostatica y Calorimetria",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "QAGCT",
+      "nombre": "Quimica del Agua, Gases Combustibles y Tratamientos",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "DTSLP",
+      "nombre": "Dibujo Tecnico, Simbologia y Lectura de Planos Termomecanicos CAD",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "FECB",
+      "nombre": "Fundamentos de Electricidad y Circuitos Basicos",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "SACAA",
+      "nombre": "Seguridad en Ambientes Confinados, Altura y Aparatos a Presion",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "GVCAH",
+      "nombre": "Generadores de Vapor, Calderas Acuotubulares y Humotubulares",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "SCCPA",
+      "nombre": "Sistemas de Calefaccion Central por Agua Caliente y Vapor",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "RGNGL",
+      "nombre": "Redes de Gas Natural, Gas Licuado (GLP) y Valvulas Reguladoras",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "BCPCH",
+      "nombre": "Bombas de Circulacion, Presurizadores y Circuitos Hidraulicos",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "QCAGC",
+      "nombre": "Quemadores, Combustores y Analisis de Gases de Combustion",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "ACTS",
+      "nombre": "Automatismos, Controladores de Temperatura y Sensores",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "SCAAE",
+      "nombre": "Sistemas de Climatizacion, Aire Acondicionado y Enfriadores (Chillers)",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "TAACP",
+      "nombre": "Tratamiento de Agua de Alimentacion de Calderas y Purgas",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "MPEND",
+      "nombre": "Mantenimiento Predictivo, Ensayos No Destructivos y Espesores",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "MLRPE",
+      "nombre": "Marco Legal de Recipientes a Presion, Ensayos Hidraulicos y OPDS/Normativas",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "PPSCT",
+      "nombre": "Practica Profesionalizante Supervisada en Centrales Termicas / Hospitales / Plantas de Gas",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "PFITI",
+      "nombre": "Proyecto Final Integrador Tecnico en Instalaciones Termomecanicas",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    }
+  ]
+}

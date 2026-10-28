@@ -1,0 +1,383 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "ICP",
+      "nombre": "Introduccion a la Ciencia Politica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "HPC",
+      "nombre": "Historia Politica Contemporanea",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "TPCM",
+      "nombre": "Teoria Politica Clasica y Moderna",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IEM",
+      "nombre": "Introduccion a la Economia y Mercados",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "SG",
+      "nombre": "Sociologia General",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "TEAA",
+      "nombre": "Taller de Escritura y Argumentacion Academica",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "TPC",
+      "nombre": "Teoria Politica Contemporanea",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "HPA",
+      "nombre": "Historia Politica Argentina",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "DCIPC",
+      "nombre": "Derecho Constitucional e Instituciones Politicas Comparadas",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "MISIC",
+      "nombre": "Metodologia de la Investigacion Social I (Cualitativa)",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "EPFE",
+      "nombre": "Economia Politica y Finanzas del Estado",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "EAADP",
+      "nombre": "Estadistica Aplicada y Analitica de Datos Politicos",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "PC",
+      "nombre": "Politica Comparada",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "APP",
+      "nombre": "Administracion y Politicas Publicas",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "HPL",
+      "nombre": "Historia Politica Latinoamericana",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "MICI",
+      "nombre": "Metodologia de la Investigacion Cuantitativa II",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "PPSEC",
+      "nombre": "Partidos Politicos, Sistemas Electorales y Comportamiento Electoral",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "RIGG",
+      "nombre": "Relaciones Internacionales y Geopolitica Global",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "GPEPM",
+      "nombre": "Gestion Publica Estrategica Provincial y Municipal",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "CPOPC",
+      "nombre": "Comunicacion Politica, Opinion Publica y Campanas Electorales",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "EPICE",
+      "nombre": "Economia Politica Internacional y Comercio Exterior",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "SITDT",
+      "nombre": "Seminario de Investigacion Tematico y Diseno de Tesis",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "PPSOP",
+      "nombre": "Practica Profesional Supervisada en Organismos Publicos / Legislatura / Consultoras de Asuntos Publicos",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "TFLCP",
+      "nombre": "Trabajo Final de Licenciatura en Ciencia Politica (Tesis)",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    }
+  ]
+}

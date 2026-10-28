@@ -1,0 +1,697 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "AHND",
+      "nombre": "Anatomia Humana Normal y Diseccion",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "HBCE",
+      "nombre": "Histologia, Biologia Celular y Embriologia",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "QBBM",
+      "nombre": "Quimica Biologica y Biofisica Medica",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IKSP",
+      "nombre": "Introduccion a la Kinesiologia y Salud Publica",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "FHG",
+      "nombre": "Fisiologia Humana General",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "PMRPP",
+      "nombre": "Psicologia Medica y Relacion Profesional-Paciente",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "TI",
+      "nombre": "Teologia I",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "AFPBA",
+      "nombre": "Anatomia Funcional, Palpatoria y Biomecanica Articular",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "FEE",
+      "nombre": "Fisiologia del Ejercicio y del Esfuerzo",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "SCEKF",
+      "nombre": "Semiologia Clinica y Evaluacion Kinesica Funcional",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "FITHF",
+      "nombre": "Fisioterapia I (Termoterapia, Hidroterapia y Fototerapia)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "KIMCP",
+      "nombre": "Kinesiterapia I (Masoterapia, Cinesiterapia Pasiva y Movilizacion)",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "PMQG",
+      "nombre": "Patologia Medica y Quirurgica General",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "BES",
+      "nombre": "Bioestadistica y Epidemiologia en Salud",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "TI2",
+      "nombre": "Teologia II",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "FIEOC",
+      "nombre": "Fisioterapia II (Electroterapia, Ondas de Choque, Magneto y Laser)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "KIRMS",
+      "nombre": "Kinesiterapia II (Reeducacion Muscular, Stretching y Cadenas Miofasciales)",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "CKTO",
+      "nombre": "Clinica Kinesica en Traumatologia y Ortopedia",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "CKR",
+      "nombre": "Clinica Kinesica en Reumatologia",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "CKANA",
+      "nombre": "Clinica Kinesica en Afecciones Neurologicas del Adulto",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "DPIAK",
+      "nombre": "Diagnostico por Imagenes Aplicado a la Kinesiologia",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "FATK",
+      "nombre": "Farmacologia Aplicada a la Terapeutica Kinesica",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "PPPI",
+      "nombre": "Practica Pre-Profesional I",
+      "numero_materia": 23,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "TI3",
+      "nombre": "Teologia III",
+      "numero_materia": 24,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "CKCCI",
+      "nombre": "Clinica Kinesica Cardiorrespiratoria y Cuidados Intensivos",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "CKNP",
+      "nombre": "Clinica Kinesica en Neuropediatria y Psicomotricidad",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "KDRF",
+      "nombre": "Kinesiologia Deportiva y Readaptacion Funcional",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "OPATB",
+      "nombre": "Ortesis, Protesis y Ayudas Tecnicas Biomecanicas",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s29",
+      "codigo": "KLEOM",
+      "nombre": "Kinesiologia Laboral y Ergonomia Ocupacional en Mineria e Industrias",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "MICKI",
+      "nombre": "Metodologia de la Investigacion Cientifica en Kinesiologia I",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "PPPI2",
+      "nombre": "Practica Pre-Profesional II",
+      "numero_materia": 31,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "DSI",
+      "nombre": "Doctrina Social de la Iglesia",
+      "numero_materia": 32,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s33",
+      "codigo": "KQCPD",
+      "nombre": "Kinesiologia en Quemados, Cirugia Plastica y Dermatofuncional",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "DLPPB",
+      "nombre": "Deontologia, Legislacion Profesional, Peritajes y Bioetica Cristiana",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "MIITT",
+      "nombre": "Metodologia de la Investigacion II y Taller de Tesina",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s36",
+      "codigo": "PPSIR",
+      "nombre": "Practica Profesional Supervisada (Internado Rotatorio Hospitalario y Clinico Obligatorio)",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s37",
+      "codigo": "TFLKF",
+      "nombre": "Trabajo Final de Licenciatura en Kinesiologia y Fisiatria (Tesina)",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s34"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s35"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s36"
+    }
+  ]
+}

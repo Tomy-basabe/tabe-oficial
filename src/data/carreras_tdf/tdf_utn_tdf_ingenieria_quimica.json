@@ -1,0 +1,817 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "AMI",
+      "nombre": "Análisis Matemático I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "AGA",
+      "nombre": "Álgebra y Geometría Analítica",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "FI",
+      "nombre": "Física I",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "QG",
+      "nombre": "Química General",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "IIQ",
+      "nombre": "Introducción a la Ingeniería Química",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "SR",
+      "nombre": "Sistemas de Representación",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "IS",
+      "nombre": "Ingeniería y Sociedad",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "AMI2",
+      "nombre": "Análisis Matemático II",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "FI2",
+      "nombre": "Física II",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "QI",
+      "nombre": "Química Inorgánica",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "QO",
+      "nombre": "Química Orgánica",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "PE",
+      "nombre": "Probabilidad y Estadística",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "FI3",
+      "nombre": "Fundamentos de Informática",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "II",
+      "nombre": "Inglés I",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "T",
+      "nombre": "Termodinámica",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "F",
+      "nombre": "Fisicoquímica",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "FT",
+      "nombre": "Fenómenos de Transporte",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "QA",
+      "nombre": "Química Analítica",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "BME",
+      "nombre": "Balance de Masa y Energía",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "MSA",
+      "nombre": "Matemática Superior Aplicada",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "CME",
+      "nombre": "Ciencia de los Materiales y Estabilidad",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "EOI",
+      "nombre": "Economía y Organización Industrial",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "OUIFM",
+      "nombre": "Operaciones Unitarias I (Fluidos y Mecánicas)",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "OUITC",
+      "nombre": "Operaciones Unitarias II (Transferencia de Calor y Masa)",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "IRQ",
+      "nombre": "Ingeniería de las Reacciones Químicas",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "MB",
+      "nombre": "Microbiología y Bioprocesos",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "MIET",
+      "nombre": "Máquinas e Instalaciones Eléctricas y Térmicas",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s28",
+      "codigo": "CEP",
+      "nombre": "Control Estadístico de Procesos",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "L",
+      "nombre": "Legislación",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "II2",
+      "nombre": "Inglés II",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "CAP",
+      "nombre": "Control Automático de Procesos",
+      "numero_materia": 31,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s32",
+      "codigo": "DSOP",
+      "nombre": "Diseño, Simulación y Optimización de Procesos",
+      "numero_materia": 32,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s33",
+      "codigo": "TET",
+      "nombre": "Tecnología de la Energía Térmica",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "IASH",
+      "nombre": "Ingeniería Ambiental y Seguridad e Higiene",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "EPPQ",
+      "nombre": "Evaluación de Proyectos de Plantas Químicas",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s36",
+      "codigo": "PFA12",
+      "nombre": "Proyecto Final aprobada(1 a 22)",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s37",
+      "codigo": "PPSA1",
+      "nombre": "Práctica Profesional Supervisada aprobada(1 a 22)",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": "s15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": "s15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": "s20",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": "s24",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": "s21",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": "s22",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": "s24",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": "s31",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": "s27",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": "s24",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": "s26",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s24",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s27",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s31",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s34",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s35",
+      "requiere_aprobada": null
+    }
+  ]
+}

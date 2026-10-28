@@ -1,0 +1,297 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "FLCS",
+      "nombre": "Fundamentos de la Logistica y la Cadena de Suministro",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MAOC",
+      "nombre": "Matematicas Aplicadas a Operaciones y Costos",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "IADM",
+      "nombre": "Introduccion a la Administracion y Documentacion Mercantil",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "GAICD",
+      "nombre": "Gestion de Almacenes, Inventarios y Centros de Distribucion",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "SOMSC",
+      "nombre": "Seguridad Ocupacional y Manejo Seguro de Cargas",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "HIGLW",
+      "nombre": "Herramientas Informaticas para la Gestion Logistica (WMS)",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "TTFPR",
+      "nombre": "Transporte Terrestre, Flotas y Planificacion de Rutas",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "TMFMA",
+      "nombre": "Transporte Multimodal: Ferroviario, Maritimo y Aereo Patagonico",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "CAEP",
+      "nombre": "Compras, Abastecimiento y Evaluacion de Proveedores",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "LCPQH",
+      "nombre": "Logistica de Cargas Peligrosas, Quimicos e Hidrocarburos",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "CLTMO",
+      "nombre": "Costos Logisticos, Tarifas y Margenes Operativos",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "SIITG",
+      "nombre": "Sistemas Informaticos Integrados de Trazabilidad y GPS",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "LMPPE",
+      "nombre": "Logistica Minera, Petrolera y de Parques Eolicos (Logistica Inversa y Pesada)",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "CEPZF",
+      "nombre": "Comercio Exterior, Puertos, Zonas Francas y Regimen Aduanero",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "ICDLK",
+      "nombre": "Indicadores Clave de Desempeno Logistico (KPIs) y Calidad de Servicio",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "PPSCL",
+      "nombre": "Practica Profesionalizante Supervisada en Centros Logisticos / Puertos / Yacimientos",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "PFITL",
+      "nombre": "Proyecto Final Integrador Tecnico en Logistica",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    }
+  ]
+}

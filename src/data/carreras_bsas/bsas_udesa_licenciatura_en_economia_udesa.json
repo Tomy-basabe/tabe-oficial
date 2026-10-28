@@ -1,0 +1,434 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "PM",
+      "nombre": "Principios de Microeconomia",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "PM2",
+      "nombre": "Principios de Macroeconomia",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "CIDI",
+      "nombre": "Calculo I (Diferencial e Integral)",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "AL",
+      "nombre": "Algebra Lineal",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "ICDP",
+      "nombre": "Introduccion a la Ciencia de Datos y Programacion",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "HEMC",
+      "nombre": "Historia Economica Mundial y Contemporanea",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "MIITC",
+      "nombre": "Microeconomia Intermedia I (Teoria del Consumidor y de la Empresa)",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "MIIEG",
+      "nombre": "Macroeconomia Intermedia I (Equilibrio General y Modelos IS-LM)",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "CICM",
+      "nombre": "Calculo II (Calculo Multivariable)",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "PEM",
+      "nombre": "Probabilidad y Estadistica Matematica",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "MIIEM",
+      "nombre": "Microeconomia Intermedia II (Estructuras de Mercado y Equilibrio General)",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "MIICM",
+      "nombre": "Macroeconomia Intermedia II (Crecimiento y Modelos Dinamicos)",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "EIMRL",
+      "nombre": "Econometria I (Modelos de Regresion Lineal e Inferencia)",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "TJIA",
+      "nombre": "Teoria de Juegos e Informacion Asimetrica",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "DCBEM",
+      "nombre": "Dinero, Credito y Bancos (Economia Monetaria y Financiera)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "CIGE",
+      "nombre": "Comercio Internacional y Geografia Economica",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "ESPI",
+      "nombre": "Economia del Sector Publico e Imposicion",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "HESA",
+      "nombre": "Historia Economica y Social Argentina",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "EISTD",
+      "nombre": "Econometria II (Series de Tiempo, Datos de Panel y Causalidad)",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "FIBP",
+      "nombre": "Finanzas Internacionales y Balanza de Pagos",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "OIRM",
+      "nombre": "Organizacion Industrial y Regulacion de Mercados",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "DEI",
+      "nombre": "Desarrollo Economico e Instituciones",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "PEADM",
+      "nombre": "Politica Economica Argentina y Debate Macroeconomico",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "MEEI",
+      "nombre": "Materia Electiva de Economia I",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "MEEI2",
+      "nombre": "Materia Electiva de Economia II",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s26",
+      "codigo": "TLE",
+      "nombre": "Tesis de Licenciatura en Economia",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    }
+  ]
+}

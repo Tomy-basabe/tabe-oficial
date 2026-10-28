@@ -1,0 +1,143 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "TGDNI",
+      "nombre": "Teoria General del Derecho Notarial e Instrumento Publico",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "DRIIP",
+      "nombre": "Derecho Registral I (Inmuebles y Publicidad Registral)",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "PNIRP",
+      "nombre": "Practica Notarial I (Redaccion y Protocolizacion de Escrituras)",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s4",
+      "codigo": "DRCPE",
+      "nombre": "Deontologia y Responsabilidad Civil y Penal del Escribano",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "DNACF",
+      "nombre": "Derecho Notarial Aplicado (Contratos, Fideicomisos y Poderes)",
+      "numero_materia": 5,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "DRIAB",
+      "nombre": "Derecho Registral II (Automotores, Buques, Sociedades y Medidas Cautelares)",
+      "numero_materia": 6,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s7",
+      "codigo": "RTNIG",
+      "nombre": "Regimen Tributario Notarial (Impuesto a las Ganancias, Sellos y Tasas)",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "PNITI",
+      "nombre": "Practica Notarial II y Taller Integral de Protocolo Notarial",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "EFHN",
+      "nombre": "Examen Final de Habilitacion Notarial",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s5",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s5",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    }
+  ]
+}

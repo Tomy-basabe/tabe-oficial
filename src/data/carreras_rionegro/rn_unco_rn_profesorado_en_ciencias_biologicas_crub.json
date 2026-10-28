@@ -1,0 +1,461 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "QG",
+      "nombre": "Quimica General",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MG",
+      "nombre": "Matematica General",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "FG",
+      "nombre": "Fisica General",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IB",
+      "nombre": "Introduccion a la Biologia",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "PG",
+      "nombre": "Pedagogia General",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "DG",
+      "nombre": "Didactica General",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "QOB",
+      "nombre": "Quimica Organica y Biologica",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "BCM",
+      "nombre": "Biologia Celular y Molecular",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "DVII",
+      "nombre": "Diversidad Vegetal I y II",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "DAII",
+      "nombre": "Diversidad Animal I y II",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "PAA",
+      "nombre": "Psicologia del Aprendizaje y del Alumno",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "PESEA",
+      "nombre": "Politica Educativa y Sistema Escolar Argentino",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "PDIOI",
+      "nombre": "Practica Docente I (Observacion Institucional y Territorio Escolar)",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "FAH",
+      "nombre": "Fisiologia Animal y Humana",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "FV",
+      "nombre": "Fisiologia Vegetal",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "GE",
+      "nombre": "Genetica y Evolucion",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "EGRA",
+      "nombre": "Ecologia General y Regional Andina",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "DEBI",
+      "nombre": "Didactica Especial de la Biologia I",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "HFC",
+      "nombre": "Historia y Filosofia de la Ciencia",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PDIDD",
+      "nombre": "Practica Docente II (Diseno Didactico y Primeras Experiencias Aulicas)",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "GEAAP",
+      "nombre": "Geociencias y Ecologia de Ambientes Andino-Patagonicos",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "ESIES",
+      "nombre": "Educacion Sexual Integral (ESI), Salud y Derechos Humanos",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "DEBIT",
+      "nombre": "Didactica Especial de la Biologia II y Trabajo Experimental Escolar",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "PDIRP",
+      "nombre": "Practica Docente III y Residencia Pedagogica en Nivel Secundario y Superior",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "CGPCB",
+      "nombre": "Coloquio de Graduacion del Profesorado en Ciencias Biologicas",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": "s11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "ECMH",
+      "nombre": "Epistemologia de la Corporeidad y la Motricidad Humana",
+      "numero_materia": 1,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "FEARA",
+      "nombre": "Fisiologia del Ejercicio Avanzada y Rendimiento en Ambientes Extremos",
+      "numero_materia": 2,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "PEEAR",
+      "nombre": "Planificacion Estrategica y Evaluacion del Alto Rendimiento Deportivo",
+      "numero_materia": 3,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "GMGED",
+      "nombre": "Gestion, Marketing y Gobernanza de Entidades Deportivas",
+      "numero_materia": 4,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "MICCD",
+      "nombre": "Metodologia de la Investigacion Cientifica en Ciencias del Deporte",
+      "numero_materia": 5,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "PPSCR",
+      "nombre": "Practica Profesional Supervisada en Centros de Rendimiento / Federaciones / Clubes",
+      "numero_materia": 6,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "TFLEF",
+      "nombre": "Trabajo Final de Licenciatura en Educacion Fisica (Tesis de Grado)",
+      "numero_materia": 7,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    }
+  ]
+}

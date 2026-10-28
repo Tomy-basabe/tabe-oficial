@@ -1,0 +1,562 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "FGAS",
+      "nombre": "Fisica General Aplicada a la Seguridad",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "QGTB",
+      "nombre": "Quimica General y Toxicologia Basica",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "MED",
+      "nombre": "Matematica y Estadistica Descriptiva",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IHSE",
+      "nombre": "Introduccion a la Higiene, Seguridad y Ergonomia",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "MTPA",
+      "nombre": "Medicina del Trabajo y Primeros Auxilios",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "DTLPE",
+      "nombre": "Dibujo Tecnico y Lectura de Planos de Evacuacion",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "LLLRT",
+      "nombre": "Legislacion Laboral y Ley de Riesgos del Trabajo (LRT)",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "TLCQA",
+      "nombre": "Toxicologia Laboral y Contaminantes Quimicos en Aire",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "HLIRV",
+      "nombre": "Higiene Laboral I: Ruido, Vibraciones e Iluminacion",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "SMHPM",
+      "nombre": "Seguridad en Maquinas, Herramientas y Proteccion Mecanica",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "PCICF",
+      "nombre": "Proteccion contra Incendios, Carga de Fuego y Redes de Agua",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "EPBL",
+      "nombre": "Ergonomia de Puestos y Biomecanica Laboral",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "SCTA",
+      "nombre": "Seguridad en la Construccion y Trabajos en Altura",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "PPITI",
+      "nombre": "Practica Profesionalizante I (Titulo Intermedio: Tecnico Universitario en Higiene y Seguridad)",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "HLIAT",
+      "nombre": "Higiene Laboral II: Ambiente Termico y Radiaciones",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "SEBMA",
+      "nombre": "Seguridad Electrica en Baja, Media y Alta Tension",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "SMPEC",
+      "nombre": "Seguridad en Mineria, Petroleo y Espacios Confinados",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "IAAC",
+      "nombre": "Investigacion de Accidentes y Arbol de Causas",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "PLFPE",
+      "nombre": "Psicologia Laboral, Factores Psicosociales y Estres",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "SIGI4",
+      "nombre": "Sistemas Integrados de Gestion (ISO 45001 / ISO 14001) y Auditoria",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "ACRIH",
+      "nombre": "Analisis Cuantitativo de Riesgos Industriales y HAZOP",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "GARPC",
+      "nombre": "Gestion Ambiental, Residuos Peligrosos y Control de Efluentes",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "PCSGC",
+      "nombre": "Planes de Contingencia, Simulacros y Gestion de Crisis",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "PJALE",
+      "nombre": "Peritajes Judiciales en Accidentologia Laboral y Etica",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "MISSO",
+      "nombre": "Metodologia de la Investigacion en Salud y Seguridad Ocupacional",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s26",
+      "codigo": "PPSYO",
+      "nombre": "Practica Profesional Supervisada en Yacimientos / Obras / Mineras",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s27",
+      "codigo": "TFLHS",
+      "nombre": "Trabajo Final de Licenciatura en Higiene y Seguridad en el Trabajo",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    }
+  ]
+}

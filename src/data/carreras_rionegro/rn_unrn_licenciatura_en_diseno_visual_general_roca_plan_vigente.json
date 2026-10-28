@@ -1,0 +1,390 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "TDVI",
+      "nombre": "Taller de Diseno Visual I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MCV",
+      "nombre": "Morfologia y Comunicacion Visual",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "TI",
+      "nombre": "Tipografia I",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "SREDT",
+      "nombre": "Sistemas de Representacion Espacial y Dibujo Tecnico",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "HADI",
+      "nombre": "Historia del Arte y del Diseno I",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "TDIVM",
+      "nombre": "Tecnologias Digitales de Imagen Vectorial y Mapa de Bits",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "TDVIS",
+      "nombre": "Taller de Diseno Visual II (Sistemas de Identidad Visual y Marcas)",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "TILEE",
+      "nombre": "Tipografia II (Legibilidad y Edicion Editorial)",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "MITC",
+      "nombre": "Morfologia II y Teoria del Color",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "TGPPI",
+      "nombre": "Tecnologia Grafica, Preprensa y Procesos Industriales de Impresion",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "FALV",
+      "nombre": "Fotografia Aplicada y Lenguaje Visual",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "HDVCI",
+      "nombre": "Historia del Diseno Visual Contemporaneo II",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "TDVID",
+      "nombre": "Taller de Diseno Visual III (Diseno Editorial Complejo y Packaging de Productos Regionales)",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "DIIUU",
+      "nombre": "Diseno de Interfaces e Interaccion (UI/UX)",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "PWFEB",
+      "nombre": "Programacion Web Front-End Basica",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "ADMG",
+      "nombre": "Animacion Digital y Motion Graphics",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "SVTC",
+      "nombre": "Semiotica Visual y Teoria de la Comunicacion",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "TDVIS2",
+      "nombre": "Taller de Diseno Visual IV (Sistemas Complejos, Senaletica y Diseno de Informacion)",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "GDCDP",
+      "nombre": "Gestion del Diseno, Costos y Direccion de Proyectos",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "LDPIM",
+      "nombre": "Legislacion del Diseno, Propiedad Intelectual, Marcas y Patentes",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "MIP",
+      "nombre": "Metodologia de la Investigacion Proyectual",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "PPSED",
+      "nombre": "Practica Profesional Supervisada en Estudios de Diseno / Empresas Regionales",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "TFLDV",
+      "nombre": "Trabajo Final de Licenciatura en Diseno Visual (Proyecto Integral de Tesis)",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    }
+  ]
+}

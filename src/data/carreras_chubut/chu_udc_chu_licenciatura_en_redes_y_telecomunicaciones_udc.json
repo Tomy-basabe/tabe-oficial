@@ -1,0 +1,449 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MICA",
+      "nombre": "Matematicas I: Calculo y Algebra",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "FGEO",
+      "nombre": "Fisica General: Electricidad y Ondas",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "FRCAT",
+      "nombre": "Fundamentos de Redes de Comunicacion y Arquitectura TCP/IP",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "APP",
+      "nombre": "Algoritmos y Programacion en Python",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "ACSOL",
+      "nombre": "Arquitectura de Computadoras y Sistemas Operativos Linux",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "ITI",
+      "nombre": "Ingles Tecnico I",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "ECRE",
+      "nombre": "Enrutamiento y Conmutacion de Redes Empresariales",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "RIEMA",
+      "nombre": "Redes Inalambricas, Enlaces de Microondas y Antenas",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "ASISR",
+      "nombre": "Administracion Segura de Infraestructura y Servicios de Red",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "PETTR",
+      "nombre": "Probabilidad, Estadistica y Teoria del Trafico en Redes",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "PSAR",
+      "nombre": "Programacion de Scripts y Automatizacion de Redes",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "ITI2",
+      "nombre": "Ingles Tecnico II",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "PPTIT",
+      "nombre": "Practica Profesionalizante (Titulo Intermedio: Tecnico Universitario en Redes y Telecomunicaciones)",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "RFOFE",
+      "nombre": "Redes de Fibra Optica, FTTx y Empalmes",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "SPCDI",
+      "nombre": "Seguridad Perimetral, Criptografia y Deteccion de Intrusiones (IDS/IPS)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "RDPSS",
+      "nombre": "Redes Definidas por Software (SDN) y Virtualizacion de Redes (NFV)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "TIVSI",
+      "nombre": "Telefonia IP, Voz sobre IP (VoIP) y Comunicaciones Unificadas",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "RCTAM",
+      "nombre": "Redes Celulares y Tecnologias de Acceso Movil (4G/5G)",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "CNDCH",
+      "nombre": "Computacion en la Nube, Datacenters y Conectividad Hibrida",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "ICIRS",
+      "nombre": "Internet de las Cosas (IoT) y Redes de Sensores de Largo Alcance (LoRaWAN)",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "GPIT",
+      "nombre": "Gestion de Proyectos de Infraestructura Tecnologica",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "MRTEP",
+      "nombre": "Marco Regulatorio de Telecomunicaciones, ENACOM y Peritajes de Red",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "MIT",
+      "nombre": "Metodologia de la Investigacion Tecnologica",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "ACICT",
+      "nombre": "Auditoria y Ciberdefensa de Infraestructuras Criticas de Telecomunicaciones",
+      "numero_materia": 24,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "PPSIO",
+      "nombre": "Practica Profesional Supervisada en ISPs / Operadores de Telecomunicaciones",
+      "numero_materia": 25,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "TFLRT",
+      "nombre": "Trabajo Final de Licenciatura en Redes y Telecomunicaciones (Tesis de Grado)",
+      "numero_materia": 26,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    }
+  ]
+}

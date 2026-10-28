@@ -1,0 +1,628 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "QGI",
+      "nombre": "Quimica General e Inorganica",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "AMI",
+      "nombre": "Analisis Matematico I",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "BGC",
+      "nombre": "Biologia General y Celular",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IRNMA",
+      "nombre": "Introduccion a los Recursos Naturales y Medio Ambiente",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "GGG",
+      "nombre": "Geologia General y Geomorfologia",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "CMR",
+      "nombre": "Climatologia y Meteorologia Regional",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "SRC",
+      "nombre": "Sistemas de Representacion y Cartografia",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "QOB",
+      "nombre": "Quimica Organica y Biologica",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "AMIB",
+      "nombre": "Analisis Matematico II y Bioestadistica",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "FGMF",
+      "nombre": "Fisica General (Mecanica y Fluidos)",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "BSVYC",
+      "nombre": "Botanica y Sistemica Vegetal de las Yungas y Chaco",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "ZDVN",
+      "nombre": "Zoologia y Diversidad de Vertebrados del NOA",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "EGS",
+      "nombre": "Edafologia y Genesis del Suelo",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "SIGST",
+      "nombre": "Sistemas de Informacion Geografica (SIG) y Teledeteccion Ambiental",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "EGP",
+      "nombre": "Ecologia General y de Poblaciones",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "QASAA",
+      "nombre": "Quimica Ambiental del Suelo, Agua y Aire",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "HSCHM",
+      "nombre": "Hidrologia Superficial, Cuencas Hidrograficas y Manejo de Aguas",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "DCS",
+      "nombre": "Degradacion y Conservacion de Suelos",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "TRA",
+      "nombre": "Topografia y Relevamientos Ambientales",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "ECEPC",
+      "nombre": "Ecologia de Comunidades y Ecosistemas del Parque Chaqueno y Selva de Yungas",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "EARN",
+      "nombre": "Economia Ambiental y de los Recursos Naturales",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "SMSBN",
+      "nombre": "Silvicultura y Manejo Sustentable de Bosques Nativos (Ley 26.331)",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "MCFSB",
+      "nombre": "Manejo y Conservacion de Fauna Silvestre y Biodiversidad",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "TGRSI",
+      "nombre": "Tratamiento y Gestion de Residuos Solidos e Industriales",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "DELCC",
+      "nombre": "Depuracion de Efluentes Liquidos y Control de la Contaminacion Hidrica",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "EIAEA",
+      "nombre": "Evaluacion de Impacto Ambiental (EIA) y Auditorias en Mineria, Obras y Agro",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s27",
+      "codigo": "READP",
+      "nombre": "Restauracion Ecologica de Ambientes Degradados y Pasivos Mineros",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s28",
+      "codigo": "SALRN",
+      "nombre": "Sociologia Ambiental, Legislacion de Recursos Naturales y Consulta Previa Indigena",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "OATPU",
+      "nombre": "Ordenamiento Ambiental del Territorio y Planificacion del Uso del Suelo",
+      "numero_materia": 29,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s30",
+      "codigo": "ANPRB",
+      "nombre": "Areas Naturales Protegidas y Reservas de Biosfera de las Yungas",
+      "numero_materia": 30,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s31",
+      "codigo": "FEPAS",
+      "nombre": "Formulacion y Evaluacion de Proyectos Ambientales y Servicios Ecosistemicos",
+      "numero_materia": 31,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s32",
+      "codigo": "SIGAN",
+      "nombre": "Sistemas Integrados de Gestion Ambiental (Norma ISO 14001) y Deontologia Profesional",
+      "numero_materia": 32,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s33",
+      "codigo": "PPSPS",
+      "nombre": "Practica Profesional Supervisada (PPS en Secretarias de Ambiente / Parques Nacionales / Empresas Mineras y Agropecuarias)",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s34",
+      "codigo": "TIRNM",
+      "nombre": "Tesina de Ingenieria en Recursos Naturales y Medio Ambiente",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    }
+  ]
+}

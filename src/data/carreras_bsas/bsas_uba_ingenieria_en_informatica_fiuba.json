@@ -1,0 +1,727 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "IPCC",
+      "nombre": "Introduccion al Pensamiento Cientifico (CBC)",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "ICSEC",
+      "nombre": "Introduccion al Conocimiento de la Sociedad y el Estado (CBC)",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "AMC",
+      "nombre": "Analisis Matematico A (CBC)",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "AC",
+      "nombre": "Algebra A (CBC)",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "FC",
+      "nombre": "Fisica (CBC)",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "QPCC",
+      "nombre": "Quimica / Pensamiento Computacional (CBC)",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "AMI",
+      "nombre": "Analisis Matematico II",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "AL",
+      "nombre": "Algebra Lineal",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "FSP",
+      "nombre": "Fisica de los Sistemas de Particulas",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "FP",
+      "nombre": "Fundamentos de Programacion",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "AED",
+      "nombre": "Algoritmos y Estructuras de Datos",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "OC",
+      "nombre": "Organizacion del Computador",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "MD",
+      "nombre": "Matematica Discreta",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "PP",
+      "nombre": "Paradigmas de Programacion",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "PE",
+      "nombre": "Probabilidad y Estadistica",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "SO",
+      "nombre": "Sistemas Operativos",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "BD",
+      "nombre": "Base de Datos",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "TA",
+      "nombre": "Teoria de Algoritmos",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "ISI",
+      "nombre": "Ingenieria de Software I",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "TP",
+      "nombre": "Taller de Programacion",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "RC",
+      "nombre": "Redes de Computadoras",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "MN",
+      "nombre": "Modelacion Numerica",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "ISI2",
+      "nombre": "Ingenieria de Software II",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "SDI",
+      "nombre": "Sistemas Distribuidos I",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "CDAA",
+      "nombre": "Ciencia de Datos y Aprendizaje Automatico",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "SIC",
+      "nombre": "Seguridad Informatica y Criptografia",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "GDSI",
+      "nombre": "Gestion del Desarrollo de Sistemas Informaticos",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s28",
+      "codigo": "SMD",
+      "nombre": "Simulacion y Modelos de Decision",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "CLF",
+      "nombre": "Compiladores y Lenguajes Formales",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "EOI",
+      "nombre": "Electiva de Orientacion I",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "ASCC",
+      "nombre": "Arquitectura de Software y Cloud Computing",
+      "numero_materia": 31,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s32",
+      "codigo": "EOLI",
+      "nombre": "Economia, Organizacion y Legal de Ingenieria",
+      "numero_materia": 32,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s33",
+      "codigo": "HSDS",
+      "nombre": "Higiene, Seguridad y Desarrollo Sustentable",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "EOI2",
+      "nombre": "Electiva de Orientacion II",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "EOI3",
+      "nombre": "Electiva de Orientacion III",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s36",
+      "codigo": "PPSET",
+      "nombre": "Practica Profesional Supervisada en Empresas Tecnologicas (PPS)",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s37",
+      "codigo": "TPTII",
+      "nombre": "Trabajo Profesional / Tesis de Ingenieria en Informatica",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
 import { toast } from "sonner";
@@ -1062,25 +1063,7 @@ export function useSubjects() {
 
       // @ts-ignore - dynamic import
       let templateModule;
-      try {
-        if (career.file?.startsWith("carreras_mza/")) {
-          const fileName = career.file.replace("carreras_mza/", "");
-          templateModule = await import(`../data/carreras_mza/${fileName}.json`);
-        } else if (career.file?.startsWith("carreras_sanjuan/")) {
-          const fileName = career.file.replace("carreras_sanjuan/", "");
-          templateModule = await import(`../data/carreras_sanjuan/${fileName}.json`);
-        } else if (career.file?.startsWith("carreras_cordoba/")) {
-          const fileName = career.file.replace("carreras_cordoba/", "");
-          templateModule = await import(`../data/carreras_cordoba/${fileName}.json`);
-        } else if (career.file?.startsWith("carreras_sanluis/")) {
-          const fileName = career.file.replace("carreras_sanluis/", "");
-          templateModule = await import(`../data/carreras_sanluis/${fileName}.json`);
-        } else {
-          templateModule = await import(`../data/${career.file}.json`);
-        }
-      } catch (e) {
-        templateModule = await import(`../data/${career.file}.json`);
-      }
+      templateModule = await loadCareerTemplate(career.file!);
       const templateData = templateModule.default;
       const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
 

@@ -1,0 +1,720 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "IP",
+      "nombre": "Introducción a la Psicología",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "F",
+      "nombre": "Filosofía",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "AC",
+      "nombre": "Antropología Cultural",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "BHN",
+      "nombre": "Biología Humana y Neuroanatomía",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "HP",
+      "nombre": "Historia de la Psicología",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "PGPC",
+      "nombre": "Psicología General (Procesos Cognitivos)",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "SG",
+      "nombre": "Sociología General",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "EMII",
+      "nombre": "Epistemología y Metodología de la Investigación I",
+      "numero_materia": 8,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "NP",
+      "nombre": "Neurofisiología y Psicofisiología",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "PDIN",
+      "nombre": "Psicología del Desarrollo I (Niñez)",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "TPI",
+      "nombre": "Teoría Psicoanalítica I",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "PSC",
+      "nombre": "Psicología Social y Comunitaria",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "PDIAA",
+      "nombre": "Psicología del Desarrollo II (Adolescencia, Adultez y Vejez)",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "TPI2",
+      "nombre": "Teoría Psicoanalítica II",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "EAP",
+      "nombre": "Estadística Aplicada a la Psicología",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "DPCSC",
+      "nombre": "Desarrollos Psicológicos Contemporáneos (Sistémica, Cognitiva, Humanista)",
+      "numero_materia": 16,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "PIA",
+      "nombre": "Psicopatología I (Adultos)",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "TEEPI",
+      "nombre": "Técnicas de Exploración y Evaluación Psicológica I",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "PIIJ",
+      "nombre": "Psicopatología II (Infanto-Juvenil)",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "TEEPI2",
+      "nombre": "Técnicas de Exploración y Evaluación Psicológica II (Proyectivas)",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "PE",
+      "nombre": "Psicología Educacional",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "PIO",
+      "nombre": "Psicología Institucional y de las Organizaciones",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "MIPI",
+      "nombre": "Metodología de la Investigación Psicológica II",
+      "numero_materia": 23,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "SPSM",
+      "nombre": "Salud Pública y Salud Mental",
+      "numero_materia": 24,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "CPPIA",
+      "nombre": "Clínica Psicológica y Psicoterapias I (Adultos)",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "CPPIN",
+      "nombre": "Clínica Psicológica y Psicoterapias II (Niños y Adolescentes)",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "PL",
+      "nombre": "Psicología Laboral",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "PJF",
+      "nombre": "Psicología Jurídica y Forense",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s29",
+      "codigo": "PP",
+      "nombre": "Psicofarmacología para Psicólogos",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "DIFP",
+      "nombre": "Diagnóstico e Intervención Familiar y de Pareja",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "OVO",
+      "nombre": "Orientación Vocacional y Ocupacional",
+      "numero_materia": 31,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "PPSI",
+      "nombre": "Práctica Profesional Supervisada I",
+      "numero_materia": 32,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s33",
+      "codigo": "CUPA",
+      "nombre": "Clínica de las Urgencias y Patologías Actuales",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "PPE",
+      "nombre": "Psicología Preventiva y Epidemiología",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "DELP",
+      "nombre": "Deontología, Ética y Legislación Profesional",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s36",
+      "codigo": "TETF",
+      "nombre": "Taller de Elaboración de Trabajo Final",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s37",
+      "codigo": "PPSIC",
+      "nombre": "Práctica Profesional Supervisada II (Clínica, Educacional, Laboral o Forense)",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s38",
+      "codigo": "TFIA1",
+      "nombre": "Trabajo Final de Integración aprobada(1 a 32)",
+      "numero_materia": 38,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s5",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": "s11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s13",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s15",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s13",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": "s33",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": "s34",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": "s35",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": "s36",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": "s37",
+      "requiere_aprobada": null
+    }
+  ]
+}

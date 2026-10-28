@@ -1,0 +1,541 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "CBI",
+      "nombre": "Contabilidad Basica I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MICDI",
+      "nombre": "Matematica I (Calculo Diferencial e Integral)",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "PA",
+      "nombre": "Principios de Administracion",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IM",
+      "nombre": "Introduccion a la Microeconomia",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "DCPG",
+      "nombre": "Derecho Civil: Parte General",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "TIO",
+      "nombre": "Tecnologias de la Informacion en las Organizaciones",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "FFH",
+      "nombre": "Filosofia y Formacion Humanistica",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "CIMVP",
+      "nombre": "Contabilidad II (Medicion y Valuacion de Patrimonio)",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "MIALC",
+      "nombre": "Matematica II (Algebra Lineal y Calculo Financiero)",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "M",
+      "nombre": "Macroeconomia",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "EI",
+      "nombre": "Estadistica I",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "DCO",
+      "nombre": "Derecho Comercial y de las Obligaciones",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "CICTD",
+      "nombre": "Costos I (Costos para la Toma de Decisiones)",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "TI",
+      "nombre": "Teologia I",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "CIECE",
+      "nombre": "Contabilidad III (Estados Contables y Exposicion)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "MFA",
+      "nombre": "Matematica Financiera Aplicada",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "EII",
+      "nombre": "Estadistica II e Inferencia",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "DSTV",
+      "nombre": "Derecho Societario y Titulos Valores",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "AFI",
+      "nombre": "Administracion Financiera I",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "CIGP",
+      "nombre": "Costos II y Gestion Presupuestaria",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "TI2",
+      "nombre": "Teologia II",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "CICBN",
+      "nombre": "Contabilidad IV (Consolidacion de Balances y NIIF)",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "DTSS",
+      "nombre": "Derecho del Trabajo y de la Seguridad Social",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "IIGP",
+      "nombre": "Impuestos I (Ganancias y Patrimonio)",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "AICIP",
+      "nombre": "Auditoria I (Control Interno y Papeles de Trabajo)",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "CQPL",
+      "nombre": "Concursos, Quiebras y Procesos Liquidatorios",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s27",
+      "codigo": "FPDT",
+      "nombre": "Finanzas Publicas y Derecho Tributario",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s28",
+      "codigo": "DSI",
+      "nombre": "Doctrina Social de la Iglesia",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "IIIIP",
+      "nombre": "Impuestos II (IVA e Impuestos Provinciales de Salta y Tasas Municipales)",
+      "numero_materia": 29,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s30",
+      "codigo": "AIIDS",
+      "nombre": "Auditoria II (Informes, Dictamenes y Sindicatura Concursal)",
+      "numero_materia": 30,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s31",
+      "codigo": "CGCP",
+      "nombre": "Contabilidad Gubernamental y Control Publico",
+      "numero_materia": 31,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s32",
+      "codigo": "PTSS",
+      "nombre": "Procedimiento Tributario y Seguridad Social",
+      "numero_materia": 32,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s33",
+      "codigo": "DPPJA",
+      "nombre": "Deontologia Profesional, Peritajes Judiciales y Actuacion Forense",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s34",
+      "codigo": "PPSCP",
+      "nombre": "Practica Profesional Supervisada del Contador Publico",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s35",
+      "codigo": "TFICP",
+      "nombre": "Trabajo Final Integrador de Contador Publico",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s34"
+    }
+  ]
+}

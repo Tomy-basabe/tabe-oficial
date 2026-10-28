@@ -1,0 +1,1088 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "IPCC",
+      "nombre": "Introduccion al Pensamiento Cientifico (CBC)",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "ICSEC",
+      "nombre": "Introduccion al Conocimiento de la Sociedad y el Estado (CBC)",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "QC",
+      "nombre": "Quimica (CBC)",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "BIBCC",
+      "nombre": "Biologia e Introduccion a la Biologia Celular (CBC)",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s5",
+      "codigo": "MC",
+      "nombre": "Matematica (CBC)",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "BC",
+      "nombre": "Biofisica (CBC)",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "ALEN",
+      "nombre": "Anatomia (Locomotor, Esplacnologia y Neuroanatomia)",
+      "numero_materia": 7,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s8",
+      "codigo": "HBCEG",
+      "nombre": "Histologia, Biologia Celular, Embriologia y Genetica",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "SMI",
+      "nombre": "Salud Mental I",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "BI",
+      "nombre": "Bioetica I",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "MFI",
+      "nombre": "Medicina Familiar I",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "FB",
+      "nombre": "Fisiologia y Biofisica",
+      "numero_materia": 12,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "BBM",
+      "nombre": "Bioquimica y Biologia Molecular",
+      "numero_materia": 13,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "IH",
+      "nombre": "Inmunologia Humana",
+      "numero_materia": 14,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "MPIG",
+      "nombre": "Microbiologia y Parasitologia I (General)",
+      "numero_materia": 15,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "MPIM",
+      "nombre": "Microbiologia y Parasitologia II (Medica)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "SPII",
+      "nombre": "Salud Publica I y II",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "MSF",
+      "nombre": "Medicina A (Semiologia y Fisiopatologia)",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "PIG",
+      "nombre": "Patologia I (General)",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "PIE",
+      "nombre": "Patologia II (Especial)",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "FIGS",
+      "nombre": "Farmacologia I (General y Sistematica)",
+      "numero_materia": 21,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "FICT",
+      "nombre": "Farmacologia II (Clinica y Terapeutica)",
+      "numero_materia": 22,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "T",
+      "nombre": "Toxicologia",
+      "numero_materia": 23,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "MBMI",
+      "nombre": "Medicina B (Medicina Interna)",
+      "numero_materia": 24,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "CG",
+      "nombre": "Cirugia General",
+      "numero_materia": 25,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "NC",
+      "nombre": "Nutricion Clinica",
+      "numero_materia": 26,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "DPI",
+      "nombre": "Diagnostico por Imagenes",
+      "numero_materia": 27,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "D",
+      "nombre": "Dermatologia",
+      "numero_materia": 28,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "I",
+      "nombre": "Infectologia",
+      "numero_materia": 29,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "N",
+      "nombre": "Neumonologia",
+      "numero_materia": 30,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "N2",
+      "nombre": "Neurologia",
+      "numero_materia": 31,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "P",
+      "nombre": "Pediatria",
+      "numero_materia": 32,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s33",
+      "codigo": "O",
+      "nombre": "Obstetricia",
+      "numero_materia": 33,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "G",
+      "nombre": "Ginecologia",
+      "numero_materia": 34,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "PSMI",
+      "nombre": "Psiquiatria y Salud Mental II",
+      "numero_materia": 35,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s36",
+      "codigo": "TO",
+      "nombre": "Traumatologia y Ortopedia",
+      "numero_materia": 36,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s37",
+      "codigo": "O2",
+      "nombre": "Oftalmologia",
+      "numero_materia": 37,
+      "año": 6,
+      "semestre": 1
+    },
+    {
+      "id": "s38",
+      "codigo": "O3",
+      "nombre": "Otorrinolaringologia",
+      "numero_materia": 38,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s39",
+      "codigo": "U",
+      "nombre": "Urologia",
+      "numero_materia": 39,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s40",
+      "codigo": "N3",
+      "nombre": "Neurocirugia",
+      "numero_materia": 40,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s41",
+      "codigo": "MLDM",
+      "nombre": "Medicina Legal y Deontologia Medica",
+      "numero_materia": 41,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s42",
+      "codigo": "BI2",
+      "nombre": "Bioetica II",
+      "numero_materia": 42,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s43",
+      "codigo": "MFI2",
+      "nombre": "Medicina Familiar II",
+      "numero_materia": 43,
+      "año": 6,
+      "semestre": 2
+    },
+    {
+      "id": "s44",
+      "codigo": "IARIC",
+      "nombre": "Internado Anual Rotatorio (IAR - Clinica Medica, Cirugia, Pediatria, Tocoginecologia, Salud Mental y APS en Hospitales de la Red UBA / Clinicas)",
+      "numero_materia": 44,
+      "año": 7,
+      "semestre": 1
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s38",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s39",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s39",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s40",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s41",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s41",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s41",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s41",
+      "requiere_regular": null,
+      "requiere_aprobada": "s35"
+    },
+    {
+      "subject_id": "s42",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s42",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s43",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s43",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s43",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s26"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s30"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s31"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s32"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s33"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s34"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s35"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s36"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s37"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s38"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s39"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s40"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s41"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s42"
+    },
+    {
+      "subject_id": "s44",
+      "requiere_regular": null,
+      "requiere_aprobada": "s43"
+    }
+  ]
+}

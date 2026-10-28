@@ -1,0 +1,652 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "AMI",
+      "nombre": "Analisis Matematico I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "AGA",
+      "nombre": "Algebra y Geometria Analitica",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "API",
+      "nombre": "Algoritmos y Programacion I",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "AC",
+      "nombre": "Arquitectura de Computadoras",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "SO",
+      "nombre": "Sistemas y Organizaciones",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "QG",
+      "nombre": "Quimica General",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "IS",
+      "nombre": "Ingenieria y Sociedad",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "AMI2",
+      "nombre": "Analisis Matematico II",
+      "numero_materia": 8,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s9",
+      "codigo": "FIM",
+      "nombre": "Fisica I (Mecanica)",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "AEDI",
+      "nombre": "Algoritmos y Estructuras de Datos II",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "PP",
+      "nombre": "Paradigmas de Programacion",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "ASI",
+      "nombre": "Analisis de Sistemas de Informacion",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s13",
+      "codigo": "SO2",
+      "nombre": "Sistemas Operativos",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "PEC",
+      "nombre": "Probabilidad y Estadistica Computacional",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "ITI",
+      "nombre": "Ingles Tecnico I",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "FIEC",
+      "nombre": "Fisica II (Electromagnetismo y Circuitos)",
+      "numero_materia": 16,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "DSI",
+      "nombre": "Diseno de Sistemas de Informacion",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "RDC",
+      "nombre": "Redes de Datos y Comunicaciones",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "GDBDR",
+      "nombre": "Gestion de Datos y Bases de Datos Relacionales y NoSQL",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "MDLC",
+      "nombre": "Matematicas Discretas y Logica Computacional",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "DSMA",
+      "nombre": "Desarrollo de Software y Metodologias Agiles",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "EGET",
+      "nombre": "Economia y Gestion de Empresas Tecnologicas",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "ITI2",
+      "nombre": "Ingles Tecnico II",
+      "numero_materia": 23,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "ASI2",
+      "nombre": "Administracion de Sistemas de Informacion",
+      "numero_materia": 24,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s25",
+      "codigo": "ISCP",
+      "nombre": "Ingenieria de Software y Calidad de Procesos",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "TCMS",
+      "nombre": "Teoria de Control y Modelado de Sistemas",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "SICC",
+      "nombre": "Seguridad Informatica, Criptografia y Ciberdefensa",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "IAML",
+      "nombre": "Inteligencia Artificial y Machine Learning",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s29",
+      "codigo": "SIEEC",
+      "nombre": "Sistemas de Informacion Empresariales (ERP/CRM/BI)",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "LIEP",
+      "nombre": "Legislacion Informatica y Ejercicio Profesional",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "EI",
+      "nombre": "Electiva I",
+      "numero_materia": 31,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "PFIIS",
+      "nombre": "Proyecto Final Integrador (Ingenieria en Sistemas de Informacion)",
+      "numero_materia": 32,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s33",
+      "codigo": "DEEBT",
+      "nombre": "Direccion Estrategica y Emprendimientos de Base Tecnologica",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "ACSI",
+      "nombre": "Auditoria y Calidad de Sistemas de Informacion",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "EI2",
+      "nombre": "Electiva II",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s36",
+      "codigo": "EI3",
+      "nombre": "Electiva III",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s37",
+      "codigo": "PPSPE",
+      "nombre": "Practica Profesional Supervisada (PPS en Empresas de TI / Centros de Datos)",
+      "numero_materia": 37,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s2"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s31",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s32",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s27"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s28"
+    },
+    {
+      "subject_id": "s37",
+      "requiere_regular": null,
+      "requiere_aprobada": "s29"
+    }
+  ]
+}

@@ -1,0 +1,400 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MMFI",
+      "nombre": "Metodos Matematicos de la Fisica I",
+      "numero_materia": 1,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MC",
+      "nombre": "Mecanica Clasica",
+      "numero_materia": 2,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "E",
+      "nombre": "Electromagnetismo",
+      "numero_materia": 3,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "FEI",
+      "nombre": "Fisica Experimental I",
+      "numero_materia": 4,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "TC",
+      "nombre": "Termodinamica Clasica",
+      "numero_materia": 5,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "MMFI2",
+      "nombre": "Metodos Matematicos de la Fisica II",
+      "numero_materia": 6,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "MCI",
+      "nombre": "Mecanica Cuantica I",
+      "numero_materia": 7,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "MF",
+      "nombre": "Mecanica de Fluidos",
+      "numero_materia": 8,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "FEI2",
+      "nombre": "Fisica Experimental II",
+      "numero_materia": 9,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "FC",
+      "nombre": "Fisica Computacional",
+      "numero_materia": 10,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "MCI2",
+      "nombre": "Mecanica Cuantica II",
+      "numero_materia": 11,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "ME",
+      "nombre": "Mecanica Estadistica",
+      "numero_materia": 12,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "EC",
+      "nombre": "Electrodinamica Clasica",
+      "numero_materia": 13,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "FESI",
+      "nombre": "Fisica del Estado Solido I",
+      "numero_materia": 14,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "FEI3",
+      "nombre": "Fisica Experimental III",
+      "numero_materia": 15,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "FNPS",
+      "nombre": "Fisica Nuclear y Particulas Subatomicas",
+      "numero_materia": 16,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "FESIM",
+      "nombre": "Fisica del Estado Solido II y Materia Condensada",
+      "numero_materia": 17,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "FEITC",
+      "nombre": "Fisica Experimental IV (Tecnicas Criogenicas y Vacío)",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "RGIA",
+      "nombre": "Relatividad General e Introduccion a la Astrofisica",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "OAI",
+      "nombre": "Optativa Avanzada I",
+      "numero_materia": 20,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "OAI2",
+      "nombre": "Optativa Avanzada II",
+      "numero_materia": 21,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "SIC",
+      "nombre": "Seminarios de Investigacion Cientifica",
+      "numero_materia": 22,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "TELFT",
+      "nombre": "Trabajo Especial de Licenciatura en Fisica (Tesis de Grado)",
+      "numero_materia": 23,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    }
+  ]
+}

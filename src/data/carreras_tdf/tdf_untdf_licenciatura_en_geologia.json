@@ -1,0 +1,594 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "IG",
+      "nombre": "Introducción a la Geología",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MICN",
+      "nombre": "Matemática I para Ciencias Naturales",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "QGI",
+      "nombre": "Química General e Inorgánica",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "IESCA",
+      "nombre": "Introducción al Estudio de la Sociedad, la Cultura y el Ambiente",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "MICN2",
+      "nombre": "Matemática II para Ciencias Naturales",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s6",
+      "codigo": "FICN",
+      "nombre": "Física I para Ciencias Naturales",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "MG",
+      "nombre": "Mineralogía General",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "GGC",
+      "nombre": "Geología General y del Cuaternario",
+      "numero_materia": 8,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "MOP",
+      "nombre": "Mineralogía Óptica y Petrografía",
+      "numero_materia": 9,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s10",
+      "codigo": "S",
+      "nombre": "Sedimentología",
+      "numero_materia": 10,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s11",
+      "codigo": "G",
+      "nombre": "Geoquímica",
+      "numero_materia": 11,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "FICN2",
+      "nombre": "Física II para Ciencias Naturales",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "PG",
+      "nombre": "Paleontología General",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s14",
+      "codigo": "PIM",
+      "nombre": "Petrología Ígnea y Metamórfica",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s15",
+      "codigo": "ECN",
+      "nombre": "Estadística para Ciencias Naturales",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s16",
+      "codigo": "TCG",
+      "nombre": "Topografía y Cartografía Geológica",
+      "numero_materia": 16,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "GE",
+      "nombre": "Geología Estructural",
+      "numero_materia": 17,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s18",
+      "codigo": "EG",
+      "nombre": "Estratigrafía y Geocronología",
+      "numero_materia": 18,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s19",
+      "codigo": "G2",
+      "nombre": "Geomorfología",
+      "numero_materia": 19,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s20",
+      "codigo": "LGI",
+      "nombre": "Levantamiento Geológico I",
+      "numero_materia": 20,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s21",
+      "codigo": "G3",
+      "nombre": "Geotectónica",
+      "numero_materia": 21,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s22",
+      "codigo": "H",
+      "nombre": "Hidrogeología",
+      "numero_materia": 22,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s23",
+      "codigo": "GY",
+      "nombre": "Geología de Yacimientos",
+      "numero_materia": 23,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s24",
+      "codigo": "SPF",
+      "nombre": "Seminario de Problemática Fueguina",
+      "numero_materia": 24,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "LGI2",
+      "nombre": "Levantamiento Geológico II",
+      "numero_materia": 25,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s26",
+      "codigo": "GC",
+      "nombre": "Geología de Combustibles",
+      "numero_materia": 26,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s27",
+      "codigo": "GA",
+      "nombre": "Geofísica Aplicada",
+      "numero_materia": 27,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s28",
+      "codigo": "GARG",
+      "nombre": "Geología Ambiental y Riesgos Geológicos",
+      "numero_materia": 28,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s29",
+      "codigo": "GAI",
+      "nombre": "Geología Aplicada a la Ingeniería",
+      "numero_materia": 29,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s30",
+      "codigo": "PEG",
+      "nombre": "Prospección y Exploración Geológica",
+      "numero_materia": 30,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s31",
+      "codigo": "OI",
+      "nombre": "Optativa I",
+      "numero_materia": 31,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s32",
+      "codigo": "OI2",
+      "nombre": "Optativa II",
+      "numero_materia": 32,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s33",
+      "codigo": "PCI",
+      "nombre": "Práctica de Campo Integrada",
+      "numero_materia": 33,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s34",
+      "codigo": "DLM",
+      "nombre": "Deontología y Legislación Minera",
+      "numero_materia": 34,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s35",
+      "codigo": "TTF",
+      "nombre": "Taller de Trabajo Final",
+      "numero_materia": 35,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s36",
+      "codigo": "TFGA1",
+      "nombre": "Trabajo Final de Grado aprobada(1 a 32)",
+      "numero_materia": 36,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s5",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s7",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": "s7",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": "s9",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s13",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s18",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": "s11",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s4"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": "s21",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": "s23",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s27",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": "s22",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s28",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": "s22",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s29",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": "s25",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s30",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s33",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s34",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s35",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s33",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s34",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s36",
+      "requiere_regular": "s35",
+      "requiere_aprobada": null
+    }
+  ]
+}

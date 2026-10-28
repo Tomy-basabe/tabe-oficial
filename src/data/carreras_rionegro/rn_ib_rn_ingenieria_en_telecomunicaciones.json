@@ -1,0 +1,454 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MMFI",
+      "nombre": "Metodos Matematicos de la Fisica I",
+      "numero_materia": 1,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MC",
+      "nombre": "Mecanica Clasica",
+      "numero_materia": 2,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "ETC",
+      "nombre": "Electromagnetismo y Teoria de Circuitos",
+      "numero_materia": 3,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "FEI",
+      "nombre": "Fisica Experimental I",
+      "numero_materia": 4,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "FCS",
+      "nombre": "Fisica Cuantica y Semiconductores",
+      "numero_materia": 5,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "MMFI2",
+      "nombre": "Metodos Matematicos de la Fisica II",
+      "numero_materia": 6,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "DECA",
+      "nombre": "Dispositivos Electronicos y Circuitos Analogicos",
+      "numero_materia": 7,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "SSL",
+      "nombre": "Senales y Sistemas Lineales",
+      "numero_materia": 8,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "FEI2",
+      "nombre": "Fisica Experimental II",
+      "numero_materia": 9,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "TDM",
+      "nombre": "Tecnicas Digitales y Microprocesadores",
+      "numero_materia": 10,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "TICD",
+      "nombre": "Teoria de la Informacion y Comunicaciones Digitales",
+      "numero_materia": 11,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "COGO",
+      "nombre": "Campos, Ondas y Guias de Onda",
+      "numero_materia": 12,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "PDSD",
+      "nombre": "Procesamiento Digital de Senales (DSP)",
+      "numero_materia": 13,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "EAFR",
+      "nombre": "Electronica de Alta Frecuencia y Radiofrecuencia",
+      "numero_materia": 14,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "RDPC",
+      "nombre": "Redes de Datos y Protocolos de Comunicacion",
+      "numero_materia": 15,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "APR",
+      "nombre": "Antenas y Propagacion Radioelectrica",
+      "numero_materia": 16,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "STOFO",
+      "nombre": "Sistemas de Transmision Optica (Fibra Optica y Fotónica)",
+      "numero_materia": 17,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "SEFT",
+      "nombre": "Sistemas Embebidos y FPGAs para Telecomunicaciones",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "CIRC",
+      "nombre": "Comunicaciones Inalambricas y Redes Celulares",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PPETC",
+      "nombre": "Probabilidad, Procesos Estocasticos y Teoria de Colas",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "CSSR",
+      "nombre": "Comunicaciones Satelitales y Sistemas de Radar",
+      "numero_materia": 21,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "CCRS",
+      "nombre": "Criptografia, Ciberseguridad y Redes Seguras",
+      "numero_materia": 22,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "ROAEC",
+      "nombre": "Redes Opticas Avanzadas y Enlaces Cuanticos",
+      "numero_materia": 23,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "ERERP",
+      "nombre": "Economia, Regulacion del Espectro Radioelectrico y Proyectos",
+      "numero_materia": 24,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "PPSTA",
+      "nombre": "Practica Profesional Supervisada en Telecomunicaciones de Avanzada",
+      "numero_materia": 25,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s26",
+      "codigo": "PIFIT",
+      "nombre": "Proyecto Integrador Final de Ingenieria en Telecomunicaciones",
+      "numero_materia": 26,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    }
+  ]
+}

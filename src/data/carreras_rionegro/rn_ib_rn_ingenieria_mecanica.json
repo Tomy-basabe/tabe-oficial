@@ -1,0 +1,449 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "MMFI",
+      "nombre": "Metodos Matematicos de la Fisica I",
+      "numero_materia": 1,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "MCMC",
+      "nombre": "Mecanica Clasica y de Medios Continuos",
+      "numero_materia": 2,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "E",
+      "nombre": "Electromagnetismo",
+      "numero_materia": 3,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "FEI",
+      "nombre": "Fisica Experimental I",
+      "numero_materia": 4,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "TC",
+      "nombre": "Termodinamica Clasica",
+      "numero_materia": 5,
+      "año": 3,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "MMFI2",
+      "nombre": "Metodos Matematicos de la Fisica II",
+      "numero_materia": 6,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s7",
+      "codigo": "ERM",
+      "nombre": "Elasticidad y Resistencia de Materiales",
+      "numero_materia": 7,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "MF",
+      "nombre": "Mecanica de Fluidos",
+      "numero_materia": 8,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "FEI2",
+      "nombre": "Fisica Experimental II",
+      "numero_materia": 9,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "CMI",
+      "nombre": "Ciencia de Materiales I",
+      "numero_materia": 10,
+      "año": 3,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "EMM",
+      "nombre": "Elementos de Maquinas y Mecanismos",
+      "numero_materia": 11,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s12",
+      "codigo": "TCM",
+      "nombre": "Transferencia de Calor y Masa",
+      "numero_materia": 12,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "MFMI",
+      "nombre": "Metalurgia Fisica y Materiales II",
+      "numero_materia": 13,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "MNCPE",
+      "nombre": "Metodos Numericos y Calculo por Elementos Finitos (FEM)",
+      "numero_materia": 14,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "MMI",
+      "nombre": "Mediciones Mecanicas e Instrumentacion",
+      "numero_materia": 15,
+      "año": 4,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "VMDE",
+      "nombre": "Vibraciones Mecanicas y Dinamica de Estructuras",
+      "numero_materia": 16,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s17",
+      "codigo": "MTT",
+      "nombre": "Maquinas Termicas y Turbomaquinas",
+      "numero_materia": 17,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "MFFM",
+      "nombre": "Mecanica de Fractura y Fatiga de Materiales",
+      "numero_materia": 18,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "SCA",
+      "nombre": "Sistemas de Control Automatico",
+      "numero_materia": 19,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "PFMS",
+      "nombre": "Procesos de Fabricacion Mecanica y Soldadura",
+      "numero_materia": 20,
+      "año": 4,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "DRPCI",
+      "nombre": "Diseno de Recipientes a Presion y Canerias Industriales (ASME)",
+      "numero_materia": 21,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s22",
+      "codigo": "DFCCA",
+      "nombre": "Dinamica de Fluidos Computacional (CFD) aplicada a Ingenieria",
+      "numero_materia": 22,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s23",
+      "codigo": "MENDI",
+      "nombre": "Mantenimiento, Ensayos No Destructivos e Integridad Estructural",
+      "numero_materia": 23,
+      "año": 5,
+      "semestre": 1
+    },
+    {
+      "id": "s24",
+      "codigo": "ECGPM",
+      "nombre": "Economia, Costos y Gestion de Proyectos Mecanicos",
+      "numero_materia": 24,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s25",
+      "codigo": "PPSLT",
+      "nombre": "Practica Profesional Supervisada en Laboratorios / Talleres de Alta Complejidad",
+      "numero_materia": 25,
+      "año": 5,
+      "semestre": 2
+    },
+    {
+      "id": "s26",
+      "codigo": "PIFIM",
+      "nombre": "Proyecto Integrador Final de Ingenieria Mecanica",
+      "numero_materia": 26,
+      "año": 5,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s11",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s9"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s8"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s13"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s12"
+    },
+    {
+      "subject_id": "s22",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s15"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s23",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s24",
+      "requiere_regular": null,
+      "requiere_aprobada": "s14"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s16"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s17"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s18"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s19"
+    },
+    {
+      "subject_id": "s25",
+      "requiere_regular": null,
+      "requiere_aprobada": "s20"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s21"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s22"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s23"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s24"
+    },
+    {
+      "subject_id": "s26",
+      "requiere_regular": null,
+      "requiere_aprobada": "s25"
+    }
+  ]
+}

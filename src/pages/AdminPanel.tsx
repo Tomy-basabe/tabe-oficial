@@ -15,6 +15,7 @@ import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clo
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 import { generateId } from "@/lib/utils/id";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
 
@@ -305,7 +306,7 @@ const AdminPanel = () => {
       const career = AVAILABLE_CAREERS.find(c => c.id === selectedCareer);
       if (!career) throw new Error("Carrera no encontrada");
 
-      const templateModule = await import(`@/data/${career.file}.json`);
+      const templateModule = await loadCareerTemplate(career.file!);
       const templateData = templateModule.default;
       const { subjects: tplSubjects, dependencies: tplDependencies } = templateData;
 

@@ -1,0 +1,364 @@
+{
+  "subjects": [
+    {
+      "id": "s1",
+      "codigo": "PI",
+      "nombre": "Programación I",
+      "numero_materia": 1,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s2",
+      "codigo": "SPD",
+      "nombre": "Sistemas de Procesamiento de Datos",
+      "numero_materia": 2,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s3",
+      "codigo": "M",
+      "nombre": "Matemática",
+      "numero_materia": 3,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s4",
+      "codigo": "II",
+      "nombre": "Inglés I",
+      "numero_materia": 4,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s5",
+      "codigo": "LCI",
+      "nombre": "Laboratorio de Computación I",
+      "numero_materia": 5,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s6",
+      "codigo": "PI2",
+      "nombre": "Programación II",
+      "numero_materia": 6,
+      "año": 1,
+      "semestre": 1
+    },
+    {
+      "id": "s7",
+      "codigo": "ASO",
+      "nombre": "Arquitectura y Sistemas Operativos",
+      "numero_materia": 7,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s8",
+      "codigo": "E",
+      "nombre": "Estadística",
+      "numero_materia": 8,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s9",
+      "codigo": "II2",
+      "nombre": "Inglés II",
+      "numero_materia": 9,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s10",
+      "codigo": "LCI2",
+      "nombre": "Laboratorio de Computación II",
+      "numero_materia": 10,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s11",
+      "codigo": "MI",
+      "nombre": "Metodología de la Investigación",
+      "numero_materia": 11,
+      "año": 1,
+      "semestre": 2
+    },
+    {
+      "id": "s12",
+      "codigo": "PI3",
+      "nombre": "Programación III",
+      "numero_materia": 12,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s13",
+      "codigo": "OCE",
+      "nombre": "Organización Contable de la Empresa",
+      "numero_materia": 13,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s14",
+      "codigo": "OE",
+      "nombre": "Organización Empresarial",
+      "numero_materia": 14,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s15",
+      "codigo": "EIO",
+      "nombre": "Elementos de Investigación Operativa",
+      "numero_materia": 15,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s16",
+      "codigo": "LCI3",
+      "nombre": "Laboratorio de Computación III",
+      "numero_materia": 16,
+      "año": 2,
+      "semestre": 1
+    },
+    {
+      "id": "s17",
+      "codigo": "DABD",
+      "nombre": "Diseño y Administración de Bases de Datos",
+      "numero_materia": 17,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s18",
+      "codigo": "L",
+      "nombre": "Legislación",
+      "numero_materia": 18,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s19",
+      "codigo": "MSI",
+      "nombre": "Metodología de Sistemas I",
+      "numero_materia": 19,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s20",
+      "codigo": "LCI4",
+      "nombre": "Laboratorio de Computación IV",
+      "numero_materia": 20,
+      "año": 2,
+      "semestre": 2
+    },
+    {
+      "id": "s21",
+      "codigo": "PPA11",
+      "nombre": "Práctica Profesional aprobada(1 a 11)",
+      "numero_materia": 21,
+      "año": 2,
+      "semestre": 2
+    }
+  ],
+  "dependencies": [
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s6",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s7",
+      "requiere_regular": "s2",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s8",
+      "requiere_regular": "s3",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s9",
+      "requiere_regular": "s4",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s1",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s10",
+      "requiere_regular": "s5",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s12",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s13",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": "s13",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s14",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": "s8",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s15",
+      "requiere_regular": null,
+      "requiere_aprobada": "s3"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": "s6",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": "s10",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s1"
+    },
+    {
+      "subject_id": "s16",
+      "requiere_regular": null,
+      "requiere_aprobada": "s5"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s17",
+      "requiere_regular": null,
+      "requiere_aprobada": "s7"
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s18",
+      "requiere_regular": null,
+      "requiere_aprobada": "s11"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s14",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s19",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s6"
+    },
+    {
+      "subject_id": "s20",
+      "requiere_regular": null,
+      "requiere_aprobada": "s10"
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s12",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s16",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s17",
+      "requiere_aprobada": null
+    },
+    {
+      "subject_id": "s21",
+      "requiere_regular": "s19",
+      "requiere_aprobada": null
+    }
+  ]
+}

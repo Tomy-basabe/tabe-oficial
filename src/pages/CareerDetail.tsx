@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { usePageTitle } from "@/hooks/useDynamicTitle";
+import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 import { AVAILABLE_CAREERS, ALL_FACULTADES } from "@/lib/careerData";
 import { useAuth } from "@/contexts/AuthContext";
 import careerStatsRaw from "@/lib/careerStats.json";
@@ -87,22 +88,7 @@ export default function CareerDetail() {
       }
       setLoadingSubjects(true);
       try {
-        let mod;
-        if (careerInfo.file.startsWith("carreras_mza/")) {
-          const fn = careerInfo.file.replace("carreras_mza/", "");
-          mod = await import(`../data/carreras_mza/${fn}.json`);
-        } else if (careerInfo.file.startsWith("carreras_sanjuan/")) {
-          const fn = careerInfo.file.replace("carreras_sanjuan/", "");
-          mod = await import(`../data/carreras_sanjuan/${fn}.json`);
-        } else if (careerInfo.file.startsWith("carreras_cordoba/")) {
-          const fn = careerInfo.file.replace("carreras_cordoba/", "");
-          mod = await import(`../data/carreras_cordoba/${fn}.json`);
-        } else if (careerInfo.file.startsWith("carreras_sanluis/")) {
-          const fn = careerInfo.file.replace("carreras_sanluis/", "");
-          mod = await import(`../data/carreras_sanluis/${fn}.json`);
-        } else {
-          mod = await import(`../data/${careerInfo.file}.json`);
-        }
+        const mod = await loadCareerTemplate(careerInfo.file);
 
         if (isMounted && mod?.default) {
           setSubjects(mod.default.subjects || []);

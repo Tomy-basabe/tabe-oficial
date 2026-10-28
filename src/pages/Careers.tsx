@@ -103,7 +103,7 @@ const UNIVERSITIES: UniversityDefinition[] = AVAILABLE_FACULTADES.map((f) => {
   const conf = FACULTY_COLORS[f.id] || {
     accent: "#3b82f6",
     badge: "bg-zinc-800 text-white",
-    location: "Mendoza, Argentina",
+    location: ALL_PROVINCIAS.find((p) => p.id === f.provinciaId)?.label || "Argentina",
   };
 
   const provName =
