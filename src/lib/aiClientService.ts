@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { invalidateSubjectsCache } from "@/hooks/useSubjects";
 import { invalidateCalendarCache, getColorForType } from "@/hooks/useCalendarEvents";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
-import { buildUtnFrmMcpContextSection, resolveUtnFrmEncuestas } from "@/lib/utnFrmMcpService";
+import { buildUtnFrmMcpContextSection, resolveUtnFrmEncuestas, resolveUtnFrmCampusQuiz } from "@/lib/utnFrmMcpService";
 import {
   AVAILABLE_AI_MODELS,
   DEFAULT_AI_MODEL,
@@ -156,6 +156,118 @@ export class StreamingContentFilter {
 }
 
 /**
+ * Helper que formatea de manera idéntica y precisa el plan de estudios y notas,
+ * calculando el promedio exacto, progreso, aprobadas, regulares y pendientes.
+ */
+function formatCurriculumData(subjects: any[], userStatus: any[]) {
+  const subjectNameById: Record<string, string> = {};
+  for (const s of subjects) {
+    subjectNameById[s.id] = s.nombre;
+  }
+
+  const getEffectiveGrade = (st: any): number | null => {
+    if (!st) return null;
+    const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
+    for (const val of candidates) {
+      if (val !== null && val !== undefined && val !== "") {
+        const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
+        if (!isNaN(num) && num > 0) return num;
+      }
+    }
+    return null;
+  };
+
+  const mergedSubjects = subjects.map((s) => {
+    const st = userStatus.find((u: any) => u.subject_id === s.id);
+    const effectiveGrade = getEffectiveGrade(st);
+    return {
+      ...s,
+      estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
+      nota: effectiveGrade,
+      p1: st?.nota_parcial_1 ?? st?.nota_rec_parcial_1 ?? null,
+      p2: st?.nota_parcial_2 ?? st?.nota_rec_parcial_2 ?? null,
+      global: st?.nota_global ?? st?.nota_rec_global ?? null,
+      final_examen: st?.nota_final_examen ?? null,
+      fecha_aprobacion: st?.fecha_aprobacion ?? null,
+    };
+  });
+
+  const aprobadas = mergedSubjects.filter((s) => s.estado === "aprobada");
+  const regulares = mergedSubjects.filter((s) => s.estado === "regular");
+  const enCurso = mergedSubjects.filter((s) => s.estado === "en_curso");
+  const sinCursar = mergedSubjects.filter((s) => s.estado === "sin_cursar");
+
+  const notasAprobadasDetalle = aprobadas
+    .filter((s) => s.nota !== null && !isNaN(s.nota) && s.nota > 0)
+    .map((s) => ({ nombre: s.nombre, nota: s.nota as number, año: s.año || 1 }));
+
+  const sumaNotas = notasAprobadasDetalle.reduce((a, b) => a + b.nota, 0);
+  const promedioNum =
+    notasAprobadasDetalle.length > 0
+      ? sumaNotas / notasAprobadasDetalle.length
+      : null;
+  const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "Sin notas numéricas registradas aún";
+  const pctProgreso =
+    mergedSubjects.length > 0
+      ? ((aprobadas.length / mergedSubjects.length) * 100).toFixed(1)
+      : "0";
+
+  const noAprobadas = mergedSubjects.filter((s) => s.estado !== "aprobada");
+  const pendientesPorAnioObj: Record<number, string[]> = {};
+  for (const s of noAprobadas) {
+    const yr = s.año || 1;
+    if (!pendientesPorAnioObj[yr]) pendientesPorAnioObj[yr] = [];
+    pendientesPorAnioObj[yr].push(s.nombre);
+  }
+  const pendientesPorAnioStr = Object.keys(pendientesPorAnioObj)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((yr) => `${yr}° Año: ${pendientesPorAnioObj[Number(yr)].length} (${pendientesPorAnioObj[Number(yr)].join(", ")})`)
+    .join(" | ");
+
+  const summary = `- Materias totales en el plan: ${mergedSubjects.length}
+- Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
+- Promedio general actual: ${promedio} (${notasAprobadasDetalle.length} materias con nota computadas, suma acumulada de notas = ${sumaNotas.toFixed(2)})
+- Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre} (${n.año}° año): ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
+- Aprobadas: ${aprobadas.length}
+- Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
+- En curso: ${enCurso.length}
+- Sin cursar: ${sinCursar.length}
+- Materias pendientes de aprobar (total: ${noAprobadas.length}) desglosadas por año: ${pendientesPorAnioStr || "Ninguna"}
+- Fórmula exacta para calcular qué nota promedio mínima (X) necesita sacarse en M materias restantes para alcanzar un promedio objetivo (P): X = ((P * (${notasAprobadasDetalle.length} + M)) - ${sumaNotas.toFixed(2)}) / M`;
+
+  let subjectsText = "Sin materias registradas en el plan.";
+  if (mergedSubjects.length > 0) {
+    const byYear: Record<number, any[]> = {};
+    for (const s of mergedSubjects) {
+      const yr = s.año || 1;
+      if (!byYear[yr]) byYear[yr] = [];
+      byYear[yr].push(s);
+    }
+
+    const yearBlocks: string[] = [];
+    for (const yr of Object.keys(byYear).sort((a, b) => Number(a) - Number(b))) {
+      const list = byYear[Number(yr)];
+      const lines = list.map((s) => {
+        let line = `  • ${s.nombre} [${s.codigo || "S/C"}]: ${s.estado.toUpperCase()}`;
+        if (s.nota != null) line += ` | NOTA FINAL: ${s.nota}`;
+        if (s.final_examen != null) line += ` | Examen Final: ${s.final_examen}`;
+        const parciales = [];
+        if (s.p1 != null) parciales.push(`P1: ${s.p1}`);
+        if (s.p2 != null) parciales.push(`P2: ${s.p2}`);
+        if (s.global != null) parciales.push(`Global: ${s.global}`);
+        if (parciales.length > 0) line += ` (${parciales.join(", ")})`;
+        if (s.fecha_aprobacion) line += ` [Aprobada: ${s.fecha_aprobacion}]`;
+        return line;
+      });
+      yearBlocks.push(`[${yr}° Año]:\n${lines.join("\n")}`);
+    }
+    subjectsText = yearBlocks.join("\n\n");
+  }
+
+  return { summarySection: summary, subjectsSection: subjectsText, subjectNameById, mergedSubjects };
+}
+
+/**
  * Builds 100% complete academic and personal context for the student ultra-fast.
  * Queries all academic tables in parallel via Promise.allSettled with local caching.
  */
@@ -200,10 +312,29 @@ export async function buildStudentContext(
   let resolvedEncuestasEnabled: boolean | null = null;
   let resolvedPlanType: string | null = null;
 
-  if (userId && userId !== "guest") {
+  // Resolución robusta de usuario: si userId viene como 'guest' o vacío pero hay sesión activa en el navegador
+  let effectiveUserId = userId && userId !== "guest" ? userId : null;
+  if (!effectiveUserId) {
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      if (sess?.session?.user?.id) {
+        effectiveUserId = sess.session.user.id;
+      } else if (typeof window !== "undefined") {
+        const rawDaily = localStorage.getItem("tabe_subjects_daily_cache");
+        if (rawDaily) {
+          const parsed = JSON.parse(rawDaily);
+          if (parsed?.userId && parsed.userId !== "guest") {
+            effectiveUserId = parsed.userId;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (effectiveUserId) {
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("context_timeout")), 2500)
+        setTimeout(() => reject(new Error("context_timeout")), 7500)
       );
 
       const fetchPromise = Promise.allSettled([
@@ -211,21 +342,21 @@ export async function buildStudentContext(
         (supabase as any)
           .from("profiles")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .maybeSingle(),
 
         // 1. Stats
         (supabase as any)
           .from("user_stats")
           .select("nivel, xp_total, racha_actual, mejor_racha, horas_estudio_total")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .maybeSingle(),
 
         // 2. All subjects in curriculum (user specific or global template)
         (supabase as any)
           .from("subjects")
           .select("id, nombre, codigo, año, numero_materia, user_id")
-          .or(`user_id.eq.${userId},user_id.is.null`)
+          .or(`user_id.eq.${effectiveUserId},user_id.is.null`)
           .order("año", { ascending: true })
           .order("numero_materia", { ascending: true }),
 
@@ -233,13 +364,13 @@ export async function buildStudentContext(
         (supabase as any)
           .from("user_subject_status")
           .select("subject_id, estado, nota, nota_parcial_1, nota_parcial_2, nota_rec_parcial_1, nota_rec_parcial_2, nota_global, nota_rec_global, nota_final_examen, fecha_aprobacion, extra_partials")
-          .eq("user_id", userId),
+          .eq("user_id", effectiveUserId),
 
         // 4. Calendar events & exams (both upcoming and recent)
         (supabase as any)
           .from("calendar_events")
           .select("id, titulo, fecha, hora, hora_fin, tipo_examen, notas, subject_id")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .gte("fecha", thirtyDaysAgoStr)
           .order("fecha", { ascending: true })
           .limit(30),
@@ -252,7 +383,7 @@ export async function buildStudentContext(
         (supabase as any)
           .from("notion_documents")
           .select("id, titulo, subject_id, is_favorite, updated_at")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .order("updated_at", { ascending: false })
           .limit(60),
 
@@ -260,28 +391,28 @@ export async function buildStudentContext(
         (supabase as any)
           .from("flashcard_decks")
           .select("id, nombre, total_cards, subject_id, category")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(60),
 
         // 7. Quiz decks
         (supabase as any)
           .from("quiz_decks")
           .select("id, nombre, total_questions, subject_id, category, quiz_questions(id, pregunta, explicacion, is_multi_select, quiz_options(id, texto, es_correcta))")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(60),
 
         // 8. Library files
         (supabase as any)
           .from("library_files")
           .select("id, nombre, tipo, subject_id, folder_id, created_at")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(60),
 
         // 9. Active routines
         (supabase as any)
           .from("routines")
           .select("id, name, category, start_time, end_time, days_of_week, subject_id, is_active")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .eq("is_active", true)
           .limit(30),
 
@@ -289,7 +420,7 @@ export async function buildStudentContext(
         (supabase as any)
           .from("study_sessions")
           .select("id, subject_id, duracion_segundos, fecha, tipo")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .order("fecha", { ascending: false })
           .limit(20),
 
@@ -297,28 +428,28 @@ export async function buildStudentContext(
         (supabase as any)
           .from("user_achievements")
           .select("achievement_id, unlocked_at, achievements(nombre, descripcion)")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(30),
 
         // 12. Professors
         (supabase as any)
           .from("professors")
           .select("id, nombre, rol, descripcion, subject_id")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(30),
 
         // 13. Professor Office Hours (Consultas)
         (supabase as any)
           .from("professor_office_hours")
           .select("id, professor_id, dia, hora_inicio, hora_fin")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(40),
 
         // 14. Friendships (Amistades aceptadas)
         (supabase as any)
           .from("friendships")
           .select("requester_id, addressee_id, status")
-          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+          .or(`requester_id.eq.${effectiveUserId},addressee_id.eq.${effectiveUserId}`)
           .eq("status", "accepted")
           .limit(20),
 
@@ -326,7 +457,7 @@ export async function buildStudentContext(
         (supabase as any)
           .from("discord_server_members")
           .select("server_id, role, discord_servers(id, name)")
-          .eq("user_id", userId)
+          .eq("user_id", effectiveUserId)
           .limit(10),
       ]);
 
@@ -379,120 +510,36 @@ export async function buildStudentContext(
 - Racha de estudio: ${racha} días (Récord histórico: ${mejorRacha} días)
 - Horas totales de estudio registradas: ${horasEstudio} hs`;
 
-        // 2 & 3. Subjects & Status
+        // 2 & 3. Subjects & Status (con fallback automático a localStorage si Supabase está frío)
         let subjects: any[] = subsRes.status === "fulfilled" && Array.isArray(subsRes.value?.data) ? subsRes.value.data : [];
-        const userStatus: any[] = ussRes.status === "fulfilled" && Array.isArray(ussRes.value?.data) ? ussRes.value.data : [];
+        let userStatus: any[] = ussRes.status === "fulfilled" && Array.isArray(ussRes.value?.data) ? ussRes.value.data : [];
+
+        // Si la consulta devolvió vacío o falló, recuperar del caché local persistente del usuario
+        if (subjects.length === 0 && typeof window !== "undefined") {
+          try {
+            const rawCache = localStorage.getItem("tabe_subjects_daily_cache");
+            if (rawCache) {
+              const parsed = JSON.parse(rawCache);
+              if (parsed && Array.isArray(parsed.subjects) && parsed.subjects.length > 0) {
+                subjects = parsed.subjects;
+                if (userStatus.length === 0 && Array.isArray(parsed.userStatuses)) {
+                  userStatus = parsed.userStatuses;
+                }
+              }
+            }
+          } catch {}
+        }
 
         // If user has specific subjects, filter out global template duplicates
-        const hasUserSpecific = subjects.some((s) => s.user_id === userId);
+        const hasUserSpecific = subjects.some((s) => s.user_id === effectiveUserId);
         if (hasUserSpecific) {
-          subjects = subjects.filter((s) => s.user_id === userId);
+          subjects = subjects.filter((s) => s.user_id === effectiveUserId);
         }
 
-        const subjectNameById: Record<string, string> = {};
-        for (const s of subjects) {
-          subjectNameById[s.id] = s.nombre;
-        }
-
-        // Helper to extract effective grade from any field
-        const getEffectiveGrade = (st: any): number | null => {
-          if (!st) return null;
-          const candidates = [st.nota, st.nota_final_examen, st.nota_global, st.nota_rec_global];
-          for (const val of candidates) {
-            if (val !== null && val !== undefined && val !== "") {
-              const num = typeof val === "number" ? val : parseFloat(String(val).replace(",", "."));
-              if (!isNaN(num) && num > 0) return num;
-            }
-          }
-          return null;
-        };
-
-        const mergedSubjects = subjects.map((s) => {
-          const st = userStatus.find((u) => u.subject_id === s.id);
-          const effectiveGrade = getEffectiveGrade(st);
-          return {
-            ...s,
-            estado: (st?.estado || "sin_cursar").toLowerCase().trim(),
-            nota: effectiveGrade,
-            p1: st?.nota_parcial_1 ?? st?.nota_rec_parcial_1 ?? null,
-            p2: st?.nota_parcial_2 ?? st?.nota_rec_parcial_2 ?? null,
-            global: st?.nota_global ?? st?.nota_rec_global ?? null,
-            final_examen: st?.nota_final_examen ?? null,
-            fecha_aprobacion: st?.fecha_aprobacion ?? null,
-          };
-        });
-
-        const aprobadas = mergedSubjects.filter((s) => s.estado === "aprobada");
-        const regulares = mergedSubjects.filter((s) => s.estado === "regular");
-        const enCurso = mergedSubjects.filter((s) => s.estado === "en_curso");
-        const sinCursar = mergedSubjects.filter((s) => s.estado === "sin_cursar");
-
-        const notasAprobadasDetalle = aprobadas
-          .filter((s) => s.nota !== null && !isNaN(s.nota) && s.nota > 0)
-          .map((s) => ({ nombre: s.nombre, nota: s.nota as number, año: s.año || 1 }));
-
-        const sumaNotas = notasAprobadasDetalle.reduce((a, b) => a + b.nota, 0);
-        const promedioNum =
-          notasAprobadasDetalle.length > 0
-            ? sumaNotas / notasAprobadasDetalle.length
-            : null;
-        const promedio = promedioNum !== null ? promedioNum.toFixed(2) : "Sin notas numéricas registradas aún";
-        const pctProgreso =
-          mergedSubjects.length > 0
-            ? ((aprobadas.length / mergedSubjects.length) * 100).toFixed(1)
-            : "0";
-
-        const noAprobadas = mergedSubjects.filter((s) => s.estado !== "aprobada");
-        const pendientesPorAnioObj: Record<number, string[]> = {};
-        for (const s of noAprobadas) {
-          const yr = s.año || 1;
-          if (!pendientesPorAnioObj[yr]) pendientesPorAnioObj[yr] = [];
-          pendientesPorAnioObj[yr].push(s.nombre);
-        }
-        const pendientesPorAnioStr = Object.keys(pendientesPorAnioObj)
-          .sort((a, b) => Number(a) - Number(b))
-          .map((yr) => `${yr}° Año: ${pendientesPorAnioObj[Number(yr)].length} (${pendientesPorAnioObj[Number(yr)].join(", ")})`)
-          .join(" | ");
-
-        summarySection = `- Materias totales en el plan: ${mergedSubjects.length}
-- Progreso de carrera: ${aprobadas.length}/${mergedSubjects.length} materias aprobadas (${pctProgreso}%)
-- Promedio general actual: ${promedio} (${notasAprobadasDetalle.length} materias con nota computadas, suma acumulada de notas = ${sumaNotas.toFixed(2)})
-- Detalle de notas aprobadas: ${notasAprobadasDetalle.length > 0 ? notasAprobadasDetalle.map((n) => `${n.nombre} (${n.año}° año): ${n.nota.toFixed(2)}`).join(", ") : "Ninguna nota registrada"}
-- Aprobadas: ${aprobadas.length}
-- Regulares (cursadas aprobadas, listas para rendir final): ${regulares.length}
-- En curso: ${enCurso.length}
-- Sin cursar: ${sinCursar.length}
-- Materias pendientes de aprobar (total: ${noAprobadas.length}) desglosadas por año: ${pendientesPorAnioStr || "Ninguna"}
-- Fórmula exacta para calcular qué nota promedio mínima (X) necesita sacarse en M materias restantes para alcanzar un promedio objetivo (P): X = ((P * (${notasAprobadasDetalle.length} + M)) - ${sumaNotas.toFixed(2)}) / M`;
-
-        // Group subjects by year
-        if (mergedSubjects.length > 0) {
-          const byYear: Record<number, any[]> = {};
-          for (const s of mergedSubjects) {
-            const yr = s.año || 1;
-            if (!byYear[yr]) byYear[yr] = [];
-            byYear[yr].push(s);
-          }
-
-          const yearBlocks: string[] = [];
-          for (const yr of Object.keys(byYear).sort((a, b) => Number(a) - Number(b))) {
-            const list = byYear[Number(yr)];
-            const lines = list.map((s) => {
-              let line = `  • ${s.nombre} [${s.codigo || "S/C"}]: ${s.estado.toUpperCase()}`;
-              if (s.nota != null) line += ` | NOTA FINAL: ${s.nota}`;
-              if (s.final_examen != null) line += ` | Examen Final: ${s.final_examen}`;
-              const parciales = [];
-              if (s.p1 != null) parciales.push(`P1: ${s.p1}`);
-              if (s.p2 != null) parciales.push(`P2: ${s.p2}`);
-              if (s.global != null) parciales.push(`Global: ${s.global}`);
-              if (parciales.length > 0) line += ` (${parciales.join(", ")})`;
-              if (s.fecha_aprobacion) line += ` [Aprobada: ${s.fecha_aprobacion}]`;
-              return line;
-            });
-            yearBlocks.push(`[${yr}° Año]:\n${lines.join("\n")}`);
-          }
-          subjectsSection = yearBlocks.join("\n\n");
-        }
+        const formattedCurriculum = formatCurriculumData(subjects, userStatus);
+        summarySection = formattedCurriculum.summarySection;
+        subjectsSection = formattedCurriculum.subjectsSection;
+        const subjectNameById = formattedCurriculum.subjectNameById;
 
         // 4. Calendar & Exams
         const events: any[] = eventsRes.status === "fulfilled" && Array.isArray(eventsRes.value?.data) ? eventsRes.value.data : [];
@@ -618,7 +665,7 @@ export async function buildStudentContext(
         // 13. Friends / Compañeros de estudio
         const friendshipsList: any[] = friendsListRes?.status === "fulfilled" && Array.isArray(friendsListRes.value?.data) ? friendsListRes.value.data : [];
         if (friendshipsList.length > 0) {
-          const friendUserIds = friendshipsList.map(f => f.requester_id === userId ? f.addressee_id : f.requester_id).filter(Boolean);
+          const friendUserIds = friendshipsList.map(f => f.requester_id === effectiveUserId ? f.addressee_id : f.requester_id).filter(Boolean);
           if (friendUserIds.length > 0) {
             try {
               const { data: friendProfiles } = await (supabase as any)
@@ -671,7 +718,7 @@ export async function buildStudentContext(
 
                 const msgLines = recentMsgs.map((m: any) => {
                   const chName = channelMap.get(m.channel_id) || "general";
-                  const author = authorMap.get(m.user_id) || (m.user_id === userId ? "Tú" : "Compañero");
+                  const author = authorMap.get(m.user_id) || (m.user_id === effectiveUserId ? "Tú" : "Compañero");
                   const dateStr = m.created_at ? m.created_at.split("T")[0] : "";
                   return `  • [#${chName}] ${author} (${dateStr}): "${m.content.slice(0, 180)}"`;
                 });
@@ -687,9 +734,42 @@ export async function buildStudentContext(
           }
         }
       }
-    } catch {
-      // Graceful fallback
+    } catch (err) {
+      console.warn("[TABE AI Context] Error o timeout al consultar Supabase, usando fallback local:", err);
     }
+  }
+
+  // Fallback infalible de materias desde localStorage si Supabase dio timeout o no retornó asignaturas
+  if (subjectsSection.includes("Sin materias registradas") && typeof window !== "undefined") {
+    try {
+      const rawCache = localStorage.getItem("tabe_subjects_daily_cache");
+      if (rawCache) {
+        const parsed = JSON.parse(rawCache);
+        if (parsed && Array.isArray(parsed.subjects) && parsed.subjects.length > 0) {
+          const formatted = formatCurriculumData(parsed.subjects, parsed.userStatuses || []);
+          summarySection = formatted.summarySection;
+          subjectsSection = formatted.subjectsSection;
+        }
+      }
+    } catch {}
+  }
+
+  // Integración de Campus Virtual Moodle General si el estudiante lo vinculó
+  let moodleGeneralSection = "";
+  if (typeof window !== "undefined") {
+    try {
+      const rawMoodle = localStorage.getItem("tabe_moodle_session");
+      if (rawMoodle) {
+        const m = JSON.parse(rawMoodle);
+        if (m) {
+          moodleGeneralSection = `\n[CAMPUS VIRTUAL MOODLE (SINCRONIZACIÓN GENERAL)]
+- Estado: Sincronización Moodle activa
+- Estudiante en el campus: ${m.fullname || "Conectado"}
+- URL del Campus Virtual: ${m.campusUrl || "Campus Universitario"}
+- Última sincronización: ${m.lastSync ? new Date(m.lastSync).toLocaleString("es-AR") : "Reciente"}`;
+        }
+      }
+    } catch {}
   }
 
   const powerDirectives = {
@@ -763,8 +843,8 @@ ${discordSection}
 
 [14. COMPAÑEROS DE ESTUDIO Y AMIGOS]
 ${friendsSection}
-${(() => {
-  const utnMcpBlock = buildUtnFrmMcpContextSection(userId, {
+${moodleGeneralSection ? `\n${moodleGeneralSection}\n` : ""}${(() => {
+  const utnMcpBlock = buildUtnFrmMcpContextSection(effectiveUserId || userId, {
     facultad: resolvedFacultad,
     carrera: resolvedCarrera,
     utnfrm_encuestas_enabled: resolvedEncuestasEnabled,
@@ -786,6 +866,15 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 0. IDENTIDAD Y CAPACIDADES TOTALES DE TABE AI (¡MÁXIMA PRIORIDAD!):
    - SOS EL ASISTENTE ACADÉMICO INTEGRAL DE TABE (Tu Asistente de Bolsillo Estudiantil):
      Estás 100% integrado a la cuenta del estudiante y a su universidad (incluyendo Autogestión UTN FRM y Campus Virtual Moodle).
+   - ACCESO REAL A TODA LA INFORMACIÓN:
+     * Tenés acceso completo al plan de estudios, materias, notas de parciales y finales, profesores, apuntes y eventos sincronizados de Campus Virtual Moodle y Autogestión Sysacad.
+     * Si el estudiante te pregunta qué notas tiene, qué materias tiene o qué ves de él: RESPONDÉ CON SUS DATOS REALES DE LAS SECCIONES SUPERIORES ([2. RESUMEN ACADÉMICO], [3. PLAN DE ESTUDIOS], etc.).
+     * NUNCA digas que no tenés materias cargadas si en [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS] figuran asignaturas.
+     * Si el estudiante pregunta si subieron notas de una materia puntual en el Campus Virtual o en Autogestión (ej: "Diseño" u otra):
+       Revisá [15. MCP EXCLUSIVO UTN FRM] y [CAMPUS VIRTUAL MOODLE]. Si la materia está en el campus pero la cátedra aún no publicó notas en las calificaciones, aclarale amablemente: "Revisé en tu Campus Virtual y en tu historial: la materia figura en tu cursado, pero la cátedra todavía no subió calificaciones en el campus ni figuran notas asentadas en Autogestión".
+   - CAPACIDAD TOTAL DE CONSULTAR Y MODIFICAR LA CUENTA (ABM):
+     * Tenés capacidad y autorización activa para crear, modificar y borrar notas, parciales, eventos en calendario, rutinas de estudio, profesores, apuntes y cuestionarios usando bloques \`\`\`tabe-action:db o \`\`\`tabe-action:calendar.
+     * NUNCA le digas al usuario que no podés modificar sus datos o que debe hacerlo él a mano. Respondé afirmativamente confirmando la modificación y emití el bloque de acción correspondiente.
    - SI EL USUARIO TE PREGUNTA "QUÉ PUEDES HACER" O TE PIDE UN CHECKLIST DE "SÍ Y NO", TU RESPUESTA ES AFIRMATIVA (SÍ) PARA TODAS LAS CAPACIDADES DE TABE:
      * ✅ Acceso a Autogestión: SÍ (integrado para alumnos de UTN FRM y facultades conectadas, viendo comisiones, materias y horarios oficiales).
      * ✅ Encuestas Docentes: SÍ (acceso a resultados y opiniones de cátedras vía la integración institucional de UTN FRM).
@@ -850,13 +939,45 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 \`\`\`tabe-action:flashcards
 {"deck_name": "Tema", "subject_name": "${cleanSubjectFocus || "Nombre Oficial de la Materia"}", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
-8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto/lista de preguntas):
-   - MATERIA DE ENFOQUE Y SELECCIÓN: Si el estudiante tiene una materia de enfoque seleccionada arriba ("${cleanSubjectFocus || ""}"), USALA DIRECTAMENTE como "subject_name". Si no, revisa el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS].
-   - AVISO DE NOTIFICACIÓN EN TAREAS LARGAS: Al ser una tarea extensa de generación (10, 20, 40, 50 u 80 preguntas), inicia tu respuesta diciendo: "¡Dale! Me pongo a armar el cuestionario de [Materia] con X preguntas. En cuanto termine te va a llegar una notificación a la campanita 🔔 avisándote que quedó guardado en tu sección de Cuestionarios."
-   - CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total para generar cuestionarios masivos de hasta 80 preguntas completas. Procesa y genera la TOTALIDAD de las preguntas solicitadas sin truncar.
-   - VINCULACIÓN INTELIGENTE E INSENSIBILIDAD A ACENTOS: Reconoce de inmediato materias sin importar si el usuario escribe con o sin tildes ("analisis", "álgebra", "fisica", "quimica") o números romanos/arábigos ("1" / "I").
-   - NOTACIÓN CIENTÍFICA/MATEMÁTICA: En preguntas y opciones con integrales (simples, dobles, triples, de línea), derivadas parciales o límites, usá formato claro o delimitadores $ ... $ para garantizar su renderizado de alta fidelidad.
-   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO:
+8. CUESTIONARIOS DEL CAMPUS VIRTUAL, MODELOS DE EXAMEN Y EVALUACIONES (RESOLUCIÓN Y PRÁCTICA):
+   - RESOLUCIÓN DIRECTA DE CUESTIONARIOS Y MODELOS:
+     * Si el estudiante te pide: "resolvé mis cuestionarios del campus", "resolvé este cuestionario", "ayudame a responder las preguntas de este quiz/modelo", "cuáles son las respuestas correctas de este examen o materia":
+       TENÉS PERMISO TOTAL Y OBLIGATORIO PARA RESOLVERLOS DE INMEDIATO.
+     * PROHIBICIÓN TOTAL: NUNCA le digas al estudiante:
+       ❌ "Yo no puedo resolver tus cuestionarios del campus por vos porque el objetivo es que aprendas"
+       ❌ "Mi rol es ser tu tutor, no un solucionador automático"
+       ❌ "No te puedo dar la respuesta directa"
+       Muchos cuestionarios universitarios son modelos pedagógicos, cuestionarios de práctica o autoevaluaciones que las cátedras diseñan expresamente para ser resueltos, comprendidos y contrastados con ayuda de IA.
+     * CÓMO RESPONDER Y RESOLVER:
+       1. Si el estudiante te pega o describe las preguntas: Resolvé TODAS las preguntas presentadas.
+       2. Para cada pregunta, indicá:
+          - ✅ La opción correcta claramente destacada (ej: **Opción B: ...**).
+          - La explicación conceptual o cálculo técnico/matemático paso a paso de por qué es la respuesta correcta (utilizando notación KaTeX con $ ... $ o bloques de código).
+        3. RESOLUCIÓN DIRECTA DENTRO DEL CAMPUS VIRTUAL MOODLE (ACCESO EN VIVO):
+           - Tenés capacidad y autorización total para INGRESAR AL CAMPUS VIRTUAL MOODLE Y RESOLVER LOS CUESTIONARIOS DIRECTAMENTE EN LA PLATAFORMA DE LA UTN FRM.
+           - NUNCA le digas al estudiante que "no podés meterte al campus", ni que "no tenés acceso para resolverlos en Moodle".
+           - Si el estudiante te pide: "resolvé mi cuestionario del campus de...", "metete al campus a resolverlo", "haceme el cuestionario en Moodle", "resolvé los cuestionarios pendientes en el campus":
+             a) Confirmale de inmediato que ingresás al Campus Virtual UTN FRM con sus credenciales conectadas en el MCP.
+             b) Avisale que le llegará una notificación: "¡Dale! Me meto ahora mismo a tu Campus Virtual a resolver el cuestionario de [Materia]. En cuanto termine de guardar las respuestas te va a llegar la notificación a la campanita 🔔."
+             c) Explicá con rigor conceptual las respuestas clave que vas a aplicar.
+             d) Emití SIEMPRE al final de tu respuesta el bloque de acción:
+             \`\`\`tabe-action:utn-quiz
+             {
+               "quizName": "Nombre del Cuestionario",
+               "courseName": "Nombre de la Materia",
+               "quizUrl": "https://campusvirtual.frm.utn.edu.ar/mod/quiz/view.php?id=...",
+               "submitMode": "save"
+             }
+             \`\`\`
+             (Usa "save" para guardar las respuestas en borrador en Moodle para que el alumno pueda revisarlas en la web, o "finish" si pidió enviarlo y finalizarlo de una).
+   - CREACIÓN Y SIMULACROS DE PRÁCTICA (HASTA 80 PREGUNTAS):
+     * Si el usuario te pide evaluarlo, tomarle prueba, simulacro o cuestionario de práctica (o a partir de un PDF/imagen/texto):
+     * MATERIA DE ENFOQUE Y SELECCIÓN: Si el estudiante tiene una materia de enfoque seleccionada arriba ("${cleanSubjectFocus || ""}"), USALA DIRECTAMENTE como "subject_name". Si no, revisa el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS].
+     * AVISO DE NOTIFICACIÓN EN TAREAS LARGAS: Al ser una tarea extensa de generación (10, 20, 40, 50 u 80 preguntas), inicia tu respuesta diciendo: "¡Dale! Me pongo a armar el cuestionario de [Materia] con X preguntas. En cuanto termine te va a llegar una notificación a la campanita 🔔 avisándote que quedó guardado en tu sección de Cuestionarios."
+     * CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total para generar cuestionarios masivos de hasta 80 preguntas completas. Procesa y genera la TOTALIDAD de las preguntas solicitadas sin truncar.
+     * VINCULACIÓN INTELIGENTE E INSENSIBILIDAD A ACENTOS: Reconoce de inmediato materias sin importar si el usuario escribe con o sin tildes ("analisis", "álgebra", "fisica", "quimica") o números romanos/arábigos ("1" / "I").
+     * NOTACIÓN CIENTÍFICA/MATEMÁTICA: En preguntas y opciones con integrales (simples, dobles, triples, de línea), derivadas parciales o límites, usá formato claro o delimitadores $ ... $ para garantizar su renderizado de alta fidelidad.
+     * OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO:
 \`\`\`tabe-action:quiz
 {"quiz_name": "Nombre del Quiz", "subject_name": "${cleanSubjectFocus || "Nombre Oficial de la Materia"}", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
@@ -975,7 +1096,9 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     - El estudiante puede escribir con o sin tildes ("analisis", "álgebra", "fisica", "quimica", "programacion") o usar números arábigos/romanos ("1" / "I").
     - Reconoce y asocia las materias automáticamente sin pedir aclaraciones por tildes o mayúsculas.`;
 
-  contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
+  if (!subjectsSection.includes("Sin materias registradas en el plan.")) {
+    contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
+  }
   return contextText;
 }
 
@@ -2636,6 +2759,55 @@ async function executeActionBlock(
       } catch (err: any) {
         toast.error("No se pudieron resolver las encuestas docentes", {
           description: err?.message || "Verifica tu permiso o tus credenciales UTN FRM.",
+        });
+      }
+    } else if (
+      block.type === "utn-quiz" ||
+      block.type === "utn_quiz" ||
+      block.type === "campus-quiz" ||
+      block.type === "campus_quiz"
+    ) {
+      try {
+        let parsed: any = {};
+        try {
+          parsed = JSON.parse(block.raw);
+        } catch {}
+
+        toast.loading("Accediendo al Campus Virtual UTN FRM...", { id: "tabe-campus-quiz" });
+
+        const res = await resolveUtnFrmCampusQuiz(currentUserId, {
+          quizUrl: parsed?.quizUrl || parsed?.url,
+          quizName: parsed?.quizName || parsed?.cuestionario || parsed?.title,
+          courseName: parsed?.courseName || parsed?.materia,
+          submitMode: parsed?.submitMode || parsed?.modo || "save",
+        });
+
+        toast.success("Cuestionario resuelto en Campus Virtual", {
+          id: "tabe-campus-quiz",
+          description: res.message,
+          duration: 7000,
+        });
+
+        addInAppNotification({
+          userId: currentUserId || "guest",
+          title: "Cuestionario resuelto en Campus Virtual",
+          message: res.message,
+          type: "quiz",
+          link: res.attemptUrl || "/quizzes",
+        });
+
+        db_mutations = [
+          ...(db_mutations || []),
+          {
+            target: "campus_quiz",
+            operation: "resolve",
+            message: res.message,
+          },
+        ];
+      } catch (err: any) {
+        toast.error("No se pudo resolver el cuestionario en el Campus", {
+          id: "tabe-campus-quiz",
+          description: err?.message || "Verificá tu conexión o credenciales en el MCP UTN FRM.",
         });
       }
     } else if (block.type === "calendar") {

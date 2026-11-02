@@ -96,9 +96,19 @@ export function useStreamingChat(
         }
 
         // 2. Build complete student context (cached in memory for <1ms overhead)
+        let resolvedUserId = user?.id;
+        if (!resolvedUserId || resolvedUserId === "guest") {
+          try {
+            const { data: sess } = await supabase.auth.getSession();
+            if (sess?.session?.user?.id) {
+              resolvedUserId = sess.session.user.id;
+            }
+          } catch {}
+        }
+
         const studentName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Estudiante";
         const studentContext = await buildStudentContext(
-          user?.id || "guest",
+          resolvedUserId || "guest",
           personaPrompt,
           personaName,
           studentName,

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isUserFromUtnFrm } from "@/lib/careerData";
+import { GEMINI_API_KEY } from "@/config/aiModels";
 
 export const UTN_FRM_MCP_SNAPSHOT_PREFIX = "tabe_utnfrm_mcp_snapshot_";
 export const UTN_FRM_MCP_CREDS_PREFIX = "tabe_utnfrm_mcp_creds_";
@@ -590,6 +591,88 @@ export async function resolveUtnFrmEncuestas(
   return data;
 }
 
+export interface ResolveCampusQuizOptions {
+  quizUrl?: string;
+  quizName?: string;
+  courseName?: string;
+  submitMode?: "save" | "finish";
+  customAnswers?: Record<number, string>;
+}
+
+export interface ResolveCampusQuizResult {
+  ok: boolean;
+  quizName: string;
+  courseName?: string;
+  attemptId?: string;
+  attemptUrl?: string;
+  submitMode: "save" | "finish";
+  totalQuestions: number;
+  resolvedQuestions: Array<{
+    slot: number;
+    questionText: string;
+    chosenValue: string;
+    chosenText: string;
+    explanation: string;
+  }>;
+  statusText?: string;
+  message: string;
+}
+
+/**
+ * Ingresa directamente al Campus Virtual UTN FRM (Moodle) en nombre del estudiante,
+ * inicia o continúa el intento del cuestionario, resuelve las preguntas con IA
+ * y guarda las respuestas en Moodle (o las envía si submitMode es "finish").
+ */
+export async function resolveUtnFrmCampusQuiz(
+  userId: string | null | undefined,
+  options: ResolveCampusQuizOptions
+): Promise<ResolveCampusQuizResult> {
+  const creds = getStoredUtnFrmMcpCredentials(userId);
+  if (!creds || !creds.username || !creds.password) {
+    throw new Error(
+      "Para resolver cuestionarios en el Campus Virtual, primero debés conectar tu usuario (DNI) y clave en Configuración → Integraciones → MCP UTN FRM."
+    );
+  }
+
+  let authHeader: Record<string, string> = {};
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (token) {
+      authHeader = { Authorization: `Bearer ${token}` };
+    }
+  } catch {}
+
+  const response = await fetch("/api/utnfrm-mcp", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader,
+    },
+    body: JSON.stringify({
+      action: "resolve_campus_quiz",
+      username: creds.username,
+      password: creds.password,
+      legajo: creds.legajo,
+      quizUrl: options.quizUrl,
+      quizName: options.quizName,
+      courseName: options.courseName,
+      submitMode: options.submitMode || "save",
+      geminiApiKey: GEMINI_API_KEY,
+      customAnswers: options.customAnswers,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!data || !data.ok) {
+    throw new Error(
+      data?.error || data?.message || "No se pudo acceder o resolver el cuestionario en el Campus Virtual."
+    );
+  }
+
+  return data;
+}
+
 /**
  * Construye la sección completa del MCP UTN FRM para inyectar en el contexto de TABE AI.
  * Si el usuario NO es de UTN FRM, purga cualquier dato residual y devuelve string vacío.
@@ -604,14 +687,16 @@ export function buildUtnFrmMcpContextSection(
   },
   userMetadata?: any
 ): string {
-  if (!isUserFromUtnFrm(academic)) {
+  const snapshot = getStoredUtnFrmMcpSnapshot(userId, userMetadata);
+  const creds = getStoredUtnFrmMcpCredentials(userId);
+  const hasUtnData = !!snapshot || !!creds;
+
+  if (!isUserFromUtnFrm(academic) && !hasUtnData) {
     purgeUtnFrmMcpLocalData(userId);
     return "";
   }
 
   const encuestasAllowed = isUtnFrmEncuestasAllowedForProfile(academic);
-  const snapshot = getStoredUtnFrmMcpSnapshot(userId, userMetadata);
-
   const encuestasDirective = encuestasAllowed
     ? `- PERMISO DE ADMINISTRADOR PARA RESOLVER ENCUESTAS DOCENTES: **✅ HABILITADO POR EL ADMINISTRADOR**.
   * Tenés permiso total y capacidad activa para **RESOLVER Y COMPLETAR LAS ENCUESTAS DOCENTES** de la UTN FRM en nombre del estudiante.
@@ -708,7 +793,9 @@ ${encuestasDirective}`;
               (d) =>
                 `  • [${d.courseName}] ${d.name} (${d.kind === "quiz" ? "Cuestionario" : "Tarea"})${
                   d.due ? ` | Vence: ${d.due}` : ""
-                }${d.status ? ` | Estado: ${d.status}` : ""}${d.grade ? ` | Nota: ${d.grade}` : ""}`
+                }${d.status ? ` | Estado: ${d.status}` : ""}${d.grade ? ` | Nota: ${d.grade}` : ""}${
+                  d.url ? ` | URL: ${d.url}` : ""
+                }`
             )
             .join("\n")
       );
@@ -784,7 +871,22 @@ DIRECTIVAS DEL MCP UTN FRM (CAMPUS VIRTUAL MOODLE, AUTOGESTIÓN SYSACAD Y CUESTI
   * Podés ver el 100% de los cuestionarios, tareas y entregas del Campus Virtual Moodle detallados en [B. CAMPUS VIRTUAL UTN FRM].
   * Podés ver su estado de entrega exacto (Pendiente de entrega, Entregado, Sin calificar), su fecha límite de vencimiento (due), notas y retroalimentaciones oficiales de la cátedra.
   * PROHIBICIÓN ESTRICTA: NUNCA le digas al usuario que "no ves el estado de entrega oficial" ni que "eso es un dato interno de la cátedra y requiere acceso a la interfaz de Moodle". Tenés la lista completa de entregas y cuestionarios de Moodle arriba y podés responderle con total precisión qué vence, cuándo y si ya está entregado o pendiente.
-  * Cuestionarios y Exámenes de Práctica: Podés consultar, explicar las preguntas y temas de los cuestionarios de Moodle, y generar simulacros de práctica con \`\`\`tabe-action:quiz vinculados a los temas evaluados en el Campus.
+  * RESOLUCIÓN DIRECTA EN EL CAMPUS VIRTUAL MOODLE:
+    - Tenés permiso y capacidad activa para ingresar al Campus Virtual (Moodle) en nombre del estudiante y resolver sus cuestionarios oficiales directamente en su cuenta de la facultad.
+    - NUNCA le digas al estudiante que "no podés meterte al campus" ni que "no podés resolverlo en Moodle".
+    - Cuando el estudiante te pida: "resolvé mi cuestionario de [materia] del campus", "metete al campus a resolverlo", "haceme el cuestionario en Moodle", "resolvé los cuestionarios pendientes":
+      1. Confirmale que vas a ingresar al Campus Virtual UTN FRM con sus credenciales conectadas.
+      2. Mencioná la materia, el cuestionario y explicá las respuestas clave que vas a guardar.
+      3. Emití SIEMPRE al final de tu respuesta el bloque de acción:
+      \`\`\`tabe-action:utn-quiz
+      {
+        "quizName": "Nombre del Cuestionario",
+        "courseName": "Nombre de la Materia",
+        "quizUrl": "https://campusvirtual.frm.utn.edu.ar/mod/quiz/view.php?id=...",
+        "submitMode": "save"
+      }
+      \`\`\`
+      (Usa "save" para guardar las respuestas en borrador en Moodle para que el alumno pueda revisarlas en la web del campus, o "finish" si pidió enviarlo y finalizarlo de una).
   * Autogestión Sysacad: Podés consultar estado académico, materias del plan, cursado actual, horarios de cursado, histórico de exámenes finales aprobados y aplazos, y correlatividades para cursar y rendir.
 - Cuando pregunte qué le falta para recibirse, estado académico, correlatividades, electivas o en qué comisiones/horarios cursa, usá los datos de **AUTOGESTIÓN UTN FRM (SYSACAD)** junto con su plan de estudios.
 - Cuando pregunte por entregas pendientes del Campus, cuestionarios de Moodle o aulas virtuales, usá **CAMPUS VIRTUAL UTN FRM (MOODLE)**.

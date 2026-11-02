@@ -172,11 +172,96 @@ describe("UTN FRM Exclusive MCP Gate & Context", () => {
     ).toBe(false);
     expect(isUtnFrmEncuestasApproved({ plan_type: "free+encuestas_utn" })).toBe(true);
 
+    localStorage.setItem(
+      `tabe_utnfrm_mcp_snapshot_${userId}`,
+      JSON.stringify({
+        ok: true,
+        syncedAt: "2026-11-01T15:00:00.000Z",
+        username: "44111222",
+        campus: { connected: true, courses: [], deadlines: [], grades: [] },
+      })
+    );
+
     const ctxApproved = buildUtnFrmMcpContextSection(userId, {
       facultad: "UTN FRM",
       utnfrm_encuestas_enabled: true,
     });
     expect(ctxApproved).toContain("HABILITADO POR EL ADMINISTRADOR");
     expect(ctxApproved).toContain("tabe-action:utn-encuestas");
+    expect(ctxApproved).toContain("tabe-action:utn-quiz");
+    expect(ctxApproved).toContain("RESOLUCIÓN DIRECTA EN EL CAMPUS VIRTUAL MOODLE");
+  });
+
+  it("parsea correctamente preguntas y opciones de un intento de cuestionario en Moodle", async () => {
+    const { parseMoodleQuizAttemptQuestions } = await import("../../api/utnfrm-mcp");
+
+    const sampleAttemptHtml = `
+      <form id="responseform" method="post" action="https://campusvirtual.frm.utn.edu.ar/mod/quiz/processattempt.php">
+        <input type="hidden" name="sesskey" value="xyz987abc">
+        <input type="hidden" name="attempt" value="1234">
+        <input type="hidden" name="thispage" value="0">
+        <input type="hidden" name="nextpage" value="-1">
+        <input type="hidden" name="slots" value="1,2">
+
+        <div id="q1" class="que multichoice deferredfeedback notyetanswered">
+          <input type="hidden" name="q1234:1_:sequencecheck" value="1">
+          <div class="qtext">
+            ¿Cuál es el valor del determinante jacobiano en coordenadas cilíndricas?
+          </div>
+          <div class="answer">
+            <div class="r0">
+              <input type="radio" name="q1234:1_answer" value="0" id="q1234:1_answer0">
+              <label for="q1234:1_answer0">a. 1</label>
+            </div>
+            <div class="r1">
+              <input type="radio" name="q1234:1_answer" value="1" id="q1234:1_answer1">
+              <label for="q1234:1_answer1">b. r</label>
+            </div>
+            <div class="r2">
+              <input type="radio" name="q1234:1_answer" value="2" id="q1234:1_answer2">
+              <label for="q1234:1_answer2">c. r^2</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="q2" class="que multichoice deferredfeedback notyetanswered">
+          <input type="hidden" name="q1234:2_:sequencecheck" value="1">
+          <div class="qtext">
+            El Teorema de Green relaciona una integral de línea cerrada con:
+          </div>
+          <div class="answer">
+            <div class="r0">
+              <input type="radio" name="q1234:2_answer" value="0" id="q1234:2_answer0">
+              <label for="q1234:2_answer0">a. Una integral triple</label>
+            </div>
+            <div class="r1">
+              <input type="radio" name="q1234:2_answer" value="1" id="q1234:2_answer1">
+              <label for="q1234:2_answer1">b. Una integral doble sobre la región encerrada</label>
+            </div>
+          </div>
+        </div>
+      </form>
+    `;
+
+    const parsed = parseMoodleQuizAttemptQuestions(sampleAttemptHtml);
+    expect(parsed.attemptId).toBe("1234");
+    expect(parsed.sesskey).toBe("xyz987abc");
+    expect(parsed.questions.length).toBe(2);
+
+    // Pregunta 1
+    const q1 = parsed.questions[0];
+    expect(q1.slot).toBe(1);
+    expect(q1.qtext).toContain("determinante jacobiano en coordenadas cilíndricas");
+    expect(q1.choices.length).toBe(3);
+    expect(q1.choices[1].text).toBe("r");
+    expect(q1.choices[1].value).toBe("1");
+    expect(q1.sequencecheckName).toBe("q1234:1_:sequencecheck");
+
+    // Pregunta 2
+    const q2 = parsed.questions[1];
+    expect(q2.slot).toBe(2);
+    expect(q2.qtext).toContain("Teorema de Green");
+    expect(q2.choices.length).toBe(2);
+    expect(q2.choices[1].text).toBe("Una integral doble sobre la región encerrada");
   });
 });

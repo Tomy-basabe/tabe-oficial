@@ -846,6 +846,45 @@ function parseMoodleAssignmentsIndex(html: string, course: CampusCourseItem): Ca
   return items;
 }
 
+function parseMoodleQuizzesIndex(html: string, course: CampusCourseItem): CampusDeadlineItem[] {
+  const items: CampusDeadlineItem[] = [];
+  const trMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  for (const tr of trMatches) {
+    const linkMatch = tr.match(/<a[^>]*href=["']([^"']*\/mod\/quiz\/view\.php\?id=\d+[^"']*)["'][^>]*>([\s\S]*?)<\/a>/i);
+    if (!linkMatch) continue;
+    const href = decodeHtmlEntities(linkMatch[1]);
+    const name = stripTags(linkMatch[2]);
+    const tdMatches = tr.match(/<td\b[^>]*>[\s\S]*?<\/td>/gi) || [];
+    const cells = tdMatches.map((td) => stripTags(td));
+
+    let due: string | undefined;
+    let status: string | undefined;
+    let grade: string | undefined;
+    for (const cell of cells) {
+      if (!cell || cell === name) continue;
+      if (/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i.test(cell)) {
+        if (!due) due = cell;
+      } else if (/\b(finalizad[oa]|sin intento|en curso|cerrad[oa]|abiert[oa]|reintentar)\b/i.test(cell)) {
+        if (!status) status = cell;
+      } else if (/\d+([,.]\d+)?\s*\/\s*\d+|\b(aprobado|desaprobado)\b/i.test(cell)) {
+        if (!grade) grade = cell;
+      }
+    }
+
+    items.push({
+      courseId: course.id,
+      courseName: course.name,
+      kind: "quiz",
+      name,
+      due,
+      status: status || "Habilitado en Campus",
+      grade,
+      url: new URL(href, CAMPUS_ORIGIN).href,
+    });
+  }
+  return items;
+}
+
 function parseMoodleGrades(html: string, course: CampusCourseItem): CampusGradeItem[] {
   const items: CampusGradeItem[] = [];
   const trMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
@@ -1010,12 +1049,16 @@ async function fetchCampusData(
 
     await Promise.allSettled(
       coursesToScan.map(async (course) => {
-        const [assignRes, gradeRes] = await Promise.allSettled([
+        const [assignRes, quizRes, gradeRes] = await Promise.allSettled([
           fetchWithJar(jar, `${CAMPUS_ORIGIN}/mod/assign/index.php?id=${course.id}`, { timeoutMs: 7000 }),
+          fetchWithJar(jar, `${CAMPUS_ORIGIN}/mod/quiz/index.php?id=${course.id}`, { timeoutMs: 7000 }),
           fetchWithJar(jar, `${CAMPUS_ORIGIN}/grade/report/user/index.php?id=${course.id}`, { timeoutMs: 7000 }),
         ]);
         if (assignRes.status === "fulfilled") {
           deadlines.push(...parseMoodleAssignmentsIndex(assignRes.value.text, course));
+        }
+        if (quizRes.status === "fulfilled") {
+          deadlines.push(...parseMoodleQuizzesIndex(quizRes.value.text, course));
         }
         if (gradeRes.status === "fulfilled") {
           grades.push(...parseMoodleGrades(gradeRes.value.text, course));
@@ -1044,6 +1087,522 @@ async function fetchCampusData(
       calendarEvents: [],
     };
   }
+}
+
+// ─── 3.B. RESOLUCIÓN DE CUESTIONARIOS DEL CAMPUS VIRTUAL (MOODLE) ───────────
+
+export interface MoodleQuestionChoice {
+  value: string;
+  text: string;
+  inputName: string;
+  inputType: "radio" | "checkbox" | "text";
+}
+
+export interface MoodleExtractedQuestion {
+  slot: number;
+  questionId: string;
+  qtext: string;
+  choices: MoodleQuestionChoice[];
+  sequencecheckName?: string;
+  sequencecheckValue?: string;
+}
+
+export function parseMoodleQuizAttemptQuestions(html: string): {
+  attemptId?: string;
+  sesskey?: string;
+  thispage?: string;
+  nextpage?: string;
+  slots?: string;
+  formAction?: string;
+  hiddenInputs: Record<string, string>;
+  questions: MoodleExtractedQuestion[];
+} {
+  const hiddenInputs: Record<string, string> = {};
+  const formMatch = html.match(/<form[^>]*id=["']responseform["'][^>]*>([\s\S]*?)<\/form>/i);
+  const formHtml = formMatch ? formMatch[1] : html;
+
+  const actionMatch = html.match(/<form[^>]*id=["']responseform["'][^>]*action=["']([^"']+)["']/i);
+  const formAction = actionMatch ? actionMatch[1] : undefined;
+
+  const inputRegex = /<input\b[^>]*>/gi;
+  let im: RegExpExecArray | null;
+  while ((im = inputRegex.exec(formHtml)) !== null) {
+    const tag = im[0];
+    const type = getAttr(tag, "type")?.toLowerCase();
+    const name = getAttr(tag, "name");
+    const val = getAttr(tag, "value") ?? "";
+    if (name && (type === "hidden" || !type)) {
+      hiddenInputs[name] = val;
+    }
+  }
+
+  const attemptId = hiddenInputs["attempt"];
+  const sesskey = hiddenInputs["sesskey"];
+  const thispage = hiddenInputs["thispage"];
+  const nextpage = hiddenInputs["nextpage"];
+  const slots = hiddenInputs["slots"];
+
+  const questions: MoodleExtractedQuestion[] = [];
+  const queDivRegex = /<div\b[^>]*id=["']q(\d+)["'][^>]*class=["']([^"']*que[^"']*)["'][^>]*>([\s\S]*?)(?=<div\b[^>]*id=["']q\d+["']|<\/form>|$)/gi;
+  let qm: RegExpExecArray | null;
+
+  while ((qm = queDivRegex.exec(formHtml)) !== null) {
+    const slot = parseInt(qm[1], 10);
+    const qBody = qm[3];
+
+    const qtextMatch = qBody.match(/<div\b[^>]*class=["'][^"']*qtext[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    const rawQText = qtextMatch ? qtextMatch[1] : "";
+    const qtext = decodeHtmlEntities(stripTags(rawQText)).trim();
+
+    const seqMatch = qBody.match(/<input\b[^>]*name=["']([^"']*:sequencecheck)["'][^>]*value=["']([^"']*)["']/i);
+    const sequencecheckName = seqMatch ? seqMatch[1] : undefined;
+    const sequencecheckValue = seqMatch ? seqMatch[2] : undefined;
+
+    const choices: MoodleQuestionChoice[] = [];
+
+    // Radio buttons
+    const radioRegex = /<input\b[^>]*type=["']radio["'][^>]*>/gi;
+    let rm: RegExpExecArray | null;
+    while ((rm = radioRegex.exec(qBody)) !== null) {
+      const rTag = rm[0];
+      const rName = getAttr(rTag, "name") || "";
+      const rVal = getAttr(rTag, "value") || "";
+      const rId = getAttr(rTag, "id") || "";
+
+      let labelText = "";
+      if (rId) {
+        const lblRegex = new RegExp(`<label\\b[^>]*for=["']${rId}["'][^>]*>([\\s\\S]*?)<\\/label>`, "i");
+        const lm = qBody.match(lblRegex);
+        if (lm) {
+          labelText = decodeHtmlEntities(stripTags(lm[1])).trim();
+        }
+      }
+      if (!labelText) {
+        const surroundingMatch = qBody.slice(rm.index, rm.index + 400).match(/<label\b[^>]*>([\s\S]*?)<\/label>/i);
+        if (surroundingMatch) {
+          labelText = decodeHtmlEntities(stripTags(surroundingMatch[1])).trim();
+        }
+      }
+
+      labelText = labelText.replace(/^[a-dA-D1-9][\.\)]\s*/, "").trim();
+
+      choices.push({
+        value: rVal,
+        text: labelText || `Opción ${rVal}`,
+        inputName: rName,
+        inputType: "radio",
+      });
+    }
+
+    // Checkboxes
+    if (choices.length === 0) {
+      const checkRegex = /<input\b[^>]*type=["']checkbox["'][^>]*>/gi;
+      let cm: RegExpExecArray | null;
+      while ((cm = checkRegex.exec(qBody)) !== null) {
+        const cTag = cm[0];
+        const cName = getAttr(cTag, "name") || "";
+        const cVal = getAttr(cTag, "value") || "1";
+        const cId = getAttr(cTag, "id") || "";
+        let labelText = "";
+        if (cId) {
+          const lblRegex = new RegExp(`<label\\b[^>]*for=["']${cId}["'][^>]*>([\\s\\S]*?)<\\/label>`, "i");
+          const lm = qBody.match(lblRegex);
+          if (lm) labelText = decodeHtmlEntities(stripTags(lm[1])).trim();
+        }
+        labelText = labelText.replace(/^[a-dA-D1-9][\.\)]\s*/, "").trim();
+        choices.push({
+          value: cVal,
+          text: labelText || `Opción ${cVal}`,
+          inputName: cName,
+          inputType: "checkbox",
+        });
+      }
+    }
+
+    // Text inputs
+    if (choices.length === 0) {
+      const textInputMatch = qBody.match(/<input\b[^>]*type=["']text["'][^>]*name=["']([^"']+)["'][^>]*>/i);
+      if (textInputMatch) {
+        choices.push({
+          value: "",
+          text: "Respuesta escrita",
+          inputName: textInputMatch[1],
+          inputType: "text",
+        });
+      }
+    }
+
+    questions.push({
+      slot,
+      questionId: `q${slot}`,
+      qtext,
+      choices,
+      sequencecheckName,
+      sequencecheckValue,
+    });
+  }
+
+  return {
+    attemptId,
+    sesskey,
+    thispage,
+    nextpage,
+    slots,
+    formAction,
+    hiddenInputs,
+    questions,
+  };
+}
+
+async function solveQuestionsWithGemini(
+  questions: MoodleExtractedQuestion[],
+  apiKey?: string
+): Promise<Array<{ slot: number; chosenValue: string; chosenText: string; explanation: string }>> {
+  const geminiKey = apiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!geminiKey) {
+    return questions.map((q) => ({
+      slot: q.slot,
+      chosenValue: q.choices[0]?.value || "0",
+      chosenText: q.choices[0]?.text || "",
+      explanation: "Opción predeterminada (clave de IA no provista en servidor).",
+    }));
+  }
+
+  const prompt = `Sos un profesor experto universitario de la UTN Facultad Regional Mendoza (Ingeniería).
+Estás resolviendo un cuestionario oficial de cátedra en el Campus Virtual (Moodle).
+Analizá cada pregunta y sus opciones con máximo rigor matemático y conceptual, y determiná la opción correcta.
+
+Preguntas a resolver:
+${JSON.stringify(
+  questions.map((q) => ({
+    slot: q.slot,
+    pregunta: q.qtext,
+    opciones: q.choices.map((c) => ({ value: c.value, texto: c.text })),
+  })),
+  null,
+  2
+)}
+
+Respondé estrictamente un JSON válido (sin rodeos ni markdown adicional fuera del bloque) con este formato:
+{
+  "solutions": [
+    {
+      "slot": 1,
+      "chosenValue": "valor_exacto_del_campo_value",
+      "chosenText": "texto de la opción elegida",
+      "explanation": "justificación técnica concisa de por qué es la correcta"
+    }
+  ]
+}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+        signal: AbortSignal.timeout(20000),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Gemini respondió con HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const parsed = JSON.parse(rawText);
+    const solutions = Array.isArray(parsed?.solutions) ? parsed.solutions : [];
+
+    return questions.map((q) => {
+      const match = solutions.find((s: any) => Number(s.slot) === Number(q.slot));
+      if (match && match.chosenValue !== undefined) {
+        return {
+          slot: q.slot,
+          chosenValue: String(match.chosenValue),
+          chosenText: match.chosenText || "",
+          explanation: match.explanation || "Resuelto por modelo pedagógico de IA.",
+        };
+      }
+      return {
+        slot: q.slot,
+        chosenValue: q.choices[0]?.value || "0",
+        chosenText: q.choices[0]?.text || "",
+        explanation: "Opción estimada por defecto.",
+      };
+    });
+  } catch (err: any) {
+    console.warn("[UTN FRM MCP] Error resolviendo preguntas con Gemini:", err?.message);
+    return questions.map((q) => ({
+      slot: q.slot,
+      chosenValue: q.choices[0]?.value || "0",
+      chosenText: q.choices[0]?.text || "",
+      explanation: "Opción predeterminada tras error de conexión con IA.",
+    }));
+  }
+}
+
+async function resolveCampusQuiz(
+  username: string,
+  password: string,
+  options: {
+    quizUrl?: string;
+    quizName?: string;
+    courseName?: string;
+    submitMode?: "save" | "finish";
+    geminiApiKey?: string;
+    customAnswers?: Record<number, string>;
+  }
+): Promise<{
+  ok: boolean;
+  quizName: string;
+  courseName?: string;
+  attemptId?: string;
+  attemptUrl?: string;
+  submitMode: "save" | "finish";
+  totalQuestions: number;
+  resolvedQuestions: Array<{
+    slot: number;
+    questionText: string;
+    chosenValue: string;
+    chosenText: string;
+    explanation: string;
+  }>;
+  statusText?: string;
+  message: string;
+}> {
+  const jar = new CookieJar();
+  const submitMode = options.submitMode === "finish" ? "finish" : "save";
+
+  // 1. Iniciar sesión en Campus Virtual UTN FRM
+  const loginPage = await fetchWithJar(jar, `${CAMPUS_ORIGIN}/login/index.php`, { timeoutMs: 10000 });
+  const tokenMatch = loginPage.text.match(/name=["']logintoken["']\s+value=["']([^"']+)["']/i);
+  const logintoken = tokenMatch ? tokenMatch[1] : "";
+
+  const authRes = await fetchWithJar(jar, `${CAMPUS_ORIGIN}/login/index.php`, {
+    method: "POST",
+    form: {
+      anchor: "",
+      logintoken,
+      username: username.trim(),
+      password,
+    },
+    timeoutMs: 12000,
+  });
+
+  const isLogged =
+    !authRes.finalUrl.includes("/login/") &&
+    /\/login\/logout\.php/i.test(authRes.text) &&
+    !/<input[^>]*type=["']password["']/i.test(authRes.text);
+
+  if (!isLogged) {
+    throw new Error("No se pudo iniciar sesión en el Campus Virtual UTN FRM: verificá usuario y contraseña.");
+  }
+
+  const sesskeyMatch =
+    authRes.text.match(/"sesskey"\s*:\s*"([a-zA-Z0-9]+)"/) ||
+    authRes.text.match(/sesskey=([a-zA-Z0-9]+)/);
+  const sesskey = sesskeyMatch ? sesskeyMatch[1] : "";
+
+  // 2. Determinar la URL del cuestionario
+  let targetQuizUrl = (options.quizUrl || "").trim();
+  let resolvedCourseName = options.courseName || "";
+  let resolvedQuizName = options.quizName || "";
+
+  if (!targetQuizUrl) {
+    const campusData = await fetchCampusData(username, password);
+    const normQ = (options.quizName || "").toLowerCase();
+    const normC = (options.courseName || "").toLowerCase();
+
+    const matchingDeadline = campusData.deadlines.find((d) => {
+      const matchKind = d.kind === "quiz";
+      const matchName = normQ ? d.name.toLowerCase().includes(normQ) : true;
+      const matchCourse = normC ? d.courseName.toLowerCase().includes(normC) : true;
+      return matchKind && matchName && matchCourse;
+    });
+
+    if (matchingDeadline) {
+      targetQuizUrl = matchingDeadline.url;
+      resolvedQuizName = matchingDeadline.name;
+      resolvedCourseName = matchingDeadline.courseName;
+    }
+  }
+
+  if (!targetQuizUrl) {
+    throw new Error(
+      "No se encontró el cuestionario en el Campus Virtual. Proporcioná el nombre de la materia o la URL del cuestionario en Moodle."
+    );
+  }
+
+  const fullQuizUrl = targetQuizUrl.startsWith("http")
+    ? targetQuizUrl
+    : new URL(targetQuizUrl, CAMPUS_ORIGIN).href;
+
+  // 3. Acceder a la página del cuestionario (view.php)
+  const viewRes = await fetchWithJar(jar, fullQuizUrl, { timeoutMs: 12000 });
+
+  if (!resolvedQuizName) {
+    const titleMatch = viewRes.text.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i) || viewRes.text.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+    resolvedQuizName = titleMatch ? decodeHtmlEntities(stripTags(titleMatch[1])).trim() : "Cuestionario de Moodle";
+  }
+
+  // 4. Iniciar o continuar el intento
+  let attemptUrl = "";
+  const continueMatch = viewRes.text.match(/<a\b[^>]*href=["']([^"']*\/mod\/quiz\/attempt\.php\?attempt=\d+[^"']*)["'][^>]*>/i);
+  const startFormMatch = viewRes.text.match(/<form\b[^>]*action=["']([^"']*\/mod\/quiz\/startattempt\.php[^"']*)["'][^>]*>([\s\S]*?)<\/form>/i);
+  const startLinkMatch = viewRes.text.match(/<a\b[^>]*href=["']([^"']*\/mod\/quiz\/startattempt\.php\?[^"']*)["'][^>]*>/i);
+
+  let attemptPageRes;
+
+  if (continueMatch) {
+    attemptUrl = new URL(continueMatch[1], fullQuizUrl).href;
+    attemptPageRes = await fetchWithJar(jar, attemptUrl, { timeoutMs: 12000 });
+  } else if (startFormMatch) {
+    const formAction = new URL(startFormMatch[1], fullQuizUrl).href;
+    const formInner = startFormMatch[2];
+    const formInputs: Record<string, string> = {};
+    const inputMatches = formInner.match(/<input\b[^>]*>/gi) || [];
+    for (const inTag of inputMatches) {
+      const name = getAttr(inTag, "name");
+      const val = getAttr(inTag, "value") ?? "";
+      if (name) formInputs[name] = val;
+    }
+    if (!formInputs["sesskey"] && sesskey) formInputs["sesskey"] = sesskey;
+
+    attemptPageRes = await fetchWithJar(jar, formAction, {
+      method: "POST",
+      form: formInputs,
+      timeoutMs: 14000,
+    });
+    attemptUrl = attemptPageRes.finalUrl;
+  } else if (startLinkMatch) {
+    const startUrl = new URL(startLinkMatch[1], fullQuizUrl).href;
+    attemptPageRes = await fetchWithJar(jar, startUrl, { timeoutMs: 12000 });
+    attemptUrl = attemptPageRes.finalUrl;
+  } else if (/\/mod\/quiz\/attempt\.php\?attempt=\d+/i.test(viewRes.finalUrl)) {
+    attemptPageRes = viewRes;
+    attemptUrl = viewRes.finalUrl;
+  } else {
+    if (/no se permiten más intentos|este cuestionario se cerró|cuestionario finalizado/i.test(viewRes.text)) {
+      throw new Error(`El cuestionario "${resolvedQuizName}" ya fue finalizado o se encuentra cerrado en el Campus Virtual.`);
+    }
+    throw new Error(`No se encontró un botón o formulario activo para comenzar el intento en "${resolvedQuizName}".`);
+  }
+
+  // 5. Extraer y resolver las preguntas del intento
+  const parsedAttempt = parseMoodleQuizAttemptQuestions(attemptPageRes.text);
+  const attemptId = parsedAttempt.attemptId || (attemptUrl.match(/attempt=(\d+)/i)?.[1] ?? "");
+
+  if (parsedAttempt.questions.length === 0) {
+    throw new Error(
+      `No se detectaron preguntas interactivas en la página del cuestionario "${resolvedQuizName}". Puede que ya se haya enviado el intento.`
+    );
+  }
+
+  const solutions = await solveQuestionsWithGemini(parsedAttempt.questions, options.geminiApiKey);
+
+  // 6. Preparar el payload de respuestas para processattempt.php
+  const processPayload: Record<string, string> = {
+    ...parsedAttempt.hiddenInputs,
+    attempt: attemptId,
+    sesskey: parsedAttempt.sesskey || sesskey,
+    nextpage: "-1",
+    timeup: "0",
+  };
+
+  const resolvedQuestionsOutput: Array<{
+    slot: number;
+    questionText: string;
+    chosenValue: string;
+    chosenText: string;
+    explanation: string;
+  }> = [];
+
+  for (const q of parsedAttempt.questions) {
+    const sol = solutions.find((s) => s.slot === q.slot) || {
+      slot: q.slot,
+      chosenValue: q.choices[0]?.value || "0",
+      chosenText: q.choices[0]?.text || "",
+      explanation: "Opción predeterminada",
+    };
+
+    if (options.customAnswers && options.customAnswers[q.slot] !== undefined) {
+      sol.chosenValue = String(options.customAnswers[q.slot]);
+      const matchedChoice = q.choices.find((c) => c.value === sol.chosenValue);
+      if (matchedChoice) sol.chosenText = matchedChoice.text;
+    }
+
+    if (q.choices.length > 0 && q.choices[0].inputName) {
+      processPayload[q.choices[0].inputName] = sol.chosenValue;
+    }
+    if (q.sequencecheckName) {
+      processPayload[q.sequencecheckName] = q.sequencecheckValue || "1";
+    }
+
+    resolvedQuestionsOutput.push({
+      slot: q.slot,
+      questionText: q.qtext,
+      chosenValue: sol.chosenValue,
+      chosenText: sol.chosenText,
+      explanation: sol.explanation,
+    });
+  }
+
+  // 7. Enviar POST a processattempt.php
+  const processUrl = parsedAttempt.formAction
+    ? new URL(parsedAttempt.formAction, attemptUrl).href
+    : `${CAMPUS_ORIGIN}/mod/quiz/processattempt.php`;
+
+  await fetchWithJar(jar, processUrl, {
+    method: "POST",
+    form: processPayload,
+    timeoutMs: 14000,
+  });
+
+  let statusText = "Respuestas guardadas en borrador en el Campus Virtual (Moodle)";
+
+  // 8. Si submitMode === "finish", finalizar el intento en summary.php
+  if (submitMode === "finish") {
+    const finishPayload: Record<string, string> = {
+      attempt: attemptId,
+      finishattempt: "1",
+      sesskey: parsedAttempt.sesskey || sesskey,
+      timeup: "0",
+    };
+
+    await fetchWithJar(jar, processUrl, {
+      method: "POST",
+      form: finishPayload,
+      timeoutMs: 14000,
+    });
+
+    statusText = "Cuestionario completado y enviado oficialmente al Campus Virtual";
+  }
+
+  const message =
+    submitMode === "finish"
+      ? `Se completó y envió exitosamente el cuestionario "${resolvedQuizName}" (${resolvedQuestionsOutput.length} preguntas respondidas).`
+      : `Se resolvieron y guardaron exitosamente las respuestas de "${resolvedQuizName}" en el Campus Virtual (${resolvedQuestionsOutput.length} preguntas guardadas en borrador). Podés revisarlas en Moodle antes de la entrega final.`;
+
+  return {
+    ok: true,
+    quizName: resolvedQuizName,
+    courseName: resolvedCourseName || undefined,
+    attemptId,
+    attemptUrl,
+    submitMode,
+    totalQuestions: resolvedQuestionsOutput.length,
+    resolvedQuestions: resolvedQuestionsOutput,
+    statusText,
+    message,
+  };
 }
 
 // ─── 4. CORREO INSTITUCIONAL (IMAP OVER NATIVE TLS) ─────────────────────────
@@ -1702,6 +2261,27 @@ export default async function handler(req: any, res: any) {
         comment,
         filterTarget ? String(filterTarget).slice(0, 120) : undefined
       );
+      return sendJson(res, 200, result);
+    }
+
+    // Action: resolve_campus_quiz (Resolves a Moodle quiz on Campus Virtual UTN FRM)
+    if (action === "resolve_campus_quiz") {
+      const quizUrl = body.quizUrl ? String(body.quizUrl).trim() : undefined;
+      const quizName = body.quizName ? String(body.quizName).trim() : undefined;
+      const courseName = body.courseName ? String(body.courseName).trim() : undefined;
+      const submitMode = body.submitMode === "finish" ? "finish" : "save";
+      const geminiApiKey = body.geminiApiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      const customAnswers = body.customAnswers || undefined;
+
+      const result = await resolveCampusQuiz(username, password, {
+        quizUrl,
+        quizName,
+        courseName,
+        submitMode,
+        geminiApiKey,
+        customAnswers,
+      });
+
       return sendJson(res, 200, result);
     }
 
