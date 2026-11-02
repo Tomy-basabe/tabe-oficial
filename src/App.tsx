@@ -233,6 +233,7 @@ const AppRoutes = () => (
       <Route path="/asistente/examenes" element={<StudyRoadmapPage />} />
       <Route path="/flashcards" element={<Flashcards />} />
       <Route path="/cuestionarios" element={<Quizzes />} />
+      <Route path="/quizzes" element={<Navigate to="/cuestionarios" replace />} />
       <Route path="/comunidad" element={<PremiumGate feature="Comunidad"><Marketplace /></PremiumGate>} />
       <Route path="/marketplace" element={<Navigate to="/comunidad" replace />} />
       <Route path="/biblioteca" element={<Library />} />

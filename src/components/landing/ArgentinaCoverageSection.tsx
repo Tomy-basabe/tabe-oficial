@@ -90,7 +90,7 @@ export function ArgentinaCoverageSection() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Red Universitaria Federal</span>
             <span className="text-zinc-400">·</span>
-            <span className="text-zinc-500 dark:text-zinc-400">24 Provincias</span>
+            <span className="text-zinc-500 dark:text-zinc-400">23 Provincias + 1 Ciudad Autónoma</span>
           </motion.div>
 
           <motion.h2
@@ -139,13 +139,13 @@ export function ArgentinaCoverageSection() {
 
             <div className="p-5 sm:p-6 text-left">
               <span className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight font-mono">
-                24 / 24
+                23 + 1
               </span>
               <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-                Provincias Cubiertas
+                Provincias y CABA
               </p>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                De Jujuy a Tierra del Fuego
+                23 provincias y 1 ciudad autónoma
               </p>
             </div>
 

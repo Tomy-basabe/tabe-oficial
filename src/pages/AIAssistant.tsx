@@ -1176,7 +1176,7 @@ export default function AIAssistant() {
         title: "Generando cuestionario con IA...",
         message: `Procesando documento "${docToProcess?.name || "examen"}" con todas las preguntas.`,
         type: "quiz",
-        actionUrl: "/quizzes",
+        actionUrl: "/cuestionarios",
         progress: 25,
         status: "processing",
       });

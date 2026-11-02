@@ -2793,7 +2793,7 @@ async function executeActionBlock(
           title: "Cuestionario resuelto en Campus Virtual",
           message: res.message,
           type: "quiz",
-          link: res.attemptUrl || "/quizzes",
+          link: res.attemptUrl || "/cuestionarios",
         });
 
         db_mutations = [
@@ -3050,7 +3050,7 @@ async function executeActionBlock(
             title: "¡Carga 100% completada! 📝",
             message: `Cuestionario "${quizData.quiz_name}" guardado exitosamente con ${totalQCount} preguntas.`,
             type: "quiz",
-            actionUrl: "/quizzes",
+            actionUrl: "/cuestionarios",
             progress: 100,
             status: "completed",
           });
