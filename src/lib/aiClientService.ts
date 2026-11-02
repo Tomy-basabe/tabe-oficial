@@ -3180,6 +3180,7 @@ export async function streamAIChat(params: {
   userId: string;
   image?: { data: string; mime_type: string };
   selectedSubject?: string;
+  isLiveVoice?: boolean;
   onDelta: (text: string) => void;
   onReset?: () => void;          // Called when switching to a fallback model (clears UI)
   onComplete: (result: StreamResult) => void;
@@ -3231,8 +3232,33 @@ export async function streamAIChat(params: {
     return false;
   };
 
-  // Tier 1: Clúster NVIDIA NIM (Prioridad 1 para todos los niveles de potencia y modelos de última generación)
-  if (!success && !image) {
+  // Tier 0: Motor ultra-rápido exclusivo para IA de Voz en Vivo de TABE AI (<200ms)
+  if (params.isLiveVoice && !image) {
+    success = await runTier((delta) =>
+      streamFromVoiceLive({
+        messages,
+        systemPrompt,
+        onDelta: delta,
+      })
+    );
+    if (!success) {
+      success = await runTier((delta) =>
+        streamFromLocal({
+          messages,
+          systemPrompt,
+          onDelta: delta,
+          requestedModelId: "tabe-ai",
+          requestedProvider: "local",
+          powerLevel,
+          image,
+          isLiveVoice: true,
+        })
+      );
+    }
+  }
+
+  // Tier 1: Clúster NVIDIA NIM (Prioridad 1 para TABE AI normal por texto)
+  if (!success && !image && !params.isLiveVoice) {
     const candidateModels = NVIDIA_MODELS_PRIORITY[powerLevel] || NVIDIA_MODELS_PRIORITY.medio;
     for (const nvModel of candidateModels) {
       success = await runTier((delta) =>
@@ -3555,6 +3581,79 @@ async function streamFromOpenRouter(opts: {
  * Guaranteed local fallback. It is intentionally transparent: it is a
  * recovery mode, not a pretend cloud model, and consumes no provider quota.
  */
+/**
+ * Motor ultra-rápido (<200ms) exclusivo para IA de voz en vivo de TABE AI.
+ * Emite streaming en tiempo real usando Groq LPU vía /api/voice-live.
+ */
+async function streamFromVoiceLive(opts: {
+  messages: Array<{ role: string; content: string }>;
+  systemPrompt?: string;
+  onDelta: (text: string) => void;
+}): Promise<boolean> {
+  const { messages, systemPrompt, onDelta } = opts;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+    const bearer = session?.access_token ? `Bearer ${session.access_token}` : (anonKey ? `Bearer ${anonKey}` : "");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    const response = await fetch("/api/voice-live", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: bearer,
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages,
+        system_prompt: systemPrompt,
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      clearTimeout(timeoutId);
+      return false;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let receivedContent = false;
+
+    while (true) {
+      clearTimeout(timeoutId);
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(payload);
+          const chunk = parsed.choices?.[0]?.delta?.content || "";
+          if (chunk) {
+            receivedContent = true;
+            onDelta(chunk);
+          }
+        } catch {}
+      }
+    }
+    return receivedContent;
+  } catch (err) {
+    console.warn("[VoiceLive] Error con /api/voice-live:", err);
+    return false;
+  }
+}
+
 async function streamFromLocal(opts: {
   messages: Array<{ role: string; content: string }>;
   systemPrompt?: string;
@@ -3563,6 +3662,7 @@ async function streamFromLocal(opts: {
   requestedProvider: AIModelOption["provider"];
   powerLevel: PowerEffort;
   image?: { data: string; mime_type: string };
+  isLiveVoice?: boolean;
 }): Promise<boolean> {
   // TABE AI uses the protected Supabase Edge Function (powered by Groq / Gemini)
   try {
@@ -3593,7 +3693,8 @@ async function streamFromLocal(opts: {
         body: JSON.stringify({
           messages: opts.messages,
           system_prompt: opts.systemPrompt,
-          context_page: "TABEAI",
+          context_page: opts.isLiveVoice ? "Modo Live de Voz Fluida" : "TABEAI",
+          is_live_voice: Boolean(opts.isLiveVoice),
           requested_model_id: "tabe-ai",
           requested_provider: "local",
           power_level: opts.powerLevel,

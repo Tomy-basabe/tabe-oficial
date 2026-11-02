@@ -140,6 +140,7 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
           userId: user?.id || "guest",
           image,
           selectedSubject,
+          isLiveVoice,
           onDelta,
           onReset,
           onStatusChange: (status) => setAiStatus(status),

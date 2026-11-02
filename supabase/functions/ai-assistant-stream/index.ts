@@ -224,7 +224,9 @@ serve(async (req) => {
       system_prompt: clientSystemPrompt,
       image, // { data: string, mime_type: string }
       images, // Array<{ data: string, mime_type: string }>
+      is_live_voice,
     } = reqBody;
+    const isLiveVoice = Boolean(is_live_voice || context_page === "Modo Live de Voz Fluida");
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Detección temprana de necesidad de herramientas para optimizar consultas
@@ -1030,7 +1032,59 @@ serve(async (req) => {
       ? ["openai/gpt-oss-20b", "google/diffusiongemma-26b-a4b-it", "nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.3"]
       : ["nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.3", "openai/gpt-oss-20b", "nvidia/nemotron-3.5-lightning-30b-a3b", "google/diffusiongemma-26b-a4b-it", "google/gemma-4-31b-it"];
 
-    if (!streamRes && NVIDIA_API_KEY && !hasImage) {
+    // MOTOR ULTRA-RÁPIDO EXCLUSIVO PARA IA DE VOZ EN VIVO (Groq LPU <200ms)
+    if (!streamRes && isLiveVoice && GROQ_API_KEY) {
+      const fastVoiceModels = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+      for (const groqModel of fastVoiceModels) {
+        try {
+          const liveBody: Record<string, unknown> = {
+            model: groqModel,
+            messages: groqMessages,
+            temperature: 0.2,
+            max_tokens: 350,
+            stream: true,
+          };
+          if (shouldPassTools) {
+            liveBody.tools = tools;
+            liveBody.tool_choice = "auto";
+          }
+          streamRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GROQ_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(liveBody),
+          });
+
+          if (!streamRes.ok && shouldPassTools) {
+            streamRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: groqModel,
+                messages: groqMessages,
+                temperature: 0.2,
+                max_tokens: 350,
+                stream: true,
+              }),
+            });
+          }
+
+          if (streamRes.ok) {
+            console.log(`[LiveVoice Groq] Streaming ultra-rápido exitoso con: ${groqModel}`);
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`[LiveVoice Groq] Error con ${groqModel}:`, err.message);
+        }
+      }
+    }
+
+    if (!streamRes && NVIDIA_API_KEY && !hasImage && !isLiveVoice) {
       for (const nvModel of candidateNvidiaModels) {
         try {
           const nvBody: Record<string, unknown> = {

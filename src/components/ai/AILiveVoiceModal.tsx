@@ -466,9 +466,9 @@ export function AILiveVoiceModal({
           accumulatedAiResponseRef.current += delta;
           sentenceBufferRef.current += delta;
 
-          // Check if we have a full sentence to speak with low latency (8+ chars and punctuation)
-          const match = sentenceBufferRef.current.match(/^([\s\S]+?([.!?\n]+|\:\s))(\s+[\s\S]*)$/);
-          if (match && match[1].length >= 6) {
+          // Check if we have a full sentence or natural clause to speak with ultra-low latency (<200ms)
+          const match = sentenceBufferRef.current.match(/^([\s\S]+?([.!?\n]+|\:\s|(?<=[\w\d]{12,}),\s))(\s+[\s\S]*)$/);
+          if (match && match[1].length >= 4) {
             const sentenceToSpeak = match[1].trim();
             sentenceBufferRef.current = match[3] || "";
             queueSentenceToSpeak(sentenceToSpeak);
@@ -634,7 +634,7 @@ export function AILiveVoiceModal({
       if (isSpeakingTtsRef.current || isStreamingAiRef.current || isTurnLockedRef.current) return;
       setIsUserTalking(false);
       if (lastRecognizedRef.current.trim().length > 1) {
-        scheduleSubmissionRef.current?.(300);
+        scheduleSubmissionRef.current?.(180);
       }
     };
 
@@ -648,7 +648,7 @@ export function AILiveVoiceModal({
       if (!isSpeakingTtsRef.current && !isStreamingAiRef.current && !isTurnLockedRef.current) {
         setIsUserTalking(false);
         if (lastRecognizedRef.current.trim().length > 1) {
-          scheduleSubmissionRef.current?.(350);
+          scheduleSubmissionRef.current?.(200);
         }
       }
     };
@@ -685,10 +685,10 @@ export function AILiveVoiceModal({
 
       if (final.trim()) {
         lastRecognizedRef.current = final.trim();
-        scheduleSubmissionRef.current?.(280);
+        scheduleSubmissionRef.current?.(160);
       } else if (interim.trim().length > 1) {
         lastRecognizedRef.current = interim.trim();
-        scheduleSubmissionRef.current?.(600);
+        scheduleSubmissionRef.current?.(450);
       }
     };
 
