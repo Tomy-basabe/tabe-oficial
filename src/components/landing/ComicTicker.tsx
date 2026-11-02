@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Zap, Trophy, Brain, Flame, Target, Compass, Building2 } from "lucide-react";
 
 const TICKER_ITEMS = [
-  { text: "🇦🇷 +1.100 Facultades de toda Argentina", icon: Building2 },
+  { text: "🇦🇷 +1.100 Facultades y Carreras en Argentina", icon: Building2 },
   { text: "+350 Estudiantes universitarios", icon: Target },
   { text: "Técnica Pomodoro & Seguimiento", icon: Zap },
   { text: "Mapas de Correlatividades Vivos", icon: Compass },

@@ -17,16 +17,16 @@ export function HeroSection() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-sky-300/80 dark:border-sky-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-2xs hover:border-sky-400 dark:hover:border-sky-600 transition-all hover:scale-[1.02] cursor-pointer"
+              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-zinc-200/90 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all hover:scale-[1.01] cursor-pointer"
             >
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-sky-500 text-white shadow-2xs">
-                Novedad
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs">
+                <span>Novedad</span>
+                <span className="opacity-80">🇦🇷</span>
               </span>
-              <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                <span className="text-sm">🇦🇷</span>
-                <span>Contamos con <strong>+1.100 facultades de toda Argentina</strong> registradas</span>
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <span>+1.100 Facultades y Carreras de toda Argentina</span>
               </span>
-              <ArrowRight className="w-3.5 h-3.5 text-sky-500 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
             </motion.div>
           </Link>
         </div>
@@ -86,7 +86,7 @@ export function HeroSection() {
             className="pt-4 flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 dark:text-zinc-400"
           >
             <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">
-              <Building2 className="w-4 h-4 text-sky-500" /> +1.100 Facultades de toda Argentina
+              <Building2 className="w-4 h-4 text-zinc-700 dark:text-zinc-300" /> +1.100 Facultades de toda Argentina
             </span>
             <span className="flex items-center gap-1.5">
               <Check className="w-4 h-4 text-emerald-500" /> 100% Gratuito
