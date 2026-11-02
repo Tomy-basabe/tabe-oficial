@@ -262,6 +262,7 @@ export function NotionSidebar({
                             : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent"
                     )}
                     onClick={() => onSelectDocument(doc)}
+                    onMouseEnter={() => onHoverDocument?.(doc)}
                     onContextMenu={(e) => isOwner && handleContextMenu(e, doc)}
                 >
                     {isActive && (

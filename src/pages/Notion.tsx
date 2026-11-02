@@ -28,6 +28,7 @@ import { ShareDocumentModal } from "@/components/notion/ShareDocumentModal";
 import { useNotionCollab } from "@/hooks/useNotionCollab";
 import { NotionBreadcrumb } from "@/components/notion/NotionBreadcrumb";
 import { useNotionDocuments, NotionDocument } from "@/hooks/useNotionDocuments";
+import { getPersistentDocContent, setPersistentDocContent } from "@/lib/notionStorage";
 import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, permanentlyDelete, TrashItem } from "@/lib/notionTrash";
 import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
@@ -183,6 +184,7 @@ const GalleryCard = ({
   return (
     <div
       onClick={() => onClick(doc)}
+      onMouseEnter={() => onHover?.(doc)}
       className="group flex flex-col bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm h-[300px]"
     >
       {/* Top Area: Cover Image or Clean Tabe Logo */}
@@ -1125,6 +1127,9 @@ export default function Notion() {
             setActiveDocument((prev) => (prev ? { ...prev, titulo: currentTitle } : null));
             setLastSaved(new Date());
           }
+          try {
+            sessionStorage.removeItem(`tabe_doc_dirty_${docToSave.id}`);
+          } catch (_) {}
           // Notificar a las demás pestañas abiertas en tiempo real (0ms, 0 costo servidor)
           broadcastNotionDocUpdate({
             docId: docToSave.id,
@@ -1232,7 +1237,8 @@ export default function Notion() {
 
   const handleContentUpdate = useCallback(
     (content: JSONContent) => {
-      if (!activeDocument) return;
+      const curDoc = activeDocumentRef.current || activeDocument;
+      if (!curDoc) return;
       if (isRemoteUpdateRef.current) {
         isRemoteUpdateRef.current = false;
         return;
@@ -1240,8 +1246,17 @@ export default function Notion() {
 
       lastActivityRef.current = Date.now();
       editorContentRef.current = content;
-      // No actualizamos editorContent vía state aquí para evitar re-renders innecesarios durante la escritura.
-      // El editor de Tiptap ya maneja su propio estado interno y Notion guarda usando la ref.
+      isDirtyRef.current = true;
+
+      // 1. Guardado local INSTANTÁNEO (0ms): resguardado de inmediato en memoria, sessionStorage e IndexedDB
+      tabContentCacheRef.current.set(curDoc.id, content);
+      try {
+        sessionStorage.setItem(`tabe_doc_content_${curDoc.id}`, JSON.stringify(content));
+        sessionStorage.setItem(`tabe_doc_dirty_${curDoc.id}`, "true");
+      } catch (_) {}
+      setPersistentDocContent(curDoc.id, content).catch(() => {});
+
+      // 2. Programar guardado diferido hacia Supabase (respetando los límites de la base de datos)
       scheduleAutoSave();
     },
     [activeDocument, scheduleAutoSave]
@@ -1251,13 +1266,18 @@ export default function Notion() {
   const handleTitleChange = useCallback(
     (title: string) => {
       setLocalTitle(title);
+      localTitleRef.current = title;
       const curId = activeDocumentRef.current?.id;
       setOpenTabs(prev => prev.map(t => t.id === curId ? { ...t, title } : t));
       if (curId) {
+        try {
+          sessionStorage.setItem(`tabe_doc_title_${curId}`, title);
+        } catch (_) {}
         document.dispatchEvent(new CustomEvent("notion-subpage-renamed", {
           detail: { pageId: curId, newTitle: title },
         }));
       }
+      isDirtyRef.current = true;
       scheduleAutoSave();
     },
     [scheduleAutoSave]
@@ -1342,11 +1362,61 @@ export default function Notion() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeDocument, saveDocument]);
 
-  // Save before closing
+  // Sincronizar automáticamente cualquier apunte local pendiente (dirty) tras recarga o cierre
+  useEffect(() => {
+    if (!user) return;
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith("tabe_doc_dirty_")) {
+          const docId = key.replace("tabe_doc_dirty_", "");
+          const stored = sessionStorage.getItem(`tabe_doc_content_${docId}`);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            supabase.from("notion_documents")
+              .update({ contenido: parsed })
+              .eq("id", docId)
+              .then(() => {
+                sessionStorage.removeItem(key);
+              })
+              .catch(console.error);
+          }
+        }
+      }
+    } catch (_) {}
+  }, [user]);
+
+  // Guardar y hacer flush antes de desmontar la página Notion al navegar a otra sección
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
       if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
+
+      const currentDoc = activeDocumentRef.current;
+      if (currentDoc && isDirtyRef.current) {
+        const editor = tiptapEditorInstanceRef.current;
+        const currentContent = (editor && !editor.isDestroyed)
+          ? editor.getJSON()
+          : editorContentRef.current;
+        const currentTitle = localTitleRef.current || currentDoc.titulo;
+
+        if (currentContent) {
+          try {
+            sessionStorage.setItem(`tabe_doc_content_${currentDoc.id}`, JSON.stringify(currentContent));
+            sessionStorage.setItem(`tabe_doc_dirty_${currentDoc.id}`, "true");
+          } catch (_) {}
+
+          supabase.from("notion_documents")
+            .update({ contenido: currentContent, titulo: currentTitle })
+            .eq("id", currentDoc.id)
+            .then(() => {
+              try {
+                sessionStorage.removeItem(`tabe_doc_dirty_${currentDoc.id}`);
+              } catch (_) {}
+            })
+            .catch(console.error);
+        }
+      }
     };
   }, []);
 
@@ -1411,16 +1481,32 @@ export default function Notion() {
       return updated.length > 10 ? updated.slice(-10) : updated;
     });
 
-    // 4. FAST PATH: Check memory cache and sessionStorage first (0ms instant switch)
-    let rawContent = doc.contenido || tabContentCacheRef.current.get(doc.id);
+    // 4. FAST PATH: Prioridad 1 a sessionStorage, memoria o IndexedDB (0-15ms incluso en apuntes enormes)
+    let rawContent: any = null;
+    try {
+      const stored = sessionStorage.getItem(`tabe_doc_content_${doc.id}`);
+      if (stored) {
+        rawContent = JSON.parse(stored);
+        tabContentCacheRef.current.set(doc.id, rawContent);
+      }
+    } catch (e) { }
+
+    if (!rawContent) {
+      rawContent = tabContentCacheRef.current.get(doc.id);
+    }
+
     if (!rawContent) {
       try {
-        const stored = sessionStorage.getItem(`tabe_doc_content_${doc.id}`);
-        if (stored) {
-          rawContent = JSON.parse(stored);
+        const persistent = await getPersistentDocContent(doc.id);
+        if (persistent) {
+          rawContent = persistent;
           tabContentCacheRef.current.set(doc.id, rawContent);
         }
       } catch (e) { }
+    }
+
+    if (!rawContent && doc.contenido) {
+      rawContent = doc.contenido;
     }
 
     if (rawContent) {
@@ -1482,6 +1568,7 @@ export default function Notion() {
       rawContent = await fetchDocumentContent(doc.id, false);
       if (rawContent) {
         tabContentCacheRef.current.set(doc.id, rawContent);
+        setPersistentDocContent(doc.id, rawContent).catch(() => {});
       }
     } finally {
       setIsOpeningDoc(false);
@@ -1737,12 +1824,32 @@ export default function Notion() {
     } catch { }
   }, [activeDocument, loading, documents, openDocument]);
 
-  const closeDocument = useCallback(() => {
-    if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
-      if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
-      if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
-      saveDocument(true);
+  const closeDocument = useCallback(async () => {
+    // 1. Flush inmediato a Supabase si hay cambios pendientes o timers activos
+    if (isDirtyRef.current || autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current) {
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      if (forceSaveTimerRef.current) {
+        window.clearTimeout(forceSaveTimerRef.current);
+        forceSaveTimerRef.current = null;
+      }
+
+      const currentDoc = activeDocumentRef.current;
+      const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+      const currentContent = (editor && !editor.isDestroyed)
+        ? editor.getJSON()
+        : editorContentRef.current;
+
+      if (currentDoc && currentContent) {
+        try {
+          sessionStorage.setItem(`tabe_doc_content_${currentDoc.id}`, JSON.stringify(currentContent));
+        } catch (_) {}
+        await saveDocument(true, currentDoc, currentContent, localTitleRef.current).catch(console.error);
+      }
     }
+
     handleSaveOnExit();
     try {
       sessionStorage.removeItem("tabe_active_doc_id");
@@ -1752,8 +1859,8 @@ export default function Notion() {
     editorContentRef.current = null;
     setLocalTitle("");
     setOpenTabs([]);
-    refetch();
-  }, [saveDocument, refetch, handleSaveOnExit]);
+    await refetch();
+  }, [saveDocument, refetch, handleSaveOnExit, tiptapEditorInstance]);
 
   const closeTab = useCallback((tabId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -1773,10 +1880,26 @@ export default function Notion() {
           }
         } else {
           // No more tabs — go to gallery
-          if (autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current || saveInProgressRef.current) {
-            if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current);
-            if (forceSaveTimerRef.current) window.clearTimeout(forceSaveTimerRef.current);
-            saveDocument(true);
+          if (isDirtyRef.current || autoSaveTimerRef.current || forceSaveTimerRef.current || pendingSaveRef.current) {
+            if (autoSaveTimerRef.current) {
+              window.clearTimeout(autoSaveTimerRef.current);
+              autoSaveTimerRef.current = null;
+            }
+            if (forceSaveTimerRef.current) {
+              window.clearTimeout(forceSaveTimerRef.current);
+              forceSaveTimerRef.current = null;
+            }
+            const currentDoc = activeDocumentRef.current;
+            const editor = tiptapEditorInstanceRef.current || tiptapEditorInstance;
+            const currentContent = (editor && !editor.isDestroyed)
+              ? editor.getJSON()
+              : editorContentRef.current;
+            if (currentDoc && currentContent) {
+              try {
+                sessionStorage.setItem(`tabe_doc_content_${currentDoc.id}`, JSON.stringify(currentContent));
+              } catch (_) {}
+              saveDocument(true, currentDoc, currentContent, localTitleRef.current).catch(console.error);
+            }
           }
           audioBook.stop();
           setShowAudioBookPlayer(false);
@@ -1893,19 +2016,15 @@ export default function Notion() {
         newDocCustomTitle.trim() ||
         defaultDocTitle;
 
-      const newDoc = await createDocument(targetSubjectId, title);
+      const newDoc = await createDocument(
+        targetSubjectId,
+        title,
+        null,
+        templateContent,
+        selectedTemplate.emoji
+      );
       if (newDoc) {
-        await updateDocument(newDoc.id, {
-          contenido: templateContent,
-          emoji: selectedTemplate.emoji,
-        });
-
-        const fullDoc = {
-          ...newDoc,
-          contenido: templateContent,
-          emoji: selectedTemplate.emoji,
-        };
-        openDocument(fullDoc);
+        openDocument(newDoc);
         setShowNewDocModal(false);
         setNewDocSubjectId(null);
         setNewDocCustomTitle("");
@@ -3532,6 +3651,7 @@ export default function Notion() {
                             doc={doc}
                             userSubjects={subjects}
                             onClick={openDocument}
+                            onHover={(d) => prefetchDocumentContent(d.id)}
                             onToggleFavorite={handleToggleFavorite}
                             onRename={(d) => {
                               setDocToRename(d);

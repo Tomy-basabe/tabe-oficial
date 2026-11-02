@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { toLocalDateStr } from "@/lib/utils";
 import { broadcastNotionDocUpdate, broadcastNotionDocDeleted, subscribeNotionSync } from "@/lib/notionSync";
 import { isDocumentInTrash, moveToTrash, restoreFromTrash, purgeExpiredTrash, permanentlyDelete } from "@/lib/notionTrash";
+import { getPersistentDocContent, setPersistentDocContent, removePersistentDocContent } from "@/lib/notionStorage";
 
 export interface NotionDocument {
   id: string;
@@ -43,6 +44,11 @@ export interface NotionDocument {
 let _notionDocsCache: NotionDocument[] | null = null;
 let _notionDocsLastFetch = 0;
 const NOTION_STALE_TIME = 3 * 60 * 1000; // 3 minutos
+
+export function invalidateNotionCache() {
+  _notionDocsCache = null;
+  _notionDocsLastFetch = 0;
+}
 
 export function useNotionDocuments() {
   const { user, isGuest } = useAuth();
@@ -380,6 +386,14 @@ export function useNotionDocuments() {
       sessionStorage.setItem(`tabe_doc_content_${newDoc.id}`, JSON.stringify(docContent));
     } catch (e) {}
 
+    // Mantener la caché global sincronizada para que el apunte aparezca inmediatamente si navega o recarga
+    if (_notionDocsCache) {
+      _notionDocsCache = [newDoc, ..._notionDocsCache.filter(d => d.id !== newDoc.id)];
+    } else {
+      _notionDocsCache = [newDoc];
+    }
+    _notionDocsLastFetch = Date.now();
+
     setDocuments(prev => [newDoc, ...prev]);
     return newDoc;
   };
@@ -404,15 +418,20 @@ export function useNotionDocuments() {
     }
 
     // PROTECCIÓN CONTRA PÉRDIDA DE DATOS:
-    // Si el apunte tenía contenido extenso en caché o sesión (> 3,000 bytes)
-    // y la nueva actualización viene con un contenido casi vacío (< 150 bytes, ej: [{"type":"paragraph"}]),
-    // bloquear el guardado destructivo para no borrar accidentalmente notas por errores de carga.
+    // Solo bloquear si la actualización es un esqueleto totalmente vacío por error de carga
+    // (ej: [{"type":"paragraph"}] sin texto hijo alguno). Si el usuario escribió texto real, SIEMPRE se guarda.
     if (updates.contenido) {
       const prevCached = contentCacheRef.current.get(id);
       const prevLen = prevCached ? JSON.stringify(prevCached).length : 0;
-      const newLen = JSON.stringify(updates.contenido).length;
-      if (prevLen > 3000 && newLen < 150) {
-        console.warn(`[AntiDataLoss] Guardado cancelado para ${id}: intento de sobreescribir documento extenso (${prevLen}b) con contenido vacío (${newLen}b).`);
+      const c = updates.contenido;
+      const isEmptySkeleton =
+        !c ||
+        !c.content ||
+        c.content.length === 0 ||
+        (c.content.length === 1 && c.content[0].type === "paragraph" && !c.content[0].content);
+
+      if (prevLen > 3000 && isEmptySkeleton) {
+        console.warn(`[AntiDataLoss] Guardado destructivo evitado para ${id}: esqueleto vacío recibido tras documento extenso (${prevLen}b).`);
         return false;
       }
     }
@@ -454,6 +473,11 @@ export function useNotionDocuments() {
     // The documents list only needs metadata (titulo, emoji, cover, etc.)
     const { contenido, ...metaUpdates } = updates;
     const nowIso = new Date().toISOString();
+    if (_notionDocsCache) {
+      _notionDocsCache = _notionDocsCache.map(doc =>
+        doc.id === id ? { ...doc, ...metaUpdates, updated_at: nowIso } : doc
+      );
+    }
     setDocuments(prev =>
       prev.map(doc => doc.id === id ? { ...doc, ...metaUpdates, updated_at: nowIso } : doc)
     );
@@ -498,7 +522,12 @@ export function useNotionDocuments() {
     contentCacheRef.current.delete(id);
     try {
       sessionStorage.removeItem(`tabe_doc_content_${id}`);
+      sessionStorage.removeItem(`tabe_doc_dirty_${id}`);
     } catch (e) {}
+    removePersistentDocContent(id).catch(() => {});
+    if (_notionDocsCache) {
+      _notionDocsCache = _notionDocsCache.filter(doc => doc.id !== id && doc.parent_id !== id);
+    }
     setDocuments(prev => prev.filter(doc => doc.id !== id && doc.parent_id !== id));
     
     // Notificar a las demás pestañas para que cierren el documento si lo tenían abierto
@@ -568,6 +597,18 @@ export function useNotionDocuments() {
           return parsed;
         }
       } catch (e) {}
+
+      // 3. Return from local IndexedDB high-speed persistent store (0-15ms, even for huge documents)
+      try {
+        const persistent = await getPersistentDocContent(docId);
+        if (persistent) {
+          contentCacheRef.current.set(docId, persistent);
+          try {
+            sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(persistent));
+          } catch (_) {}
+          return persistent;
+        }
+      } catch (e) {}
     }
 
     // Helper interno para consultar a Supabase con timeout de 30 segundos
@@ -613,12 +654,13 @@ export function useNotionDocuments() {
         }
       }
 
-      // Almacenar en caché de memoria y sessionStorage
+      // Almacenar en caché de memoria, sessionStorage e IndexedDB de alta velocidad
       if (parsedContenido) {
         contentCacheRef.current.set(docId, parsedContenido);
         try {
           sessionStorage.setItem(`tabe_doc_content_${docId}`, JSON.stringify(parsedContenido));
         } catch (e) {}
+        setPersistentDocContent(docId, parsedContenido).catch(() => {});
       }
 
       setDocuments((prev) =>
@@ -635,10 +677,21 @@ export function useNotionDocuments() {
     }
   };
 
-  // Prefetch content on hover (Disabled to prevent heavy egress bills from Supabase)
-  const prefetchDocumentContent = (_docId: string) => {
-    // Content is loaded lazily on explicit document click/open
-    return;
+  // Prefetch ultra-rápido en hover: lee de IndexedDB o memoria anticipadamente para apertura en 0ms
+  const prefetchDocumentContent = async (docId: string) => {
+    if (!docId || contentCacheRef.current.has(docId)) return;
+    try {
+      const stored = sessionStorage.getItem(`tabe_doc_content_${docId}`);
+      if (stored) {
+        contentCacheRef.current.set(docId, JSON.parse(stored));
+        return;
+      }
+      const persistent = await getPersistentDocContent(docId);
+      if (persistent) {
+        contentCacheRef.current.set(docId, persistent);
+        return;
+      }
+    } catch {}
   };
 
   return {
