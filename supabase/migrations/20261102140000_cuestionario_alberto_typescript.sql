@@ -38,15 +38,15 @@ BEGIN
       gen_random_uuid(), 
       v_user_id, 
       'cuestionario alberto TypeScript', 
-      'Cuestionario exhaustivo de TypeScript para Desarrollo de Software con las 59 preguntas e incisos completos del examen (código, tipos, discriminantes, generics, herencia y runtime).', 
+      'Cuestionario exhaustivo de TypeScript para Desarrollo de Software con las 64 preguntas e incisos completos del examen (código, tipos, discriminantes, generics, herencia y runtime).', 
       v_subject_id, 
-      59
+      64
     )
     RETURNING id INTO v_deck_id;
   ELSE
     DELETE FROM public.quiz_questions WHERE deck_id = v_deck_id;
     UPDATE public.quiz_decks 
-    SET total_questions = 59, subject_id = COALESCE(v_subject_id, subject_id) 
+    SET total_questions = 64, subject_id = COALESCE(v_subject_id, subject_id) 
     WHERE id = v_deck_id;
   END IF;
 
