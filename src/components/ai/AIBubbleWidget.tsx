@@ -54,8 +54,12 @@ export function AIBubbleWidget() {
     const { messages, setMessages, inputValue: input, setInputValue: setInput, isStreaming, aiStatus, streamMessage, selectedModel } = useAIChat();
     const { activePersona } = useAIPersonas();
 
-    // Hide on /asistente or /TABEAI page
-    if (location.pathname === "/asistente" || location.pathname === "/TABEAI") return null;
+    // Hide on AI Assistant pages
+    const isAIPage =
+        location.pathname.toLowerCase().startsWith("/tabeai") ||
+        location.pathname.toLowerCase().startsWith("/tabe-ai") ||
+        location.pathname.toLowerCase().startsWith("/asistente");
+    if (isAIPage) return null;
     if (!user && !isGuest) return null;
 
     const currentContext = PAGE_CONTEXT_MAP[location.pathname] || "Otra sección";
@@ -334,7 +338,15 @@ export function AIBubbleWidget() {
                 ) : (
                     <>
                         <ProfessionalAILogo className="w-5 h-5 lg:w-6 lg:h-6" />
-                        <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900" />
+                        <span
+                            className={cn(
+                                "absolute top-0 right-0 rounded-full ring-2 ring-white dark:ring-zinc-900",
+                                isStreaming
+                                    ? "w-3 h-3 bg-amber-500 animate-pulse ring-amber-400/40"
+                                    : "w-2.5 h-2.5 bg-emerald-500"
+                            )}
+                            title={isStreaming ? "TABE IA procesando en segundo plano..." : "TABE IA en línea"}
+                        />
                     </>
                 )}
             </button>

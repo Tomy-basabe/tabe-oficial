@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Plus,
+import { Plus, FileText,
   Paperclip,
   BrainCog,
   Mic,
@@ -44,6 +44,14 @@ export const powerConfig: Record<
   },
 };
 
+export interface AttachedDocumentInfo {
+  name: string;
+  size?: number;
+  text: string;
+  mimeType?: string;
+  pageCount?: number;
+}
+
 export interface AttachedImageInfo {
   preview: string;
   name: string;
@@ -63,6 +71,8 @@ export interface AIPromptBarProps {
   // Multimodal image
   attachedImage: AttachedImageInfo | null;
   onRemoveImage: () => void;
+  attachedDocument?: AttachedDocumentInfo | null;
+  onRemoveDocument?: () => void;
   onAttachClick?: () => void;
   onAttachFile?: (file: File) => void;
   onPasteImage?: (file: File) => void;
@@ -133,6 +143,8 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
   className,
   attachedImage,
   onRemoveImage,
+  attachedDocument,
+  onRemoveDocument,
   onAttachClick,
   onAttachFile,
   onPasteImage,
@@ -204,7 +216,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
   };
 
   const handleSubmit = () => {
-    if ((!value.trim() && !attachedImage) || isLoading) return;
+    if ((!value.trim() && !attachedImage && !attachedDocument) || isLoading) return;
 
     let prefix = "";
     if (showThink) prefix = "[Think: ";
@@ -257,7 +269,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
 
   const currentPower = powerConfig[powerLevel] || powerConfig.medio;
   const CurrentPowerIcon = currentPower.icon;
-  const hasContent = Boolean(value.trim() || attachedImage);
+  const hasContent = Boolean(value.trim() || attachedImage || attachedDocument);
 
   // Filter subjects for dropdown search
   const filteredSubjects = subjects.filter((s) =>
@@ -391,6 +403,27 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
         </DropdownMenu>
 
         {/* Right Indicator: Active Attachment Badge */}
+        {attachedDocument && (
+          <div className="inline-flex items-center gap-1.5 bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 rounded-md px-2 py-0.5 animate-in fade-in">
+            <FileText className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
+            <span className="text-[11px] font-medium text-red-700 dark:text-red-300 max-w-[140px] truncate" title={attachedDocument.name}>
+              {attachedDocument.name}
+            </span>
+            {attachedDocument.pageCount && (
+              <span className="text-[10px] text-red-600/80 dark:text-red-400/80 font-mono">
+                {attachedDocument.pageCount}p
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onRemoveDocument}
+              className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition-colors ml-0.5 cursor-pointer"
+              title="Quitar documento"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         {attachedImage && (
           <div className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60 rounded-md px-2 py-0.5 animate-in fade-in">
             <img

@@ -3050,7 +3050,7 @@ async function executeActionBlock(
             title: "¡Carga 100% completada! 📝",
             message: `Cuestionario "${quizData.quiz_name}" guardado exitosamente con ${totalQCount} preguntas.`,
             type: "quiz",
-            actionUrl: "/cuestionarios",
+            actionUrl: "/quizzes",
             progress: 100,
             status: "completed",
           });

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { Send, Bot, User,  BookOpen, FileQuestion, Calendar, Menu, Mic, X,
+import { Send, FileText, ChevronUp, Bot, User,  BookOpen, FileQuestion, Calendar, Menu, Mic, X,
   Paperclip, Loader2, ArrowLeft, ExternalLink, Brain, Trash2, Radio, Compass,
   MessageSquare, Target, LayoutGrid, Flame, Plus, ChevronDown, Check,
   Image as ImageIcon, MoreVertical, Volume2, SlidersHorizontal, Square,
@@ -25,7 +25,7 @@ import { cleanAIResponse, transcribeAudio } from "@/lib/aiClientService";
 import { AVAILABLE_AI_MODELS, DEFAULT_AI_MODEL, AITask } from "@/config/aiModels";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
-import { AIPromptBar } from "@/components/ai/AIPromptBar";
+import { AIPromptBar, AttachedDocumentInfo } from "@/components/ai/AIPromptBar";
 import { TabeAIIcon } from "@/components/icons/TabeAIIcon";
 import { AIThinkingIndicator } from "@/components/ai/AIThinkingIndicator";
 import { ChatMessageContent } from "@/components/ai/ChatMessage";
@@ -34,6 +34,7 @@ import { ParticleTitle } from "@/components/ui/particle-title";
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { addInAppNotification } from "@/lib/notificationsStore";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -146,6 +147,64 @@ async function getProactiveGreeting(
   return { message: defaultGreeting, context: null };
 }
 
+function AttachedDocumentCard({
+  name,
+  size,
+  pageCount,
+  extractedText,
+}: {
+  name: string;
+  size?: number;
+  pageCount?: number;
+  extractedText?: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isPdf = name.toLowerCase().endsWith(".pdf");
+
+  return (
+    <div className="my-2.5 rounded-2xl border border-zinc-200/90 dark:border-white/10 bg-white/95 dark:bg-[#1f1f23]/95 shadow-2xs overflow-hidden transition-all text-left">
+      <div className="p-3 sm:p-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 border border-red-500/20">
+            <FileText className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate max-w-[220px] sm:max-w-md" title={name}>
+              {name}
+            </h4>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <span className="font-bold uppercase tracking-wider text-red-600 dark:text-red-400 text-[10px]">
+                {isPdf ? "Documento PDF" : "Archivo de Texto"}
+              </span>
+              {pageCount ? <span>• {pageCount} páginas</span> : null}
+              {size ? <span>• {Math.round(size / 1024)} KB</span> : null}
+            </div>
+          </div>
+        </div>
+
+        {extractedText && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0 cursor-pointer"
+            title={isExpanded ? "Ocultar contenido" : "Ver extracto"}
+          >
+            <span>{isExpanded ? "Ocultar" : "Ver extracto"}</span>
+            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        )}
+      </div>
+
+      {isExpanded && extractedText && (
+        <div className="border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/80 dark:bg-zinc-950/60 p-3 max-h-60 overflow-y-auto text-xs text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed select-text">
+          {extractedText.slice(0, 5000)}
+          {extractedText.length > 5000 ? "\n\n... (extracto acotado para visualización fluida)" : ""}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AIAssistant() {
   const { confirm } = useConfirm();
   const { user, isGuest } = useAuth();
@@ -194,6 +253,7 @@ export default function AIAssistant() {
 
   // Multimodal Image & Voice
   const [attachedImage, setAttachedImage] = useState<{ preview: string; base64: string; mimeType: string; name: string } | null>(null);
+  const [attachedDocument, setAttachedDocument] = useState<AttachedDocumentInfo | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showLiveVoice, setShowLiveVoice] = useState(false);
@@ -937,14 +997,25 @@ export default function AIAssistant() {
           setInputValue((prev) => `${prev ? prev + "\n\n" : ""}🎙️ **[Grabación/Audio de clase]:**\n${text}${promptSuffix}`);
         }
       } else if (file.type === "application/pdf") {
-        const { extractTextFromPdf } = await import("@/lib/pdf-utils");
-        const text = await extractTextFromPdf(file);
-        setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
-        toast.success("PDF procesado");
+        const { extractPdfDetails } = await import("@/lib/pdf-utils");
+        const { text, numPages } = await extractPdfDetails(file);
+        setAttachedDocument({
+          name: file.name,
+          size: file.size,
+          pageCount: numPages,
+          text,
+          mimeType: file.type || "application/pdf",
+        });
+        toast.success(`PDF "${file.name}" cargado (${numPages} págs) 📄`);
       } else if (file.type === "text/plain" || file.name.endsWith(".md")) {
         const text = await file.text();
-        setInputValue((prev) => `${prev ? prev + "\n\n" : ""}📄 **Contenido de ${file.name}:**\n${text}`);
-        toast.success("Archivo procesado");
+        setAttachedDocument({
+          name: file.name,
+          size: file.size,
+          text,
+          mimeType: file.type || "text/plain",
+        });
+        toast.success(`Archivo "${file.name}" cargado 📄`);
       } else {
         toast.error("Formato no soportado. Usa imagen, audio, PDF o TXT.");
       }
@@ -1004,19 +1075,31 @@ export default function AIAssistant() {
   const executeSendMessage = async (
     textContent: string,
     imageToSend?: { data: string; mime_type: string },
-    previewToSend?: string
+    previewToSend?: string,
+    documentToSend?: AttachedDocumentInfo | null
   ) => {
-    if (!textContent.trim() && !imageToSend) return;
+    const docToProcess = documentToSend || attachedDocument;
+    if (!textContent.trim() && !imageToSend && !docToProcess) return;
+
+    const userPromptText = textContent.trim() || (docToProcess ? `Procesa este documento adjunto: ${docToProcess.name}` : "Analiza esta imagen adjunta:");
 
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: textContent || "Analiza esta imagen adjunta:",
+      content: userPromptText,
       timestamp: new Date(),
       imageUrl: previewToSend,
+      documentMeta: docToProcess ? {
+        name: docToProcess.name,
+        size: docToProcess.size,
+        pageCount: docToProcess.pageCount,
+        text: docToProcess.text,
+        mimeType: docToProcess.mimeType,
+      } : undefined,
     };
 
     setAttachedImage(null);
+    setAttachedDocument(null);
 
     // Limpiar saludo inicial para empezar el chat real
     const existingMessages = messages.filter((m) => !m.id?.startsWith("init"));
@@ -1072,12 +1155,33 @@ export default function AIAssistant() {
 
     // Prepare conversation for the AI
     const rawHistory = newMessages.filter((m) => m.id !== "init");
-    const conversationHistory = rawHistory.map((m, idx) => ({
-      role: m.role,
-      content: idx === rawHistory.length - 1 && subjectPrefix
-        ? `${subjectPrefix}${m.content}`
-        : m.content,
-    }));
+    const conversationHistory = rawHistory.map((m, idx) => {
+      const isLast = idx === rawHistory.length - 1;
+      let text = m.content;
+      if (isLast && docToProcess) {
+        text = `📄 [Documento adjunto: ${docToProcess.name} (${docToProcess.pageCount ? `${docToProcess.pageCount} páginas` : `${Math.round((docToProcess.size || 0) / 1024)} KB`})]:\n${docToProcess.text}\n\n${text}`;
+      }
+      if (isLast && subjectPrefix) {
+        text = `${subjectPrefix}${text}`;
+      }
+      return {
+        role: m.role,
+        content: text,
+      };
+    });
+
+    // Notificación proactiva en tareas extensas
+    if (task === "quiz" || normalizedInput.includes("cuestionario") || (docToProcess && /cuestionario|quiz|simulacro|preguntas/i.test(normalizedInput))) {
+      addInAppNotification({
+        title: "Generando cuestionario con IA...",
+        message: `Procesando documento "${docToProcess?.name || "examen"}" con todas las preguntas.`,
+        type: "quiz",
+        actionUrl: "/quizzes",
+        progress: 25,
+        status: "processing",
+      });
+      toast.info("Generando cuestionario en segundo plano. Te avisaremos en la campanita 🔔 cuando esté listo.", { duration: 5000 });
+    }
 
     const assistantMsgId = (Date.now() + 1).toString();
     const currentModelId = requestModel.id;
@@ -1203,13 +1307,15 @@ export default function AIAssistant() {
         });
         imageToSend = { data: base64Data, mime_type: file.type || "image/jpeg" };
         previewToSend = URL.createObjectURL(file);
+      } else if (file.type === "application/pdf" || file.type.startsWith("text/")) {
+        await handleDirectFile(file);
       }
     } else if (attachedImage) {
       imageToSend = { data: attachedImage.base64, mime_type: attachedImage.mimeType };
       previewToSend = attachedImage.preview;
     }
 
-    if (!message.trim() && !imageToSend) return;
+    if (!message.trim() && !imageToSend && !attachedDocument) return;
 
     let finalPrompt = message;
     if (message.startsWith("[Think: ")) {
@@ -1220,7 +1326,7 @@ export default function AIAssistant() {
       finalPrompt = `🎨 [Modo Canvas / Esquema Estructurado]: ${canvasQuery}`;
     }
 
-    await executeSendMessage(finalPrompt, imageToSend, previewToSend);
+    await executeSendMessage(finalPrompt, imageToSend, previewToSend, attachedDocument);
   };
 
   const handleQuickAction = (prompt: string) => setInputValue(prompt);
@@ -1244,7 +1350,7 @@ export default function AIAssistant() {
     }
   };
 
-  const renderContent = (content: string, role: "user" | "assistant") => {
+  const renderContent = (content: string, role: "user" | "assistant", msg?: DisplayMessage) => {
     if (!content) {
       return (
         <div className="py-2">
@@ -1255,12 +1361,58 @@ export default function AIAssistant() {
 
     if (role === "user") {
       // Limpiar prefijos internos de búsqueda/tags para que el usuario solo vea su texto limpio
-      const cleanText = content
+      let cleanText = content
         .replace(/^\[(?:Search|Think|Image|Canvas):\s*([\s\S]*?)\]$/i, "$1")
         .replace(/^🔍\s*\[Búsqueda e Investigación Web\]:\s*/i, "")
         .replace(/^🧠\s*\[Modo Pensamiento Profundo.*?\]:\s*/i, "")
         .replace(/^🎨\s*\[Modo Imagen.*?\]:\s*/i, "")
         .trim();
+
+      // Caso A: Mensaje con metadatos estructurados de documento
+      if (msg?.documentMeta) {
+        return (
+          <div className="space-y-2">
+            <AttachedDocumentCard
+              name={msg.documentMeta.name}
+              size={msg.documentMeta.size}
+              pageCount={msg.documentMeta.pageCount}
+              extractedText={msg.documentMeta.text}
+            />
+            {cleanText && <div className="whitespace-pre-wrap break-words">{cleanText}</div>}
+          </div>
+        );
+      }
+
+      // Caso B: Mensaje histórico que contiene volcado en crudo de PDF: 📄 **Contenido de ...:**
+      const pdfVolcadoRegex = /📄\s*\*\*Contenido de ([^\n:]+):\*\*\s*\n([\s\S]*)/i;
+      const match = cleanText.match(pdfVolcadoRegex);
+      if (match) {
+        const fileName = match[1].trim();
+        const rawBody = match[2];
+
+        // Separar si al final hay texto escrito por el usuario (ej: "crea este cuestionario...")
+        // El texto del usuario suele estar tras las páginas del PDF
+        const endPageMatch = rawBody.match(/([\s\S]*--- Página \d+ ---[\s\S]*?\n\n)([\s\S]+)$/i);
+        let extractedPdfText = rawBody;
+        let userSuffixText = "";
+
+        if (endPageMatch) {
+          extractedPdfText = endPageMatch[1].trim();
+          userSuffixText = endPageMatch[2].trim();
+        }
+
+        return (
+          <div className="space-y-2">
+            <AttachedDocumentCard
+              name={fileName}
+              extractedText={extractedPdfText}
+            />
+            {userSuffixText ? (
+              <div className="whitespace-pre-wrap break-words font-medium text-foreground">{userSuffixText}</div>
+            ) : null}
+          </div>
+        );
+      }
 
       return <div className="whitespace-pre-wrap break-words">{cleanText}</div>;
     }
@@ -1640,6 +1792,8 @@ export default function AIAssistant() {
                       placeholder="Pregúntale a TABE AI o pega una imagen..."
                       attachedImage={attachedImage}
                       onRemoveImage={() => setAttachedImage(null)}
+                      attachedDocument={attachedDocument}
+                      onRemoveDocument={() => setAttachedDocument(null)}
                       onAttachClick={() => fileInputRef.current?.click()}
                       selectedModel={selectedModel}
                       powerLevel={powerLevel}
@@ -1679,7 +1833,7 @@ export default function AIAssistant() {
                                   />
                                 </div>
                               )}
-                              {renderContent(message.content, message.role)}
+                              {renderContent(message.content, message.role, message)}
                             </div>
                           </div>
                         );
@@ -1771,6 +1925,8 @@ export default function AIAssistant() {
                 }
                 attachedImage={attachedImage}
                 onRemoveImage={() => setAttachedImage(null)}
+                attachedDocument={attachedDocument}
+                onRemoveDocument={() => setAttachedDocument(null)}
                 onAttachClick={() => fileInputRef.current?.click()}
                 selectedModel={selectedModel}
                 powerLevel={powerLevel}

@@ -8,6 +8,14 @@ import {
   PowerEffort,
 } from "@/config/aiModels";
 
+export interface AttachedDocumentMeta {
+  name: string;
+  size?: number;
+  pageCount?: number;
+  text?: string;
+  mimeType?: string;
+}
+
 export interface DisplayMessage {
   id: string;
   role: "user" | "assistant";
@@ -16,6 +24,7 @@ export interface DisplayMessage {
   modelId?: string;
   modelName?: string;
   imageUrl?: string;
+  documentMeta?: AttachedDocumentMeta;
 }
 
 interface AIChatContextProps {
