@@ -20,7 +20,6 @@ export function LandingNavbar() {
 
     const links = [
         { to: "/#showcase", label: "Módulos", scroll: true },
-        { to: "/#superpoderes", label: "Superpoderes", scroll: true },
         { to: "/carreras", label: "Carreras" },
         { to: "/#metodologia", label: "Metodología", scroll: true },
         { to: "/#faq", label: "FAQ", scroll: true },

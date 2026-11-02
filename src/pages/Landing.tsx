@@ -4,7 +4,6 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
 import { ComicTicker } from "@/components/landing/ComicTicker";
 import { ArgentinaCoverageSection } from "@/components/landing/ArgentinaCoverageSection";
-import { ComicSuperpowersSection } from "@/components/landing/ComicSuperpowersSection";
 import { ComicInteractiveDemo } from "@/components/landing/ComicInteractiveDemo";
 import { EditorialManifestoSection } from "@/components/landing/EditorialManifestoSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
@@ -30,7 +29,6 @@ export default function Landing() {
             <FinalCtaSection />
             <ComicTicker />
             <ArgentinaCoverageSection />
-            <ComicSuperpowersSection />
             <ComicInteractiveDemo />
             <EditorialManifestoSection />
             <ProblemSection />
