@@ -514,7 +514,7 @@ export default function Calendar() {
   const selectedDateEvents = selectedDate ? getFilteredEventsForDate(selectedDate) : [];
 
   if (loading && events.length === 0 && !forceReady) {
-    return <LoadingScreen message="Cargando Calendario..." submessage="Organizando eventos académicos..." />;
+    return <LoadingScreen type="calendar" message="Cargando Calendario..." submessage="Organizando eventos académicos..." />;
   }
 
   return (

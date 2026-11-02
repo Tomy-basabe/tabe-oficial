@@ -12,7 +12,8 @@ import { FileText, Image, Link as LinkIcon, Upload, Plus,
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { toast } from "sonner";
-import { useMarketplace } from "@/hooks/useMarketplace";
+import { SubjectAssignmentPicker } from "@/components/subjects/SubjectAssignmentPicker";
+import { useMarketplace, PARAMETRIC_TAGS } from "@/hooks/useMarketplace";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   Select,
@@ -186,8 +187,10 @@ export default function Library() {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingResource, setPublishingResource] = useState<{ id: string; type: "file" | "folder"; nombre: string } | null>(null);
   const [pubDescription, setPubDescription] = useState("");
-  const [pubCategory, setPubCategory] = useState("");
+  const [pubTags, setPubTags] = useState<string[]>(["Resumen"]);
   const [pubIsAnonymous, setPubIsAnonymous] = useState(false);
+  const [pubLibSubjectId, setPubLibSubjectId] = useState<string>("none");
+  const [assignLibSubToSelf, setAssignLibSubToSelf] = useState<boolean>(true);
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "folder" | "file";
     id: string;
@@ -1014,25 +1017,83 @@ export default function Library() {
   };
 
   const handlePublish = async () => {
-    if (!publishingResource || !pubDescription || !pubCategory) {
-      toast.error("Por favor completa todos los campos");
+    if (!publishingResource || !pubDescription.trim()) {
+      toast.error("Por favor ingresa una breve descripción");
+      return;
+    }
+    if (pubTags.length === 0) {
+      toast.error("Debes seleccionar al menos una etiqueta (ej. Resumen, Parcial, Final)");
+      return;
+    }
+    const effectiveSubId = pubLibSubjectId !== "none" ? pubLibSubjectId : (publishingResource as any).subject_id;
+    if (!effectiveSubId || effectiveSubId === "none") {
+      toast.error("Debes seleccionar una materia para publicar este recurso en la comunidad");
       return;
     }
 
     const success = await publishResource(
       publishingResource.type,
       publishingResource.id,
-      pubDescription,
-      pubCategory,
-      pubIsAnonymous
+      pubDescription.trim(),
+      pubTags.join(", "),
+      pubIsAnonymous,
+      assignLibSubToSelf ? effectiveSubId : (publishingResource as any).subject_id || effectiveSubId
     );
 
     if (success) {
       setShowPublishModal(false);
       setPublishingResource(null);
       setPubDescription("");
-      setPubCategory("");
+      setPubTags(["Resumen"]);
       setPubIsAnonymous(false);
+    }
+  };
+
+  const handleDownloadFileItem = async (file: LibraryFile) => {
+    const toastId = `download-${file.id}`;
+    toast.loading(`Descargando "${file.nombre}"...`, { id: toastId });
+    try {
+      let blob: Blob | null = null;
+      if (file.storage_path) {
+        const { data: downloadedBlob } = await supabase.storage
+          .from('library-files')
+          .download(file.storage_path);
+        if (downloadedBlob) {
+          blob = downloadedBlob;
+        } else {
+          const signedUrl = await getSignedUrl(file.storage_path);
+          if (signedUrl) {
+            const res = await fetch(signedUrl);
+            if (res.ok) blob = await res.blob();
+          }
+        }
+      }
+
+      if (!blob && file.url && !file.url.startsWith("blob:")) {
+        try {
+          const res = await fetch(file.url);
+          if (res.ok) blob = await res.blob();
+        } catch (fetchErr) {
+          console.warn("Fallo al descargar url:", fetchErr);
+        }
+      }
+
+      if (!blob) {
+        throw new Error("No se pudo obtener el archivo");
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = file.nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      toast.success(`"${file.nombre}" descargado correctamente`, { id: toastId });
+    } catch (e: any) {
+      console.error("Error al descargar archivo:", e);
+      toast.error(`Error al descargar: ${e.message || "No disponible"}`, { id: toastId });
     }
   };
 
@@ -2531,7 +2592,9 @@ export default function Library() {
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre });
+                                  setPublishingResource({ id: folder.id, type: "folder", nombre: folder.nombre, subject_id: folder.subject_id } as any);
+                                  setPubLibSubjectId(folder.subject_id || "none");
+                                  setAssignLibSubToSelf(true);
                                   setShowPublishModal(true);
                                 }}
                                 className="text-xs flex items-center gap-2 cursor-pointer"
@@ -2744,16 +2807,7 @@ export default function Library() {
                                   <span>Copiar enlace</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    const a = document.createElement('a');
-                                    a.href = file.url;
-                                    a.download = file.nombre;
-                                    a.target = '_blank';
-                                    a.rel = 'noopener noreferrer';
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                  }}
+                                  onClick={() => handleDownloadFileItem(file)}
                                   className="text-xs flex items-center gap-2 cursor-pointer"
                                 >
                                   <Download className="w-3.5 h-3.5 text-zinc-500" />
@@ -2805,7 +2859,9 @@ export default function Library() {
                                 <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
+                                    setPublishingResource({ id: file.id, type: "file", nombre: file.nombre, subject_id: file.subject_id } as any);
+                                    setPubLibSubjectId(file.subject_id || "none");
+                                    setAssignLibSubToSelf(true);
                                     setShowPublishModal(true);
                                   }}
                                   className="text-xs flex items-center gap-2 cursor-pointer"
@@ -3025,7 +3081,9 @@ export default function Library() {
                                         <DropdownMenuSeparator className="my-1 bg-zinc-100 dark:bg-zinc-800" />
                                         <DropdownMenuItem
                                           onClick={() => {
-                                            setPublishingResource({ id: file.id, type: "file", nombre: file.nombre });
+                                            setPublishingResource({ id: file.id, type: "file", nombre: file.nombre, subject_id: file.subject_id } as any);
+                                            setPubLibSubjectId(file.subject_id || "none");
+                                            setAssignLibSubToSelf(true);
                                             setShowPublishModal(true);
                                           }}
                                           className="text-xs flex items-center gap-2 cursor-pointer"
@@ -3769,42 +3827,57 @@ export default function Library() {
               <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 mt-0.5 truncate">{publishingResource?.nombre}</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Descripción</label>
-              <textarea
-                value={pubDescription}
-                onChange={(e) => setPubDescription(e.target.value)}
-                placeholder="Explica qué contiene este recurso, cátedra o año..."
-                className="w-full h-20 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors resize-none"
-              />
-            </div>
+            {/* Selector de Materia Obligatoria para Comunidad */}
+              <SubjectAssignmentPicker
+              value={pubLibSubjectId}
+              onChange={(newSubId) => {
+                setPubLibSubjectId(newSubId);
+                const sub = subjects.find((s) => s.id === newSubId);
+                if (sub) setPubDescription(sub.nombre);
+              }}
+              subjects={subjects}
+              label="Materia vinculada"
+              required={true}
+              assignToSelf={assignLibSubToSelf}
+              onAssignToSelfChange={setAssignLibSubToSelf}
+              assignToSelfLabel="Asignar también esta materia a mi recurso personal en mi biblioteca"
+            />
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
-              <Input
-                type="text"
-                value={pubCategory}
-                onChange={(e) => setPubCategory(e.target.value)}
-                placeholder="Ej: Resumen, Parcial resuelto, Guía TP..."
-                className="h-9 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800 rounded-xl"
-              />
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {quickCategories.map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setPubCategory(cat)}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors",
-                      pubCategory === cat
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Etiquetas <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] text-zinc-400">Selecciona al menos una</span>
               </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {PARAMETRIC_TAGS.map((tag) => {
+                  const isSelected = pubTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setPubTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                      className={cn(
+                        "text-xs font-medium px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 select-none",
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-semibold"
+                          : "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      )}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                      <span>{tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {pubTags.length === 0 && (
+                <p className="text-[11px] text-red-500 font-medium">Debes seleccionar al menos una etiqueta.</p>
+              )}
             </div>
 
             <div

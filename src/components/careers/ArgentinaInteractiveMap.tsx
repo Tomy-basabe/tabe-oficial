@@ -357,7 +357,7 @@ export function ArgentinaInteractiveMap({
   };
 
   return (
-    <div className="relative w-full rounded-3xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-950 shadow-2xl">
+    <div className="relative w-full rounded-3xl overflow-hidden isolate border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-950 shadow-2xl">
       {/* Contenedor del Mapa Leaflet */}
       <div
         ref={mapContainerRef}
@@ -368,7 +368,7 @@ export function ArgentinaInteractiveMap({
       {/* ───────────────────────────────────────────────────────────── */}
       {/* BARRA SUPERIOR: Chips Rápidos de Provincias (Estilo Notion/Apple) */}
       {/* ───────────────────────────────────────────────────────────── */}
-      <div className="absolute top-4 left-4 right-4 z-[400] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pointer-events-none">
+      <div className="absolute top-4 left-4 right-4 z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pointer-events-none">
         {/* Buscador Integrado con Autocompletado */}
         <div className="relative pointer-events-auto w-full sm:w-80 shadow-lg">
           <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-900 dark:text-zinc-100">
@@ -465,7 +465,7 @@ export function ArgentinaInteractiveMap({
       {/* ───────────────────────────────────────────────────────────── */}
       {/* CONTROLES FLOTANTES LATERALES (Estilo Apple / Google Maps) */}
       {/* ───────────────────────────────────────────────────────────── */}
-      <div className="absolute bottom-6 right-4 z-[400] flex flex-col gap-2">
+      <div className="absolute bottom-6 right-4 z-10 flex flex-col gap-2">
         {/* Alternar Tema de Mapa (Voyager / Oscuro) */}
         <button
           onClick={() => setMapTheme(mapTheme === "voyager" ? "dark" : "voyager")}
@@ -506,7 +506,7 @@ export function ArgentinaInteractiveMap({
       {/* ───────────────────────────────────────────────────────────── */}
       {/* BADGE INFERIOR: Total de Instituciones y Zoom Actual */}
       {/* ───────────────────────────────────────────────────────────── */}
-      <div className="absolute bottom-6 left-4 z-[400] flex items-center gap-2 pointer-events-none">
+      <div className="absolute bottom-6 left-4 z-10 flex items-center gap-2 pointer-events-none">
         <div className="px-3 py-1.5 rounded-xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-700/80 shadow-lg text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>
@@ -523,6 +523,9 @@ export function ArgentinaInteractiveMap({
       <style>{`
         .leaflet-container {
           font-family: inherit;
+        }
+        .leaflet-pane, .leaflet-top, .leaflet-bottom, .leaflet-control {
+          z-index: 5 !important;
         }
         .leaflet-plain-marker {
           background: transparent;

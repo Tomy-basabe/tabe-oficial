@@ -14,6 +14,8 @@ import {
   LogOut,
   Zap
 } from "lucide-react";
+import { Compass } from "lucide-react";
+import { TUTORIAL_RESTART_EVENT } from "@/components/onboarding/TutorialTour";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
@@ -72,7 +74,8 @@ export function MainLayout() {
     lowerPath.startsWith("/asistente");
   const isApuntesPage = lowerPath.startsWith("/apuntes") || lowerPath.startsWith("/notion");
   const isTabetalkPage = lowerPath.startsWith("/tabetalk") || lowerPath.startsWith("/discord");
-  const isFullScreenPage = isAIPage || isApuntesPage || isTabetalkPage;
+  const isMapaPage = lowerPath.startsWith("/mapa");
+  const isFullScreenPage = isAIPage || isApuntesPage || isTabetalkPage || isMapaPage;
   const { user, isGuest, profile, signOut } = useAuth();
   const { toggleTheme, resolvedTheme } = useTheme();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -401,6 +404,21 @@ export function MainLayout() {
             {/* Quick Actions on Mobile/Tablet Header */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <NotificationBell variant="header" />
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent(TUTORIAL_RESTART_EVENT, {
+                      detail: { route: location.pathname },
+                    })
+                  )
+                }
+                title="Guía interactiva de este apartado"
+                aria-label="Guía interactiva de este apartado"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 text-zinc-600 dark:text-zinc-300 active:scale-90 transition-all cursor-pointer"
+              >
+                <Compass className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              </button>
               <Link
                 to="/metricas"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/70 dark:border-zinc-700/70 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 active:scale-95 transition-all shadow-2xs"
@@ -649,21 +667,15 @@ export function MainLayout() {
                   if (item.type === "category") {
                     const hasActiveChild = item.items?.some((sub: any) => (sub.path || sub.id) === location.pathname);
                     const isOpen = !!openCategories[item.id];
-                    const isHovered = hoveredCategory === item.id && !closedByClickRef.current[item.id];
-                    const isVisible = isOpen || isHovered;
+                    // Si el panel lateral está desplegado, no se abre con hover, solo con clic
+                    const isVisible = isOpen;
 
                     return (
                       <div
                         key={item.id}
                         className="space-y-1.5 my-2 relative"
                         onMouseEnter={() => {
-                          if (!closedByClickRef.current[item.id]) {
-                            setHoveredCategory(item.id); item.items?.forEach((sub: any) => preloadRoute(sub.path || sub.id));
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          delete closedByClickRef.current[item.id];
-                          setHoveredCategory((prev) => (prev === item.id ? null : prev));
+                          item.items?.forEach((sub: any) => preloadRoute(sub.path || sub.id));
                         }}
                       >
                         <button
@@ -775,6 +787,29 @@ export function MainLayout() {
                   </div>
                 </div>
 
+                {/* Guía Interactiva del Apartado (Colapsado) */}
+                <div className="relative group/foot-tour">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(TUTORIAL_RESTART_EVENT, {
+                          detail: { route: location.pathname },
+                        })
+                      )
+                    }
+                    className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                    aria-label="Guía interactiva de este apartado"
+                  >
+                    <Compass className="w-5 h-5 text-blue-600 dark:text-blue-400 stroke-[2.2]" />
+                  </button>
+                  <div className="hidden group-hover/foot-tour:flex absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1c1c1f] border border-zinc-200/80 dark:border-zinc-800/80 rounded-md px-2.5 py-1 shadow-md items-center whitespace-nowrap pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+                    <span className="font-medium text-xs tracking-tight text-zinc-900 dark:text-zinc-100">
+                      Guía del apartado
+                    </span>
+                  </div>
+                </div>
+
                 {/* Cambiar tema (Colapsado) */}
                 <div className="relative group/foot-theme">
                   <button
@@ -840,6 +875,23 @@ export function MainLayout() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                  {/* Guía Interactiva del Apartado (Expandido) */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(TUTORIAL_RESTART_EVENT, {
+                          detail: { route: location.pathname },
+                        })
+                      )
+                    }
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                    title="Guía interactiva de este apartado"
+                    aria-label="Guía interactiva de este apartado"
+                  >
+                    <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400 stroke-[2.2]" />
+                  </button>
+
                   {/* Cambiar tema (Expandido) */}
                   <button
                     type="button"

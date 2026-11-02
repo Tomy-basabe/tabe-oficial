@@ -1,3 +1,4 @@
+import { MathText } from "@/components/ui/MathText";
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Gamepad2, Trophy, Zap, Clock, Users, Bot, Loader2, Shield, Goal } from "lucide-react";
@@ -576,7 +577,7 @@ export default function PenaltyGame() {
                 </Badge>
               </div>
 
-              <h3 className="font-medium text-lg leading-snug">{currentQuestion.pregunta}</h3>
+              <MathText text={currentQuestion.pregunta} as="h3" className="font-medium text-lg leading-snug" />
 
               <div className="space-y-2">
                 {currentQuestion.options.map(option => {
@@ -599,7 +600,7 @@ export default function PenaltyGame() {
                         !selectedAnswer && "border-border/50 bg-secondary/30"
                       )}
                     >
-                      <p className="text-sm font-medium">{option.texto}</p>
+                      <MathText text={option.texto} as="p" className="text-sm font-medium" />
                     </button>
                   );
                 })}

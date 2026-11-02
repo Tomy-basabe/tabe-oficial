@@ -273,10 +273,6 @@ export default function CareerPlan() {
     setShowAddModal(true);
   }, []);
 
-  if (loading) {
-    return <LoadingScreen message="Cargando Plan de Carrera..." submessage="Calculando correlatividades y materias..." />;
-  }
-
   return (
     <div className="tabe-page p-4 lg:p-8 space-y-6">
       {/* Header */}
@@ -528,8 +524,42 @@ export default function CareerPlan() {
         </span>
       </div>
 
-      {/* Empty State Banner if no subjects */}
-      {subjects.length === 0 && (
+      {/* Subjects Area */}
+      {loading ? (
+        <div className="space-y-8 animate-pulse pt-2">
+          {[1, 2].map((year) => (
+            <div key={year} className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-zinc-200/80 dark:border-zinc-800/80">
+                <div className="w-7 h-7 rounded-md bg-zinc-200 dark:bg-zinc-800" />
+                <div className="space-y-1.5">
+                  <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                  <div className="h-3 w-32 bg-zinc-100 dark:bg-zinc-800/60 rounded" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-[128px] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#212121] p-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        <div className="h-4 w-14 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                      </div>
+                      <div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+                      <div className="h-3 w-12 bg-zinc-100 dark:bg-zinc-800/60 rounded" />
+                      <div className="h-3 w-8 bg-zinc-100 dark:bg-zinc-800/60 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : subjects.length === 0 ? (
         <div className="bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-8 sm:p-12 text-center shadow-2xs max-w-2xl mx-auto my-8 space-y-5">
           <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 mx-auto flex items-center justify-center">
             <FileUp className="w-5 h-5 text-zinc-600 dark:text-zinc-300" />
@@ -568,9 +598,10 @@ export default function CareerPlan() {
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Subjects Grid by Year */}
+      {!loading && (
       <motion.div layout className="space-y-8">
         <AnimatePresence mode="popLayout">
           {subjectsByYear
@@ -648,6 +679,7 @@ export default function CareerPlan() {
             ))}
         </AnimatePresence>
       </motion.div>
+      )}
 
       {/* Modals */}
       {selectedSubject && (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, BookOpen, Layers, Bot, Zap, Compass, Check } from "lucide-react";
+import { ArrowRight, CheckCircle2, BookOpen, Layers, Bot, Zap, Compass, Check, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -10,20 +10,25 @@ export function HeroSection() {
     <section id="hero" className="relative pt-32 pb-24 md:pt-44 md:pb-36 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
 
-        {/* Top Announcement Pill */}
+        {/* Top Announcement Pill - Novedad Federal */}
         <div className="flex justify-center mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-zinc-200/80 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
-          >
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-              TABE 2.0 · Asistente de estudio inteligente y gamificado
-            </span>
-            <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
-          </motion.div>
+          <Link to="/carreras" className="group">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-sky-300/80 dark:border-sky-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-2xs hover:border-sky-400 dark:hover:border-sky-600 transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-sky-500 text-white shadow-2xs">
+                Novedad
+              </span>
+              <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                <span className="text-sm">🇦🇷</span>
+                <span>Contamos con <strong>+1.100 facultades de toda Argentina</strong> registradas</span>
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-sky-500 group-hover:translate-x-0.5 transition-transform" />
+            </motion.div>
+          </Link>
         </div>
 
         {/* Hero Title & Subtitle (Apple/Notion aesthetic) */}
@@ -80,6 +85,9 @@ export function HeroSection() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="pt-4 flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 dark:text-zinc-400"
           >
+            <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">
+              <Building2 className="w-4 h-4 text-sky-500" /> +1.100 Facultades de toda Argentina
+            </span>
             <span className="flex items-center gap-1.5">
               <Check className="w-4 h-4 text-emerald-500" /> 100% Gratuito
             </span>

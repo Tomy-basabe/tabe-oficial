@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, AlertCircle, Info, X, Check, Trash2 } from "lucide-react";
-import { ComicAudio } from "@/components/comic/ComicAudio";
-import { cn, orchestrateContentOpen } from "@/lib/utils";
-import { HoldButton } from "@/components/ui/HoldButton";
+import { AlertTriangle, AlertCircle, Info, X, Trash2, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
 
@@ -47,7 +45,6 @@ export const confirmGlobal = (input: ConfirmInput): Promise<boolean> => {
   if (globalConfirmResolver) {
     return globalConfirmResolver(input);
   }
-  // Fallback seguro si se invoca antes de montar el Provider
   console.warn("ConfirmModalProvider no está montado aún.");
   return Promise.resolve(false);
 };
@@ -58,7 +55,6 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const confirm = useCallback((input: ConfirmInput): Promise<boolean> => {
     return new Promise<boolean>((resolve) => {
-      // Si había uno abierto previamente, resolverlo como cancelado
       if (activeResolveRef.current) {
         activeResolveRef.current(false);
       }
@@ -68,7 +64,7 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         parsed = {
           title: input,
           description: "Esta acción no se puede deshacer.",
-          confirmText: "Confirmar",
+          confirmText: "Eliminar",
           cancelText: "Cancelar",
           variant: "danger",
         };
@@ -76,7 +72,7 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         parsed = {
           title: input.title,
           description: input.description,
-          confirmText: input.confirmText ?? (input.variant === "info" ? "Aceptar" : "Confirmar"),
+          confirmText: input.confirmText ?? (input.variant === "info" ? "Aceptar" : input.variant === "danger" ? "Eliminar" : "Confirmar"),
           cancelText: input.cancelText ?? "Cancelar",
           variant: input.variant ?? "danger",
           badgeText: input.badgeText,
@@ -90,10 +86,6 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         options: parsed,
         resolve,
       });
-
-      try {
-        ComicAudio.playPop();
-      } catch {}
     });
   }, []);
 
@@ -131,7 +123,6 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         e.preventDefault();
         handleCancel();
       } else if (e.key === "Enter") {
-        // Prevenir si el foco está en el botón cancelar
         if (document.activeElement?.getAttribute("data-cancel-button") === "true") {
           return;
         }
@@ -149,26 +140,6 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const options = modalState?.options || defaultOptions;
   const variant = options.variant || "danger";
 
-  const getBadgeConfig = () => {
-    if (options.badgeText) {
-      return {
-        text: options.badgeText,
-        bg: variant === "danger" ? "bg-[#FF5C5C]" : variant === "warning" ? "bg-[#FFD700]" : "bg-[#00E5FF]",
-      };
-    }
-    switch (variant) {
-      case "warning":
-        return { text: "ADVERTENCIA", bg: "bg-[#FFD700]" };
-      case "info":
-        return { text: "INFORMACIÓN", bg: "bg-[#00E5FF]" };
-      case "danger":
-      default:
-        return { text: "¡ATENCIÓN!", bg: "bg-[#FF5C5C]" };
-    }
-  };
-
-  const badgeConfig = getBadgeConfig();
-
   return (
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
@@ -181,113 +152,87 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
             aria-modal="true"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[9999] bg-black/50 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"
             onClick={handleCancel}
           >
             <motion.div
-              ref={(node) => {
-                if (node) orchestrateContentOpen(node, { skipContainerClass: true });
-              }}
-              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 8, transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-md bg-[#FDFBF7] dark:bg-[#1E1E24] text-foreground border-4 border-black dark:border-white rounded-2xl shadow-[8px_8px_0px_#000] dark:shadow-[8px_8px_0px_#fff] p-6 select-none overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-md bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 select-none overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-            {/* Cabecera / Badge */}
-            <div className="flex items-center justify-between gap-3 border-b-4 border-black dark:border-white pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <span
+              <div className="flex items-start gap-4">
+                {/* Ícono sutil Notion/Apple */}
+                <div
                   className={cn(
-                    "px-2.5 py-0.5 rounded text-xs font-black uppercase tracking-wider text-black border-2 border-black shadow-[2px_2px_0px_#000]",
-                    badgeConfig.bg
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                    variant === "danger" && "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200/70 dark:border-red-900/50",
+                    variant === "warning" && "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200/70 dark:border-amber-900/50",
+                    variant === "info" && "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200/70 dark:border-blue-900/50"
                   )}
                 >
-                  {badgeConfig.text}
-                </span>
-                {variant === "danger" && <AlertTriangle className="w-5 h-5 text-[#FF5C5C] stroke-[2.5]" />}
-                {variant === "warning" && <AlertCircle className="w-5 h-5 text-[#FFD700] stroke-[2.5]" />}
-                {variant === "info" && <Info className="w-5 h-5 text-[#00E5FF] stroke-[2.5]" />}
-              </div>
+                  {variant === "danger" && <Trash2 className="w-5 h-5" />}
+                  {variant === "warning" && <AlertTriangle className="w-5 h-5" />}
+                  {variant === "info" && <Info className="w-5 h-5" />}
+                </div>
 
-              <button
-                type="button"
-                onClick={handleCancel}
-                aria-label="Cerrar modal"
-                className="w-8 h-8 rounded-lg border-2 border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white flex items-center justify-center shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
-              >
-                <X className="w-4 h-4 stroke-[3]" />
-              </button>
-            </div>
+                <div className="flex-1 min-w-0 pr-6">
+                  <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    {options.title}
+                  </h3>
+                  {options.description && (
+                    <p className="mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed font-normal">
+                      {options.description}
+                    </p>
+                  )}
+                </div>
 
-            {/* Contenido principal */}
-            <div className="space-y-2 py-1">
-              <h3 className="text-xl font-black uppercase tracking-tight text-foreground leading-snug">
-                {options.title}
-              </h3>
-              {options.description && (
-                <p className="text-sm font-bold text-foreground/80 leading-relaxed">
-                  {options.description}
-                </p>
-              )}
-            </div>
-
-            {/* Botones de acción */}
-            <div className="flex gap-3 pt-5 mt-2 border-t-2 border-black/10 dark:border-white/10">
-              {!options.alertOnly && (
+                {/* Botón Cerrar */}
                 <button
                   type="button"
-                  data-cancel-button="true"
                   onClick={handleCancel}
-                  className="flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] hover:bg-neutral-100 dark:hover:bg-zinc-700 active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  aria-label="Cerrar modal"
+                  className="absolute top-5 right-5 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4 stroke-[2.5]" />
-                  {options.cancelText}
+                  <X className="w-4 h-4" />
                 </button>
-              )}
+              </div>
 
-              {variant === "danger" ? (
-                <HoldButton
-                  backgroundColor="#FF5C5C"
-                  fillColor="#CC0000"
-                  textColor="#000000"
-                  fillTextColor="#ffffff"
-                  radius={12}
-                  size="md"
-                  holdTime={1500}
-                  icon={<Trash2 className="w-4 h-4 stroke-[2.5]" />}
-                  doneIcon={<Check className="w-4 h-4 stroke-[3]" />}
-                  doneLabel="¡Eliminado!"
-                  onHold={handleConfirm}
-                  onTap={() => {
-                    try { ComicAudio.playPop(); } catch {}
-                  }}
-                  className="flex-1 py-3 px-4 font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff]"
-                >
-                  {options.confirmText ? `Mantener: ${options.confirmText}` : "Mantener para borrar"}
-                </HoldButton>
-              ) : (
+              {/* Botones de acción sobrios */}
+              <div className="flex items-center justify-end gap-2.5 pt-6 mt-2">
+                {!options.alertOnly && (
+                  <button
+                    type="button"
+                    data-cancel-button="true"
+                    onClick={handleCancel}
+                    className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border border-zinc-200/90 dark:border-zinc-700/80 bg-white dark:bg-zinc-850 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    {options.cancelText}
+                  </button>
+                )}
+
                 <button
                   type="button"
                   autoFocus
                   onClick={handleConfirm}
                   className={cn(
-                    "flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs sm:text-sm tracking-wider border-2 border-black dark:border-white shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                    variant === "warning"
-                      ? "bg-[#FFD700] hover:bg-[#f5cb00] text-black"
-                      : "bg-[#00E5FF] hover:bg-[#00d0e6] text-black"
+                    "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-white transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5",
+                    variant === "danger" && "bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500",
+                    variant === "warning" && "bg-amber-600 hover:bg-amber-700 text-white",
+                    variant === "info" && "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 text-white"
                   )}
                 >
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  {options.confirmText}
+                  {variant === "danger" && <Trash2 className="w-3.5 h-3.5" />}
+                  {variant !== "danger" && <Check className="w-3.5 h-3.5" />}
+                  <span>{options.confirmText}</span>
                 </button>
-              )}
-            </div>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
         )}
       </AnimatePresence>
     </ConfirmContext.Provider>
@@ -297,7 +242,6 @@ export const ConfirmModalProvider: React.FC<{ children: React.ReactNode }> = ({ 
 export const useConfirm = () => {
   const context = useContext(ConfirmContext);
   if (!context) {
-    // Si no está dentro de ConfirmModalProvider, usar confirmGlobal de fallback
     return { confirm: confirmGlobal };
   }
   return context;

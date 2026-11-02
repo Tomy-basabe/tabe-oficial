@@ -1,19 +1,48 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Cookie, ShieldCheck, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type CookiePreference = "all" | "necessary";
 
 export const COOKIE_STORAGE_KEY = "tabe_cookie_consent";
 export const COOKIE_EVENT_NAME = "tabe:cookie-consent-updated";
 
+// Helper para leer consentimiento desde Multi-Tier: localStorage, sessionStorage o cookie nativa
 export function getCookieConsent(): CookiePreference | null {
   if (typeof window === "undefined") return null;
+
+  // 1. Probar localStorage
   try {
     const val = localStorage.getItem(COOKIE_STORAGE_KEY);
     if (val === "all" || val === "necessary") return val;
-  } catch (e) {}
+  } catch {}
+
+  // 2. Probar sessionStorage
+  try {
+    const sessVal = sessionStorage.getItem(COOKIE_STORAGE_KEY);
+    if (sessVal === "all" || sessVal === "necessary") {
+      try { localStorage.setItem(COOKIE_STORAGE_KEY, sessVal); } catch {}
+      return sessVal;
+    }
+  } catch {}
+
+  // 3. Probar document.cookie con vigencia persistente
+  if (typeof document !== "undefined") {
+    try {
+      const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + COOKIE_STORAGE_KEY + '=([^;]*)'));
+      if (match) {
+        const cVal = decodeURIComponent(match[1]);
+        if (cVal === "all" || cVal === "necessary") {
+          try { localStorage.setItem(COOKIE_STORAGE_KEY, cVal); } catch {}
+          try { sessionStorage.setItem(COOKIE_STORAGE_KEY, cVal); } catch {}
+          return cVal;
+        }
+      }
+    } catch {}
+  }
+
   return null;
 }
 
@@ -21,25 +50,74 @@ export function hasAnalyticsConsent(): boolean {
   return getCookieConsent() === "all";
 }
 
-export function setCookieConsent(pref: CookiePreference) {
+export function setCookieConsent(pref: CookiePreference, userId?: string | null) {
   if (typeof window === "undefined") return;
+
+  // 1. Guardar en localStorage
   try {
     localStorage.setItem(COOKIE_STORAGE_KEY, pref);
-    window.dispatchEvent(new CustomEvent(COOKIE_EVENT_NAME, { detail: { preference: pref } }));
-  } catch (e) {}
+  } catch {}
+
+  // 2. Guardar en sessionStorage
+  try {
+    sessionStorage.setItem(COOKIE_STORAGE_KEY, pref);
+  } catch {}
+
+  // 3. Guardar en document.cookie (1 año de persistencia, SameSite=Lax)
+  try {
+    const expires = new Date();
+    expires.setFullYear(expires.getFullYear() + 1);
+    document.cookie = `${COOKIE_STORAGE_KEY}=${encodeURIComponent(pref)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+  } catch {}
+
+  // 4. Si hay usuario autenticado, sincronizar en la nube en user_metadata para persistencia vitalicia
+  if (userId) {
+    try {
+      supabase.auth.updateUser({
+        data: { tabe_cookie_consent: pref }
+      }).catch(() => {});
+    } catch {}
+  }
+
+  window.dispatchEvent(new CustomEvent(COOKIE_EVENT_NAME, { detail: { preference: pref } }));
 }
 
-export function resetCookieConsent() {
+export function resetCookieConsent(userId?: string | null) {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(COOKIE_STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent(COOKIE_EVENT_NAME, { detail: { preference: null } }));
-  } catch (e) {}
+    sessionStorage.removeItem(COOKIE_STORAGE_KEY);
+    document.cookie = `${COOKIE_STORAGE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+  } catch {}
+
+  if (userId) {
+    try {
+      supabase.auth.updateUser({
+        data: { tabe_cookie_consent: null }
+      }).catch(() => {});
+    } catch {}
+  }
+
+  window.dispatchEvent(new CustomEvent(COOKIE_EVENT_NAME, { detail: { preference: null } }));
 }
 
 export function CookieConsent() {
+  const { user, isGuest } = useAuth();
   const [preference, setPreference] = useState<CookiePreference | null>(() => getCookieConsent());
   const [visible, setVisible] = useState(false);
+
+  // Sincronizar si el usuario ya tiene consentimiento guardado en su cuenta en la nube
+  useEffect(() => {
+    if (!user || isGuest) return;
+    const cloudConsent = user.user_metadata?.tabe_cookie_consent as CookiePreference | undefined;
+    if (cloudConsent === "all" || cloudConsent === "necessary") {
+      if (!preference) {
+        setCookieConsent(cloudConsent);
+        setPreference(cloudConsent);
+        setVisible(false);
+      }
+    }
+  }, [user, isGuest, preference]);
 
   useEffect(() => {
     const handleConsentChange = (e: any) => {
@@ -47,13 +125,22 @@ export function CookieConsent() {
       setPreference(newPref);
       if (!newPref) {
         setVisible(true);
+      } else {
+        setVisible(false);
       }
     };
 
     window.addEventListener(COOKIE_EVENT_NAME, handleConsentChange);
 
-    if (!getCookieConsent()) {
-      const timer = setTimeout(() => setVisible(true), 1200);
+    const currentConsent = getCookieConsent();
+    if (!currentConsent) {
+      // Delay sutil para no interrumpir el montaje inicial
+      const timer = setTimeout(() => {
+        // Verificar una vez más antes de abrir por si se resolvió desde cookies o usuario
+        if (!getCookieConsent()) {
+          setVisible(true);
+        }
+      }, 1500);
       return () => {
         clearTimeout(timer);
         window.removeEventListener(COOKIE_EVENT_NAME, handleConsentChange);
@@ -68,13 +155,13 @@ export function CookieConsent() {
   if (!visible || preference) return null;
 
   const handleAcceptAll = () => {
-    setCookieConsent("all");
+    setCookieConsent("all", user?.id);
     setPreference("all");
     setVisible(false);
   };
 
   const handleOnlyNecessary = () => {
-    setCookieConsent("necessary");
+    setCookieConsent("necessary", user?.id);
     setPreference("necessary");
     setVisible(false);
   };

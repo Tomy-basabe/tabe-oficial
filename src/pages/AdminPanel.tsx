@@ -11,10 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2, Search, Users } from "lucide-react";
+import { UserPlus, Trash2, Shield, Star, Download, Crown, Ban, CalendarDays, Clock, BookOpen, Loader2, Search, Users, ClipboardCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
-import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { AVAILABLE_FACULTADES, AVAILABLE_CAREERS, isUserFromUtnFrm } from "@/lib/careerData";
+import {
+  isUtnFrmEncuestasApproved,
+  setUtnFrmEncuestasPermissionByAdmin,
+  getCleanPlanType,
+} from "@/lib/utnFrmMcpService";
+import { invalidateStudentContextCache } from "@/lib/aiClientService";
 import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 import { generateId } from "@/lib/utils/id";
 import { useConfirm } from "@/contexts/ConfirmModalContext";
@@ -36,10 +42,13 @@ interface Profile {
   email: string | null;
   nombre: string | null;
   created_at: string;
+  facultad?: string | null;
+  carrera?: string | null;
   plan?: string;
   plan_expires_at?: string | null;
   plan_activated_at?: string | null;
   plan_type?: string | null;
+  utnfrm_encuestas_enabled?: boolean | null;
 }
 
 const PLAN_PRICES: Record<string, { label: string; price: string; months: number }> = {
@@ -216,6 +225,34 @@ const AdminPanel = () => {
     } catch (error: any) {
       console.error("Error deactivating plan:", error);
       toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  const handleToggleEncuestasDocentes = async (profile: Profile) => {
+    const currentlyApproved = isUtnFrmEncuestasApproved(profile);
+    const nextState = !currentlyApproved;
+
+    try {
+      await setUtnFrmEncuestasPermissionByAdmin(profile.user_id, nextState);
+      invalidateStudentContextCache(profile.user_id);
+
+      setRegisteredUsers((prev) =>
+        prev.map((p) =>
+          p.user_id === profile.user_id
+            ? { ...p, utnfrm_encuestas_enabled: nextState }
+            : p
+        )
+      );
+
+      toast.success(
+        nextState
+          ? `✅ Encuestas Docentes UTN FRM habilitadas para ${profile.nombre || profile.email}`
+          : `🔒 Permiso de Encuestas Docentes revocado para ${profile.nombre || profile.email}`
+      );
+      fetchRegisteredUsers();
+    } catch (error: any) {
+      console.error("Error actualizando permiso de encuestas:", error);
+      toast.error(`Error al cambiar permiso de encuestas: ${error.message}`, { duration: 7000 });
     }
   };
 
@@ -515,7 +552,20 @@ const AdminPanel = () => {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{profile.nombre || 'Sin nombre'}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-medium truncate">{profile.nombre || 'Sin nombre'}</p>
+                          {isUserFromUtnFrm({ facultad: profile.facultad, carrera: profile.carrera }) && (
+                            <Badge variant="outline" className="text-[10px] border-indigo-500/40 text-indigo-400 bg-indigo-500/10">
+                              UTN FRM
+                            </Badge>
+                          )}
+                          {isUtnFrmEncuestasApproved(profile) && (
+                            <Badge className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                              <ClipboardCheck className="h-3 w-3 mr-1" />
+                              Encuestas Docentes OK
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {profile.email || 'Sin email'}
                         </p>
@@ -530,7 +580,7 @@ const AdminPanel = () => {
                       {status === "active" && (
                         <Badge className="bg-neon-gold/20 text-neon-gold border-neon-gold/30 text-xs">
                           <Crown className="h-3 w-3 mr-1" />
-                          Premium {profile.plan_type ? `(${PLAN_PRICES[profile.plan_type]?.label})` : ""}
+                          Premium {getCleanPlanType(profile.plan_type) ? `(${PLAN_PRICES[getCleanPlanType(profile.plan_type)!]?.label})` : ""}
                         </Badge>
                       )}
                       {status === "expiring" && (
@@ -590,6 +640,28 @@ const AdminPanel = () => {
                       >
                         <BookOpen className="h-3 w-3 mr-1" />
                         Carrera
+                      </Button>
+
+                      {/* Aprobar / Revocar Resolución de Encuestas Docentes (UTN FRM) */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={
+                          isUtnFrmEncuestasApproved(profile)
+                            ? "h-7 text-xs border-emerald-500/50 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                            : "h-7 text-xs border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10"
+                        }
+                        onClick={() => handleToggleEncuestasDocentes(profile)}
+                        title={
+                          isUtnFrmEncuestasApproved(profile)
+                            ? "Revocar permiso para resolver encuestas docentes con TABE AI"
+                            : "Aprobar usuario para que TABE AI pueda resolver sus encuestas docentes (UTN FRM)"
+                        }
+                      >
+                        <ClipboardCheck className="h-3 w-3 mr-1" />
+                        {isUtnFrmEncuestasApproved(profile)
+                          ? "Quitar Encuestas"
+                          : "Aprobar Encuestas"}
                       </Button>
 
                       {/* Delete user */}

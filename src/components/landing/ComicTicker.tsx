@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Zap, Trophy, Brain, Flame, Target, Compass } from "lucide-react";
+import { Zap, Trophy, Brain, Flame, Target, Compass, Building2 } from "lucide-react";
 
 const TICKER_ITEMS = [
+  { text: "🇦🇷 +1.100 Facultades de toda Argentina", icon: Building2 },
   { text: "+350 Estudiantes universitarios", icon: Target },
   { text: "Técnica Pomodoro & Seguimiento", icon: Zap },
   { text: "Mapas de Correlatividades Vivos", icon: Compass },
@@ -16,8 +17,8 @@ export function ComicTicker() {
       <div className="flex w-fit">
         <motion.div
           className="flex items-center gap-6 whitespace-nowrap text-xs font-medium text-zinc-600 dark:text-zinc-400"
-          animate={{ x: [0, -800] }}
-          transition={{ repeat: Infinity, duration: 24, ease: "linear" }}
+          animate={{ x: [0, -1000] }}
+          transition={{ repeat: Infinity, duration: 28, ease: "linear" }}
         >
           {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, idx) => {
             const Icon = item.icon;

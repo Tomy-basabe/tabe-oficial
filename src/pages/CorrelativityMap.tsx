@@ -118,8 +118,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], subjects: Subject[]) 
 function CorrelativityMapContent() {
     const navigate = useNavigate();
     const { subjects, loading, refetch } = useSubjects();
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
+    const { resolvedTheme } = useTheme();
+    const isDark = resolvedTheme === 'dark';
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -225,7 +225,7 @@ function CorrelativityMapContent() {
     }, [subjects, loading, isDark, setNodes, setEdges]);
 
     if (loading) {
-        return <LoadingScreen fullScreen message="Cargando Mapa de Correlativas..." submessage="Generando grafo de la carrera..." />;
+        return <LoadingScreen type="correlativity_map" fullScreen message="Cargando Mapa de Correlativas..." submessage="Generando grafo de la carrera..." />;
     }
 
     return (

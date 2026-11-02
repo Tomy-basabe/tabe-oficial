@@ -28,7 +28,12 @@ export default async function handler(req: any, res: any) {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-tabe-client": "tabe-web-v2-shield",
+        },
+      },
     });
     const { data, error } = await supabase.auth.getUser(token);
 

@@ -75,7 +75,7 @@ export const calendarEventSchema = z.object({
 });
 
 // ============================================================
-// 15. XSS SANITIZATION (Content Escaping)
+// 15. XSS SANITIZATION (DOMParser Tree Sanitizer)
 // ============================================================
 
 const HTML_ESCAPE_MAP: Record<string, string> = {
@@ -92,40 +92,121 @@ const HTML_ESCAPE_MAP: Record<string, string> = {
  * Use this whenever rendering user-generated content outside React's JSX.
  */
 export function escapeHtml(str: string): string {
-  return str.replace(/[&<>"'/]/g, (char) => HTML_ESCAPE_MAP[char] || char);
+  return String(str || "").replace(/[&<>"'/]/g, (char) => HTML_ESCAPE_MAP[char] || char);
+}
+
+const ALLOWED_TAGS_SET = new Set([
+  "strong", "em", "b", "i", "u", "br", "p", "ul", "ol", "li",
+  "code", "pre", "span", "a", "h1", "h2", "h3", "h4", "h5", "h6",
+  "blockquote", "hr", "sub", "sup", "mark", "del",
+  "table", "thead", "tbody", "tr", "td", "th",
+]);
+
+const ALLOWED_ATTRS_SET = new Set(["href", "title", "target", "rel", "class", "colspan", "rowspan"]);
+
+function isSafeHref(rawHref: string): boolean {
+  const normalized = rawHref.replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+  if (!normalized) return false;
+  if (
+    normalized.startsWith("https://") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("mailto:") ||
+    normalized.startsWith("/") ||
+    normalized.startsWith("#")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
- * Sanitizes a string for use in dangerouslySetInnerHTML.
- * Only allows safe formatting tags.
+ * Sanitizes an HTML string using an inert DOMParser tree walker.
+ * Eliminates regex-bypass vectors (encoded control chars, nested tags, event handlers).
  */
 export function sanitizeHtml(html: string): string {
-  // Remove all tags except safe formatting ones
-  const ALLOWED_TAGS = ["strong", "em", "b", "i", "u", "br", "p", "ul", "ol", "li", "code", "pre", "span", "a", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "hr", "sub", "sup", "mark", "del", "table", "thead", "tbody", "tr", "td", "th"];
-  
-  const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/gi;
-  
-  return html.replace(tagPattern, (match, tagName) => {
-    if (ALLOWED_TAGS.includes(tagName.toLowerCase())) {
-      // Strip dangerous attributes (on*, javascript:, data:)
-      return match
-        .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, "")
-        .replace(/\s+href\s*=\s*["']?\s*javascript:[^"'>]*/gi, "")
-        .replace(/\s+src\s*=\s*["']?\s*data:[^"'>]*/gi, "");
-    }
-    return "";
-  });
+  if (!html) return "";
+  if (typeof DOMParser === "undefined") {
+    return escapeHtml(html);
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    const cleanNode = (node: Node): Node | null => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return document.createTextNode(node.textContent || "");
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+      }
+
+      const el = node as Element;
+      const tag = el.tagName.toLowerCase();
+
+      // Drop dangerous container tags completely with their contents
+      if (["script", "style", "iframe", "object", "embed", "svg", "math", "form", "base", "meta", "link"].includes(tag)) {
+        return null;
+      }
+
+      if (!ALLOWED_TAGS_SET.has(tag)) {
+        // Unwrap disallowed tag but keep sanitized text/children
+        const frag = document.createDocumentFragment();
+        Array.from(el.childNodes).forEach((child) => {
+          const cleaned = cleanNode(child);
+          if (cleaned) frag.appendChild(cleaned);
+        });
+        return frag;
+      }
+
+      const safeEl = document.createElement(tag);
+      for (const attr of Array.from(el.attributes)) {
+        const attrName = attr.name.toLowerCase();
+        if (!ALLOWED_ATTRS_SET.has(attrName)) continue;
+        if (attrName === "href") {
+          if (!isSafeHref(attr.value)) continue;
+          safeEl.setAttribute("href", attr.value.trim());
+          safeEl.setAttribute("rel", "noopener noreferrer");
+        } else {
+          safeEl.setAttribute(attrName, attr.value);
+        }
+      }
+
+      Array.from(el.childNodes).forEach((child) => {
+        const cleaned = cleanNode(child);
+        if (cleaned) safeEl.appendChild(cleaned);
+      });
+
+      return safeEl;
+    };
+
+    const container = document.createElement("div");
+    Array.from(doc.body.childNodes).forEach((child) => {
+      const cleaned = cleanNode(child);
+      if (cleaned) container.appendChild(cleaned);
+    });
+    return container.innerHTML;
+  } catch {
+    return escapeHtml(html);
+  }
 }
 
 /**
  * Strips all HTML tags from a string, returning only text content.
  */
 export function stripHtml(str: string): string {
+  if (!str) return "";
+  if (typeof DOMParser !== "undefined") {
+    try {
+      const doc = new DOMParser().parseFromString(str, "text/html");
+      return doc.body.textContent || "";
+    } catch {}
+  }
   return str.replace(/<[^>]*>/g, "");
 }
 
 // ============================================================
-// 16. FILE UPLOAD RESTRICTIONS
+// 16. FILE UPLOAD RESTRICTIONS & MAGIC BYTES VALIDATION
 // ============================================================
 
 /** Allowed MIME types for file uploads */
@@ -168,7 +249,7 @@ const DANGEROUS_EXTENSIONS = [
   ".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".msi",
   ".js", ".vbs", ".wsf", ".wsh", ".ps1", ".sh", ".bash",
   ".php", ".asp", ".aspx", ".jsp", ".cgi", ".py", ".rb",
-  ".html", ".htm", ".svg", // SVG can contain scripts when not from known sources
+  ".html", ".htm", ".xhtml", ".svg", ".xml",
 ];
 
 export interface FileValidationResult {
@@ -178,9 +259,9 @@ export interface FileValidationResult {
 
 /**
  * Validates a file before upload. Checks type, size, extension, and filename.
+ * Strictly blocks SVG/HTML/XML MIME spoofing.
  */
 export function validateFileUpload(file: File): FileValidationResult {
-  // Check file size
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `El archivo excede el tamaño máximo de ${MAX_FILE_SIZE / (1024 * 1024)}MB` };
   }
@@ -189,32 +270,89 @@ export function validateFileUpload(file: File): FileValidationResult {
     return { valid: false, error: "El archivo está vacío" };
   }
 
-  // Check filename length
   if (file.name.length > MAX_FILENAME_LENGTH) {
     return { valid: false, error: "El nombre del archivo es demasiado largo" };
   }
 
-  // Check for dangerous extensions
   const ext = "." + file.name.split(".").pop()?.toLowerCase();
   if (DANGEROUS_EXTENSIONS.includes(ext)) {
     return { valid: false, error: `Tipo de archivo no permitido: ${ext}` };
   }
 
-  // Check MIME type
-  if (!ALL_ALLOWED_MIME_TYPES.includes(file.type) && !file.type.startsWith("image/")) {
+  // Strictly enforce explicit whitelist (never allow generic image/* like image/svg+xml)
+  if (!ALL_ALLOWED_MIME_TYPES.includes(file.type)) {
     return { valid: false, error: `Tipo de archivo no soportado: ${file.type || "desconocido"}` };
   }
 
-  // Check for double extensions (e.g., "file.pdf.exe")
   const parts = file.name.split(".");
   if (parts.length > 2) {
-    const secondToLast = "." + parts[parts.length - 2].toLowerCase();
-    if (DANGEROUS_EXTENSIONS.includes(secondToLast)) {
-      return { valid: false, error: "El archivo tiene una extensión sospechosa" };
+    for (let i = 1; i < parts.length - 1; i++) {
+      const innerExt = "." + parts[i].toLowerCase();
+      if (DANGEROUS_EXTENSIONS.includes(innerExt)) {
+        return { valid: false, error: "El archivo tiene una extensión doble no permitida" };
+      }
     }
   }
 
   return { valid: true };
+}
+
+/**
+ * Validates binary Magic Bytes of a File to prevent MIME Spoofing (e.g. HTML/SVG renamed to .pdf or .png).
+ */
+export async function validateFileSignature(file: File): Promise<FileValidationResult> {
+  const basic = validateFileUpload(file);
+  if (!basic.valid) return basic;
+
+  try {
+    const blobSlice = file.slice(0, 16);
+    const slice: ArrayBuffer =
+      typeof blobSlice.arrayBuffer === "function"
+        ? await blobSlice.arrayBuffer()
+        : await new Promise<ArrayBuffer>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsArrayBuffer(blobSlice);
+          });
+    const bytes = new Uint8Array(slice);
+    const hex = Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .toUpperCase();
+    const asciiPrefix = new TextDecoder("utf-8", { fatal: false }).decode(bytes).trim().toLowerCase();
+
+    // Block HTML / SVG / Script masquerading as another file type
+    if (
+      asciiPrefix.startsWith("<!doctype") ||
+      asciiPrefix.startsWith("<html") ||
+      asciiPrefix.startsWith("<svg") ||
+      asciiPrefix.startsWith("<script") ||
+      asciiPrefix.startsWith("<?xml")
+    ) {
+      return { valid: false, error: "Firma binaria rechazada: contenido HTML/SVG/XML ejecutable detectado" };
+    }
+
+    if (file.type === "application/pdf" && !hex.startsWith("25504446")) {
+      return { valid: false, error: "El archivo no posee una firma binaria PDF válida (%PDF)" };
+    }
+    if (file.type === "image/png" && !hex.startsWith("89504E47")) {
+      return { valid: false, error: "El archivo no posee una firma binaria PNG válida" };
+    }
+    if (file.type === "image/jpeg" && !hex.startsWith("FFD8FF")) {
+      return { valid: false, error: "El archivo no posee una firma binaria JPEG válida" };
+    }
+    if (file.type === "image/gif" && !hex.startsWith("47494638")) {
+      return { valid: false, error: "El archivo no posee una firma binaria GIF válida" };
+    }
+    if (file.type === "image/webp" && (!hex.startsWith("52494646") || !hex.slice(16, 24).startsWith("57454250"))) {
+      return { valid: false, error: "El archivo no posee una firma binaria WEBP válida" };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "No se pudo verificar la firma binaria del archivo" };
+  }
 }
 
 // ============================================================
@@ -260,7 +398,6 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
   const now = Date.now();
   let entry = rateLimitStore.get(key);
 
-  // Check if locked out
   if (entry?.lockedUntil && now < entry.lockedUntil) {
     return {
       allowed: false,
@@ -269,14 +406,12 @@ export function checkRateLimit(key: string, config: RateLimitConfig): RateLimitR
     };
   }
 
-  // Reset if window expired or no entry
   if (!entry || (now - entry.firstAttempt > config.windowMs)) {
     entry = { count: 1, firstAttempt: now, lockedUntil: null };
     rateLimitStore.set(key, entry);
     return { allowed: true, remainingAttempts: config.maxAttempts - 1 };
   }
 
-  // Increment
   entry.count++;
 
   if (entry.count > config.maxAttempts) {
@@ -350,18 +485,10 @@ export function detectUnexpectedFields<T extends Record<string, unknown>>(
 // 20. PRODUCCIÓN: ADVERTENCIA EN CONSOLA
 // ============================================================
 
-/**
- * Muestra una advertencia de seguridad en la consola en producción.
- * NO bloquea DevTools — la seguridad real viene del servidor (RLS, JWT).
- * Bloquear F12/Ctrl+Shift+I es seguridad por oscuridad: bypasseable trivialmente
- * y perjudica la experiencia de desarrolladores y usuarios avanzados.
- */
 export function initSecurityProtection() {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
-  // Solo en producción: mostrar advertencia de Social Engineering en consola
   if (import.meta.env.PROD) {
-    // Usamos un timeout para no bloquear la carga inicial
     setTimeout(() => {
       try {
         console.log(

@@ -3,6 +3,7 @@ import { ChevronLeft, Clock, Check, X, Zap, Volume2, VolumeX, RotateCw, FastForw
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { cn } from "@/lib/utils";
 import { TabeLogo } from "@/components/ui/TabeLogo";
+import { MathText } from "@/components/ui/MathText";
 
 interface Flashcard {
   id: string;
@@ -490,9 +491,7 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                         </div>
 
                         <div className="my-auto py-4 overflow-y-auto max-h-[16rem]">
-                          <p className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed text-center">
-                            {cardInfo.pregunta}
-                          </p>
+                          <MathText text={cardInfo.pregunta} as="p" className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed text-center" />
                         </div>
 
                         <div className="flex items-center justify-center gap-1.5 text-zinc-400 dark:text-zinc-500 text-[11px] pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
@@ -538,9 +537,7 @@ export function StudyMode({ deckName, cards, studyTime, onExit, onCardResult, on
                       </div>
 
                       <div className="my-auto py-4 overflow-y-auto max-h-[16rem]">
-                        <p className="text-base sm:text-lg font-normal text-zinc-800 dark:text-zinc-200 leading-relaxed text-center">
-                          {cardInfo.respuesta}
-                        </p>
+                        <MathText text={cardInfo.respuesta} as="p" className="text-base sm:text-lg font-normal text-zinc-800 dark:text-zinc-200 leading-relaxed text-center" />
                       </div>
 
                       <div className="flex items-center justify-center gap-1.5 text-zinc-400 dark:text-zinc-500 text-[11px] pt-3 border-t border-zinc-100 dark:border-zinc-800/80">

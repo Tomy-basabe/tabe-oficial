@@ -21,6 +21,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
 import { supabase } from "@/integrations/supabase/client";
 import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_CAREERS, FacultadOption } from "@/lib/careerData";
+import { enforceUtnFrmMcpFacultyGate } from "@/lib/utnFrmMcpService";
+import { invalidateStudentContextCache } from "@/lib/aiClientService";
+import { getCareerCategoryMeta } from "@/lib/careerCategoryIcons";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { toast } from "sonner";
 import { AICareerImportModal } from "@/components/subjects/AICareerImportModal";
@@ -212,6 +215,9 @@ export function CareerPlanOnboardingModal() {
         localStorage.setItem("tabe_guest_facultad", resolvedFacultadName);
       }
 
+      enforceUtnFrmMcpFacultyGate(user?.id, { facultad: resolvedFacultadName });
+      invalidateStudentContextCache(user?.id);
+
       toast.success(`🎓 Universidad guardada: ${resolvedFacultadName}`, {
         description: "Tus materias y apuntes actuales se conservaron intactos.",
       });
@@ -271,6 +277,12 @@ export function CareerPlanOnboardingModal() {
         localStorage.setItem("tabe_guest_facultad", resolvedFacultadName);
         localStorage.setItem("tabe_guest_carrera", careerName);
       }
+
+      enforceUtnFrmMcpFacultyGate(user?.id, {
+        facultad: resolvedFacultadName,
+        carrera: careerName,
+      });
+      invalidateStudentContextCache(user?.id);
 
       toast.success(
         careerObj?.file
@@ -546,6 +558,8 @@ export function CareerPlanOnboardingModal() {
                     <div className="max-h-36 overflow-y-auto p-1.5 space-y-1">
                       {filteredCareers.map((c) => {
                         const isSelected = selectedCareer === c.id && !isCustomCareer;
+                        const catMeta = getCareerCategoryMeta(c.label);
+                        const CatIcon = catMeta.icon;
                         const fileKey = (c.file || c.id).split("/").pop()?.replace("_template", "") || "";
                         const [, maxYear] = careerStats[fileKey] || [36, 5];
                         const durationLabel = `${maxYear || 5} años`;
@@ -566,7 +580,13 @@ export function CareerPlanOnboardingModal() {
                                 : "hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300"
                             )}
                           >
-                            <span className="truncate">{c.label}</span>
+                            <span className="truncate flex items-center gap-2">
+                              <CatIcon
+                                className="w-3.5 h-3.5 shrink-0"
+                                style={{ color: catMeta.accentColor }}
+                              />
+                              <span className="truncate">{c.label}</span>
+                            </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <span className="text-[10px] text-zinc-500 flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-zinc-400" />

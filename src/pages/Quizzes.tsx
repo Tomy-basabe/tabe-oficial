@@ -23,8 +23,13 @@ import { toast } from "sonner";
 import { cn, toLocalDateStr } from "@/lib/utils";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { QuizzesGridSkeleton } from "@/components/ui/AppSkeletons";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SubjectAssignmentPicker } from "@/components/subjects/SubjectAssignmentPicker";
 import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 import HoldButton from "@/components/ui/HoldButton";
+import { PARAMETRIC_TAGS } from "@/hooks/useMarketplace";
+import { MathText } from "@/components/ui/MathText";
 
 interface QuizDeck {
     id: string;
@@ -284,7 +289,19 @@ export default function Quizzes() {
     // Publish to Marketplace state
     const [showPublishDialog, setShowPublishDialog] = useState(false);
     const [publishDescription, setPublishDescription] = useState("");
-    const [publishCategory, setPublishCategory] = useState("");
+    const [selectedPublishTags, setSelectedPublishTags] = useState<string[]>(["Resumen"]);
+    const [pubQuizSubjectId, setPubQuizSubjectId] = useState<string>("none");
+    const [assignQuizSubToSelf, setAssignQuizSubToSelf] = useState<boolean>(true);
+
+    const togglePublishTag = (tag: string) => {
+        setSelectedPublishTags(prev => {
+            if (prev.includes(tag)) {
+                if (prev.length === 1) return prev;
+                return prev.filter(t => t !== tag);
+            }
+            return [...prev, tag];
+        });
+    };
     const [isPublishing, setIsPublishing] = useState(false);
 
     // Study wrong questions state
@@ -1097,21 +1114,34 @@ export default function Quizzes() {
     };
 
     const publishToMarketplace = async () => {
-        if (!manageDeck || !publishDescription.trim() || !publishCategory.trim()) return;
+        if (!manageDeck || !publishDescription.trim() || selectedPublishTags.length === 0) return;
+        const effectiveSubId = (pubQuizSubjectId && pubQuizSubjectId !== "none") ? pubQuizSubjectId : manageDeck.subject_id;
+        if (!effectiveSubId || effectiveSubId === "none") {
+            toast.error("Debes seleccionar una materia para publicar este cuestionario en la comunidad");
+            return;
+        }
+
         setIsPublishing(true);
-        const { error } = await supabase.from("quiz_decks").update({
+        const updatePayload: any = {
             is_public: true,
             description: publishDescription.trim(),
-            category: publishCategory.trim(),
+            category: selectedPublishTags.join(", "),
             updated_at: new Date().toISOString()
-        } as any).eq("id", manageDeck.id);
+        };
+        if (assignQuizSubToSelf || !manageDeck.subject_id) {
+            updatePayload.subject_id = effectiveSubId;
+        }
+
+        const { error } = await supabase.from("quiz_decks").update(updatePayload as any).eq("id", manageDeck.id);
         if (error) {
             toast.error("Error al publicar en la Comunidad");
         } else {
             toast.success("¡Cuestionario publicado en la Comunidad!");
             setShowPublishDialog(false);
             setPublishDescription("");
-            setPublishCategory("");
+            setSelectedPublishTags(["Resumen"]);
+            setManageDeck(prev => prev ? { ...prev, is_public: true, subject_id: updatePayload.subject_id || prev.subject_id } : null);
+            fetchDecks();
         }
         setIsPublishing(false);
     };
@@ -1387,7 +1417,7 @@ export default function Quizzes() {
                 {/* Question Card */}
                 <div className="bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs rounded-2xl max-w-3xl mx-auto overflow-hidden p-6 md:p-8 space-y-6">
                     <div className="flex items-start justify-between gap-4">
-                        <h3 className="text-lg md:text-xl font-semibold leading-relaxed text-zinc-900 dark:text-zinc-100">{currentQ.pregunta}</h3>
+                        <MathText text={currentQ.pregunta} as="h3" className="text-lg md:text-xl font-semibold leading-relaxed text-zinc-900 dark:text-zinc-100" />
                         {currentQ.is_multi_select && (
                             <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                                 <ListChecks className="w-3.5 h-3.5" /> Opción Múltiple
@@ -1446,7 +1476,7 @@ export default function Quizzes() {
                                                 answered && isSelected && !opt.es_correcta ? <X className="w-4 h-4 stroke-[3]" /> :
                                                     letter}
                                         </div>
-                                        <span className="flex-1 font-normal text-sm text-zinc-900 dark:text-zinc-100">{opt.texto}</span>
+                                        <MathText text={opt.texto} as="span" className="flex-1 font-normal text-sm text-zinc-900 dark:text-zinc-100" />
                                         <Checkbox
                                             checked={isSelected}
                                             className="w-5 h-5 rounded-md pointer-events-none"
@@ -1499,7 +1529,7 @@ export default function Quizzes() {
                                                     answered && isSelected && !opt.es_correcta ? <X className="w-4 h-4 stroke-[3]" /> :
                                                         letter}
                                             </div>
-                                            <span className="flex-1 font-normal text-sm text-zinc-900 dark:text-zinc-100">{opt.texto}</span>
+                                            <MathText text={opt.texto} as="span" className="flex-1 font-normal text-sm text-zinc-900 dark:text-zinc-100" />
                                         </label>
                                     );
                                 })}
@@ -1512,7 +1542,7 @@ export default function Quizzes() {
                             <BookOpen className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs mb-1">Explicación</h4>
-                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-normal">{currentQ.explicacion}</p>
+                                <MathText text={currentQ.explicacion} as="p" className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-normal" />
                             </div>
                         </div>
                     )}
@@ -1746,7 +1776,16 @@ export default function Quizzes() {
                     </div>
                     <div className="flex items-center gap-2.5">
                         <button 
-                            onClick={() => setShowPublishDialog(true)}
+                            onClick={() => {
+                                if (manageDeck) {
+                                    const subName = manageDeck.subject?.nombre || subjects.find(s => s.id === manageDeck.subject_id)?.nombre || "";
+                                    if (!publishDescription) setPublishDescription(subName);
+                                    setSelectedPublishTags(["Resumen"]);
+                                    setPubQuizSubjectId(manageDeck.subject_id || "none");
+                                    setAssignQuizSubToSelf(true);
+                                }
+                                setShowPublishDialog(true);
+                            }}
                             className="flex items-center px-3.5 py-2 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-xs transition-colors shadow-2xs"
                         >
                             <Store className="w-3.5 h-3.5 mr-1.5 text-zinc-500" /> Publicar
@@ -1796,8 +1835,10 @@ export default function Quizzes() {
                 </div>
 
                 {loadingQuestions ? (
-                    <div className="flex justify-center py-12">
-                        <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white rounded-full animate-spin" />
+                    <div className="space-y-3 py-4">
+                        {[1, 2, 3].map((i) => (
+                            <Skeleton key={i} className="h-24 w-full rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/60" />
+                        ))}
                     </div>
                 ) : deckQuestions.length === 0 ? (
                     <div className="bg-white dark:bg-[#1f1f1f] border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-12 text-center shadow-xs">
@@ -1823,7 +1864,7 @@ export default function Quizzes() {
                                             <span className="flex items-center justify-center w-6 h-6 bg-zinc-100 dark:bg-zinc-800 rounded-md font-semibold text-xs text-zinc-700 dark:text-zinc-300 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
                                                 {qi + 1}
                                             </span>
-                                            <p className="font-semibold text-base text-zinc-900 dark:text-zinc-100 leading-snug">{q.pregunta}</p>
+                                            <MathText text={q.pregunta} as="p" className="font-semibold text-base text-zinc-900 dark:text-zinc-100 leading-snug" />
                                         </div>
                                         {q.is_multi_select && (
                                             <span className="inline-flex items-center gap-1 mt-2 ml-8.5 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
@@ -1870,7 +1911,7 @@ export default function Quizzes() {
                                             )}>
                                                 {String.fromCharCode(65 + oi)}
                                             </span>
-                                            <span className="flex-1">{o.texto}</span>
+                                            <MathText text={o.texto} as="span" className="flex-1" />
                                             {o.es_correcta && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                                         </div>
                                     ))}
@@ -1878,7 +1919,7 @@ export default function Quizzes() {
                                 {q.explicacion && (
                                     <div className="mt-3 ml-8.5 p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex gap-2 items-start text-xs text-zinc-500 dark:text-zinc-400 font-normal">
                                         <BookOpen className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
-                                        <p>{q.explicacion}</p>
+                                        <MathText text={q.explicacion} as="p" />
                                     </div>
                                 )}
                             </div>
@@ -1917,14 +1958,47 @@ export default function Quizzes() {
                                     className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-normal focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors resize-none placeholder:text-zinc-400"
                                 />
                             </div>
+                                                        <SubjectAssignmentPicker
+                                value={pubQuizSubjectId}
+                                onChange={(newSubId) => {
+                                    setPubQuizSubjectId(newSubId);
+                                    const sub = subjects.find((s) => s.id === newSubId);
+                                    if (sub) setPublishDescription(sub.nombre);
+                                }}
+                                subjects={subjects}
+                                label="Materia vinculada"
+                                required={true}
+                                assignToSelf={assignQuizSubToSelf}
+                                onAssignToSelfChange={setAssignQuizSubToSelf}
+                                assignToSelfLabel="Asignar también esta materia a mi cuestionario personal"
+                            />
+
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría / Etiquetas *</Label>
-                                <input
-                                    placeholder="Ej: Parcial, Final, Resumen..."
-                                    value={publishCategory}
-                                    onChange={(e) => setPublishCategory(e.target.value)}
-                                    className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-normal focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
-                                />
+                                <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Etiquetas / Categoría *</Label>
+                                <div className="flex flex-wrap gap-1.5 p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+                                    {PARAMETRIC_TAGS.map(tag => {
+                                        const isSelected = selectedPublishTags.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => togglePublishTag(tag)}
+                                                className={cn(
+                                                    "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer flex items-center gap-1",
+                                                    isSelected
+                                                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                                                        : "bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                                )}
+                                            >
+                                                {tag}
+                                                {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                                    Seleccioná una o varias etiquetas oficiales para clasificar este cuestionario.
+                                </p>
                             </div>
                             <div className="flex gap-2.5 pt-2">
                                 <button
@@ -1936,7 +2010,7 @@ export default function Quizzes() {
                                 <button
                                     className="flex-1 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-xs rounded-xl shadow-2xs transition-colors disabled:opacity-50"
                                     onClick={publishToMarketplace}
-                                    disabled={isPublishing || !publishDescription.trim() || !publishCategory.trim()}
+                                    disabled={isPublishing || !publishDescription.trim() || selectedPublishTags.length === 0 || (!pubQuizSubjectId || pubQuizSubjectId === "none") && (!manageDeck?.subject_id || manageDeck.subject_id === "none")}
                                 >
                                     {isPublishing ? "Publicando..." : "Publicar Ahora"}
                                 </button>
@@ -2094,7 +2168,7 @@ export default function Quizzes() {
             {/* Decks Grid */}
             <div className="tour-quizzes-decks">
                 {loading ? (
-                    <LoadingScreen message="Cargando cuestionarios..." submessage="Organizando tus trivias y preguntas de examen" />
+                    <QuizzesGridSkeleton />
                 ) : decks.length === 0 && !selectedYear ? (
                     <div className="bg-white dark:bg-[#1f1f1f] border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-12 text-center shadow-xs">
                         <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-3 text-zinc-400">

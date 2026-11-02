@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
+import utnFrmMcpHandler from "./api/utnfrm-mcp";
 
 function setupNvidiaProxy(middlewares: any, apiKey: string) {
   middlewares.use("/api/nvidia-ai", async (req: any, res: any) => {
@@ -15,7 +16,8 @@ function setupNvidiaProxy(middlewares: any, apiKey: string) {
       return;
     }
 
-    const key = apiKey || process.env.NVIDIA_API_KEY;
+    const rawKey = apiKey || process.env.NVIDIA_API_KEY || "";
+    const key = rawKey.replace(/^["']|["']$/g, "").trim();
 
     try {
       const urlObj = new URL(req.url || "", `http://${req.headers.host || "localhost"}`);
@@ -399,6 +401,9 @@ export default defineConfig(({ mode }) => {
               res.statusCode = 500;
               res.end(e?.message || "Error al descargar calendario");
             }
+          });
+          server.middlewares.use("/api/utnfrm-mcp", async (req, res) => {
+            await utnFrmMcpHandler(req, res);
           });
         },
       },

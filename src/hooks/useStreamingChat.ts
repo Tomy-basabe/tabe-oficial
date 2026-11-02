@@ -25,7 +25,8 @@ export function useStreamingChat(
       modelOverride?: AIModelOption,
       powerOverride?: PowerEffort,
       onReset?: () => void,
-      image?: { data: string; mime_type: string }
+      image?: { data: string; mime_type: string },
+      selectedSubject?: string
     ) => {
       setIsStreaming(true);
       const lastUserMsg = messages[messages.length - 1]?.content || "";
@@ -101,7 +102,8 @@ export function useStreamingChat(
           personaPrompt,
           personaName,
           studentName,
-          targetPower
+          targetPower,
+          selectedSubject
         );
 
         const isLiveVoice = context_page === "Modo Live de Voz Fluida";
@@ -127,6 +129,7 @@ REGLAS OBLIGATORIAS PARA HABLAR POR VOZ:
           powerLevel: targetPower,
           userId: user?.id || "guest",
           image,
+          selectedSubject,
           onDelta,
           onReset,
           onStatusChange: (status) => setAiStatus(status),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Trophy,
   
   Search,
@@ -17,7 +17,6 @@ import { Trophy,
   ArrowDownAZ,
   TrendingUp, Zap } from "lucide-react";
 import { useAchievements, Achievement } from "@/hooks/useAchievements";
-import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -170,21 +169,15 @@ export default function Achievements() {
   const completionPercentage =
     stats.total > 0 ? Math.round((stats.unlocked / stats.total) * 100) : 0;
 
-  if (loading && achievements.length === 0) {
-    return (
-      <LoadingScreen
-        message="Cargando tus logros..."
-        submessage="Sincronizando insignias y experiencia acumulada..."
-      />
-    );
-  }
-
   const ActiveSortIcon = SORT_LABELS[sortOption].icon;
 
   return (
     <div className="tabe-page p-4 lg:p-7 max-w-[1500px] mx-auto space-y-6">
       {/* Header Bento Style Notion/ChatGPT */}
-      <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+      <div
+        className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5 tabe-stage-module"
+        style={{ "--module-idx": 0 } as React.CSSProperties}
+      >
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <button
@@ -227,7 +220,10 @@ export default function Achievements() {
       </div>
 
       {/* Bento Grid: Progreso Global y Categorías */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div
+        className="grid grid-cols-1 lg:grid-cols-12 gap-5 tabe-stage-module"
+        style={{ "--module-idx": 1 } as React.CSSProperties}
+      >
         {/* Card Progreso General (8 columnas en desktop) */}
         <div className="lg:col-span-8 neo-bento-card p-6 flex flex-col justify-between">
           <div className="space-y-4">
@@ -249,11 +245,11 @@ export default function Achievements() {
               </div>
             </div>
 
-            {/* Barra de progreso minimalista */}
+            {/* Barra de progreso minimalista estilo Notion / Apple (+60 FPS garantizados) */}
             <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden p-0.5 border border-zinc-200/60 dark:border-zinc-700/60">
               <div
-                className="h-full bg-zinc-900 dark:bg-zinc-100 rounded-full transition-all duration-700"
-                style={{ width: `${completionPercentage}%` }}
+                className="h-full bg-zinc-900 dark:bg-zinc-100 rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                style={{ width: `${Math.min(100, Math.max(0, completionPercentage))}%` }}
               />
             </div>
           </div>
@@ -332,8 +328,11 @@ export default function Achievements() {
       </div>
 
       {/* Tarjetas Bento de Categorías (Filtros interactivos estilo Notion) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {Object.entries(categoryThemes).map(([key, theme]) => {
+      <div
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 tabe-stage-module"
+        style={{ "--module-idx": 2 } as React.CSSProperties}
+      >
+        {Object.entries(categoryThemes).map(([key, theme], catIdx) => {
           const counts = categoryCounts[key] || { total: 0, unlocked: 0 };
           const isSelected = selectedCategory === key;
           const pct = counts.total > 0 ? Math.round((counts.unlocked / counts.total) * 100) : 0;
@@ -384,19 +383,19 @@ export default function Achievements() {
                 </span>
               </div>
 
-              {/* Barra de progreso de la categoría */}
+              {/* Barra de progreso de la categoría estilo Notion / Apple */}
               <div
                 className={`h-1.5 rounded-full overflow-hidden mt-3 ${
                   isSelected ? "bg-white/20 dark:bg-zinc-900/20" : "bg-zinc-100 dark:bg-zinc-800"
                 }`}
               >
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     isSelected
                       ? "bg-white dark:bg-zinc-900"
                       : theme.accentClass
                   }`}
-                  style={{ width: `${pct}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
                 />
               </div>
             </button>
@@ -405,7 +404,10 @@ export default function Achievements() {
       </div>
 
       {/* Barra de Herramientas y Filtros (Notion / ChatGPT Style Toolbar) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
+      <div
+        className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 tabe-stage-module"
+        style={{ "--module-idx": 3 } as React.CSSProperties}
+      >
         {/* Izquierda: Buscador */}
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -637,7 +639,35 @@ export default function Achievements() {
       )}
 
       {/* Lista / Grilla de Logros */}
-      {filteredAchievements.length === 0 ? (
+      {loading && achievements.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div
+              key={i}
+              className="neo-bento-card p-5 flex flex-col justify-between bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xs min-h-[200px] space-y-3.5 animate-pulse"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-5 w-16 rounded-md bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="h-5 w-14 rounded-md bg-zinc-200 dark:bg-zinc-800" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4.5 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="h-3 w-full rounded bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="h-3 w-2/3 rounded bg-zinc-200 dark:bg-zinc-800" />
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+                <div className="h-3.5 w-24 rounded bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-3.5 w-10 rounded bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredAchievements.length === 0 ? (
         <div className="neo-bento-card p-12 text-center space-y-3">
           <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 mx-auto flex items-center justify-center">
             <Search className="w-6 h-6" />
@@ -662,60 +692,42 @@ export default function Achievements() {
           </Button>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {filteredAchievements.map((achievement) => {
-              const unlocked = isUnlocked(achievement.id);
-              const unlockDate = getUnlockDate(achievement.id);
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-150">
+          {filteredAchievements.map((achievement) => {
+            const unlocked = isUnlocked(achievement.id);
+            const unlockDate = getUnlockDate(achievement.id);
 
-              return (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  <AchievementCard
-                    achievement={achievement}
-                    unlocked={unlocked}
-                    unlockDate={unlockDate}
-                    onSelect={handleSelectAchievement}
-                    onShare={handleOpenShare}
-                    viewMode="grid"
-                  />
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+            return (
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+                unlocked={unlocked}
+                unlockDate={unlockDate}
+                onSelect={handleSelectAchievement}
+                onShare={handleOpenShare}
+                viewMode="grid"
+              />
+            );
+          })}
         </div>
       ) : (
-        <div className="space-y-2">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {filteredAchievements.map((achievement) => {
-              const unlocked = isUnlocked(achievement.id);
-              const unlockDate = getUnlockDate(achievement.id);
+        <div className="space-y-2 animate-in fade-in duration-150">
+          {filteredAchievements.map((achievement) => {
+            const unlocked = isUnlocked(achievement.id);
+            const unlockDate = getUnlockDate(achievement.id);
 
-              return (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  <AchievementCard
-                    achievement={achievement}
-                    unlocked={unlocked}
-                    unlockDate={unlockDate}
-                    onSelect={handleSelectAchievement}
-                    onShare={handleOpenShare}
-                    viewMode="list"
-                  />
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+            return (
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+                unlocked={unlocked}
+                unlockDate={unlockDate}
+                onSelect={handleSelectAchievement}
+                onShare={handleOpenShare}
+                viewMode="list"
+              />
+            );
+          })}
         </div>
       )}
 

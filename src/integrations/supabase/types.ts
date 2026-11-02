@@ -837,6 +837,7 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          utnfrm_encuestas_enabled?: boolean | null
         }
         Insert: {
           active_badge?: string | null
@@ -857,6 +858,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          utnfrm_encuestas_enabled?: boolean | null
         }
         Update: {
           active_badge?: string | null
@@ -877,6 +879,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          utnfrm_encuestas_enabled?: boolean | null
         }
         Relationships: []
       }

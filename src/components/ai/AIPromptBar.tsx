@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Plus,
   Paperclip,
-  Globe,
   BrainCog,
   Mic,
   ArrowUp,
@@ -150,7 +149,6 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
   onStartVoiceRecording,
   onStopVoiceRecording,
 }) => {
-  const [showSearch, setShowSearch] = useState(false);
   const [showThink, setShowThink] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
@@ -197,16 +195,11 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
     textareaRef.current.style.height = `${nextHeight}px`;
   }, [value]);
 
-  const handleToggleMode = (mode: "search" | "think") => {
-    if (mode === "search") {
-      setShowSearch((prev) => !prev);
-      setShowThink(false);
-    } else if (mode === "think") {
+  const handleToggleMode = (mode: "think") => {
+    if (mode === "think") {
       const next = !showThink;
       setShowThink(next);
-      setShowSearch(false);
       onSelectPowerLevel(next ? "alto" : "medio");
-
     }
   };
 
@@ -214,13 +207,11 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
     if ((!value.trim() && !attachedImage) || isLoading) return;
 
     let prefix = "";
-    if (showSearch) prefix = "[Search: ";
-    else if (showThink) prefix = "[Think: ";
+    if (showThink) prefix = "[Think: ";
 
     const finalMessage = prefix ? `${prefix}${value}]` : value;
     onSend(finalMessage);
 
-    setShowSearch(false);
     setShowThink(false);
   };
 
@@ -452,9 +443,7 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={
-            showSearch
-              ? "Buscar en la web académica..."
-              : showThink
+            showThink
               ? "Razonar problema complejo paso a paso..."
               : placeholder
           }
@@ -541,22 +530,6 @@ export const AIPromptBar: React.FC<AIPromptBarProps> = ({
           <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5 shrink-0" />
 
           {/* Quick Capability Toggles */}
-          {/* 1. Web Search */}
-          <button
-            type="button"
-            onClick={() => handleToggleMode("search")}
-            className={cn(
-              "inline-flex items-center gap-1 h-7 px-2 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer border",
-              showSearch
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
-                : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
-            )}
-            title="Activar Búsqueda Web"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[11px]">Web</span>
-          </button>
-
           {/* 2. Deep Think */}
           <button
             type="button"

@@ -1,91 +1,134 @@
-import React, { useState, useEffect } from "react";
-import { TabeLogo } from "@/components/ui/TabeLogo";
-import { Loader2 } from "lucide-react";
+import React from "react";
 import { cn } from "@/lib/utils";
+import {
+  DashboardSkeleton,
+  CareerPlanSkeleton,
+  CalendarSkeleton,
+  OfficeHoursSkeleton,
+  FlashcardsGridSkeleton,
+  QuizzesGridSkeleton,
+  ExamsSkeleton,
+  RoutinesSkeleton,
+  FriendsSkeleton,
+  PomodoroSkeleton,
+  AchievementsSkeleton,
+  ForestSkeleton,
+  CorrelativityMapSkeleton,
+  AIAssistantSkeleton,
+  LibrarySkeleton,
+  MarketplaceSkeleton,
+  GenericPageSkeleton,
+} from "@/components/ui/AppSkeletons";
 
-interface LoadingScreenProps {
+export interface LoadingScreenProps {
   message?: string;
   submessage?: string;
   fullScreen?: boolean;
   className?: string;
-  /** Retardo antes de mostrar el indicador visual para evitar destellos en cargas rápidas (< 450ms) */
+  type?:
+    | "dashboard"
+    | "career"
+    | "calendar"
+    | "office_hours"
+    | "flashcards"
+    | "quizzes"
+    | "exams"
+    | "routines"
+    | "friends"
+    | "pomodoro"
+    | "achievements"
+    | "forest"
+    | "correlativity_map"
+    | "ai_assistant"
+    | "library"
+    | "marketplace"
+    | "generic";
   delayMs?: number;
 }
 
 /**
- * Pantalla de carga oficial unificada estilo Notion / ChatGPT:
- * Minimalista, sobria, sin ruidos visuales ni elementos pesados.
- * Incluye umbral anti-flash (450ms por defecto) para que las transiciones rápidas se sientan instantáneas.
+ * Pantalla de carga por Esqueletos Oficial de TABE:
+ * Cada apartado cuenta con su esqueleto a medida que replica exactamente la silueta real del contenido.
  */
 export function LoadingScreen({
   message = "Cargando...",
   submessage,
   fullScreen = false,
   className = "",
-  delayMs = 450,
+  type,
 }: LoadingScreenProps) {
-  const [visible, setVisible] = useState(delayMs <= 0);
+  // Detección automática del tipo de esqueleto a partir de los props o del mensaje
+  const detectedType = React.useMemo(() => {
+    if (type) return type;
+    const msg = (message || "").toLowerCase();
+    if (msg.includes("dash") || msg.includes("progreso")) return "dashboard";
+    if (msg.includes("pomodoro") || msg.includes("temporizador") || msg.includes("concentra")) return "pomodoro";
+    if (msg.includes("logro") || msg.includes("insignia") || msg.includes("rango")) return "achievements";
+    if (msg.includes("bosque") || msg.includes("forest") || msg.includes("árbol") || msg.includes("arbol")) return "forest";
+    if (msg.includes("mapa") || msg.includes("grafo")) return "correlativity_map";
+    if (msg.includes("asistente") || msg.includes("ia") || msg.includes("inteligencia") || msg.includes("chat")) return "ai_assistant";
+    if (msg.includes("biblioteca") || msg.includes("archivo") || msg.includes("material")) return "library";
+    if (msg.includes("comunidad") || msg.includes("market") || msg.includes("compartid")) return "marketplace";
+    if (msg.includes("plan") || msg.includes("carrera") || msg.includes("correlativ")) return "career";
+    if (msg.includes("calen") || msg.includes("evento")) return "calendar";
+    if (msg.includes("consul") || msg.includes("docente") || msg.includes("profe")) return "office_hours";
+    if (msg.includes("flash") || msg.includes("tarjeta") || msg.includes("mazo")) return "flashcards";
+    if (msg.includes("cuestion") || msg.includes("quiz") || msg.includes("trivia")) return "quizzes";
+    if (msg.includes("exam") || msg.includes("evalua")) return "exams";
+    if (msg.includes("rutin") || msg.includes("horario") || msg.includes("bloque")) return "routines";
+    if (msg.includes("amig") || msg.includes("compañer")) return "friends";
+    return "generic";
+  }, [type, message]);
 
-  useEffect(() => {
-    if (delayMs <= 0) {
-      setVisible(true);
-      return;
+  const renderSkeleton = () => {
+    switch (detectedType) {
+      case "dashboard":
+        return <DashboardSkeleton />;
+      case "career":
+        return <CareerPlanSkeleton />;
+      case "calendar":
+        return <CalendarSkeleton />;
+      case "office_hours":
+        return <OfficeHoursSkeleton />;
+      case "flashcards":
+        return <FlashcardsGridSkeleton />;
+      case "quizzes":
+        return <QuizzesGridSkeleton />;
+      case "exams":
+        return <ExamsSkeleton />;
+      case "routines":
+        return <RoutinesSkeleton />;
+      case "friends":
+        return <FriendsSkeleton />;
+      case "pomodoro":
+        return <PomodoroSkeleton />;
+      case "achievements":
+        return <AchievementsSkeleton />;
+      case "forest":
+        return <ForestSkeleton />;
+      case "correlativity_map":
+        return <CorrelativityMapSkeleton />;
+      case "ai_assistant":
+        return <AIAssistantSkeleton />;
+      case "library":
+        return <LibrarySkeleton />;
+      case "marketplace":
+        return <MarketplaceSkeleton />;
+      case "generic":
+      default:
+        return <GenericPageSkeleton />;
     }
-    const timer = setTimeout(() => setVisible(true), delayMs);
-    return () => clearTimeout(timer);
-  }, [delayMs]);
-
-  if (!visible) {
-    return (
-      <div
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none select-none opacity-0",
-          fullScreen ? "min-h-screen w-full bg-background" : "min-h-[50vh] w-full",
-          className
-        )}
-      />
-    );
-  }
+  };
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center p-6 select-none relative z-10 transition-opacity duration-200",
-        fullScreen ? "min-h-screen w-full bg-background" : "min-h-[50vh] w-full",
+        "w-full transition-opacity duration-200 select-none animate-in fade-in-0 duration-150",
+        fullScreen ? "min-h-screen" : "min-h-[50vh]",
         className
       )}
     >
-      <div className="flex flex-col items-center justify-center max-w-xs text-center space-y-3.5 animate-in fade-in duration-200">
-        {/* Contenedor de logo minimalista con spinner sutil */}
-        <div className="relative flex items-center justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center shadow-xs">
-            <TabeLogo size={26} className="object-contain opacity-90" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border shadow-xs">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500 dark:text-zinc-400" />
-          </div>
-        </div>
-
-        {/* Textos sobrios y limpios */}
-        <div className="space-y-1">
-          {message && (
-            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 tracking-tight">
-              {message}
-            </p>
-          )}
-          {submessage && (
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 font-normal">
-              {submessage}
-            </p>
-          )}
-        </div>
-
-        {/* Línea de carga indeterminada sutil */}
-        <div className="w-24 h-1 bg-zinc-200/70 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <div className="h-full bg-zinc-400 dark:bg-zinc-600 rounded-full w-2/5 animate-pulse" />
-        </div>
-      </div>
+      {renderSkeleton()}
     </div>
   );
 }

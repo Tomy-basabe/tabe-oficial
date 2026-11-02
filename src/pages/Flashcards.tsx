@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Layers, Plus, GraduationCap, BookOpen, Zap, Trash2, X, ShoppingBag, Edit2, ShieldCheck, Check, AlertTriangle, Loader2, Search, ArrowRight, Save } from "lucide-react";
-import { useMarketplace } from "@/hooks/useMarketplace";
+import { useMarketplace, PARAMETRIC_TAGS } from "@/hooks/useMarketplace";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SubjectAssignmentPicker } from "@/components/subjects/SubjectAssignmentPicker";
 import { FlashcardDeck } from "@/components/flashcards/FlashcardDeck";
 import { StudyMode } from "@/components/flashcards/StudyMode";
 import { CompletionScreen } from "@/components/flashcards/CompletionScreen";
@@ -21,6 +22,7 @@ import { useAchievements } from "@/hooks/useAchievements";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { toLocalDateStr } from "@/lib/utils";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { FlashcardsGridSkeleton } from "@/components/ui/AppSkeletons";
 import { HoldButton } from "@/components/ui/HoldButton";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 
@@ -135,8 +137,20 @@ export default function Flashcards() {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishingDeck, setPublishingDeck] = useState<Deck | null>(null);
   const [pubDescription, setPubDescription] = useState("");
-  const [pubCategory, setPubCategory] = useState("");
+  const [selectedPubTags, setSelectedPubTags] = useState<string[]>(["Resumen"]);
+
+  const togglePubTag = (tag: string) => {
+    setSelectedPubTags(prev => {
+      if (prev.includes(tag)) {
+        if (prev.length === 1) return prev;
+        return prev.filter(t => t !== tag);
+      }
+      return [...prev, tag];
+    });
+  };
   const [pubIsAnonymous, setPubIsAnonymous] = useState(false);
+  const [pubDeckSubjectId, setPubDeckSubjectId] = useState<string>("none");
+  const [assignDeckSubToSelf, setAssignDeckSubToSelf] = useState<boolean>(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -971,14 +985,27 @@ export default function Flashcards() {
   };
 
   const handlePublishDeck = async () => {
-    if (!publishingDeck || !pubDescription.trim() || !pubCategory.trim()) return;
+    if (!publishingDeck || !pubDescription.trim() || selectedPubTags.length === 0) return;
+    const effectiveSubId = (pubDeckSubjectId && pubDeckSubjectId !== "none") ? pubDeckSubjectId : publishingDeck.subject_id;
+    if (!effectiveSubId || effectiveSubId === "none") {
+      toast.error("Debes seleccionar una materia para publicar este mazo en la comunidad");
+      return;
+    }
     setIsPublishing(true);
-    const success = await publishResource("deck", publishingDeck.id, pubDescription, pubCategory, pubIsAnonymous);
+    const catString = selectedPubTags.join(", ");
+    const success = await publishResource(
+      "deck", 
+      publishingDeck.id, 
+      pubDescription.trim(), 
+      catString, 
+      pubIsAnonymous,
+      assignDeckSubToSelf ? effectiveSubId : (publishingDeck.subject_id || effectiveSubId)
+    );
     if (success) {
       setShowPublishModal(false);
       setPublishingDeck(null);
       setPubDescription("");
-      setPubCategory("");
+      setSelectedPubTags(["Resumen"]);
       setPubIsAnonymous(false);
       fetchDecks();
     }
@@ -1030,7 +1057,7 @@ export default function Flashcards() {
   }, [importSourceCards, importSearchQuery]);
 
   // Suggested community categories
-  const suggestedCategories = ["Medicina", "Ingeniería", "Programación", "Derecho", "Psicología", "Idiomas"];
+
 
   // Study Mode Active View
   if (studyState === "studying" && selectedDeck && cards.length > 0) {
@@ -1270,7 +1297,7 @@ export default function Flashcards() {
       {/* Grid de Mazos */}
       <div className="tour-flashcards-decks">
         {loading ? (
-          <LoadingScreen message="Cargando flashcards..." submessage="Preparando tus mazos de estudio y repaso espaciado" />
+          <FlashcardsGridSkeleton />
         ) : filteredDecks.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-[#212121] border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-8">
             <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-400 dark:text-zinc-500 shadow-2xs">
@@ -1335,6 +1362,11 @@ export default function Flashcards() {
                     onImportCards={handleImportCards}
                     onPublishDeck={(deck) => {
                       setPublishingDeck(deck);
+                      const subName = deck.subject?.nombre || subjects.find(s => s.id === deck.subject_id)?.nombre || "";
+                      setPubDescription(subName);
+                      setSelectedPubTags(["Resumen"]);
+                      setPubDeckSubjectId(deck.subject_id || "none");
+                      setAssignDeckSubToSelf(true);
                       setShowPublishModal(true);
                     }}
                   />
@@ -1626,12 +1658,8 @@ export default function Flashcards() {
                         ) : (
                           <div className="flex justify-between items-start gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                                {card.pregunta}
-                              </p>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
-                                {card.respuesta}
-                              </p>
+                              <MathText text={card.pregunta} as="p" className="font-medium text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2" />
+                              <MathText text={card.respuesta} as="p" className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2" />
                               <div className="flex items-center gap-3 mt-2 text-[11px] font-mono">
                                 <span className="text-emerald-600 dark:text-emerald-400">✓ {card.veces_correcta}</span>
                                 <span className="text-rose-500 dark:text-rose-400">✗ {card.veces_incorrecta}</span>
@@ -1939,8 +1967,8 @@ export default function Flashcards() {
                               {isSelected && <Check className="w-3 h-3" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">{card.pregunta}</p>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">{card.respuesta}</p>
+                              <MathText text={card.pregunta} as="p" className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1" />
+                              <MathText text={card.respuesta} as="p" className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1" />
                             </div>
                           </div>
                         );
@@ -2301,34 +2329,49 @@ export default function Flashcards() {
               />
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1">
-                Categoría <span className="text-rose-500">*</span>
+                        <SubjectAssignmentPicker
+              value={pubDeckSubjectId}
+              onChange={(newSubId) => {
+                setPubDeckSubjectId(newSubId);
+                const sub = subjects.find((s) => s.id === newSubId);
+                if (sub) setPubDescription(sub.nombre);
+              }}
+              subjects={subjects}
+              label="Materia vinculada"
+              required={true}
+              assignToSelf={assignDeckSubToSelf}
+              onAssignToSelfChange={setAssignDeckSubToSelf}
+              assignToSelfLabel="Asignar también esta materia a mi mazo personal"
+            />
+
+<div>
+              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 block mb-1.5">
+                Etiquetas / Categoría <span className="text-rose-500">*</span>
               </label>
-              <input
-                className="w-full rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
-                placeholder="Ej: Medicina, Ingeniería, Historia..."
-                value={pubCategory}
-                onChange={(e) => setPubCategory(e.target.value)}
-              />
-              {/* Categorías sugeridas en un click */}
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {suggestedCategories.map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setPubCategory(cat)}
-                    className={cn(
-                      "px-2 py-0.5 rounded text-[10px] font-medium border transition-colors cursor-pointer",
-                      pubCategory === cat
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-1.5 p-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
+                {PARAMETRIC_TAGS.map(tag => {
+                  const isSelected = selectedPubTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => togglePubTag(tag)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer flex items-center gap-1",
+                        isSelected
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                          : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      )}
+                    >
+                      {tag}
+                      {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                    </button>
+                  );
+                })}
               </div>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">
+                Seleccioná una o varias etiquetas oficiales para clasificar este mazo.
+              </p>
             </div>
 
             {/* Toggle anónimo estilo Notion */}
@@ -2377,7 +2420,7 @@ export default function Flashcards() {
               </button>
               <button
                 onClick={handlePublishDeck}
-                disabled={isPublishing || !pubDescription.trim() || !pubCategory.trim()}
+                disabled={isPublishing || !pubDescription.trim() || selectedPubTags.length === 0 || (!pubDeckSubjectId || pubDeckSubjectId === "none") && (!publishingDeck?.subject_id || publishingDeck.subject_id === "none")}
                 className="inline-flex items-center gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg px-4 py-1.5 text-xs font-medium transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isPublishing ? (

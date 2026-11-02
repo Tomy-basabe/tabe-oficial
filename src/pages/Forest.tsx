@@ -114,6 +114,7 @@ export default function Forest() {
   if (loading) {
     return (
       <LoadingScreen
+        type="forest"
         message="Cargando tu Bosque..."
         submessage="Cultivando tus árboles con tu esfuerzo..."
       />

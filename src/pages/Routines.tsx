@@ -1004,7 +1004,7 @@ export default function Routines() {
             </div>
 
             {loading && routines.length === 0 ? (
-                <LoadingScreen message="Cargando Rutinas..." submessage="Organizando tus horarios y bloques de estudio..." />
+                <LoadingScreen type="routines" message="Cargando Rutinas..." submessage="Organizando tus horarios y bloques de estudio..." />
             ) : (
                 <>
                     {/* Weekly Calendar Grid View */}

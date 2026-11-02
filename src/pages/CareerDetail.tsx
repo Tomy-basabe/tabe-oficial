@@ -14,10 +14,12 @@ import {
   Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { usePageTitle } from "@/hooks/useDynamicTitle";
 import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 import { AVAILABLE_CAREERS, ALL_FACULTADES } from "@/lib/careerData";
+import { getCareerCategoryMeta } from "@/lib/careerCategoryIcons";
 import { useAuth } from "@/contexts/AuthContext";
 import careerStatsRaw from "@/lib/careerStats.json";
 import { cn } from "@/lib/utils";
@@ -65,11 +67,10 @@ export default function CareerDetail() {
   const finalYears = statMaxYear || 5;
   const durationLabel = `${finalYears} ${finalYears === 1 ? "año" : "años"}`;
 
-  const degreeType = name.toLowerCase().includes("tecnicatura")
-    ? "Tecnicatura Universitaria"
-    : name.toLowerCase().includes("profesorado")
-    ? "Profesorado Universitario"
-    : "Título de Grado";
+  const catMeta = getCareerCategoryMeta(name);
+  const CategoryIcon = catMeta.icon;
+
+  const degreeType = catMeta.label;
 
   usePageTitle(!careerInfo && !id ? "Carrera no encontrada" : `${name} - ${facultyName}`);
 
@@ -201,11 +202,17 @@ export default function CareerDetail() {
             </div>
 
             <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 text-left">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Award className="w-4 h-4" />
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-zinc-200/60 dark:border-zinc-700/60"
+                style={{
+                  backgroundColor: `${catMeta.accentColor}18`,
+                  color: catMeta.accentColor,
+                }}
+              >
+                <CategoryIcon className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">Titulación</p>
+                <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">Especialidad</p>
                 <p className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">{degreeType}</p>
               </div>
             </div>
@@ -291,9 +298,17 @@ export default function CareerDetail() {
 
           {/* Listado de Materias */}
           {loadingSubjects ? (
-            <div className="p-12 text-center bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl">
-              <div className="w-6 h-6 border-2 border-zinc-900 dark:border-zinc-100 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Cargando materias del plan oficial...</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-[#18181b] space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-4 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              ))}
             </div>
           ) : subjects.length === 0 ? (
             <div className="p-8 text-center bg-white dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl space-y-2">

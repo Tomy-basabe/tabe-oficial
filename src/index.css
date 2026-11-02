@@ -2017,6 +2017,15 @@ button:not(:disabled):active,
   }
 }
 
+/* ==========================================================================
+   SISTEMA DE TUTORIAL INTERACTIVO LIMPIO (ESTILO NOTION / APPLE / LINEAR)
+   ========================================================================== */
+
+.tabe-tour-highlight {
+  position: relative !important;
+  z-index: 9998 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tabe-stage-module,
   .tabe-color-impact-badge,

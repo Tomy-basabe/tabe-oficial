@@ -126,6 +126,24 @@ export function markAsRead(id: string) {
   saveInAppNotifications(updated);
 }
 
+export function markAsUnread(id: string) {
+  const current = getInAppNotifications();
+  const updated = current.map((n) => (n.id === id ? { ...n, read: false } : n));
+  saveInAppNotifications(updated);
+}
+
+export function toggleNotificationRead(id: string) {
+  const current = getInAppNotifications();
+  const updated = current.map((n) => (n.id === id ? { ...n, read: !n.read } : n));
+  saveInAppNotifications(updated);
+}
+
+export function deleteInAppNotification(id: string) {
+  const current = getInAppNotifications();
+  const updated = current.filter((n) => n.id !== id);
+  saveInAppNotifications(updated);
+}
+
 export function markAllAsRead() {
   const current = getInAppNotifications();
   const updated = current.map((n) => ({ ...n, read: true }));

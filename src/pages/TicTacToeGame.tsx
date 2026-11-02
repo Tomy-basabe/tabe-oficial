@@ -1,3 +1,4 @@
+import { MathText } from "@/components/ui/MathText";
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Grid3X3, X, Circle, Gamepad2, Loader2, Bot, Users } from "lucide-react";
@@ -508,7 +509,7 @@ export default function TicTacToeGame() {
           <Card className="card-gamer">
             <CardContent className="p-5 space-y-3">
               <Badge variant="secondary" className="text-xs">Respondé para colocar tu {mySymbol} en la casilla</Badge>
-              <h3 className="font-medium text-base leading-snug">{currentQuestion.pregunta}</h3>
+              <MathText text={currentQuestion.pregunta} as="h3" className="font-medium text-base leading-snug" />
               <div className="space-y-2">
                 {currentQuestion.options.map((option) => {
                   const isSelected = selectedAnswer === option.id;
@@ -523,7 +524,7 @@ export default function TicTacToeGame() {
                         !showCorrect && !showWrong && selectedAnswer && "opacity-50",
                         !selectedAnswer && "border-border/50 bg-secondary/30"
                       )}>
-                      <p className="text-sm font-medium">{option.texto}</p>
+                      <MathText text={option.texto} as="p" className="text-sm font-medium" />
                     </button>
                   );
                 })}

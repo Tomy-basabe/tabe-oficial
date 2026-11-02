@@ -1,3 +1,37 @@
+const ALLOWED_ORIGINS = [
+  "https://tabe.com.ar",
+  "https://www.tabe.com.ar",
+  "https://tabe-oficial.vercel.app",
+  "capacitor://localhost",
+  "http://localhost",
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:5173",
+];
+
+function getAllowedOrigin(originHeader?: string): string {
+  if (!originHeader) return ALLOWED_ORIGINS[0];
+  if (
+    ALLOWED_ORIGINS.includes(originHeader) ||
+    /^https:\/\/([a-z0-9-]+\.)?tabe\.com\.ar$/i.test(originHeader) ||
+    /^https:\/\/tabe(-[a-z0-9-]+)?\.vercel\.app$/i.test(originHeader) ||
+    /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(originHeader)
+  ) {
+    return originHeader;
+  }
+  return ALLOWED_ORIGINS[0];
+}
+
+function escapeHtmlAttr(raw: string): string {
+  return String(raw || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 function normalizeUrl(rawUrl: string): string {
   let clean = (rawUrl || "").trim();
   if (!clean) return "";
@@ -15,41 +49,54 @@ function isSafeUrl(rawUrl: string): { safe: boolean; error?: string; url?: strin
       return { safe: false, error: "Protocolo no permitido (solo https / http)" };
     }
 
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
 
-    // Bloquear loopback, metadata de nubes y hosts internos
+    // Bloquear loopback, metadata de nubes, IPv6 privadas y hosts internos
     if (
+      !host ||
       host === "localhost" ||
       host.endsWith(".local") ||
       host.endsWith(".internal") ||
+      host.endsWith(".localhost") ||
       host === "127.0.0.1" ||
       host === "0.0.0.0" ||
       host === "::1" ||
+      host === "::" ||
+      host.startsWith("fe80:") ||
+      host.startsWith("fc") ||
+      host.startsWith("fd") ||
+      host.startsWith("::ffff:") ||
       host === "169.254.169.254" ||
       host === "metadata.google.internal" ||
-      host === "instance-data"
+      host === "metadata" ||
+      host === "instance-data" ||
+      /^\d+$/.test(host) ||
+      /^0x[0-9a-f]+$/i.test(host)
     ) {
       return { safe: false, error: "Acceso denegado a hosts locales o de metadatos" };
     }
 
-    // Bloquear rangos de red privada IPv4 (RFC 1918 y link-local)
+    // Bloquear rangos de red privada IPv4 (RFC 1918, loopback, link-local y octal)
     const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
     const ipMatch = host.match(ipv4Regex);
     if (ipMatch) {
-      const [, o1, o2] = ipMatch.map(Number);
+      const octets = ipMatch.slice(1).map((o) => (o.startsWith("0") && o.length > 1 ? parseInt(o, 8) : Number(o)));
+      const [o1, o2] = octets;
       if (
+        octets.some((o) => isNaN(o) || o < 0 || o > 255) ||
         o1 === 10 ||
         o1 === 127 ||
         o1 === 0 ||
         (o1 === 172 && o2 >= 16 && o2 <= 31) ||
         (o1 === 192 && o2 === 168) ||
-        (o1 === 169 && o2 === 254)
+        (o1 === 169 && o2 === 254) ||
+        (o1 === 100 && o2 >= 64 && o2 <= 127)
       ) {
         return { safe: false, error: "Acceso denegado a rangos de IP privadas" };
       }
     }
 
-    return { safe: true, url: clean };
+    return { safe: true, url: parsed.href };
   } catch {
     return { safe: false, error: "URL inválida o malformada" };
   }
@@ -81,7 +128,9 @@ function sendBody(res: any, code: number, body: any, contentType?: string) {
   return res.end(body);
 }
 
-function renderErrorFallbackHtml(targetUrl: string, reason: string): string {
+function renderErrorFallbackHtml(targetUrl: string, _reason: string): string {
+  const safeHtmlUrl = escapeHtmlAttr(targetUrl);
+  const safeJsUrl = JSON.stringify(targetUrl);
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -174,28 +223,29 @@ function renderErrorFallbackHtml(targetUrl: string, reason: string): string {
     <p class="desc">
       Este sitio educativo o página web cuenta con una política de seguridad estricta o protección anti-bot que impide ser mostrado dentro de un marco.
     </p>
-    <div class="url-box">${targetUrl}</div>
+    <div class="url-box">${safeHtmlUrl}</div>
     <div class="actions">
       <button class="btn btn-pri" onclick="openWindow()">
         Abrir en Ventana App
       </button>
-      <a class="btn btn-sec" href="${targetUrl}" target="_blank" rel="noopener noreferrer">
+      <a class="btn btn-sec" href="${safeHtmlUrl}" target="_blank" rel="noopener noreferrer">
         Pestaña Nueva
       </a>
     </div>
   </div>
   <script>
     function openWindow() {
+      var target = ${safeJsUrl};
       try {
         if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'tabe_open_app_window', url: '${targetUrl}' }, '*');
+          window.parent.postMessage({ type: 'tabe_open_app_window', url: target }, window.location.origin);
         }
       } catch(e) {}
       var width = Math.min(1360, window.screen.availWidth - 60);
       var height = Math.min(880, window.screen.availHeight - 60);
       var left = Math.max(0, Math.floor((window.screen.availWidth - width) / 2));
       var top = Math.max(0, Math.floor((window.screen.availHeight - height) / 2));
-      window.open('${targetUrl}', 'TABECampusWindow', 'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes');
+      window.open(target, 'TABECampusWindow', 'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes');
     }
   </script>
 </body>
@@ -203,11 +253,12 @@ function renderErrorFallbackHtml(targetUrl: string, reason: string): string {
 }
 
 export default async function handler(req: any, res: any) {
-  const reqOrigin = req.headers["origin"] || "*";
-  res.setHeader("Access-Control-Allow-Origin", reqOrigin);
+  const allowedOrigin = getAllowedOrigin(req.headers["origin"]);
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH");
-  res.setHeader("Access-Control-Allow-Headers", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
@@ -282,7 +333,8 @@ export default async function handler(req: any, res: any) {
       method: req.method || "GET",
       signal: controller.signal,
       headers: forwardHeaders,
-      redirect: isGetOrHead ? "follow" : "manual",
+      // Seguridad anti-SSRF: nunca seguir redirecciones a ciegas sin validar isSafeUrl en cada salto
+      redirect: "manual",
     };
 
     if (!isGetOrHead) {
@@ -317,19 +369,45 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    const response = await fetch(cleanUrl, fetchOptions);
+    // Seguir redirecciones de forma controlada para GET/HEAD verificando isSafeUrl en cada salto
+    let currentTargetUrl = cleanUrl;
+    let response = await fetch(currentTargetUrl, fetchOptions);
+    let redirectHops = 0;
+
+    while (
+      isGetOrHead &&
+      [301, 302, 303, 307, 308].includes(response.status) &&
+      redirectHops < 5
+    ) {
+      const loc = response.headers.get("location");
+      if (!loc) break;
+      const nextUrl = new URL(loc, currentTargetUrl).href;
+      const nextValidation = isSafeUrl(nextUrl);
+      if (!nextValidation.safe || !nextValidation.url) {
+        clearTimeout(timeout);
+        return sendJson(res, 403, { error: nextValidation.error || "Redirección a URL no permitida" });
+      }
+      currentTargetUrl = nextValidation.url;
+      response = await fetch(currentTargetUrl, fetchOptions);
+      redirectHops++;
+    }
+
     clearTimeout(timeout);
 
-    // Si el destino responde con redirección manual (para POST/PUT)
+    // Si el destino responde con redirección manual (para POST/PUT o exceso de saltos)
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const locationHeader = response.headers.get("location");
       if (locationHeader) {
-        const resolvedLocation = new URL(locationHeader, cleanUrl).href;
+        const resolvedLocation = new URL(locationHeader, currentTargetUrl).href;
+        const hopCheck = isSafeUrl(resolvedLocation);
+        if (!hopCheck.safe || !hopCheck.url) {
+          return sendJson(res, 403, { error: hopCheck.error || "Redirección bloqueada por seguridad" });
+        }
         const rawCookies = response.headers.get("set-cookie");
         if (rawCookies) {
           res.setHeader("Set-Cookie", rawCookies.replace(/Domain=[^;]+;?/gi, ""));
         }
-        res.setHeader("Location", `/api/campus-proxy?url=${encodeURIComponent(resolvedLocation)}`);
+        res.setHeader("Location", `/api/campus-proxy?url=${encodeURIComponent(hopCheck.url)}`);
         sendStatus(res, 302);
         return res.end();
       }
@@ -350,10 +428,10 @@ export default async function handler(req: any, res: any) {
 
     const contentType = response.headers.get("content-type") || "";
 
-    // Eliminar todas las cabeceras que prohíben la inserción en iframe
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Restringir inserción en iframe únicamente a orígenes propios de TABE
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
     if (typeof res.removeHeader === "function") {
       res.removeHeader("X-Frame-Options");
       res.removeHeader("Content-Security-Policy");
@@ -364,25 +442,35 @@ export default async function handler(req: any, res: any) {
       res.removeHeader("Content-Encoding");
       res.removeHeader("Content-Length");
     }
-    res.setHeader("X-Frame-Options", "ALLOWALL");
-    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader(
+      "Content-Security-Policy",
+      "frame-ancestors 'self' https://tabe.com.ar https://www.tabe.com.ar https://tabe-oficial.vercel.app http://localhost:*"
+    );
 
     // Si la respuesta es HTML, inyectar <base> y scripts de neutralización
     if (contentType.includes("text/html")) {
       let html = await response.text();
 
       // La URL base para resolver recursos relativos (imágenes, css, js) debe ser la URL final alcanzada
-      const finalUrl = response.url || cleanUrl;
+      const finalUrl = response.url || currentTargetUrl;
+      const safeBaseHref = escapeHtmlAttr(finalUrl);
+      const safeJsFinalUrl = JSON.stringify(finalUrl);
 
-      // Inyectar etiqueta <base> con la URL final del sitio
+      // Script temprano para aislar tokens de sesión de TABE en localStorage/sessionStorage frente al HTML externo proxificado
+      const storageIsolationGuard = `<script>(function(){try{var mem={};var safeStore={getItem:function(k){return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null;},setItem:function(k,v){mem[k]=String(v);},removeItem:function(k){delete mem[k];},clear:function(){mem={};},key:function(i){return Object.keys(mem)[i]||null;},get length(){return Object.keys(mem).length;}};Object.defineProperty(window,'localStorage',{get:function(){return safeStore;},configurable:false});Object.defineProperty(window,'sessionStorage',{get:function(){return safeStore;},configurable:false});}catch(e){}})();</script>`;
+
+      // Inyectar etiqueta <base> y aislamiento de storage al inicio de <head>
       if (!html.includes("<base ") && !html.includes("<base>")) {
         if (html.includes("<head>")) {
-          html = html.replace("<head>", `<head><base href="${finalUrl}">`);
+          html = html.replace("<head>", `<head>${storageIsolationGuard}<base href="${safeBaseHref}">`);
         } else if (html.includes("<head ")) {
-          html = html.replace(/<head[^>]*>/, (match) => `${match}<base href="${finalUrl}">`);
+          html = html.replace(/<head[^>]*>/, (match) => `${match}${storageIsolationGuard}<base href="${safeBaseHref}">`);
         } else {
-          html = `<base href="${finalUrl}">${html}`;
+          html = `${storageIsolationGuard}<base href="${safeBaseHref}">${html}`;
         }
+      } else {
+        html = `${storageIsolationGuard}${html}`;
       }
 
       // Script interceptor seguro y no bloqueante
@@ -398,7 +486,7 @@ export default async function handler(req: any, res: any) {
   var proxyBase = appOrigin + '/api/campus-proxy?url=';
   var currentHost = '';
   try {
-    currentHost = new URL('${finalUrl}').hostname;
+    currentHost = new URL(${safeJsFinalUrl}).hostname;
   } catch(e) {}
 
   function isDownloadOrAsset(urlStr) {
@@ -517,8 +605,11 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     // Si la conexión falla, devolver un HTML visual con opciones de 1-clic en vez de un 500 JSON
     const errorHtml = renderErrorFallbackHtml(cleanUrl, err?.message || "No se pudo conectar");
-    res.setHeader("X-Frame-Options", "ALLOWALL");
-    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader(
+      "Content-Security-Policy",
+      "frame-ancestors 'self' https://tabe.com.ar https://www.tabe.com.ar https://tabe-oficial.vercel.app http://localhost:*"
+    );
     return sendBody(res, 200, errorHtml, "text/html; charset=utf-8");
   }
 }

@@ -20,6 +20,7 @@ import { CareerAnalytics } from "@/components/metrics/CareerAnalytics";
 import { ManualStudyDialog } from "@/components/metrics/ManualStudyDialog";
 import { DeleteStudyTimeDialog } from "@/components/metrics/DeleteStudyTimeDialog";
 import { DateRangeFilter, DateRange, WEEK_OPTIONS } from "@/components/metrics/DateRangeFilter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Moon } from "lucide-react";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
@@ -334,7 +335,7 @@ export default function Metrics() {
     <div className="tabe-page p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 tour-metrics-header">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               Métricas y Rendimiento
@@ -367,13 +368,13 @@ export default function Metrics() {
         </div>
 
         {/* Tab Selector Notion / ChatGPT Style */}
-        <div className="flex bg-zinc-100/80 dark:bg-zinc-850 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 gap-1 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-2xs">
+        <div className="flex bg-zinc-100/90 dark:bg-zinc-900/90 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-800 gap-1 w-full sm:w-fit overflow-x-auto no-scrollbar shadow-2xs tour-metrics-tabs">
           {([
-            { id: "general", label: "General", icon: BarChart3, iconColor: "text-zinc-500 dark:text-zinc-400" },
-            { id: "carrera", label: "Carrera & Predicción", icon: GraduationCap, iconColor: "text-amber-500" },
-            { id: "flashcards", label: "Flashcards", icon: Layers, iconColor: "text-sky-500" },
-            { id: "rutinas", label: "Rutinas", icon: Calendar, iconColor: "text-emerald-500" },
-            { id: "sueno", label: "Descanso", icon: Moon, iconColor: "text-indigo-500" },
+            { id: "general", label: "General", icon: BarChart3, iconColor: "text-zinc-500 dark:text-zinc-300" },
+            { id: "carrera", label: "Carrera & Predicción", icon: GraduationCap, iconColor: "text-amber-500 dark:text-amber-400" },
+            { id: "flashcards", label: "Flashcards", icon: Layers, iconColor: "text-sky-500 dark:text-sky-400" },
+            { id: "rutinas", label: "Rutinas", icon: Calendar, iconColor: "text-emerald-500 dark:text-emerald-400" },
+            { id: "sueno", label: "Descanso", icon: Moon, iconColor: "text-indigo-500 dark:text-indigo-400" },
           ] as const).map((tab) => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
@@ -385,17 +386,17 @@ export default function Metrics() {
                   "relative px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center shrink-0 cursor-pointer",
                   isSelected
                     ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60"
                 )}
               >
                 {isSelected && (
                   <motion.span
                     layoutId="metrics-tab-pill"
                     transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.7 }}
-                    className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs border border-zinc-200/60 dark:border-zinc-700/60"
+                    className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs border border-zinc-200/80 dark:border-zinc-700/80"
                   />
                 )}
-                <Icon className={cn("relative z-10 w-3.5 h-3.5 mr-1.5", tab.iconColor)} />
+                <Icon className={cn("relative z-10 w-3.5 h-3.5 mr-1.5 shrink-0", tab.iconColor)} />
                 <span className="relative z-10">{tab.label}</span>
               </button>
             );
@@ -406,7 +407,7 @@ export default function Metrics() {
       {activeTab === "general" ? (
         <>
           {/* Action Buttons Clean Style */}
-          <div className="flex flex-wrap items-center justify-end gap-2 -mt-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 -mt-2 tour-metrics-actions">
             <button
               onClick={() => setActiveTab("carrera")}
               className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-zinc-700/80 font-medium text-xs px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
@@ -489,7 +490,7 @@ export default function Metrics() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-6 tour-metrics-chart">
             {/* Weekly Chart */}
             <div className="lg:col-span-2 neo-bento-card p-6 flex flex-col justify-between">
               <div>
@@ -508,8 +509,13 @@ export default function Metrics() {
                 </div>
 
                 {loading && sessions.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center">
-                    <div className="w-6 h-6 border-2 border-zinc-900 dark:border-zinc-100 border-t-transparent rounded-full animate-spin" />
+                  <div className="flex items-end justify-between gap-3 h-52 pt-6 pb-2 px-4 border-b border-zinc-200/80 dark:border-zinc-800">
+                    {[40, 75, 55, 90, 60, 80, 45].map((heightPct, idx) => (
+                      <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
+                        <Skeleton className="w-full rounded-t-md" style={{ height: `${heightPct}%` }} />
+                        <Skeleton className="h-3 w-6 rounded" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="flex items-end justify-between gap-2 h-52 pt-6 overflow-x-auto pb-2 px-2 border-b border-zinc-200/80 dark:border-zinc-800">

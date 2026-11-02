@@ -1,3 +1,4 @@
+import { MathText } from "@/components/ui/MathText";
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Bomb, Timer, AlertTriangle, Gamepad2, Loader2, Bot, Users } from "lucide-react";
@@ -511,7 +512,7 @@ export default function BombGame() {
                 <AlertTriangle className="w-3 h-3" />
                 ¡Respondé correctamente para pasar la bomba!
               </div>
-              <h3 className="font-medium text-base leading-snug">{currentQuestion.pregunta}</h3>
+              <MathText text={currentQuestion.pregunta} as="h3" className="font-medium text-base leading-snug" />
               <div className="space-y-2">
                 {currentQuestion.options.map((option) => {
                   const isSelected = selectedAnswer === option.id;
@@ -526,7 +527,7 @@ export default function BombGame() {
                         !showCorrect && !showWrong && selectedAnswer && "opacity-50",
                         !selectedAnswer && "border-border/50 bg-secondary/30"
                       )}>
-                      <p className="text-sm font-medium">{option.texto}</p>
+                      <MathText text={option.texto} as="p" className="text-sm font-medium" />
                     </button>
                   );
                 })}

@@ -1,3 +1,4 @@
+import { MathText } from "@/components/ui/MathText";
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Flag, Gauge, Medal, Users, Loader2, Wifi, WifiOff } from "lucide-react";
@@ -794,9 +795,7 @@ export default function KartRaceGame() {
         {currentQuestion && (
           <Card className="card-gamer">
             <CardContent className="p-4 md:p-5 space-y-3">
-              <h3 className="font-medium text-base md:text-lg leading-snug">
-                {currentQuestion.pregunta}
-              </h3>
+              <MathText text={currentQuestion.pregunta} as="h3" className="font-medium text-base md:text-lg leading-snug" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {currentQuestion.options.map((option, idx) => {
                   const isSelected = selectedAnswer === option.id;
@@ -820,7 +819,7 @@ export default function KartRaceGame() {
                       <span className="text-xs font-bold text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">
                         {idx + 1}
                       </span>
-                      <p className="text-sm font-medium">{option.texto}</p>
+                      <MathText text={option.texto} as="p" className="text-sm font-medium" />
                     </button>
                   );
                 })}

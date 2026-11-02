@@ -37,7 +37,7 @@ export function LandingNavbar() {
     };
 
     return (
-        <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        <nav className={`fixed top-0 left-0 w-full z-[1000] transition-all duration-300 ${
             scrolled 
                 ? "bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/60 dark:border-zinc-800/60 py-3 shadow-xs" 
                 : "bg-transparent py-5"

@@ -204,6 +204,8 @@ export default function AIAssistant() {
   const liveActiveRef = useRef(false);
   const speechRecognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
+  const isProcessingUtteranceRef = useRef(false);
+  const lastSpokenUtteranceRef = useRef<{ text: string; time: number }>({ text: "", time: 0 });
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -552,6 +554,7 @@ export default function AIAssistant() {
   const resetSpeechQueue = useCallback(() => {
     speechQueueRef.current = [];
     isSpeakingQueueRef.current = false;
+    isProcessingUtteranceRef.current = false;
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -561,15 +564,27 @@ export default function AIAssistant() {
     if (typeof window === "undefined" || !window.speechSynthesis || !liveActiveRef.current) {
       isSpeakingQueueRef.current = false;
       setIsAiSpeaking(false);
+      isProcessingUtteranceRef.current = false;
       return;
     }
 
     if (speechQueueRef.current.length === 0) {
       isSpeakingQueueRef.current = false;
       setIsAiSpeaking(false);
-      if (liveActiveRef.current && speechRecognitionRef.current) {
-        try { speechRecognitionRef.current.start(); } catch (_) {}
-      }
+      isProcessingUtteranceRef.current = false;
+      // Reactivar escucha tras un breve margen para evitar eco de los altavoces
+      setTimeout(() => {
+        if (
+          liveActiveRef.current &&
+          speechRecognitionRef.current &&
+          !isSpeakingQueueRef.current &&
+          !isProcessingUtteranceRef.current
+        ) {
+          try {
+            speechRecognitionRef.current.start();
+          } catch (_) {}
+        }
+      }, 350);
       return;
     }
 
@@ -612,13 +627,31 @@ export default function AIAssistant() {
 
   // Manejar intervención hablada en vivo del usuario y obtener respuesta de la IA al instante
   const handleLiveUserUtterance = useCallback(async (spokenText: string) => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
     const text = spokenText.trim();
-    if (!text || !liveActiveRef.current || isStreaming) return;
+    if (!text || !liveActiveRef.current || isProcessingUtteranceRef.current || isStreaming) return;
+
+    // Deduplicación atómica de enunciados idénticos en ventana de 3.5 segundos
+    const now = Date.now();
+    const normalized = text.toLowerCase().replace(/[.,!¡?¿\s]+/g, " ").trim();
+    if (
+      lastSpokenUtteranceRef.current.text === normalized &&
+      now - lastSpokenUtteranceRef.current.time < 3500
+    ) {
+      return;
+    }
+
+    isProcessingUtteranceRef.current = true;
+    lastSpokenUtteranceRef.current = { text: normalized, time: now };
 
     setLiveTranscript(text);
     setIsAiThinking(true);
     if (speechRecognitionRef.current) {
-      try { speechRecognitionRef.current.stop(); } catch (_) {}
+      try { speechRecognitionRef.current.abort(); } catch (_) {}
     }
 
     const userMessage: DisplayMessage = {
@@ -713,16 +746,23 @@ export default function AIAssistant() {
           enqueueAiSpeechChunk(speechBuffer.trim());
         } else if (speechQueueRef.current.length === 0 && !isSpeakingQueueRef.current && finalContent) {
           enqueueAiSpeechChunk(finalContent);
+        } else {
+          isProcessingUtteranceRef.current = false;
         }
       },
       () => {
+        isProcessingUtteranceRef.current = false;
         setIsAiThinking(false);
         setIsAiSpeaking(false);
         resetSpeechQueue();
         toast.error("Error al procesar respuesta de voz");
       },
       undefined,
-      liveVoiceModel
+      liveVoiceModel,
+      undefined,
+      undefined,
+      undefined,
+      selectedSubject
     );
   }, [messages, isStreaming, activePersona, selectedModel, streamMessage, createSession, saveMessage, enqueueAiSpeechChunk, resetSpeechQueue]);
 
@@ -731,6 +771,8 @@ export default function AIAssistant() {
     handleNewChat();
     setShowLiveVoice(true);
     liveActiveRef.current = true;
+    isProcessingUtteranceRef.current = false;
+    lastSpokenUtteranceRef.current = { text: "", time: 0 };
     setIsAiSpeaking(false);
     setIsAiThinking(false);
     setLiveTranscript("");
@@ -754,6 +796,17 @@ export default function AIAssistant() {
         recognition.interimResults = true;
 
         recognition.onresult = (event: any) => {
+          // Si la IA ya está procesando, pensando o hablando, ignorar cualquier audio entrante
+          if (
+            !liveActiveRef.current ||
+            isProcessingUtteranceRef.current ||
+            isAiSpeaking ||
+            isAiThinking ||
+            isSpeakingQueueRef.current
+          ) {
+            return;
+          }
+
           let interim = "";
           let final = "";
           for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -763,17 +816,29 @@ export default function AIAssistant() {
               interim += event.results[i][0].transcript;
             }
           }
-          if (interim) setLiveTranscript(interim);
-          if (final) {
-            setLiveTranscript(final);
-            handleLiveUserUtterance(final);
-          } else if (interim) {
+
+          if (final.trim()) {
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = null;
+            }
+            setLiveTranscript(final.trim());
+            handleLiveUserUtterance(final.trim());
+          } else if (interim.trim()) {
+            setLiveTranscript(interim.trim());
             if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = setTimeout(() => {
-              if (interim.trim() && liveActiveRef.current) {
-                handleLiveUserUtterance(interim);
+              if (
+                interim.trim() &&
+                liveActiveRef.current &&
+                !isProcessingUtteranceRef.current &&
+                !isSpeakingQueueRef.current &&
+                !isAiSpeaking &&
+                !isAiThinking
+              ) {
+                handleLiveUserUtterance(interim.trim());
               }
-            }, 600); // 600ms de silencio para respuesta rápida inmediata
+            }, 850);
           }
         };
 
@@ -784,8 +849,16 @@ export default function AIAssistant() {
         };
 
         recognition.onend = () => {
-          if (liveActiveRef.current && !isAiSpeaking) {
-            try { recognition.start(); } catch (_) {}
+          if (
+            liveActiveRef.current &&
+            !isAiSpeaking &&
+            !isAiThinking &&
+            !isProcessingUtteranceRef.current &&
+            !isSpeakingQueueRef.current
+          ) {
+            try {
+              recognition.start();
+            } catch (_) {}
           }
         };
 
@@ -802,6 +875,8 @@ export default function AIAssistant() {
 
   const closeLiveVoiceSession = () => {
     liveActiveRef.current = false;
+    isProcessingUtteranceRef.current = false;
+    lastSpokenUtteranceRef.current = { text: "", time: 0 };
     setShowLiveVoice(false);
     setIsAiSpeaking(false);
     setIsAiThinking(false);
@@ -1098,7 +1173,8 @@ export default function AIAssistant() {
       requestModel,
       powerLevel,
       handleReset, // onReset
-      imageToSend  // image
+      imageToSend, // image
+      selectedSubject
     );
   };
 
@@ -1136,10 +1212,7 @@ export default function AIAssistant() {
     if (!message.trim() && !imageToSend) return;
 
     let finalPrompt = message;
-    if (message.startsWith("[Search: ")) {
-      const query = message.replace(/^\[Search:\s*/, "").replace(/\]$/, "");
-      finalPrompt = `🔍 [Búsqueda e Investigación Web]: ${query}`;
-    } else if (message.startsWith("[Think: ")) {
+    if (message.startsWith("[Think: ")) {
       const thoughtQuery = message.replace(/^\[Think:\s*/, "").replace(/\]$/, "");
       finalPrompt = `🧠 [Modo Pensamiento Profundo / Razonamiento Académico]: ${thoughtQuery}`;
     } else if (message.startsWith("[Canvas: ")) {
@@ -1196,7 +1269,7 @@ export default function AIAssistant() {
   };
 
   if (loading) {
-    return <LoadingScreen message="Cargando Asistente T.A.B.E..." submessage="Iniciando inteligencia artificial..." />;
+    return <LoadingScreen type="ai_assistant" fullScreen message="Cargando Asistente T.A.B.E..." submessage="Iniciando inteligencia artificial..." />;
   }
 
   return (
@@ -1454,26 +1527,34 @@ export default function AIAssistant() {
                   />
                 </div>
 
-                {/* Subtítulo dinámico / estado de voz */}
-                <div className="mt-4 text-center max-w-md px-4 min-h-[44px] flex items-center justify-center">
+                {/* Subtítulo dinámico / estado de voz profesional (alto contraste light/dark) */}
+                <div className="mt-4 text-center max-w-lg px-4 min-h-[48px] flex items-center justify-center">
                   {isAiSpeaking ? (
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-medium animate-pulse">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>TABE AI está hablando...</span>
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-500/15 dark:bg-emerald-950/70 border border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm font-medium shadow-xs backdrop-blur-md transition-all">
+                      <div className="flex items-center gap-0.5 h-3">
+                        <span className="w-1 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-bounce h-3 [animation-delay:-0.3s]" />
+                        <span className="w-1 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-bounce h-2 [animation-delay:-0.15s]" />
+                        <span className="w-1 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-bounce h-3.5" />
+                      </div>
+                      <span>TABE AI hablando...</span>
                     </div>
                   ) : isAiThinking ? (
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-medium">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-violet-500/15 dark:bg-violet-950/70 border border-violet-500/40 text-violet-800 dark:text-violet-200 text-xs sm:text-sm font-medium shadow-xs backdrop-blur-md transition-all">
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-600 dark:text-violet-300" />
                       <span>Pensando respuesta...</span>
                     </div>
                   ) : liveTranscript ? (
-                    <div className="inline-flex items-center px-4 py-1.5 rounded-2xl bg-zinc-900/90 dark:bg-white/90 text-white dark:text-zinc-900 text-xs sm:text-sm font-medium shadow-md max-w-sm text-center">
-                      <span>"{liveTranscript}"</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-sky-500/15 dark:bg-sky-950/70 border border-sky-500/40 text-sky-900 dark:text-sky-100 text-xs sm:text-sm font-medium shadow-xs backdrop-blur-md max-w-md text-center transition-all">
+                      <Mic className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                      <span className="line-clamp-2">"{liveTranscript}"</span>
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-muted/60 border border-border/50 text-muted-foreground text-xs font-medium">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                      <span>Te escucho, habla cuando quieras</span>
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm font-medium shadow-xs backdrop-blur-md transition-all">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+                      </span>
+                      <span>Te escucho, hablá cuando quieras</span>
                     </div>
                   )}
                 </div>

@@ -21,6 +21,39 @@ function getCorsHeaders(req: Request) {
   };
 }
 
+/**
+ * Validates that a Web Push endpoint is a legitimate HTTPS Push Service URL
+ * and blocks SSRF attempts against internal/private/metadata hosts.
+ */
+function isSafePushEndpoint(rawEndpoint: string): boolean {
+  try {
+    const parsed = new URL(rawEndpoint);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (
+      !host ||
+      host === "localhost" ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal") ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      host === "::1" ||
+      host.startsWith("fe80:") ||
+      host.startsWith("fc") ||
+      host.startsWith("fd") ||
+      host === "169.254.169.254" ||
+      host === "metadata.google.internal" ||
+      /^\d+$/.test(host) ||
+      /^(\d{1,3}\.){3}\d{1,3}$/.test(host)
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // CRIT-1 FIX: VAPID keys desde variables de entorno, nunca hardcodeadas
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
@@ -76,6 +109,12 @@ async function sendPushToUser(
   const sendErrors: any[] = [];
 
   for (const sub of subs) {
+    if (!isSafePushEndpoint(sub.endpoint)) {
+      await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+      expiredCount++;
+      continue;
+    }
+
     const pushSubscription = {
       endpoint: sub.endpoint,
       keys: {
@@ -89,11 +128,10 @@ async function sendPushToUser(
       sentCount++;
     } catch (err: any) {
       console.warn("Failed to send webpush to endpoint:", sub.endpoint, err?.statusCode || err?.message);
+      // Seguridad: No devolver err.body ni el endpoint completo para evitar Full-Response SSRF
       sendErrors.push({
-        endpoint: sub.endpoint,
         statusCode: err?.statusCode,
-        message: err?.message,
-        body: err?.body
+        message: "Push delivery error"
       });
       if (
         err?.statusCode === 404 || 
@@ -130,12 +168,10 @@ serve(async (req) => {
     const action = body.action || "send_to_user";
 
     // ─── CRON / Internal actions: verificar por secret key en lugar de JWT de usuario ───
-    // El cron "check_and_send_all_reminders" lo invoca Supabase internamente con la service key
     if (action === "check_and_send_all_reminders") {
       const internalSecret = req.headers.get("x-internal-secret");
       const expectedSecret = Deno.env.get("INTERNAL_CRON_SECRET");
       if (!expectedSecret || internalSecret !== expectedSecret) {
-        // Fallback: también aceptar si viene del mismo proyecto Supabase (service role)
         const authHeader = req.headers.get("Authorization") || "";
         const serviceKey = SUPABASE_SERVICE_ROLE_KEY;
         if (!serviceKey || !authHeader.includes(serviceKey)) {
@@ -145,7 +181,6 @@ serve(async (req) => {
           });
         }
       }
-      // Procesar cron (continúa abajo)
     } else {
       // ─── CRIT-2 FIX: Todas las demás acciones requieren JWT válido de usuario ───
       const authHeader = req.headers.get("Authorization");
@@ -156,9 +191,6 @@ serve(async (req) => {
         });
       }
 
-      const authClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        global: { headers: { Authorization: authHeader } }
-      });
       const anonAuthClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || SUPABASE_SERVICE_ROLE_KEY, {
         global: { headers: { Authorization: authHeader } }
       });
@@ -183,15 +215,22 @@ serve(async (req) => {
           });
         }
 
+        if (!isSafePushEndpoint(String(endpoint))) {
+          return new Response(JSON.stringify({ error: "Invalid or unsafe Web Push endpoint URL" }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" }
+          });
+        }
+
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         const { data, error } = await supabase
           .from("push_subscriptions")
           .upsert({
-            user_id: authenticatedUserId, // Siempre usar el userId del JWT, nunca del body
+            user_id: authenticatedUserId,
             endpoint,
             p256dh,
             auth,
-            user_agent: user_agent || "",
+            user_agent: String(user_agent || "").slice(0, 500),
             updated_at: new Date().toISOString()
           }, { onConflict: "endpoint" })
           .select();
@@ -209,7 +248,6 @@ serve(async (req) => {
 
       // ─── 1. SEND IMMEDIATE PUSH TO USER ───
       if (action === "send_to_user" || action === "test_push") {
-        // Solo puede enviarse push al usuario autenticado (no a terceros)
         const targetUserId = body.user_id;
         if (targetUserId && targetUserId !== authenticatedUserId) {
           return new Response(JSON.stringify({ error: "Forbidden: cannot send push to another user" }), {
@@ -300,8 +338,6 @@ serve(async (req) => {
     // ─── CRON: check_and_send_all_reminders ───
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-
-    // ─── CRON: check_and_send_all_reminders ──────────────────────────────────────
     if (action === "check_and_send_all_reminders") {
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -393,7 +429,6 @@ serve(async (req) => {
               pushBody = `Llevás ${stats.racha_actual} días consecutivos. Dedicále 15 minutos hoy para no perderla.`;
               pushUrl = "/pomodoro";
             } else {
-              // Recordatorio de estudio alternativo en segundo plano
               pushTitle = "📚 ¡Momento de estudiar en TABE! ✨";
               pushBody = "Dedicále unos minutos hoy a tus materias pendientes y sumá horas de estudio.";
               pushUrl = "/pomodoro";
@@ -412,6 +447,10 @@ serve(async (req) => {
             });
 
             for (const sub of subs) {
+              if (!isSafePushEndpoint(sub.endpoint)) {
+                await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+                continue;
+              }
               try {
                 await webpush.sendNotification({
                   endpoint: sub.endpoint,

@@ -319,7 +319,7 @@ export default function Exams() {
   };
 
   if (loading && upcomingExams.length === 0) {
-    return <LoadingScreen message="Cargando Exámenes..." submessage="Sincronizando fechas de evaluación..." />;
+    return <LoadingScreen type="exams" message="Cargando Exámenes..." submessage="Sincronizando fechas de evaluación..." />;
   }
 
   return (

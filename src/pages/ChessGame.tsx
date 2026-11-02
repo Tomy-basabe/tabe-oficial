@@ -1,3 +1,4 @@
+import { MathText } from "@/components/ui/MathText";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Zap, Trophy, Crown, RotateCcw, Swords, Bot, BookOpen, Clock, Palette, Shield, Flag, Users, Loader2 } from "lucide-react";
@@ -964,7 +965,7 @@ export default function ChessGame() {
                       className={cn("w-full text-left p-3 rounded-xl border transition-all duration-300 flex items-start gap-2", btnStyle)}
                     >
                       <span className="text-xs font-bold text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">{idx + 1}</span>
-                      <p className="text-sm font-medium">{option.texto}</p>
+                      <MathText text={option.texto} as="p" className="text-sm font-medium" />
                     </button>
                   );
                 })}

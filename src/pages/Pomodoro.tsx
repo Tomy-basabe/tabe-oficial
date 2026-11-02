@@ -244,6 +244,7 @@ export default function Pomodoro() {
   if (loading) {
     return (
       <LoadingScreen
+        type="pomodoro"
         message="Cargando Pomodoro..."
         submessage="Preparando tu sala de estudio..."
       />

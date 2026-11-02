@@ -4,6 +4,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ALL_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
 
+export const PARAMETRIC_TAGS = [
+  "Resumen",
+  "TP",
+  "Parcial",
+  "RecParcial",
+  "Global",
+  "RecGlobal",
+  "Final"
+] as const;
+
+export type ParametricTag = (typeof PARAMETRIC_TAGS)[number];
+
 export interface PublicDeck {
   id: string;
   nombre: string;
@@ -152,6 +164,7 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
   const [myPublicDecks, setMyPublicDecks] = useState<PublicDeck[]>(() => _cachedMyPublicDecks || []);
   const [loading, setLoading] = useState<boolean>(() => autoFetch && _cachedPublicDecks === null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
@@ -213,7 +226,7 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
       const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
         supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
         supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, category, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
-        supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, category, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
+        supabase.from("library_folders").select("id, user_id, subject_id, parent_folder_id, nombre, color, category, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
         supabase.from("quiz_decks").select("id, user_id, subject_id, nombre, description, category, total_questions, download_count, rating_sum, rating_count, created_at, is_public, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50),
         supabase.from("notion_documents").select("id, user_id, subject_id, titulo, description, category, emoji, cover_url, download_count, rating_sum, rating_count, created_at, is_anonymous").eq("is_public", true).order("download_count", { ascending: false }).limit(50)
       ]);
@@ -312,6 +325,7 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
 
         return {
           ...item,
+          category: (item.category && String(item.category).trim()) ? item.category : "Resumen",
           rating_sum: finalRatingSum,
           rating_count: finalRatingCount,
           is_anonymous: isAnon,
@@ -358,7 +372,14 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
             (d.creator?.carrera || "").toLowerCase().includes(lowerSearch)
           );
         }
-        if (categoryFilter) filtered = filtered.filter(d => d.category === categoryFilter);
+        const activeTags = selectedTags.length > 0 ? selectedTags : (categoryFilter ? [categoryFilter] : []);
+        if (activeTags.length > 0) {
+          filtered = filtered.filter(d => {
+            const rawCat = (d.category && String(d.category).trim()) ? d.category : "Resumen";
+            const itemCats = rawCat.split(",").map((s: string) => s.trim().toLowerCase());
+            return activeTags.some(tag => itemCats.includes(tag.toLowerCase()));
+          });
+        }
         if (yearFilter) filtered = filtered.filter(d => d.subject?.year === yearFilter || d.year === yearFilter);
         if (subjectFilter && subjectFilter !== "all") {
           const lowerSub = subjectFilter.toLowerCase().trim();
@@ -379,14 +400,21 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
 
           filtered = filtered.filter(item => {
             const creatorFac = cleanText(item.creator?.facultad || "");
-            if (!creatorFac) return false;
-            return (
-              creatorFac === targetId ||
-              creatorFac.includes(targetId) ||
-              targetId.includes(creatorFac) ||
-              (targetLabel && (creatorFac.includes(targetLabel) || targetLabel.includes(creatorFac))) ||
-              (targetFull && (creatorFac.includes(targetFull) || targetFull.includes(creatorFac)))
-            );
+            const itemFac = cleanText((item as any).facultad || "");
+            const candidate = creatorFac || itemFac;
+            if (candidate) {
+              return (
+                candidate === targetId ||
+                candidate.includes(targetId) ||
+                targetId.includes(candidate) ||
+                (targetLabel && (candidate.includes(targetLabel) || targetLabel.includes(candidate))) ||
+                (targetFull && (candidate.includes(targetFull) || targetFull.includes(candidate)))
+              );
+            }
+            const fullText = cleanText(item.nombre || "") + " " + cleanText(item.description || "") + " " + cleanText(item.subject?.nombre || "");
+            if (targetLabel && fullText.includes(targetLabel)) return true;
+            if (targetId && fullText.includes(targetId)) return true;
+            return false;
           });
         }
 
@@ -397,13 +425,22 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
 
           filtered = filtered.filter(item => {
             const creatorCarr = cleanText(item.creator?.carrera || "");
-            if (!creatorCarr) return false;
-            return (
-              creatorCarr === targetId ||
-              creatorCarr.includes(targetId) ||
-              targetId.includes(creatorCarr) ||
-              (targetLabel && (creatorCarr.includes(targetLabel) || targetLabel.includes(creatorCarr)))
-            );
+            const itemCarr = cleanText((item as any).carrera || "");
+            const candidate = creatorCarr || itemCarr;
+            if (candidate) {
+              if (
+                candidate === targetId ||
+                candidate.includes(targetId) ||
+                targetId.includes(candidate) ||
+                (targetLabel && (candidate.includes(targetLabel) || targetLabel.includes(candidate)))
+              ) {
+                return true;
+              }
+            }
+            const fullText = cleanText(item.nombre || "") + " " + cleanText(item.description || "") + " " + cleanText(item.category || "");
+            if (targetLabel && fullText.includes(targetLabel)) return true;
+            if (targetId && fullText.includes(targetId)) return true;
+            return false;
           });
         }
 
@@ -427,7 +464,18 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
       const nextFiles = filter((filesRes.data || []).map(f => enrich(f, "file")));
       const nextFolders = filter((foldersRes.data || []).map(fld => enrich(fld, "folder")));
       const nextQuizzes = filter((quizzesRes.data || []).map(q => enrich(q, "quiz")));
-      const nextApuntes = filter((apuntesRes.data || []).map((a: any) => enrich({ ...a, nombre: a.titulo }, "apunte")));
+      const nextApuntes = filter((apuntesRes.data || []).map((a: any) => {
+        let cat = a.category;
+        if (!cat || !cat.trim()) {
+          cat = "Resumen";
+        } else {
+          const validTags = cat.split(",").map((s: string) => s.trim()).filter((s: string) =>
+            PARAMETRIC_TAGS.some(p => p.toLowerCase() === s.toLowerCase())
+          );
+          cat = validTags.length > 0 ? validTags.join(", ") : "Resumen";
+        }
+        return enrich({ ...a, nombre: a.titulo, category: cat }, "apunte");
+      }));
 
       _cachedPublicDecks = nextDecks;
       _cachedPublicFiles = nextFiles;
@@ -447,7 +495,7 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
       hasLoadedOnceRef.current = true;
       setLoading(false);
     }
-  }, [categoryFilter, searchTerm, yearFilter, subjectFilter, sortBy, facultadFilter, carreraFilter]);
+  }, [categoryFilter, selectedTags, searchTerm, yearFilter, subjectFilter, sortBy, facultadFilter, carreraFilter]);
 
   const fetchMyPublicDecks = useCallback(async () => {
     if (!user) return;
@@ -462,14 +510,20 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
     id: string,
     description: string,
     category: string,
-    isAnonymous: boolean = false
+    isAnonymous: boolean = false,
+    subjectId?: string | null
   ) => {
     const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
     const typeLabel = type === "deck" ? "Mazo" : type === "file" ? "Archivo" : type === "quiz" ? "Cuestionario" : type === "apunte" ? "Apunte" : "Carpeta";
     
+    const updatePayload: any = { is_public: true, description, category, is_anonymous: isAnonymous };
+    if (subjectId !== undefined && subjectId !== "none") {
+      updatePayload.subject_id = subjectId;
+    }
+
     const { error } = await supabase
       .from(table as any)
-      .update({ is_public: true, description, category, is_anonymous: isAnonymous } as any)
+      .update(updatePayload as any)
       .eq("id", id);
 
     if (error) {
@@ -480,6 +534,32 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
 
     toast.success(`¡${typeLabel} publicado en la comunidad${isAnonymous ? " de forma anónima" : ""}!`);
     await Promise.all([fetchMyPublicDecks(), fetchPublicResources()]);
+    return true;
+  };
+
+  /** Edita una publicación propia (nombre, descripción, materia, anonimato). El cambio se ve para todos al refrescar la lista pública. */
+  const updatePublishedResource = async (
+    type: "deck" | "file" | "folder" | "quiz" | "apunte",
+    id: string,
+    changes: { nombre: string; description?: string; category?: string; subject_id: string | null; is_anonymous: boolean }
+  ) => {
+    const table = type === "deck" ? "flashcard_decks" : type === "file" ? "library_files" : type === "quiz" ? "quiz_decks" : type === "apunte" ? "notion_documents" : "library_folders";
+    const payload: any = { subject_id: changes.subject_id, is_anonymous: changes.is_anonymous };
+    payload[type === "apunte" ? "titulo" : "nombre"] = changes.nombre;
+    if (changes.category !== undefined) {
+      payload.category = changes.category;
+    }
+    // files/folders no tienen columna description
+    if (type === "deck" || type === "quiz" || type === "apunte") payload.description = changes.description ?? "";
+
+    const { error } = await supabase.from(table as any).update(payload).eq("id", id);
+    if (error) {
+      console.error(`Error al editar ${type}:`, error);
+      toast.error(`No se pudo guardar los cambios: ${error.message || ""}`);
+      return false;
+    }
+    toast.success("Publicación actualizada");
+    await fetchPublicResources();
     return true;
   };
 
@@ -614,21 +694,7 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
   };
 
   const getCategories = useCallback(async () => {
-    const [decks, files, folders, quizzes, apuntes] = await Promise.all([
-      (supabase.from("flashcard_decks") as any).select("category").eq("is_public", true).not("category", "is", null),
-      (supabase.from("library_files") as any).select("category").eq("is_public", true).not("category", "is", null),
-      (supabase.from("library_folders") as any).select("category").eq("is_public", true).not("category", "is", null),
-      (supabase.from("quiz_decks") as any).select("category").eq("is_public", true).not("category", "is", null),
-      (supabase.from("notion_documents") as any).select("category").eq("is_public", true).not("category", "is", null)
-    ]);
-    const categories = [
-      ...(decks.data || []).map(d => d.category),
-      ...(files.data || []).map(f => f.category),
-      ...(folders.data || []).map(f => f.category),
-      ...(quizzes.data || []).map(q => q.category),
-      ...(apuntes.data || []).map(a => a.category)
-    ];
-    return [...new Set(categories.filter(Boolean))] as string[];
+    return [...PARAMETRIC_TAGS];
   }, []);
 
   const importDeck = async (sourceDeckId: string, subjectId: string, silent: boolean = false) => {
@@ -941,14 +1007,18 @@ export function useMarketplace(options: { autoFetch?: boolean } = {}) {
     loading,
     searchTerm,
     setSearchTerm,
+    selectedTags,
+    setSelectedTags,
     categoryFilter,
     setCategoryFilter,
     yearFilter,
     setYearFilter,
     subjectFilter,
     setSubjectFilter,
+    facultadFilter, setFacultadFilter, carreraFilter, setCarreraFilter,
     getCategories,
     publishResource,
+    updatePublishedResource,
     unpublishResource,
     importFile,
     importFolder,

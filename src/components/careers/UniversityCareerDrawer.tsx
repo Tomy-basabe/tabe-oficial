@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
+import { getCareerCategoryMeta } from "@/lib/careerCategoryIcons";
 import { cn } from "@/lib/utils";
 
 interface TemplateSubject {
@@ -298,7 +299,8 @@ export function UniversityCareerDrawer({
                 </div>
               ) : (
                 filteredCareers.map((career) => {
-                  const CareerIcon = career.icon || GraduationCap;
+                  const catMeta = getCareerCategoryMeta(career.name);
+                  const CareerIcon = catMeta.icon;
                   const isExpanded = expandedCareerId === career.id;
                   const isLoadingSubjects = loadingCareerId === career.id;
                   const subjects = subjectsCache[career.id] || [];
@@ -324,22 +326,30 @@ export function UniversityCareerDrawer({
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3 min-w-0">
                             <div
-                              className="w-9 h-9 rounded-xl flex items-center justify-center p-2 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60"
+                              className="w-10 h-10 rounded-xl flex items-center justify-center p-2.5 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60 shadow-2xs"
                               style={{
-                                backgroundColor: `${career.color || "#3b82f6"}15`,
-                                color: career.color || "#3b82f6",
+                                backgroundColor: `${catMeta.accentColor}18`,
+                                color: catMeta.accentColor,
                               }}
                             >
-                              <CareerIcon className="w-4 h-4" />
+                              <CareerIcon className="w-5 h-5 stroke-[2.2]" />
                             </div>
 
                             <div className="min-w-0">
                               <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 leading-snug">
                                 {career.name}
                               </h3>
-                              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                                {career.degreeType}
-                              </span>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border",
+                                  catMeta.badgeBg,
+                                  catMeta.badgeText,
+                                  catMeta.badgeBorder
+                                )}>
+                                  <CareerIcon className="w-2.5 h-2.5" />
+                                  <span>{catMeta.label}</span>
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

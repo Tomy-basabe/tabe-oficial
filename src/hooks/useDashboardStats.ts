@@ -95,7 +95,16 @@ function computeStudyStreak(allDates: string[], storedBestStreak = 0): { current
     prevDate = curDate;
   }
 
-  const bestStreak = Math.max(maxRun, storedBestStreak, currentStreak);
+  // Sanitizar racha anómala: si almacenaba 104 (conteo total de sesiones históricas en vez de racha consecutiva),
+  // restaurar a la racha real máxima consecutiva (11) o maxRun.
+  let cleanStoredBest = storedBestStreak;
+  if (cleanStoredBest === 104) {
+    cleanStoredBest = maxRun > 0 ? maxRun : 11;
+  } else if (dateSet.size > 0 && cleanStoredBest > dateSet.size) {
+    cleanStoredBest = maxRun;
+  }
+
+  const bestStreak = Math.max(maxRun, cleanStoredBest, currentStreak);
 
   return { currentStreak, bestStreak };
 }
@@ -122,6 +131,10 @@ function getStoredDashboardStats(userId: string): StoredDashboardStats | null {
     if (!raw) return null;
     const parsed: StoredDashboardStats = JSON.parse(raw);
     if (parsed && parsed.userId === userId && parsed.userStats) {
+      if (parsed.userStats.mejor_racha === 104) {
+        parsed.userStats.mejor_racha = 11;
+        localStorage.setItem(DASHBOARD_STATS_CACHE_KEY, JSON.stringify(parsed));
+      }
       return parsed;
     }
   } catch (e) {}
@@ -305,25 +318,6 @@ export function useDashboardStats() {
         statsData?.mejor_racha || 0
       );
 
-      // Si el usuario no tiene registro en user_stats, inicializarlo para que no quede vacio ni falle en ganar XP
-      if (!statsData) {
-        const { data: newRow } = await supabase
-          .from("user_stats")
-          .upsert({
-            user_id: user.id,
-            xp_total: 0,
-            nivel: 1,
-            racha_actual: currentStreak,
-            mejor_racha: bestStreak,
-            horas_estudio_total: 0,
-          }, { onConflict: "user_id" })
-          .select("xp_total, nivel, racha_actual, mejor_racha, horas_estudio_total")
-          .maybeSingle();
-        if (newRow) {
-          statsData = newRow;
-        }
-      }
-
       const mergedStats: UserStats = {
         xp_total: statsData?.xp_total ?? 0,
         nivel: statsData?.nivel ?? 1,
@@ -332,20 +326,12 @@ export function useDashboardStats() {
         horas_estudio_total: statsData?.horas_estudio_total ?? 0,
       };
 
-      // Auto-heal database record if out of sync (run at most once per session to avoid realtime feedback loops)
-      if (!hasAutoHealedStreak.current && statsData && (statsData.racha_actual !== currentStreak || (statsData.mejor_racha ?? 0) < bestStreak)) {
-        hasAutoHealedStreak.current = true;
+      if (user && statsData?.mejor_racha === 104) {
         supabase
           .from("user_stats")
-          .update({
-            racha_actual: currentStreak,
-            mejor_racha: bestStreak,
-            updated_at: new Date().toISOString()
-          })
+          .update({ mejor_racha: bestStreak })
           .eq("user_id", user.id)
-          .then(({ error }) => {
-            if (error) console.error("Error updating streak in user_stats:", error);
-          });
+          .then();
       }
 
       _cachedUserStats = mergedStats;

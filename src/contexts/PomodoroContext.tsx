@@ -344,12 +344,11 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
             if (error) throw error;
 
-            const hours = Math.floor(currentElapsed / 3600);
-            let xpGained = Math.floor(currentElapsed / 60) * 2;
-
+            // La tabla user_stats (XP, créditos, nivel, horas y racha) se actualiza
+            // automáticamente en el servidor mediante el trigger trg_sync_user_stats_from_study_session.
             const { data: stats } = await supabase
                 .from("user_stats")
-                .select("id, horas_estudio_total, xp_total, credits, xp_multiplier, xp_multiplier_ends_at")
+                .select("xp_multiplier, xp_multiplier_ends_at")
                 .eq("user_id", user.id)
                 .maybeSingle();
 
@@ -358,25 +357,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
                 if (currentStats.xp_multiplier && currentStats.xp_multiplier > 1) {
                     const endDate = currentStats.xp_multiplier_ends_at ? new Date(currentStats.xp_multiplier_ends_at) : null;
                     if (endDate && endDate > new Date()) {
-                        xpGained = Math.floor(xpGained * currentStats.xp_multiplier);
+                        const xpGained = Math.floor(Math.floor(currentElapsed / 60) * 2 * currentStats.xp_multiplier);
                         toast.info(`¡XP Boost activo! Ganaste ${xpGained} XP (x${currentStats.xp_multiplier})`);
                     }
                 }
-
-                await supabase.from("user_stats").update({
-                    horas_estudio_total: (currentStats.horas_estudio_total || 0) + hours,
-                    xp_total: (currentStats.xp_total || 0) + xpGained,
-                    credits: (currentStats.credits || 0) + Math.floor(currentElapsed / 60),
-                    nivel: Math.floor(((currentStats.xp_total || 0) + xpGained) / 100) + 1,
-                }).eq("user_id", user.id);
-            } else {
-                await supabase.from("user_stats").upsert({
-                    user_id: user.id,
-                    horas_estudio_total: hours,
-                    xp_total: xpGained,
-                    credits: Math.floor(currentElapsed / 60),
-                    nivel: Math.floor(xpGained / 100) + 1,
-                }, { onConflict: "user_id" });
             }
 
             setElapsedSeconds(0);

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, Building2, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw, ChevronDown } from "lucide-react";
+import { Search, Download, Star, User, Eye, ChevronLeft, ChevronRight, Layers, Upload, X, GraduationCap, Building2, FileText, Folder, Loader2, HelpCircle, ShieldCheck, Check, ArrowUpDown, Filter, Info, BookOpen, FolderOpen, ArrowRight, CheckCircle2, RotateCcw, ChevronDown, Pencil, Tag, FolderPlus, AlertCircle } from "lucide-react";
+import JSZip from "jszip";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
-import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte } from "@/hooks/useMarketplace";
+import { useMarketplace, PublicDeck, PublicFile, PublicFolder, PublicQuiz, PublicApunte, PARAMETRIC_TAGS } from "@/hooks/useMarketplace";
 import { ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
-import { ComunidadIcon } from "@/components/icons/ComunidadIcon";
+import { ComunidadCustomIcon } from "@/components/icons/TabeSectionIcons";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +14,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SubjectAssignmentPicker } from "@/components/subjects/SubjectAssignmentPicker";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import HoldButton from "@/components/ui/HoldButton";
+import { loadCareerTemplate } from "@/lib/loadCareerTemplate";
 
 const AVAILABLE_YEARS = [
   { value: 1, label: "1° Año" },
@@ -31,6 +35,7 @@ interface Subject {
   id: string;
   nombre: string;
   year: number;
+  user_id?: string | null;
 }
 
 
@@ -64,32 +69,11 @@ function SearchableComboboxFilter({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-      setTimeout(() => inputRef.current?.focus(), 60);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen]);
-
-  const selectedOption = options.find((o) => o.id === value);
+  const selectedOption = options.find(
+    (o) => o.id === value || (Boolean(value) && Boolean(o.id) && o.id.toLowerCase() === value.toLowerCase())
+  );
   const displayLabel = selectedOption ? selectedOption.label : (value && value !== "all" ? value : allLabel);
 
   const clean = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -117,152 +101,238 @@ function SearchableComboboxFilter({
   }
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      <button
-        type="button"
-        onClick={() => {
-          setIsOpen(!isOpen);
+    <Popover
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (open) {
           setSearch("");
-        }}
-        className={cn(
-          "w-full h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-between gap-1.5 transition-all cursor-pointer select-none",
-          value && value !== "all"
-            ? "border-indigo-300 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200"
-            : "border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-50/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-        )}
-      >
-        <div className="flex items-center gap-1.5 truncate min-w-0">
-          {isUniversity && value && value !== "all" ? (
-            <UniversityLogo universityId={value} className="w-3.5 h-3.5 rounded-xs shrink-0" />
-          ) : (
-            icon
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "w-full h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-between gap-1.5 transition-all cursor-pointer select-none",
+            value && value !== "all"
+              ? "border-indigo-300 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-200"
+              : "border-zinc-200/80 dark:border-zinc-700/80 bg-zinc-50/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           )}
-          <span className="truncate font-medium">{value && value !== "all" ? displayLabel : placeholder}</span>
-        </div>
+        >
+          <div className="flex items-center gap-1.5 truncate min-w-0">
+            {isUniversity && value && value !== "all" ? (
+              <UniversityLogo universityId={value} className="w-3.5 h-3.5 rounded-xs shrink-0" />
+            ) : (
+              icon
+            )}
+            <span className="truncate font-medium">{value && value !== "all" ? displayLabel : placeholder}</span>
+          </div>
 
-        <div className="flex items-center gap-1 shrink-0 text-zinc-400">
-          {value && value !== "all" && (
-            <span
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(null);
-              }}
-              className="p-0.5 hover:text-red-500 rounded-sm cursor-pointer"
-              title="Quitar filtro"
+          <div className="flex items-center gap-1 shrink-0 text-zinc-400">
+            {value && value !== "all" && (
+              <span
+                role="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(null);
+                }}
+                className="p-0.5 hover:text-red-500 rounded-sm cursor-pointer"
+                title="Quitar filtro"
+              >
+                <X className="w-3 h-3" />
+              </span>
+            )}
+            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isOpen && "rotate-180")} />
+          </div>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="w-[var(--radix-popover-trigger-width)] min-w-[280px] sm:min-w-[340px] max-w-[440px] p-0 z-[100] bg-white dark:bg-[#1e1e20] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col"
+      >
+        <div className="p-2 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={isUniversity ? "Buscar facultad o universidad..." : "Buscar carrera..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-8 pl-8 pr-7 text-xs bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
             >
               <X className="w-3 h-3" />
-            </span>
+            </button>
           )}
-          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isOpen && "rotate-180")} />
         </div>
-      </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.14 }}
-            className="absolute left-0 top-full mt-1 w-full min-w-[280px] sm:min-w-[320px] max-w-[420px] bg-white dark:bg-[#1e1e20] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col"
+        <div className="max-h-64 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onChange(null);
+              setIsOpen(false);
+            }}
+            className={cn(
+              "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer",
+              !value || value === "all"
+                ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
+                : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+            )}
           >
-            <div className="p-2 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={isUniversity ? "Buscar facultad o universidad..." : "Buscar carrera..."}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-8 pl-8 pr-7 text-xs bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              {search && (
+            <div className="flex items-center gap-2 truncate">
+              {icon}
+              <span>{allLabel}</span>
+            </div>
+            {(!value || value === "all") && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />}
+          </button>
+
+          {filteredOptions.length === 0 ? (
+            <div className="p-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
+              No se encontraron resultados para "{search}"
+            </div>
+          ) : (
+            filteredOptions.map((opt) => {
+              const isSelected = Boolean(
+                value && opt.id && (value.toLowerCase() === opt.id.toLowerCase() || value === opt.id)
+              );
+              return (
                 <button
+                  key={opt.id}
                   type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onChange(opt.id);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-start justify-between gap-2 transition-colors cursor-pointer",
+                    isSelected
+                      ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
+                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                  )}
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            <div className="max-h-64 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(null);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer",
-                  !value || value === "all"
-                    ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-                    : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
-                )}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  {icon}
-                  <span>{allLabel}</span>
-                </div>
-                {(!value || value === "all") && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />}
-              </button>
-
-              {filteredOptions.length === 0 ? (
-                <div className="p-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
-                  No se encontraron resultados para "{search}"
-                </div>
-              ) : (
-                filteredOptions.map((opt) => {
-                  const isSelected = value === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => {
-                        onChange(opt.id);
-                        setIsOpen(false);
-                      }}
-                      className={cn(
-                        "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-start justify-between gap-2 transition-colors cursor-pointer",
-                        isSelected
-                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-                          : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
-                      )}
-                    >
-                      <div className="flex items-start gap-2 truncate min-w-0">
-                        {isUniversity && (
-                          <UniversityLogo universityId={opt.id} className="w-4 h-4 rounded-xs shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 truncate min-w-0">
+                    {isUniversity && (
+                      <UniversityLogo universityId={opt.id} className="w-4 h-4 rounded-xs shrink-0 mt-0.5" />
+                    )}
+                    <div className="truncate">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="truncate font-medium">{opt.label}</span>
+                        {opt.isFavorite && (
+                          <span className="text-[9px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded border border-amber-500/30 shrink-0">
+                            Mi facultad
+                          </span>
                         )}
-                        <div className="truncate">
-                          <div className="flex items-center gap-1.5 truncate">
-                            <span className="truncate font-medium">{opt.label}</span>
-                            {opt.isFavorite && (
-                              <span className="text-[9px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded border border-amber-500/30 shrink-0">
-                                Mi facultad
-                              </span>
-                            )}
-                          </div>
-                          {opt.sublabel && (
-                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-normal">
-                              {opt.sublabel}
-                            </p>
-                          )}
-                        </div>
                       </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                      {opt.sublabel && (
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate font-normal">
+                          {opt.sublabel}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
+
+
+const InteractiveRating = React.memo(function InteractiveRating({
+  item,
+  type,
+  avg,
+  userVote,
+  canRate,
+  onRate,
+}: {
+  item: any;
+  type: string;
+  avg: number;
+  userVote?: number;
+  canRate: boolean;
+  onRate: (type: any, id: string, rating: number) => void;
+}) {
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  return (
+    <div 
+      className="flex items-center gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div 
+        className="flex items-center gap-0.5"
+        onMouseLeave={() => setHoverRating(null)}
+      >
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isFilled = hoverRating !== null 
+            ? star <= hoverRating 
+            : userVote 
+              ? star <= userVote 
+              : star <= Math.round(avg);
+          return (
+            <button
+              key={star}
+              type="button"
+              disabled={!canRate}
+              title={!canRate ? "Inicia sesión para calificar" : (userVote ? `Cambiar mi calificación a ${star} ★` : `Calificar con ${star} ★`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canRate) {
+                  toast.error("Inicia sesión para calificar este recurso");
+                  return;
+                }
+                onRate(type, item.id, star);
+              }}
+              onMouseEnter={() => canRate && setHoverRating(star)}
+              className={cn(
+                "p-0.5 transition-transform",
+                canRate ? "hover:scale-115 cursor-pointer focus:outline-none" : "cursor-not-allowed opacity-60"
+              )}
+              aria-label={`Calificar con ${star} estrellas`}
+            >
+              <Star
+                className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  isFilled 
+                    ? "fill-amber-400 text-amber-400" 
+                    : "text-zinc-300 dark:text-zinc-600"
+                )}
+              />
+            </button>
+          );
+        })}
+      </div>
+      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 ml-0.5">
+        {avg > 0 ? avg.toFixed(1) : "-"}
+      </span>
+      <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
+        ({item.rating_count || 0})
+      </span>
+      {userVote && (
+        <span className="text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20">
+          Tu voto: {userVote}★
+        </span>
+      )}
+    </div>
+  );
+});
 
 export default function Marketplace() {
   const { user } = useAuth();
@@ -283,6 +353,8 @@ export default function Marketplace() {
     loading,
     searchTerm,
     setSearchTerm,
+    selectedTags,
+    setSelectedTags,
     categoryFilter,
     setCategoryFilter,
     yearFilter,
@@ -300,6 +372,7 @@ export default function Marketplace() {
     getCategories,
     publishResource,
     unpublishResource,
+    updatePublishedResource,
     getDeckPreview,
     importDeck,
     importFile,
@@ -313,6 +386,44 @@ export default function Marketplace() {
   const [userFacultadId, setUserFacultadId] = useState<string | null>(null);
   const [userFacultadLabel, setUserFacultadLabel] = useState<string | null>(null);
   const [userCarreraLabel, setUserCarreraLabel] = useState<string | null>(null);
+  const [careerPlanSubjects, setCareerPlanSubjects] = useState<Array<{ id: string; nombre: string; year?: number }>>([]);
+  const [userCareerPlanSubjects, setUserCareerPlanSubjects] = useState<Array<{ id: string; nombre: string; year?: number }>>([]);
+
+  // Cargar materias oficiales de la carrera seleccionada
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPlan() {
+      if (!carreraFilter || carreraFilter === "all") {
+        setCareerPlanSubjects([]);
+        return;
+      }
+      const career = AVAILABLE_CAREERS.find(
+        (c) => c.id.toLowerCase() === carreraFilter.toLowerCase()
+      );
+      if (career?.file) {
+        try {
+          const mod = await loadCareerTemplate(career.file);
+          if (isMounted && mod?.default?.subjects) {
+            const list = mod.default.subjects.map((sub: any) => ({
+              id: sub.id || sub.nombre,
+              nombre: sub.nombre,
+              year: sub.año || sub.year,
+            }));
+            setCareerPlanSubjects(list);
+          }
+        } catch (err) {
+          console.error("Error cargando materias oficiales de la carrera:", err);
+          if (isMounted) setCareerPlanSubjects([]);
+        }
+      } else {
+        if (isMounted) setCareerPlanSubjects([]);
+      }
+    }
+    loadPlan();
+    return () => {
+      isMounted = false;
+    };
+  }, [carreraFilter]);
 
   // Cargar facultad del perfil del usuario para pre-seleccionar por default
   useEffect(() => {
@@ -380,10 +491,47 @@ export default function Marketplace() {
     };
   }, [user]);
 
-  // Materias únicas disponibles según los recursos cargados y las materias registradas
+  // Materias únicas disponibles: Base permanente del plan del usuario + filtros adicionales
   const availableSubjects = React.useMemo(() => {
     const map = new Map<string, { id: string; nombre: string; year?: number }>();
 
+    // 1. BASE FIJA: Materias oficiales del plan de carrera del usuario siempre disponibles
+    for (const s of userCareerPlanSubjects) {
+      if (s.nombre) {
+        const key = s.nombre.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, { id: s.id, nombre: s.nombre, year: s.year });
+        }
+      }
+    }
+
+    // 2. BASE FIJA: Materias personales del usuario en su cuenta
+    for (const s of subjects) {
+      if (s.nombre && (!s.user_id || s.user_id === user?.id)) {
+        const key = s.nombre.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, {
+            id: s.id,
+            nombre: s.nombre,
+            year: s.year,
+          });
+        }
+      }
+    }
+
+    // 3. Si se filtró una carrera específica diferente, agregar además sus materias
+    if (carreraFilter && carreraFilter !== "all" && careerPlanSubjects.length > 0) {
+      for (const s of careerPlanSubjects) {
+        if (s.nombre) {
+          const key = s.nombre.toLowerCase().trim();
+          if (!map.has(key)) {
+            map.set(key, { id: s.id, nombre: s.nombre, year: s.year });
+          }
+        }
+      }
+    }
+
+    // 4. Incorporar materias de las publicaciones públicas
     const allPublic = [
       ...publicApuntes,
       ...publicDecks,
@@ -405,26 +553,18 @@ export default function Marketplace() {
       }
     }
 
-    for (const s of subjects) {
-      if (s.nombre) {
-        const key = s.nombre.toLowerCase().trim();
-        if (!map.has(key)) {
-          map.set(key, {
-            id: s.id,
-            nombre: s.nombre,
-            year: s.year,
-          });
-        }
-      }
-    }
-
     let list = Array.from(map.values());
     if (yearFilter) {
       list = list.filter((s) => s.year === yearFilter);
     }
 
-    return list.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [publicApuntes, publicDecks, publicFiles, publicFolders, publicQuizzes, subjects, yearFilter]);
+    return list.sort((a, b) => {
+      if (a.year && b.year && a.year !== b.year) {
+        return a.year - b.year;
+      }
+      return a.nombre.localeCompare(b.nombre);
+    });
+  }, [userCareerPlanSubjects, subjects, user, carreraFilter, careerPlanSubjects, publicApuntes, publicDecks, publicFiles, publicFolders, publicQuizzes, yearFilter]);
 
   // Opciones de Facultades completas y con favoritos
   const allFacultadOptions = React.useMemo(() => {
@@ -484,43 +624,132 @@ export default function Marketplace() {
   
   // Publish Modal State
   const [publishSelectOpen, setPublishSelectOpen] = useState(false);
-  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string; description?: string; category?: string } | null>(null);
+  const [resourceToPublish, setResourceToPublish] = useState<{ id: string; type: 'deck' | 'file' | 'folder' | 'quiz' | 'apunte'; nombre: string; description?: string; category?: string; subject_id?: string | null } | null>(null);
   const [publishSearch, setPublishSearch] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [selectedPublishTags, setSelectedPublishTags] = useState<string[]>(["Resumen"]);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSubjectId, setPublishSubjectId] = useState<string>("none");
+  const [assignSubjectToSelf, setAssignSubjectToSelf] = useState<boolean>(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      const cats = await getCategories();
-      setCategories(cats);
+  // Edición de publicaciones propias
+  const [editingResource, setEditingResource] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editSubject, setEditSubject] = useState<string>("none");
+  const [editAnon, setEditAnon] = useState(false);
+  const [editTags, setEditTags] = useState<string[]>(["Resumen"]);
+  const [savingEdit, setSavingEdit] = useState(false);
 
-      const { data: subjectsData, error: subjectsError } = await (supabase
-        .from("subjects")
-        .select('id, nombre, "año"') as any);
+  const openEdit = (r: any) => {
+    setEditingResource(r);
+    setEditName(r.nombre || "");
+    setEditDesc(r.description || "");
+    setEditSubject(r.subject_id || "none");
+    setEditAnon(!!r.is_anonymous);
+    const rawTags = (r.category || "")
+      .split(",")
+      .map((s: string) => s.trim())
+      .map((s: string) => PARAMETRIC_TAGS.find((p) => p.toLowerCase() === s.toLowerCase()))
+      .filter(Boolean) as string[];
+    setEditTags(rawTags.length > 0 ? Array.from(new Set(rawTags)) : ["Resumen"]);
+  };
 
-      if (subjectsError) {
-        console.error("Error loading subjects:", subjectsError);
-      } else {
-        setSubjects((subjectsData || []).map(s => ({ id: s.id, nombre: s.nombre, year: s.año })));
-      }
+  const handleSaveEdit = async () => {
+    if (!editingResource || !editName.trim()) {
+      toast.error("El nombre no puede estar vacío");
+      return;
+    }
+    if (editTags.length === 0) {
+      toast.error("Debes seleccionar al menos una etiqueta (ej. Resumen, Parcial, Final)");
+      return;
+    }
+    if (!editSubject || editSubject === "none") {
+      toast.error("Todo recurso en la comunidad debe tener una materia asignada");
+      return;
+    }
+    setSavingEdit(true);
+    const subject_id = editSubject;
+    const categoryString = editTags.join(", ");
+    const ok = await updatePublishedResource(editingResource.type, editingResource.id, {
+      nombre: editName.trim(),
+      description: editDesc.trim(),
+      category: categoryString,
+      subject_id,
+      is_anonymous: editAnon,
+    });
+    if (ok) {
+      const subj = subjects.find((x) => x.id === subject_id);
+      setMyResources((prev) =>
+        prev.map((r) =>
+          r.id === editingResource.id && r.type === editingResource.type
+            ? { ...r, nombre: editName.trim(), description: editDesc.trim(), category: categoryString, subject_id, subject_name: subj?.nombre, year: subj?.year, is_anonymous: editAnon }
+            : r
+        )
+      );
+      setEditingResource(null);
+    }
+    setSavingEdit(false);
+  };
 
-      if (user) {
+  const loadUserResources = React.useCallback(async () => {
+    const cats = await getCategories();
+    setCategories(cats);
+
+    const { data: subjectsData, error: subjectsError } = await (supabase
+      .from("subjects")
+      .select('id, nombre, "año", user_id') as any);
+
+    if (subjectsError) {
+      console.error("Error loading subjects:", subjectsError);
+    } else {
+      setSubjects((subjectsData || []).map(s => ({ id: s.id, nombre: s.nombre, year: s.año, user_id: (s as any).user_id })));
+    }
+
+    if (user) {
+      try {
         const [decksRes, filesRes, foldersRes, quizzesRes, apuntesRes] = await Promise.all([
-          supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, category, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("library_folders").select("id, user_id, subject_id, nombre, color, icon, category, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("quiz_decks").select("id, user_id, subject_id, nombre, description, category, total_questions, is_public, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(50),
-          supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id).limit(50)
+          supabase.from("flashcard_decks").select("id, user_id, subject_id, nombre, description, category, total_cards, is_public, is_anonymous, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(300),
+          supabase.from("library_files").select("id, user_id, subject_id, folder_id, nombre, tipo, url, storage_path, tamaño_bytes, category, is_public, is_anonymous, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(500),
+          supabase.from("library_folders").select("id, user_id, subject_id, parent_folder_id, nombre, color, category, is_public, is_anonymous, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(300),
+          supabase.from("quiz_decks").select("id, user_id, subject_id, nombre, description, category, total_questions, is_public, is_anonymous, download_count, rating_sum, rating_count, created_at").eq("user_id", user.id).limit(300),
+          supabase.from("notion_documents").select("id, titulo, emoji, subject_id, parent_id, is_public, description, category, is_anonymous, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(300)
         ]);
 
         const subjectsById = new Map((subjectsData || []).map((s: any) => [s.id, { id: s.id, nombre: s.nombre, year: s.año }]));
+        const foldersList = foldersRes.data || [];
+        const foldersById = new Map(foldersList.map((f: any) => [f.id, f]));
+
+        const mappedFiles = (filesRes.data || []).map((f: any) => {
+          const parentFolder = f.folder_id ? foldersById.get(f.folder_id) : null;
+          const effectiveSubId = f.subject_id || parentFolder?.subject_id || null;
+          const sub = effectiveSubId ? subjectsById.get(effectiveSubId) : null;
+          return {
+            ...f,
+            type: 'file',
+            folder_id: f.folder_id || null,
+            subject_id: effectiveSubId,
+            year: sub?.year,
+            subject_name: sub?.nombre
+          };
+        });
+
+        const mappedFolders = foldersList.map((f: any) => {
+          const sub = f.subject_id ? subjectsById.get(f.subject_id) : null;
+          return {
+            ...f,
+            type: 'folder',
+            parent_folder_id: f.parent_folder_id || null,
+            year: sub?.year,
+            subject_name: sub?.nombre
+          };
+        });
 
         setMyResources([
           ...(decksRes.data || []).map(d => ({ ...d, type: 'deck', year: subjectsById.get(d.subject_id)?.year, subject_name: subjectsById.get(d.subject_id)?.nombre })),
-          ...(filesRes.data || []).map(f => ({ ...f, type: 'file', year: subjectsById.get(f.subject_id)?.year, subject_name: subjectsById.get(f.subject_id)?.nombre })),
-          ...(foldersRes.data || []).map(f => ({ ...f, type: 'folder', year: subjectsById.get(f.subject_id)?.year, subject_name: subjectsById.get(f.subject_id)?.nombre })),
+          ...mappedFiles,
+          ...mappedFolders,
           ...(quizzesRes.data || []).map(q => ({ ...q, type: 'quiz', year: subjectsById.get(q.subject_id)?.year, subject_name: subjectsById.get(q.subject_id)?.nombre })),
           ...(apuntesRes.data || []).map(a => ({
             ...a,
@@ -530,10 +759,15 @@ export default function Marketplace() {
             subject_name: subjectsById.get(a.subject_id)?.nombre
           }))
         ]);
+      } catch (err) {
+        console.error("Error loading user resources for marketplace:", err);
       }
-    };
-    loadData();
+    }
   }, [user, getCategories]);
+
+  useEffect(() => {
+    loadUserResources();
+  }, [loadUserResources]);
 
   const handlePreview = async (deck: PublicDeck) => {
     setPreviewDeck(deck);
@@ -607,7 +841,7 @@ export default function Marketplace() {
       if (result.error) {
         toast.error(`Error al importar "${resourceName}": ${result.error}`, { id: toastId });
       } else {
-        toast.success(`¡"${resourceName}" descargado e importado con éxito!`, {
+        toast.success(`¡"${resourceName}" importado con éxito a tu Biblioteca!`, {
           id: toastId,
           duration: 3500,
         });
@@ -628,17 +862,35 @@ export default function Marketplace() {
       toast.error("Por favor ingresa una breve descripción");
       return;
     }
-    if (!category.trim()) {
-      toast.error("Por favor indica una categoría o materia");
+    if (selectedPublishTags.length === 0) {
+      toast.error("Debes seleccionar al menos una etiqueta (ej. Resumen, Parcial, Final)");
       return;
     }
+
+    const effectiveSubjectId = (publishSubjectId && publishSubjectId !== "none") 
+      ? publishSubjectId 
+      : (resourceToPublish.subject_id && resourceToPublish.subject_id !== "none" ? resourceToPublish.subject_id : null);
+
+    if (!effectiveSubjectId) {
+      toast.error("Debes asociar una materia para publicar este recurso en la comunidad. Selecciona una en el formulario.");
+      return;
+    }
+
     setIsPublishing(true);
-    const success = await publishResource(resourceToPublish.type, resourceToPublish.id, description.trim(), category.trim(), isAnonymous);
+    const categoryString = selectedPublishTags.join(", ");
+    const success = await publishResource(
+      resourceToPublish.type,
+      resourceToPublish.id,
+      description.trim(),
+      categoryString,
+      isAnonymous,
+      assignSubjectToSelf ? effectiveSubjectId : (resourceToPublish.subject_id || effectiveSubjectId)
+    );
     if (success) {
       setPublishSelectOpen(false);
       setResourceToPublish(null);
       setDescription("");
-      setCategory("");
+      setSelectedPublishTags(["Resumen"]);
       setIsAnonymous(false);
       window.location.reload();
     }
@@ -696,76 +948,6 @@ export default function Marketplace() {
         };
     }
   };
-
-  const InteractiveRating = ({ item, type }: { item: any; type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
-    const [hoverRating, setHoverRating] = useState<number | null>(null);
-    const avg = getAverageRating(item);
-    const userVote = userRatings[item.id];
-    const canRate = Boolean(user);
-
-    return (
-      <div 
-        className="flex items-center gap-1.5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div 
-          className="flex items-center gap-0.5"
-          onMouseLeave={() => setHoverRating(null)}
-        >
-          {[1, 2, 3, 4, 5].map((star) => {
-            const isFilled = hoverRating !== null 
-              ? star <= hoverRating 
-              : userVote 
-                ? star <= userVote 
-                : star <= Math.round(avg);
-            return (
-              <button
-                key={star}
-                type="button"
-                disabled={!canRate}
-                title={!user ? "Inicia sesión para calificar" : (userVote ? `Cambiar mi calificación a ${star} ★` : `Calificar con ${star} ★`)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!canRate) {
-                    toast.error("Inicia sesión para calificar este recurso");
-                    return;
-                  }
-                  rateResource(type, item.id, star);
-                }}
-                onMouseEnter={() => canRate && setHoverRating(star)}
-                className={cn(
-                  "p-0.5 transition-transform",
-                  canRate ? "hover:scale-115 cursor-pointer focus:outline-none" : "cursor-not-allowed opacity-60"
-                )}
-                aria-label={`Calificar con ${star} estrellas`}
-              >
-                <Star
-                  className={cn(
-                    "w-3.5 h-3.5 transition-colors",
-                    isFilled 
-                      ? "fill-amber-400 text-amber-400" 
-                      : "text-zinc-300 dark:text-zinc-700"
-                  )}
-                />
-              </button>
-            );
-          })}
-        </div>
-        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 ml-0.5">
-          {avg > 0 ? avg.toFixed(1) : "-"}
-        </span>
-        <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
-          ({item.rating_count || 0})
-        </span>
-        {userVote && (
-          <span className="text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/20">
-            Tu voto: {userVote}★
-          </span>
-        )}
-      </div>
-    );
-  };
-
 
   const EmptyTabState = ({
     type,
@@ -857,12 +1039,160 @@ export default function Marketplace() {
     );
   };
 
-  const ResourceCard = ({ item, type }: { item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz" }) => {
+  // Descarga directa de archivo al dispositivo
+  const handleDownloadFile = async (fileItem: any) => {
+    const toastId = `download-file-${fileItem.id}`;
+    toast.loading(`Descargando "${fileItem.nombre}" a tu dispositivo...`, { id: toastId });
+
+    try {
+      let blob: Blob | null = null;
+
+      // 1. Priorizar descarga directa desde Supabase Storage
+      if (fileItem.storage_path) {
+        const { data: downloadedBlob, error: downloadErr } = await supabase.storage
+          .from("library-files")
+          .download(fileItem.storage_path);
+
+        if (!downloadErr && downloadedBlob) {
+          blob = downloadedBlob;
+        } else {
+          // Fallback a URL firmada fresca
+          const { data: signedData, error: signErr } = await supabase.storage
+            .from("library-files")
+            .createSignedUrl(fileItem.storage_path, 3600);
+
+          if (!signErr && signedData?.signedUrl) {
+            const res = await fetch(signedData.signedUrl);
+            if (res.ok) {
+              blob = await res.blob();
+            }
+          }
+        }
+      }
+
+      // 2. Si no tiene storage_path o falló, intentar fetch solo si no es un blob local
+      if (!blob && fileItem.url && !fileItem.url.startsWith("blob:")) {
+        try {
+          const res = await fetch(fileItem.url);
+          if (res.ok) {
+            blob = await res.blob();
+          }
+        } catch (fetchErr) {
+          console.warn("Fallo al descargar desde url original:", fetchErr);
+        }
+      }
+
+      if (!blob) {
+        throw new Error("No se pudo obtener el archivo desde el almacenamiento. Si es público, ejecuta la política RLS en Supabase.");
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileItem.nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+      await (supabase.rpc as any)("increment_download_count", { row_id: fileItem.id, table_name: "library_files" });
+      toast.success(`¡"${fileItem.nombre}" descargado a tu dispositivo!`, { id: toastId, duration: 3500 });
+    } catch (err: any) {
+      console.error("Error al descargar archivo:", err);
+      toast.error(`Error al descargar: ${err.message || "No disponible"}`, { id: toastId });
+    }
+  };
+
+  // Descarga empaquetada en ZIP de carpeta al dispositivo
+  const handleDownloadFolder = async (folderItem: any) => {
+    const toastId = `download-folder-${folderItem.id}`;
+    toast.loading(`Preparando y comprimiendo "${folderItem.nombre}.zip"...`, { id: toastId });
+
+    try {
+      const zip = new JSZip();
+
+      const addFolderContent = async (fId: string, currentZip: any) => {
+        const { data: files } = await supabase
+          .from("library_files")
+          .select("id, nombre, url, storage_path")
+          .eq("folder_id", fId);
+
+        if (files && files.length > 0) {
+          for (const file of files) {
+            try {
+              let fileBlob: Blob | null = null;
+              if (file.storage_path) {
+                const { data: bData } = await supabase.storage
+                  .from("library-files")
+                  .download(file.storage_path);
+                if (bData) {
+                  fileBlob = bData;
+                } else {
+                  const { data: signedData } = await supabase.storage
+                    .from("library-files")
+                    .createSignedUrl(file.storage_path, 3600);
+                  if (signedData?.signedUrl) {
+                    const res = await fetch(signedData.signedUrl);
+                    if (res.ok) fileBlob = await res.blob();
+                  }
+                }
+              }
+
+              if (!fileBlob && file.url && !file.url.startsWith("blob:")) {
+                const res = await fetch(file.url);
+                if (res.ok) fileBlob = await res.blob();
+              }
+
+              if (fileBlob) {
+                currentZip.file(file.nombre, fileBlob);
+              }
+            } catch (fileErr) {
+              console.warn(`No se pudo agregar archivo ${file.nombre} al zip:`, fileErr);
+            }
+          }
+        }
+
+        const { data: subfolders } = await supabase
+          .from("library_folders")
+          .select("id, nombre")
+          .eq("parent_folder_id", fId);
+
+        if (subfolders && subfolders.length > 0) {
+          for (const sub of subfolders) {
+            const subZip = currentZip.folder(sub.nombre);
+            await addFolderContent(sub.id, subZip);
+          }
+        }
+      };
+
+      await addFolderContent(folderItem.id, zip);
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const blobUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${folderItem.nombre || "Carpeta"}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+      await (supabase.rpc as any)("increment_download_count", { row_id: folderItem.id, table_name: "library_folders" });
+      toast.success(`¡Carpeta "${folderItem.nombre}.zip" descargada a tu dispositivo!`, { id: toastId, duration: 3500 });
+    } catch (err: any) {
+      console.error("Error al descargar carpeta:", err);
+      toast.error(`Error al descargar carpeta: ${err.message || "Error al empaquetar"}`, { id: toastId });
+    }
+  };
+
+  const renderResourceCard = (item: any, type: "deck" | "file" | "folder" | "apunte" | "quiz") => {
+    const avg = getAverageRating(item);
     const config = getTypeConfig(type);
     const Icon = config.icon;
 
     return (
       <motion.div
+        key={`${type}-${item.id}`}
         layout
         initial={{ opacity: 0, scale: 0.92, y: 12, filter: "blur(5px)" }}
         animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
@@ -960,50 +1290,77 @@ export default function Marketplace() {
           </div>
 
           {/* Rating bar */}
-          <div className="flex items-center justify-between mb-4 px-2 py-1.5 bg-zinc-50 dark:bg-zinc-850 rounded-lg border border-zinc-100 dark:border-zinc-800">
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">Valoración</span>
-            <InteractiveRating item={item} type={type} />
+          <div className="flex items-center justify-between mb-4 px-2.5 py-1.5 bg-zinc-100/70 dark:bg-zinc-900/90 rounded-lg border border-zinc-200/70 dark:border-zinc-800/90 shadow-2xs">
+            <span className="text-[11px] text-zinc-700 dark:text-zinc-200 font-semibold tracking-tight">Valoración</span>
+            <InteractiveRating item={item} type={type} avg={avg} userVote={userRatings[item.id]} canRate={Boolean(user)} onRate={rateResource} />
           </div>
 
           {/* Botones de acción */}
           <div className="flex items-center gap-2">
-            {type === 'deck' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex-1 h-8 text-xs font-medium rounded-lg text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800" 
-                onClick={() => handlePreview(item)}
-              >
-                <Eye className="w-3.5 h-3.5 mr-1.5" /> Vista previa
-              </Button>
+            {(type === 'file' || type === 'folder') ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 h-8 text-xs font-medium rounded-lg text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" 
+                  onClick={() => {
+                    if (type === 'file') handleDownloadFile(item);
+                    else handleDownloadFolder(item);
+                  }}
+                  title={type === 'file' ? "Descargar archivo a tu dispositivo" : "Descargar carpeta comprimida (.zip) a tu dispositivo"}
+                >
+                  <Download className="w-3.5 h-3.5 text-zinc-500" /> Descargar
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  onClick={() => startBackgroundImport({ id: item.id, type, data: item }, null)}
+                  title="Guardar copia directamente en tu biblioteca académica de TABE"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" /> A Biblioteca
+                </Button>
+              </>
+            ) : (
+              <>
+                {type === 'deck' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 h-8 text-xs font-medium rounded-lg text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800" 
+                    onClick={() => handlePreview(item)}
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Vista previa
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs font-medium rounded-lg transition-all shadow-2xs",
+                    type === 'deck' ? "flex-1" : "w-full",
+                    "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
+                  )}
+                  onClick={() => {
+                    if (type === 'deck') {
+                      setImportingResource({ id: item.id, type: 'deck', data: item });
+                      setSelectedSubject(subjects[0]?.id || "");
+                      setImportOpen(true);
+                    } else if (type === 'quiz') {
+                      setImportingResource({ id: item.id, type: 'quiz', data: item });
+                      setSelectedSubject(subjects[0]?.id || "");
+                      setImportOpen(true);
+                    } else if (type === 'apunte') {
+                      setImportingResource({ id: item.id, type: 'apunte', data: item });
+                      setSelectedSubject("");
+                      setImportOpen(true);
+                    } else {
+                      startBackgroundImport({ id: item.id, type, data: item }, null);
+                    }
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5 mr-1.5" /> Importar
+                </Button>
+              </>
             )}
-            <Button
-              size="sm"
-              className={cn(
-                "h-8 text-xs font-medium rounded-lg transition-all shadow-2xs",
-                type === 'deck' ? "flex-1" : "w-full",
-                "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
-              )}
-              onClick={() => {
-                if (type === 'deck') {
-                  setImportingResource({ id: item.id, type: 'deck', data: item });
-                  setSelectedSubject(subjects[0]?.id || "");
-                  setImportOpen(true);
-                } else if (type === 'quiz') {
-                  setImportingResource({ id: item.id, type: 'quiz', data: item });
-                  setSelectedSubject(subjects[0]?.id || "");
-                  setImportOpen(true);
-                } else if (type === 'apunte') {
-                  setImportingResource({ id: item.id, type: 'apunte', data: item });
-                  setSelectedSubject("");
-                  setImportOpen(true);
-                } else {
-                  startBackgroundImport({ id: item.id, type, data: item }, null);
-                }
-              }}
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Importar
-            </Button>
           </div>
         </div>
       </motion.div>
@@ -1016,7 +1373,7 @@ export default function Marketplace() {
       <div className="neo-bento-card p-6 lg:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 flex items-center justify-center shrink-0 shadow-2xs">
-            <ComunidadIcon className="w-7 h-7" />
+            <ComunidadCustomIcon size={24} className="w-6 h-6 text-zinc-900 dark:text-zinc-100" />
           </div>
           <div>
             <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -1090,7 +1447,7 @@ export default function Marketplace() {
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="neo-bento-card p-3.5 sm:p-4 space-y-3">
+      <div className="neo-bento-card z-20 p-3.5 sm:p-4 space-y-3" style={{ overflow: "visible" }}>
         {/* Fila 1: Búsqueda general, Categoría y Orden */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           <div className="relative flex-1">
@@ -1112,15 +1469,87 @@ export default function Marketplace() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <Select value={categoryFilter || "all"} onValueChange={(v) => setCategoryFilter(v === "all" ? null : v)}>
-              <SelectTrigger className="w-full sm:w-40 md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-xs sm:text-sm">
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {/* Filtro Multi-Categoría / Multi-Etiqueta */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full sm:w-44 md:w-48 h-9 px-3 rounded-lg text-xs sm:text-sm font-medium border transition-colors flex items-center justify-between gap-1.5 select-none cursor-pointer",
+                    selectedTags.length > 0
+                      ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                      : "bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Tag className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                    <span className="truncate">
+                      {selectedTags.length === 0
+                        ? "Todas las categorías"
+                        : selectedTags.length === 1
+                        ? selectedTags[0]
+                        : `${selectedTags.length} categorías`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {selectedTags.length > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
+                        {selectedTags.length}
+                      </span>
+                    )}
+                    <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2 bg-white dark:bg-[#1e1e1e] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg z-50">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-100 dark:border-zinc-800 mb-1">
+                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Categorías</span>
+                    {selectedTags.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTags([])}
+                        className="text-[10px] text-zinc-400 hover:text-red-500 font-medium transition-colors"
+                      >
+                        Limpiar todas
+                      </button>
+                    )}
+                  </div>
+                  {PARAMETRIC_TAGS.map((tag) => {
+                    const isSelected = selectedTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTags((prev) =>
+                            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                          );
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left",
+                          isSelected
+                            ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                            : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        )}
+                      >
+                        <span>{tag}</span>
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                            isSelected
+                              ? "bg-indigo-600 border-indigo-600 text-white"
+                              : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                          )}
+                        >
+                          {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
               <SelectTrigger className="w-full sm:w-40 md:w-44 h-9 text-xs sm:text-sm font-medium bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg">
@@ -1153,12 +1582,15 @@ export default function Marketplace() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFacultadFilter(userFacultadId);
+                    const isAlreadySelected = Boolean(
+                      facultadFilter && (facultadFilter.toLowerCase() === userFacultadId.toLowerCase() || facultadFilter === userFacultadId)
+                    );
+                    setFacultadFilter(isAlreadySelected ? null : userFacultadId);
                     setCarreraFilter(null);
                   }}
                   className={cn(
                     "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer shadow-2xs select-none",
-                    facultadFilter === userFacultadId
+                    facultadFilter && (facultadFilter.toLowerCase() === userFacultadId.toLowerCase() || facultadFilter === userFacultadId)
                       ? "bg-indigo-600 text-white hover:bg-indigo-700"
                       : "border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
                   )}
@@ -1190,7 +1622,7 @@ export default function Marketplace() {
             </div>
 
             {/* Botón 3: Limpiar filtros si alguno está activo */}
-            {(facultadFilter || carreraFilter || yearFilter || subjectFilter || categoryFilter) && (
+            {(facultadFilter || carreraFilter || yearFilter || subjectFilter || categoryFilter || selectedTags.length > 0) && (
               <button
                 type="button"
                 onClick={() => {
@@ -1199,6 +1631,7 @@ export default function Marketplace() {
                   setYearFilter(null);
                   setSubjectFilter(null);
                   setCategoryFilter(null);
+                  setSelectedTags([]);
                 }}
                 className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors cursor-pointer ml-auto"
               >
@@ -1208,8 +1641,31 @@ export default function Marketplace() {
             )}
           </div>
 
+          {/* Etiquetas activas si hay alguna seleccionada */}
+          {selectedTags.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[11px] text-zinc-400 font-medium">Etiquetas:</span>
+              {selectedTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 px-2 py-0.5 rounded-md"
+                >
+                  <span>{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTags((prev) => prev.filter((t) => t !== tag))}
+                    className="hover:text-red-500 cursor-pointer p-0.5"
+                    title={`Quitar etiqueta ${tag}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Grid de 4 Filtros Académicos Seleccionables y Buscables */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" style={{ overflow: "visible" }}>
             {/* 1. Selector Buscable de Facultad con Logos Oficiales */}
             <SearchableComboboxFilter
               value={facultadFilter}
@@ -1219,7 +1675,7 @@ export default function Marketplace() {
               }}
               options={allFacultadOptions}
               placeholder="Facultad o Universidad"
-              allLabel="🏛️ Todas las facultades"
+              allLabel="Todas las facultades"
               icon={<Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
               isUniversity={true}
             />
@@ -1227,10 +1683,13 @@ export default function Marketplace() {
             {/* 2. Selector Buscable de Carrera */}
             <SearchableComboboxFilter
               value={carreraFilter}
-              onChange={(val) => setCarreraFilter(val)}
+              onChange={(val) => {
+                setCarreraFilter(val);
+                setSubjectFilter(null);
+              }}
               options={carreraOptions}
               placeholder="Carrera"
-              allLabel="🎓 Todas las carreras"
+              allLabel="Todas las carreras"
               icon={<GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
               disabled={carreraOptions.length === 0}
               disabledPlaceholder="Sin carreras registradas"
@@ -1253,7 +1712,7 @@ export default function Marketplace() {
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
                 <SelectItem value="all">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">📅 Todos los años</span>
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">Todos los años</span>
                 </SelectItem>
                 {AVAILABLE_YEARS.map((y) => (
                   <SelectItem key={y.value} value={y.value.toString()}>
@@ -1276,7 +1735,7 @@ export default function Marketplace() {
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#212121] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg text-xs max-h-60 z-50">
                 <SelectItem value="all">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">📚 Todas las materias</span>
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">Todas las materias</span>
                 </SelectItem>
                 {availableSubjects.map((s) => (
                   <SelectItem key={s.id || s.nombre} value={s.nombre}>
@@ -1311,7 +1770,7 @@ export default function Marketplace() {
       </div>
 
       {/* Tabs Principales de Comunidad */}
-      <Tabs defaultValue="apuntes" className="space-y-6 tour-marketplace-decks">
+      <Tabs defaultValue="apuntes" className="space-y-6 tour-marketplace-decks relative z-10">
         <div className="overflow-x-auto pb-1 scrollbar-none">
           <TabsList className="bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 inline-flex w-auto min-w-full sm:min-w-0">
             <TabsTrigger 
@@ -1381,11 +1840,11 @@ export default function Marketplace() {
         {/* Tab Content: Mazos */}
         <TabsContent value="decks" className="focus-visible:outline-none">
           {loading && publicDecks.length === 0 ? (
-            <LoadingScreen message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
+            <LoadingScreen type="flashcards" message="Cargando mazos de la comunidad..." submessage="Explorando tarjetas compartidas por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence mode="popLayout" initial={false}>
-                {publicDecks.map(deck => <ResourceCard key={deck.id} item={deck} type="deck" />)}
+                {publicDecks.map(deck => renderResourceCard(deck, "deck"))}
               </AnimatePresence>
               {publicDecks.length === 0 && (
                 <EmptyTabState
@@ -1404,11 +1863,11 @@ export default function Marketplace() {
         {/* Tab Content: Quizzes */}
         <TabsContent value="quizzes" className="focus-visible:outline-none">
           {loading && publicQuizzes.length === 0 ? (
-            <LoadingScreen message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
+            <LoadingScreen type="quizzes" message="Cargando cuestionarios de la comunidad..." submessage="Explorando trivias y tests creados por otros estudiantes" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence mode="popLayout" initial={false}>
-                {publicQuizzes.map(quiz => <ResourceCard key={quiz.id} item={quiz} type="quiz" />)}
+                {publicQuizzes.map(quiz => renderResourceCard(quiz, "quiz"))}
               </AnimatePresence>
               {publicQuizzes.length === 0 && (
                 <EmptyTabState
@@ -1428,7 +1887,7 @@ export default function Marketplace() {
         <TabsContent value="apuntes" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence mode="popLayout" initial={false}>
-              {publicApuntes.map(apunte => <ResourceCard key={apunte.id} item={apunte} type="apunte" />)}
+              {publicApuntes.map(apunte => renderResourceCard(apunte, "apunte"))}
             </AnimatePresence>
             {publicApuntes.length === 0 && (
               <EmptyTabState
@@ -1447,7 +1906,7 @@ export default function Marketplace() {
         <TabsContent value="files" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence mode="popLayout" initial={false}>
-              {publicFiles.map(file => <ResourceCard key={file.id} item={file} type="file" />)}
+              {publicFiles.map(file => renderResourceCard(file, "file"))}
             </AnimatePresence>
             {publicFiles.length === 0 && (
               <EmptyTabState
@@ -1466,7 +1925,7 @@ export default function Marketplace() {
         <TabsContent value="folders" className="focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence mode="popLayout" initial={false}>
-              {publicFolders.map(folder => <ResourceCard key={folder.id} item={folder} type="folder" />)}
+              {publicFolders.map(folder => renderResourceCard(folder, "folder"))}
             </AnimatePresence>
             {publicFolders.length === 0 && (
               <EmptyTabState
@@ -1513,6 +1972,33 @@ export default function Marketplace() {
                           <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate block">
                             {resource.nombre}
                           </span>
+                          {resource.category && (
+                            <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                              {resource.category.split(",").map((cat: string) => {
+                                const clean = cat.trim();
+                                if (!clean) return null;
+                                return (
+                                  <span
+                                    key={clean}
+                                    className="text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded border border-zinc-200/50 dark:border-zinc-700/50"
+                                  >
+                                    {clean}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {resource.subject_name ? (
+                            <span className="text-[10px] font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/60 flex items-center gap-1">
+                              <BookOpen className="w-3 h-3 text-indigo-500" />
+                              {resource.subject_name}{resource.year ? ` (${resource.year}º)` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3 text-amber-500" />
+                              Sin materia vinculada
+                            </span>
+                          )}
                           {resource.is_anonymous && (
                             <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/60">
                               <ShieldCheck className="w-3 h-3 text-zinc-400" /> Anónimo
@@ -1529,6 +2015,15 @@ export default function Marketplace() {
                       </div>
                     </div>
 
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEdit(resource)}
+                      className="h-8 px-3 text-xs font-medium rounded-lg cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
+                    </Button>
                     <HoldButton 
                       size="sm"
                       holdTime={900}
@@ -1546,10 +2041,11 @@ export default function Marketplace() {
                           setMyResources(prev => prev.map(r => r.id === resource.id ? { ...r, is_public: true } : r));
                         }
                       }}
-                      className="border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100/60 dark:hover:bg-red-900/40 text-xs font-medium rounded-lg px-3 py-1.5 transition-all self-start sm:self-auto cursor-pointer"
+                      className="border border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100/60 dark:hover:bg-red-900/40 text-xs font-medium rounded-lg px-3 py-1.5 transition-all cursor-pointer"
                     >
                       Mantener para Retirar
                     </HoldButton>
+                    </div>
                   </div>
                 );
               })}
@@ -1577,6 +2073,92 @@ export default function Marketplace() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Editar publicación propia */}
+      <Dialog open={!!editingResource} onOpenChange={(o) => { if (!o) setEditingResource(null); }}>
+        <DialogContent className="bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-w-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="font-semibold text-lg">Editar publicación</DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              Los cambios se reflejan para todos los usuarios. El tipo de recurso no se puede cambiar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Nombre</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9 text-sm rounded-lg" />
+            </div>
+            {editingResource && ["deck", "quiz", "apunte"].includes(editingResource.type) && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Descripción</label>
+                <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} className="text-sm rounded-lg resize-none" />
+              </div>
+            )}
+                        <SubjectAssignmentPicker
+              value={editSubject}
+              onChange={(newSubId) => {
+                setEditSubject(newSubId);
+                const sub = subjects.find((s) => s.id === newSubId);
+                if (sub) setEditDesc(sub.nombre);
+              }}
+              subjects={subjects.filter((s) => !s.user_id || s.user_id === user?.id)}
+              label="Materia vinculada"
+              required={true}
+            />
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Etiquetas <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] text-zinc-400">Selecciona al menos una</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {PARAMETRIC_TAGS.map((tag) => {
+                  const isSelected = editTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setEditTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                      className={cn(
+                        "text-xs font-medium px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 select-none",
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-semibold"
+                          : "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      )}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                      <span>{tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {editTags.length === 0 && (
+                <p className="text-[11px] text-red-500 font-medium">Debes seleccionar al menos una etiqueta.</p>
+              )}
+            </div>
+            <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+              <input type="checkbox" checked={editAnon} onChange={(e) => setEditAnon(e.target.checked)} className="rounded" />
+              Publicar de forma anónima
+            </label>
+            <div className="flex items-center gap-2 pt-2">
+              <Button variant="outline" className="flex-1 h-9 text-xs rounded-lg" onClick={() => setEditingResource(null)}>Cancelar</Button>
+              <Button
+                className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
+                onClick={handleSaveEdit}
+                disabled={savingEdit || !editSubject || editSubject === "none" || editTags.length === 0 || !editName.trim()}
+              >
+                {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Modal for Decks */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
@@ -1725,7 +2307,9 @@ export default function Marketplace() {
       {/* Select Resource to Publish Modal */}
       <Dialog open={publishSelectOpen} onOpenChange={(open) => {
         setPublishSelectOpen(open);
-        if (!open) {
+        if (open) {
+          loadUserResources();
+        } else {
           setPublishStep('type');
           setResourceToPublish(null);
           setSelectedPublishType(null);
@@ -1736,7 +2320,7 @@ export default function Marketplace() {
           setFolderHistory([{ id: null, name: 'Raíz' }]);
           setIsAnonymous(false);
           setDescription("");
-          setCategory("");
+          setSelectedPublishTags(["Resumen"]);
         }
       }}>
         <DialogContent className="bg-white dark:bg-[#18181b] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -1870,7 +2454,7 @@ export default function Marketplace() {
                         <SelectItem value="all">Todas las materias</SelectItem>
                         <SelectItem value="unlinked">Sin materia asignada</SelectItem>
                         {subjects
-                          .filter(s => !publishYear || s.year === publishYear)
+                          .filter(s => (!s.user_id || s.user_id === user?.id) && (!publishYear || s.year === publishYear))
                           .map(s => (
                             <SelectItem key={s.id} value={s.id}>{s.nombre} ({s.year}°)</SelectItem>
                           ))}
@@ -1946,12 +2530,19 @@ export default function Marketplace() {
                       } else if (publishSubject) {
                         filtered = filtered.filter(r => r.subject_id === publishSubject);
                       }
-                      
-                      filtered = filtered.filter(r => {
-                        if (r.type === 'file') return r.folder_id === currentFolderId;
-                        if (r.type === 'folder') return r.parent_folder_id === currentFolderId;
-                        return false;
-                      });
+
+                      // Si el usuario escribe una búsqueda por nombre, buscar entre todos sus archivos y carpetas
+                      if (publishSearch.trim()) {
+                        const q = publishSearch.toLowerCase();
+                        filtered = filtered.filter(r => (r.nombre || "").toLowerCase().includes(q));
+                      } else {
+                        // Navegación por carpetas
+                        filtered = filtered.filter(r => {
+                          if (r.type === 'file') return (r.folder_id || null) === (currentFolderId || null);
+                          if (r.type === 'folder') return (r.parent_folder_id || null) === (currentFolderId || null);
+                          return false;
+                        });
+                      }
                     } else {
                       filtered = filtered.filter(r => r.type === selectedPublishType);
                       if (publishYear) filtered = filtered.filter(r => r.year === publishYear);
@@ -1960,11 +2551,11 @@ export default function Marketplace() {
                       } else if (publishSubject) {
                         filtered = filtered.filter(r => r.subject_id === publishSubject);
                       }
-                    }
 
-                    if (publishSearch.trim()) {
-                      const q = publishSearch.toLowerCase();
-                      filtered = filtered.filter(r => (r.nombre || "").toLowerCase().includes(q));
+                      if (publishSearch.trim()) {
+                        const q = publishSearch.toLowerCase();
+                        filtered = filtered.filter(r => (r.nombre || "").toLowerCase().includes(q));
+                      }
                     }
 
                     if (filtered.length === 0) {
@@ -2000,17 +2591,25 @@ export default function Marketplace() {
                               setCurrentFolderId(r.id);
                               setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
                             } else {
-                              const defaultCat = r.category || r.subject_name || (r.type === 'apunte' ? 'Apuntes' : '');
-                              const defaultDesc = r.description || '';
+                              const subjName = r.subject_name || (subjects.find(s => s.id === r.subject_id)?.nombre) || '';
+                              const defaultDesc = r.description || subjName || '';
+                              const rawTags = (r.category || "")
+                                .split(",")
+                                .map((s: string) => s.trim())
+                                .filter((s: string) => PARAMETRIC_TAGS.some(p => p.toLowerCase() === s.toLowerCase()));
+                              const defaultTags = rawTags.length > 0 ? rawTags : ["Resumen"];
                               setResourceToPublish({ 
                                 id: r.id, 
                                 type: r.type as any, 
                                 nombre: r.nombre,
                                 description: defaultDesc,
-                                category: defaultCat
+                                category: defaultTags.join(", "),
+                                subject_id: r.subject_id || null
                               });
+                              setPublishSubjectId(r.subject_id || "none");
+                              setAssignSubjectToSelf(true);
                               setDescription(defaultDesc);
-                              setCategory(defaultCat);
+                              setSelectedPublishTags(defaultTags);
                               setPublishStep('details');
                             }
                           }}
@@ -2038,7 +2637,47 @@ export default function Marketplace() {
                           </div>
 
                           {r.type === 'folder' ? (
-                            <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0 ml-2 group-hover:translate-x-0.5 transition-transform" />
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[11px] font-medium rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                                onClick={() => {
+                                  const subjName = r.subject_name || (subjects.find(s => s.id === r.subject_id)?.nombre) || '';
+                                  const defaultDesc = r.description || subjName || '';
+                                  const rawTags = (r.category || "")
+                                    .split(",")
+                                    .map((s: string) => s.trim())
+                                    .filter((s: string) => PARAMETRIC_TAGS.some(p => p.toLowerCase() === s.toLowerCase()));
+                                  const defaultTags = rawTags.length > 0 ? rawTags : ["Resumen"];
+                                  setResourceToPublish({ 
+                                    id: r.id, 
+                                    type: 'folder', 
+                                    nombre: r.nombre,
+                                    description: defaultDesc,
+                                    category: defaultTags.join(", "),
+                                    subject_id: r.subject_id || null
+                                  });
+                                  setPublishSubjectId(r.subject_id || "none");
+                                  setAssignSubjectToSelf(true);
+                                  setDescription(defaultDesc);
+                                  setSelectedPublishTags(defaultTags);
+                                  setPublishStep('details');
+                                }}
+                              >
+                                Publicar carpeta
+                              </Button>
+                              <div
+                                className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded cursor-pointer"
+                                onClick={() => {
+                                  setCurrentFolderId(r.id);
+                                  setFolderHistory([...folderHistory, { id: r.id, name: r.nombre }]);
+                                }}
+                                title="Abrir carpeta para ver sus archivos"
+                              >
+                                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
+                              </div>
+                            </div>
                           ) : (
                             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-primary shrink-0 ml-2">
                               Elegir
@@ -2090,6 +2729,22 @@ export default function Marketplace() {
                   </Button>
                 </div>
                 
+                {/* Selector de Materia Obligatoria para Comunidad con filtro de años estilo Apple/Notion */}
+                <SubjectAssignmentPicker
+                  value={publishSubjectId}
+                  onChange={(newSubId) => {
+                    setPublishSubjectId(newSubId);
+                    const sub = subjects.find((s) => s.id === newSubId);
+                    if (sub) setDescription(sub.nombre);
+                  }}
+                  subjects={subjects.filter((s) => !s.user_id || s.user_id === user?.id)}
+                  label="Materia vinculada"
+                  required={true}
+                  assignToSelf={assignSubjectToSelf}
+                  onAssignToSelfChange={setAssignSubjectToSelf}
+                  assignToSelfLabel="Asignar también esta materia a mi recurso personal en mi cuenta"
+                />
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Descripción del recurso</label>
                   <Textarea 
@@ -2101,25 +2756,40 @@ export default function Marketplace() {
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Categoría o Etiquetas</label>
-                  <Input 
-                    placeholder="Ej: Fisiología, Anatomía, Resumen Parcial..."
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="h-9 text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800/80 rounded-lg focus-visible:ring-1 focus-visible:ring-zinc-400"
-                  />
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {["Resumen", "Parcial", "Final", "Práctica", "Teoría"].map(tag => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => setCategory(prev => prev ? `${prev}, ${tag}` : tag)}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                      >
-                        +{tag}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Etiquetas <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[11px] text-zinc-400">Selecciona al menos una</span>
                   </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {PARAMETRIC_TAGS.map((tag) => {
+                      const isSelected = selectedPublishTags.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPublishTags((prev) =>
+                              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                            );
+                          }}
+                          className={cn(
+                            "text-xs font-medium px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 select-none",
+                            isSelected
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-semibold"
+                              : "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          )}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                          <span>{tag}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedPublishTags.length === 0 && (
+                    <p className="text-[11px] text-red-500 font-medium">Debes seleccionar al menos una etiqueta para publicar.</p>
+                  )}
                 </div>
                 
                 {/* Opción Anónima */}
@@ -2169,7 +2839,7 @@ export default function Marketplace() {
                   <Button 
                     className="flex-1 h-9 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900"
                     onClick={handlePublish}
-                    disabled={isPublishing}
+                    disabled={isPublishing || (!publishSubjectId || publishSubjectId === "none") && (!resourceToPublish?.subject_id || resourceToPublish.subject_id === "none")}
                   >
                     {isPublishing ? (
                       <span className="flex items-center gap-1.5">

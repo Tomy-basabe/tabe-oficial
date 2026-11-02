@@ -1,19 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award, Search, X } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
+import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award, Search, X, Compass, RotateCcw, Play } from "lucide-react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
+import { UtnFrmMcpModal } from "@/components/utn/UtnFrmMcpModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { resetCookieConsent } from "@/components/legal/CookieConsent";
+import { resetAllTutorials, TUTORIAL_RESTART_EVENT } from "@/components/onboarding/TutorialTour";
 import { getStoredMoodleSession, MoodleSession } from "@/lib/moodleService";
+import {
+  getStoredUtnFrmSnapshot,
+  enforceUtnFrmMcpFacultyGate,
+  hasUtnFrmPersonalData,
+  UtnFrmMcpSnapshot,
+} from "@/lib/utnFrmMcpService";
+import { invalidateStudentContextCache } from "@/lib/aiClientService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubjects } from "@/hooks/useSubjects";
-import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS } from "@/lib/careerData";
+import { ALL_PROVINCIAS, ALL_FACULTADES, AVAILABLE_FACULTADES, AVAILABLE_CAREERS, isUserFromUtnFrm } from "@/lib/careerData";
 import { UniversityLogo } from "@/components/icons/UniversityLogos";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import { ReviewForm } from "@/components/settings/ReviewForm";
@@ -47,6 +56,7 @@ export default function Settings() {
     unlinkGoogleAccount,
     connectGoogleCalendar
   } = useAuth();
+  const navigate = useNavigate();
 
   const { settings: pomodoroSettings, updateSettings } = usePomodoro();
   const { theme, setTheme } = useTheme();
@@ -54,10 +64,17 @@ export default function Settings() {
   const { deleteAllSubjects, importCareerPlan } = useSubjects();
   const { userStats } = useDashboardStats();
 
-  // Estado del perfil académico (Facultad y Carrera)
-  const [academicProfile, setAcademicProfile] = useState<{ facultad: string | null; carrera: string | null }>({
+  // Estado del perfil académico (Facultad y Carrera + permisos especiales)
+  const [academicProfile, setAcademicProfile] = useState<{
+    facultad: string | null;
+    carrera: string | null;
+    utnfrm_encuestas_enabled?: boolean | null;
+    plan_type?: string | null;
+  }>({
     facultad: null,
     carrera: null,
+    utnfrm_encuestas_enabled: null,
+    plan_type: null,
   });
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
   const [selectedProvincia, setSelectedProvincia] = useState("MENDOZA");
@@ -70,28 +87,49 @@ export default function Settings() {
 
   // Cargar facultad y carrera desde profiles
   const fetchAcademicProfile = async () => {
+    const hadUtnMcpBefore = !!getStoredUtnFrmSnapshot(user?.id);
     if (isGuest || !user) {
       try {
         const guestFac = localStorage.getItem("tabe_guest_facultad");
         const guestCar = localStorage.getItem("tabe_guest_carrera");
-        setAcademicProfile({
+        const nextProfile = {
           facultad: guestFac || null,
           carrera: guestCar || null,
-        });
+        };
+        setAcademicProfile(nextProfile);
+        if (nextProfile.facultad || nextProfile.carrera) {
+          const allowed = await enforceUtnFrmMcpFacultyGate(user?.id, nextProfile);
+          setUtnMcpSnapshot(allowed ? getStoredUtnFrmSnapshot(user?.id) : null);
+          if (!allowed && hadUtnMcpBefore) {
+            invalidateStudentContextCache(user?.id);
+            toast.info("El MCP exclusivo de UTN FRM fue desactivado al cambiar de facultad.");
+          }
+        }
       } catch {}
       return;
     }
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("profiles")
-        .select("facultad, carrera")
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
-        setAcademicProfile({
+        const nextProfile = {
           facultad: data.facultad || localStorage.getItem("tabe_guest_facultad") || null,
           carrera: data.carrera || localStorage.getItem("tabe_guest_carrera") || null,
-        });
+          utnfrm_encuestas_enabled: data.utnfrm_encuestas_enabled ?? null,
+          plan_type: data.plan_type ?? null,
+        };
+        setAcademicProfile(nextProfile);
+        if (nextProfile.facultad || nextProfile.carrera) {
+          const allowed = await enforceUtnFrmMcpFacultyGate(user.id, nextProfile);
+          setUtnMcpSnapshot(allowed ? getStoredUtnFrmSnapshot(user.id) : null);
+          if (!allowed && hadUtnMcpBefore) {
+            invalidateStudentContextCache(user.id);
+            toast.info("El MCP exclusivo de UTN FRM fue desactivado al cambiar de facultad.");
+          }
+        }
       }
     } catch (err) {
       console.error("Error al cargar perfil académico:", err);
@@ -273,15 +311,21 @@ export default function Settings() {
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [unlinkingGoogle, setUnlinkingGoogle] = useState(false);
   const [showMoodleModal, setShowMoodleModal] = useState(false);
+  const [showUtnMcpModal, setShowUtnMcpModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [hasGoogleFeed, setHasGoogleFeed] = useState<boolean>(() => !!getStoredGoogleFeedUrl());
   const [moodleSession, setMoodleSession] = useState<MoodleSession | null>(() => getStoredMoodleSession());
+  const [utnMcpSnapshot, setUtnMcpSnapshot] = useState<UtnFrmMcpSnapshot | null>(() =>
+    getStoredUtnFrmSnapshot(user?.id)
+  );
+  const isUtnFrm = useMemo(() => isUserFromUtnFrm(academicProfile), [academicProfile]);
   const [testingProactive, setTestingProactive] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     setMoodleSession(getStoredMoodleSession());
+    setUtnMcpSnapshot(getStoredUtnFrmSnapshot(user?.id));
     setHasGoogleFeed(!!getStoredGoogleFeedUrl(user?.user_metadata));
   }, [user]);
 
@@ -593,7 +637,26 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex flex-wrap items-center gap-2">
+                      {isUtnFrm && (
+                        <button
+                          type="button"
+                          onClick={() => setShowUtnMcpModal(true)}
+                          className={cn(
+                            "h-8 px-3.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs",
+                            hasUtnFrmPersonalData(utnMcpSnapshot)
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                          )}
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>
+                            {hasUtnFrmPersonalData(utnMcpSnapshot)
+                              ? "MCP UTN FRM Activo"
+                              : "Configurar MCP UTN FRM"}
+                          </span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={handleOpenAcademicModal}
@@ -740,6 +803,63 @@ export default function Settings() {
             {/* ========================================================================= */}
             {activeTab === "integrations" && (
               <div className="space-y-4 animate-in fade-in duration-150">
+
+                {/* MCP EXCLUSIVO UTN FRM (SOLO VISIBLE Y ACTIVO SI EL USUARIO PERTENECE A UTN FRM) */}
+                {isUtnFrm && (
+                  <div className="p-5 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/40 via-white to-white dark:from-indigo-950/20 dark:via-[#18181b] dark:to-[#18181b] shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/20 flex items-center justify-center shrink-0">
+                          <Zap className="w-5 h-5 stroke-[2]" />
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                              MCP Oficial UTN FRM (Sysacad + Campus + Correo)
+                            </h3>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
+                              Exclusivo UTN FRM · Contexto TABE AI
+                            </span>
+                            {hasUtnFrmPersonalData(utnMcpSnapshot) ? (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                                Conectado a TABE AI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                Sin configurar
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            {utnMcpSnapshot && hasUtnFrmPersonalData(utnMcpSnapshot)
+                              ? `Sincronizado (${new Date(utnMcpSnapshot.syncedAt).toLocaleString("es-AR")}). TABE AI tiene acceso directo a tu Autogestión Sysacad${utnMcpSnapshot.legajo ? ` (Leg. ${utnMcpSnapshot.legajo})` : ""}, Campus Virtual (${utnMcpSnapshot.campus?.courses?.length || 0} aulas) y Correo Institucional.`
+                              : "Ingresa tu usuario (DNI) y clave de UTN FRM para conectar Autogestión (Sysacad), Campus Virtual y Correo Institucional directamente con TABE AI."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setShowUtnMcpModal(true)}
+                          className={cn(
+                            "h-8 px-3.5 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs",
+                            hasUtnFrmPersonalData(utnMcpSnapshot)
+                              ? "border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-zinc-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-zinc-700"
+                              : "bg-indigo-600 text-white hover:bg-indigo-700"
+                          )}
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>
+                            {hasUtnFrmPersonalData(utnMcpSnapshot)
+                              ? "Gestionar MCP UTN FRM"
+                              : "Cargar usuario y clave"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Campus Virtual / Moodle */}
                   <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
@@ -1086,6 +1206,46 @@ export default function Settings() {
                   </div>
                 </div>
 
+                {/* Guías y Tutoriales Interactivos */}
+                <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Compass className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                      <span>Guías y Tutoriales Interactivos</span>
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Los tutoriales aparecen automáticamente una sola vez en la vida de tu cuenta al explorar cada apartado. Si deseas volver a verlos, puedes reactivarlos cuando quieras.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await resetAllTutorials(user);
+                        toast.success("¡Tutoriales reactivados! Se mostrarán al visitar cada apartado.");
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Reactivar todos los tutoriales</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent(TUTORIAL_RESTART_EVENT, { detail: { route: "/dashboard" } }));
+                        toast.info("Iniciando tutorial interactivo...");
+                        navigate("/dashboard");
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>Iniciar tutorial ahora</span>
+                    </button>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -1275,7 +1435,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={() => {
-                        resetCookieConsent();
+                        resetCookieConsent(user?.id);
                         toast.info("Abre el banner flotante para elegir tu preferencia de cookies.");
                       }}
                       className="h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1509,6 +1669,16 @@ export default function Settings() {
       </Dialog>
 
       {/* Modales Vinculados */}
+      <UtnFrmMcpModal
+        open={showUtnMcpModal}
+        onClose={() => {
+          setShowUtnMcpModal(false);
+          setUtnMcpSnapshot(getStoredUtnFrmSnapshot(user?.id));
+        }}
+        academicProfile={academicProfile}
+        onSyncChange={(snap) => setUtnMcpSnapshot(snap)}
+      />
+
       <MoodleConnectModal
         open={showMoodleModal}
         onClose={() => {

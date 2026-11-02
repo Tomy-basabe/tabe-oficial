@@ -688,31 +688,19 @@ export function useSubjects() {
         }
 
         if (xpToAdd > 0) {
-          // Get current stats
+          // user_stats ya fue actualizado en el servidor por trg_sync_user_stats_from_subject_status
           const { data: currentStats } = await supabase
             .from("user_stats")
-            .select("xp_total, nivel, credits")
+            .select("xp_total, nivel")
             .eq("user_id", user.id)
             .maybeSingle();
 
           if (user) {
             const stats = (currentStats as any) || {};
-            const newXpTotal = (stats.xp_total || 0) + xpToAdd;
-            const creditsToAdd = Math.floor(xpToAdd / 2); // 50% of XP as Credits
-            const newCredits = (stats.credits || 0) + creditsToAdd;
-
-            // Calculate new level: every 100 XP = 1 level
-            const newLevel = Math.floor(newXpTotal / 100) + 1;
-            const leveledUp = newLevel > (stats.nivel || 1);
-
-            await supabase
-              .from("user_stats")
-              .upsert({
-                user_id: user.id,
-                xp_total: newXpTotal,
-                nivel: newLevel,
-                credits: newCredits
-              }, { onConflict: "user_id" });
+            const creditsToAdd = Math.floor(xpToAdd / 2);
+            const newLevel = stats.nivel || 1;
+            const prevLevel = Math.max(1, Math.floor(Math.max(0, (stats.xp_total || 0) - xpToAdd) / 100) + 1);
+            const leveledUp = newLevel > prevLevel;
 
             invalidateDashboardStatsCache();
 

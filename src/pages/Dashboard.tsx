@@ -10,6 +10,7 @@ import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StaggerContainer, StaggerItem } from "@/components/ui/StaggerContainer";
 import { motion } from "framer-motion";
 
@@ -51,9 +52,6 @@ export default function Dashboard() {
     };
   });
 
-  if (loading) {
-    return <LoadingScreen message="Cargando Dashboard..." submessage="Reuniendo materias y progreso..." />;
-  }
 
   return (
     <StaggerContainer className="p-4 lg:p-6 max-w-[1600px] mx-auto" staggerDelay={0.08} initialDelay={0.04}>
@@ -65,7 +63,7 @@ export default function Dashboard() {
 
           {/* Bento: Header */}
           <StaggerItem yOffset={16}>
-            <div className="neo-bento-card p-6 lg:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="neo-bento-card p-6 lg:p-7 flex flex-col sm:flex-row items-center justify-between gap-4 tour-dashboard-header">
               <div>
                 <motion.h1
                   initial={{ opacity: 0, x: -8 }}
@@ -104,106 +102,139 @@ export default function Dashboard() {
 
           {/* Bento: Stats Row */}
           <StaggerItem yOffset={16}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-5 tour-dashboard-stats">
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <StatsCard
-                  title="Aprobadas"
-                  value={subjectStats.aprobadas}
-                  subtitle={`de ${subjectStats.total} totales`}
-                  icon={CheckCircle2}
-                  variant="gold"
-                />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <StatsCard
-                  title="Regulares"
-                  value={subjectStats.regulares}
-                  subtitle="activas"
-                  icon={Clock}
-                  variant="cyan"
-                />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <StatsCard
-                  title="Estudio"
-                  value={`${monthStudyHours}h`}
-                  subtitle="este mes"
-                  icon={BookOpen}
-                  variant="green"
-                />
-              </motion.div>
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-5">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-[108px] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/60" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-5 tour-dashboard-stats">
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <StatsCard
+                    title="Aprobadas"
+                    value={subjectStats.aprobadas}
+                    subtitle={`de ${subjectStats.total} totales`}
+                    icon={CheckCircle2}
+                    variant="gold"
+                  />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <StatsCard
+                    title="Regulares"
+                    value={subjectStats.regulares}
+                    subtitle="activas"
+                    icon={Clock}
+                    variant="cyan"
+                  />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <StatsCard
+                    title="Estudio"
+                    value={`${monthStudyHours}h`}
+                    subtitle="este mes"
+                    icon={BookOpen}
+                    variant="green"
+                  />
+                </motion.div>
+              </div>
+            )}
           </StaggerItem>
 
           {/* Bento: Progress */}
           <StaggerItem yOffset={16}>
-            <div className="neo-bento-card p-6 lg:p-7 flex flex-col">
+            <div className="neo-bento-card p-6 lg:p-7 flex flex-col tour-dashboard-progress">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">Progreso Global</h2>
                 <GraduationCap className="w-5 h-5 text-zinc-400" />
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-8 lg:gap-12 flex-1">
-                <div className="flex-shrink-0">
-                  <ProgressRing progress={progressPercentage} size={160} strokeWidth={12}>
-                    <div className="text-center">
-                      <p className="text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{progressPercentage}%</p>
-                      <p className="text-xs text-zinc-400 font-medium mt-0.5">Completado</p>
-                    </div>
-                  </ProgressRing>
+              {loading ? (
+                <div className="flex flex-col sm:flex-row items-center gap-8 lg:gap-12 flex-1">
+                  <div className="w-[160px] h-[160px] rounded-full border-8 border-zinc-200 dark:border-zinc-800 animate-pulse shrink-0 flex items-center justify-center">
+                    <Skeleton className="w-16 h-8 rounded-md" />
+                  </div>
+                  <div className="flex-1 w-full space-y-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <Skeleton className="h-3.5 w-16" />
+                          <Skeleton className="h-3.5 w-8" />
+                        </div>
+                        <Skeleton className="h-2 w-full rounded-full" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-8 lg:gap-12 flex-1">
+                  <div className="flex-shrink-0">
+                    <ProgressRing progress={progressPercentage} size={160} strokeWidth={12}>
+                      <div className="text-center">
+                        <p className="text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{progressPercentage}%</p>
+                        <p className="text-xs text-zinc-400 font-medium mt-0.5">Completado</p>
+                      </div>
+                    </ProgressRing>
+                  </div>
 
-                <div className="flex-1 w-full space-y-4">
-                  {yearProgress.map(({ year, percentage }, idx) => (
-                    <div key={year}>
-                      <div className="flex justify-between items-center text-xs mb-1">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">{year}° Año</span>
-                        <span className="font-mono text-zinc-500 dark:text-zinc-400">{percentage}%</span>
+                  <div className="flex-1 w-full space-y-4">
+                    {yearProgress.map(({ year, percentage }, idx) => (
+                      <div key={year}>
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">{year}° Año</span>
+                          <span className="font-mono text-zinc-500 dark:text-zinc-400">{percentage}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 0.85, delay: 0.25 + idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                            className={cn(
+                              "h-full rounded-full transition-colors",
+                              percentage === 100
+                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                                : percentage > 0
+                                ? "bg-zinc-900 dark:bg-white"
+                                : "bg-transparent"
+                            )}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 0.85, delay: 0.25 + idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                          className={cn(
-                            "h-full rounded-full transition-colors",
-                            percentage === 100
-                              ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                              : percentage > 0
-                              ? "bg-zinc-900 dark:bg-white"
-                              : "bg-transparent"
-                          )}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </StaggerItem>
 
           {/* Bento: Recent Subjects */}
           <StaggerItem yOffset={16}>
-            <div className="neo-bento-card p-6 lg:p-7">
+            <div className="neo-bento-card p-6 lg:p-7 tour-dashboard-subjects">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-semibold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">Materias Recientes</h2>
                 <Link to="/carrera" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/80 dark:hover:bg-zinc-700 px-3 py-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 transition-colors">
                   Ver todo
                 </Link>
               </div>
-              {recentSubjects.length > 0 ? (
+              {loading ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 items-stretch">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-[110px] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/60" />
+                  ))}
+                </div>
+              ) : recentSubjects.length > 0 ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 items-stretch">
                   {recentSubjects.map((subject, subIdx) => (
                     <motion.div
@@ -241,14 +272,22 @@ export default function Dashboard() {
             <PomodoroGoalWidget weekData={weekData} loading={loading} />
           </StaggerItem>
           <StaggerItem yOffset={16}>
-            <StudyStreak
-              currentStreak={userStats?.racha_actual || 0}
-              bestStreak={userStats?.mejor_racha || 0}
-              weekData={weekData}
-            />
+            {loading ? (
+              <Skeleton className="h-[170px] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/60" />
+            ) : (
+              <StudyStreak
+                currentStreak={userStats?.racha_actual || 0}
+                bestStreak={userStats?.mejor_racha || 0}
+                weekData={weekData}
+              />
+            )}
           </StaggerItem>
           <StaggerItem yOffset={16} className="tour-dashboard-schedule">
-            <UpcomingExams exams={upcomingExams} />
+            {loading ? (
+              <Skeleton className="h-[210px] rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-100 dark:bg-zinc-800/60" />
+            ) : (
+              <UpcomingExams exams={upcomingExams} />
+            )}
           </StaggerItem>
           <StaggerItem yOffset={16}>
             <TasksWidget />

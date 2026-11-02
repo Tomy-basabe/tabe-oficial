@@ -1,15 +1,17 @@
 import React from "react";
-import { Trophy,
+import {
+  Trophy,
   CheckCircle2,
   Lock,
-  
   ChevronRight,
   Calendar,
   MoreHorizontal,
   Info,
   Share2,
   Copy,
-  ExternalLink, Zap } from "lucide-react";
+  ExternalLink,
+  Zap,
+} from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
 import {
   achievementIconMap,
@@ -70,8 +72,9 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
   if (viewMode === "list") {
     return (
       <div
+        data-stage-animated="1"
         onClick={() => onSelect(achievement)}
-        className={`group p-3 sm:p-3.5 rounded-xl border transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 select-none ${
+        className={`group p-3 sm:p-3.5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 select-none ${
           unlocked
             ? "bg-white dark:bg-[#212121] border-zinc-200/80 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-2xs hover:shadow-xs"
             : "bg-zinc-50/60 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-75 hover:opacity-100 hover:border-zinc-300 dark:hover:border-zinc-700"
@@ -193,11 +196,12 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({
     );
   }
 
-  // Grid Mode (Bento Card Notion Style)
+  // Grid Mode (Bento Card Notion / Apple Style)
   return (
     <div
+      data-stage-animated="1"
       onClick={() => onSelect(achievement)}
-      className={`group neo-bento-card p-5 flex flex-col justify-between cursor-pointer select-none transition-all duration-200 ${
+      className={`group neo-bento-card p-5 flex flex-col justify-between cursor-pointer select-none transition-all duration-150 ${
         unlocked
           ? "hover:border-zinc-300 dark:hover:border-zinc-600"
           : "bg-zinc-50/50 dark:bg-zinc-900/40 opacity-80 hover:opacity-100"

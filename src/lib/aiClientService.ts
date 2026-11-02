@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { invalidateSubjectsCache } from "@/hooks/useSubjects";
 import { invalidateCalendarCache, getColorForType } from "@/hooks/useCalendarEvents";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
+import { buildUtnFrmMcpContextSection, resolveUtnFrmEncuestas } from "@/lib/utnFrmMcpService";
 import {
   AVAILABLE_AI_MODELS,
   DEFAULT_AI_MODEL,
@@ -163,9 +164,11 @@ export async function buildStudentContext(
   personaPrompt: string,
   personaName: string,
   userName?: string,
-  powerLevel: PowerEffort = "medio"
+  powerLevel: PowerEffort = "medio",
+  selectedSubject?: string
 ): Promise<string> {
-  const cacheKey = `${userId}_${powerLevel}`;
+  const cleanSubjectFocus = selectedSubject && selectedSubject !== "Todas las materias" ? selectedSubject.trim() : null;
+  const cacheKey = `${userId}_${powerLevel}_${cleanSubjectFocus || "all"}`;
   const cached = contextCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CONTEXT_CACHE_TTL) {
     return cached.data;
@@ -192,6 +195,10 @@ export async function buildStudentContext(
   let professorsSection = "Sin profesores ni horarios de consulta registrados aún.";
   let discordSection = "Sin mensajes ni grupos de estudio registrados aún.";
   let friendsSection = "Sin compañeros ni amigos registrados aún.";
+  let resolvedFacultad: string | null = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_facultad") : null;
+  let resolvedCarrera: string | null = typeof window !== "undefined" ? localStorage.getItem("tabe_guest_carrera") : null;
+  let resolvedEncuestasEnabled: boolean | null = null;
+  let resolvedPlanType: string | null = null;
 
   if (userId && userId !== "guest") {
     try {
@@ -203,7 +210,7 @@ export async function buildStudentContext(
         // 0. Profile
         (supabase as any)
           .from("profiles")
-          .select("nombre, username, email, carrera, facultad, plan, plan_type")
+          .select("*")
           .eq("user_id", userId)
           .maybeSingle(),
 
@@ -259,7 +266,7 @@ export async function buildStudentContext(
         // 7. Quiz decks
         (supabase as any)
           .from("quiz_decks")
-          .select("id, nombre, total_questions, subject_id, category")
+          .select("id, nombre, total_questions, subject_id, category, quiz_questions(id, pregunta, explicacion, is_multi_select, quiz_options(id, texto, es_correcta))")
           .eq("user_id", userId)
           .limit(60),
 
@@ -348,9 +355,13 @@ export async function buildStudentContext(
         // 0. Profile
         const prof = profRes.status === "fulfilled" ? profRes.value?.data : null;
         const studentName = prof?.nombre || prof?.username || userName || "Estudiante";
-        const carrera = prof?.carrera || "No especificada";
-        const facultad = prof?.facultad || "No especificada";
+        const carrera = prof?.carrera || resolvedCarrera || "No especificada";
+        const facultad = prof?.facultad || resolvedFacultad || "No especificada";
         const plan = prof?.plan || "No especificado";
+        resolvedFacultad = prof?.facultad || resolvedFacultad;
+        resolvedCarrera = prof?.carrera || resolvedCarrera;
+        resolvedEncuestasEnabled = prof?.utnfrm_encuestas_enabled ?? null;
+        resolvedPlanType = prof?.plan_type ?? null;
 
         // 1. Stats
         const stats = statsRes.status === "fulfilled" ? statsRes.value?.data : null;
@@ -493,7 +504,7 @@ export async function buildStudentContext(
               const notas = e.notas ? ` (Detalle: ${e.notas})` : "";
               return `- ${e.fecha}${hora}: ${e.titulo} [Tipo: ${e.tipo_examen || "Evento"}]${subName}${notas}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 5. Notion Documents
@@ -505,7 +516,7 @@ export async function buildStudentContext(
               const fav = d.is_favorite ? " ⭐ Favorito" : "";
               return `- "${d.titulo}"${subName}${fav}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 6. Flashcard Decks
@@ -516,7 +527,7 @@ export async function buildStudentContext(
               const subName = d.subject_id && subjectNameById[d.subject_id] ? ` [Materia: ${subjectNameById[d.subject_id]}]` : "";
               return `- Mazo "${d.nombre}": ${d.total_cards || 0} tarjetas${subName}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 7. Quizzes
@@ -525,9 +536,22 @@ export async function buildStudentContext(
           quizzesSection = quizzes
             .map((q) => {
               const subName = q.subject_id && subjectNameById[q.subject_id] ? ` [Materia: ${subjectNameById[q.subject_id]}]` : "";
-              return `- Quiz "${q.nombre}": ${q.total_questions || 0} preguntas${subName}`;
+              let block = `- Cuestionario "${q.nombre}" (ID: ${q.id}, ${q.total_questions || 0} preguntas)${subName}:`;
+              if (Array.isArray(q.quiz_questions) && q.quiz_questions.length > 0) {
+                const qLines = q.quiz_questions.slice(0, 15).map((qq: any, qi: number) => {
+                  const opts = (qq.quiz_options || [])
+                    .map((o: any, oi: number) => `${String.fromCharCode(65 + oi)}) ${o.texto}${o.es_correcta ? " ✓ (CORRECTA)" : ""}`)
+                    .join(" | ");
+                  return `    * Pregunta ${qi + 1} (ID: ${qq.id}): "${qq.pregunta}" -> Opciones: [${opts}]${qq.explicacion ? ` | Explicación: ${qq.explicacion}` : ""}`;
+                });
+                block += "\n" + qLines.join("\n");
+                if (q.quiz_questions.length > 15) {
+                  block += `\n    * ... (${q.quiz_questions.length - 15} preguntas adicionales en el mazo)`;
+                }
+              }
+              return block;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 8. Library files
@@ -538,7 +562,7 @@ export async function buildStudentContext(
               const subName = f.subject_id && subjectNameById[f.subject_id] ? ` [Materia: ${subjectNameById[f.subject_id]}]` : "";
               return `- "${f.nombre}" (${f.tipo || "archivo"})${subName}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 9. Routines
@@ -553,7 +577,7 @@ export async function buildStudentContext(
               const subName = r.subject_id && subjectNameById[r.subject_id] ? ` [Materia: ${subjectNameById[r.subject_id]}]` : "";
               return `- "${r.name}" (${r.category || "Hábito"}) [${r.is_active ? "Activa" : "Pausada"}]: ${days} de ${r.start_time || "00:00"} a ${r.end_time || "00:00"}${subName}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 10. Study Sessions
@@ -565,7 +589,7 @@ export async function buildStudentContext(
               const mins = Math.round((s.duracion_segundos || 0) / 60);
               return `- ${s.fecha}: ${mins} min (${s.tipo || "estudio"})${subName}`;
             })
-            .join("\n");
+            .join("\n\n");
         }
 
         // 11. Achievements
@@ -573,7 +597,7 @@ export async function buildStudentContext(
         if (achieves.length > 0) {
           achievementsSection = achieves
             .map((a) => `- ${a.achievements?.nombre || a.achievement_id}: ${a.achievements?.descripcion || "Desbloqueado"}`)
-            .join("\n");
+            .join("\n\n");
         }
 
         // 12. Professors & Consultas
@@ -689,6 +713,7 @@ export async function buildStudentContext(
 Personalidad: ${personaPrompt}
 MODALIDAD OPERATIVA: ${powerDirectives}
 FECHA ACTUAL: ${hoyStr} (${hoyDia})
+${cleanSubjectFocus ? `\n🎯 MATERIA DE ENFOQUE SELECCIONADA POR EL ESTUDIANTE: "${cleanSubjectFocus}"\nEl estudiante eligió explícitamente trabajar y enfocarse en "${cleanSubjectFocus}". Toda pregunta de contenido, creación de flashcards, cuestionarios o parciales que solicite sin indicar otra materia debe aplicarse y vincularse prioritariamente a "${cleanSubjectFocus}".\n` : ""}
 CALENDARIO PRÓXIMOS 14 DÍAS (REFERENCIA EXACTA):
 ${calendarioCheatSheet}
 
@@ -738,7 +763,15 @@ ${discordSection}
 
 [14. COMPAÑEROS DE ESTUDIO Y AMIGOS]
 ${friendsSection}
-
+${(() => {
+  const utnMcpBlock = buildUtnFrmMcpContextSection(userId, {
+    facultad: resolvedFacultad,
+    carrera: resolvedCarrera,
+    utnfrm_encuestas_enabled: resolvedEncuestasEnabled,
+    plan_type: resolvedPlanType,
+  });
+  return utnMcpBlock ? `\n${utnMcpBlock}\n` : "";
+})()}
 DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 ⛔ REGLAS DE ORO DE COMUNICACIÓN (PROHIBIDO NOMBRAR LA BASE DE DATOS Y MOSTRAR IDs):
 1. PROHIBICIÓN TOTAL DE NOMBRAR LA "BASE DE DATOS", "DB", "TABLAS" O "SUPABASE":
@@ -750,14 +783,39 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
    - NUNCA menciones identificadores internos, UUIDs (como "4a2b9c...", "ID: ...", "HorarioID: ...") ni códigos técnicos en tus respuestas al estudiante.
    - Refiérete SIEMPRE a las materias, profesores, fechas y horarios por su nombre natural (ej: "Álgebra", "Profesor Juan Pérez", "Martes de 14 a 16 hs", "Primer Parcial").
 
-0. CAPACIDAD ACTIVA DE EJECUTAR ACCIONES, CREAR Y AGENDAR ELEMENTOS (¡MÁXIMA PRIORIDAD!):
-   - SOS EL ASISTENTE ACADÉMICO INTEGRAL DE TABE: TENÉS INTEGRACIÓN DIRECTA CON LA CUENTA DEL ESTUDIANTE Y PODÉS AGENDAR EXÁMENES, REGISTRAR HORARIOS DE PROFESORES, CAMBIAR NOTAS Y CREAR MATERIAL DE ESTUDIO AL INSTANTE.
+0. IDENTIDAD Y CAPACIDADES TOTALES DE TABE AI (¡MÁXIMA PRIORIDAD!):
+   - SOS EL ASISTENTE ACADÉMICO INTEGRAL DE TABE (Tu Asistente de Bolsillo Estudiantil):
+     Estás 100% integrado a la cuenta del estudiante y a su universidad (incluyendo Autogestión UTN FRM y Campus Virtual Moodle).
+   - SI EL USUARIO TE PREGUNTA "QUÉ PUEDES HACER" O TE PIDE UN CHECKLIST DE "SÍ Y NO", TU RESPUESTA ES AFIRMATIVA (SÍ) PARA TODAS LAS CAPACIDADES DE TABE:
+     * ✅ Acceso a Autogestión: SÍ (integrado para alumnos de UTN FRM y facultades conectadas, viendo comisiones, materias y horarios oficiales).
+     * ✅ Encuestas Docentes: SÍ (acceso a resultados y opiniones de cátedras vía la integración institucional de UTN FRM).
+     * ✅ Crear, modificar y borrar Consultas de Profesores: SÍ (horarios de teoría/práctica, aulas y profesores).
+     * ✅ Crear, modificar y borrar Flashcards: SÍ (generación masiva con IA desde apuntes o PDFs, y repaso espaciado).
+     * ✅ Crear, modificar y borrar Cuestionarios: SÍ (simulacros de hasta 80 preguntas con corrección explicativa).
+     * ✅ Crear, modificar y borrar Métricas y Estadísticas de estudio: SÍ (sesiones manuales y Pomodoro).
+     * ✅ Crear, consultar y gestionar Árboles (Correlatividades y Bosque Pomodoro): SÍ (mapa de correlatividades y bosque de estudio).
+     * ✅ Contestar preguntas de cualquier materia: SÍ (tutoría socrática con fórmulas matemáticas KaTeX y código).
+     * ✅ Crear, modificar y borrar apuntes propios: SÍ (editor enriquecido estilo Notion y resúmenes).
+     * ✅ Acceso a archivos de Biblioteca y Apuntes: SÍ (lectura de PDFs, resúmenes y documentos cargados).
+     * ✅ Agendar parciales, finales, recuperatorios y entregas en Calendario: SÍ (con sincronización Google Calendar y Moodle).
+     * ✅ Crear y gestionar Rutinas de estudio semanales: SÍ (horarios fijos y recordatorios).
+     * ✅ Resumir clases desde audios y grabaciones: SÍ (transcripción inteligente y extracción de fechas).
+     * ✅ Acceso Total al Campus Virtual (Moodle): SÍ (visualización completa de tareas, cuestionarios, entregas pendientes o entregadas, fechas límite de vencimiento, calificaciones y retroalimentaciones de los profesores vía el MCP de UTN FRM).
+     * ✅ Acceso Total a Autogestión (Sysacad): SÍ (materias del plan, estado académico, cursado, horarios de cursado, histórico de exámenes aprobados y aplazos, correlatividades para cursar y rendir).
+     * ✅ Ver, consultar, crear y modificar Cuestionarios y Preguntas: SÍ (conoces cada una de las preguntas, opciones, respuestas correctas y explicaciones pedagógicas de los cuestionarios creados, podés modificarlas, borrarlas o agregar preguntas nuevas en tu cuenta).
+     * ✅ Agendar parciales, finales, recuperatorios y entregas en Calendario: SÍ (con sincronización Google Calendar y Moodle).
+     * ✅ Crear y gestionar Rutinas de estudio semanales: SÍ (horarios fijos y recordatorios).
+     * ✅ Resumir clases desde audios y grabaciones: SÍ (transcripción inteligente y extracción de fechas).
+     * ✅ Cálculo exacto de promedio general y notas necesarias: SÍ (fórmulas según ordenanza de la carrera).
    - TIENES TOTALMENTE HABILITADA LA CAPACIDAD DE:
      * Agendar y agregar parciales, finales, entregas y eventos en el Calendario.
      * Cargar y modificar notas de parciales, recuperatorios y finales.
-     * Crear cuestionarios y flashcards.
-     * Crear, modificar o borrar rutinas de estudio y profesores.
+     * Crear, consultar y modificar cuestionarios (agregando, cambiando o eliminando preguntas).
+     * Crear, modificar o borrar rutinas de estudio, profesores y apuntes.
    - NUNCA RESPONDAS DICIENDO:
+     ❌ "No veo si un cuestionario o tarea está marcado como Pendiente de entrega por el profesor en Moodle. Eso es un dato interno de la cátedra y requiere acceso directo a la interfaz de Moodle" (¡FALSO! Tenés la lista completa de entregas y cuestionarios de Moodle del estudiante en tu contexto).
+     ❌ "No tengo integración con Moodle o tenés que entrar al campus a chequear las fechas" (¡FALSO! El MCP UTN FRM te sincroniza y reporta los deadlines del Campus).
+     ❌ "No puedo ver las preguntas de tus cuestionarios ni modificarlos" (¡FALSO! Tenés el desglose de cada pregunta y podés consultarlas, explicarlas o modificarlas).
      ❌ "No puedo agregar eventos a tu calendario"
      ❌ "No tengo la capacidad de modificar tus materias o notas"
      ❌ "Como IA no puedo agendarlo por vos"
@@ -784,19 +842,23 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 \`\`\`tabe-action:calendar
 [{"titulo": "Nombre del evento", "fecha": "YYYY-MM-DD", "hora": "HH:mm", "tipo_examen": "P1"}]
 \`\`\`
-7. Si el usuario te pide crear flashcards para estudiar un tema o a partir de un archivo (PDF, texto, imagen), genera EXACTAMENTE la cantidad solicitada (ej: 10, 15, 20, 25, 30 tarjetas) analizando a fondo todo el material adjunto e incluí al final el bloque:
+7. Si el usuario te pide crear flashcards para estudiar un tema o a partir de un archivo (PDF, texto, imagen):
+   - MATERIA DE ENFOQUE Y SELECCIÓN: Si el estudiante tiene una materia de enfoque seleccionada arriba ("${cleanSubjectFocus || ""}"), USALA DIRECTAMENTE como "subject_name". Si no, revisa el plan de estudios [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS] para vincular el mazo con el nombre oficial de la materia.
+   - AVISO DE NOTIFICACIÓN EN TAREAS LARGAS: Si te pide generar 10, 20 o más tarjetas o analizar un texto largo, inicia tu respuesta diciendo: "¡Dale! Me pongo a armar las flashcards de [Materia]. En cuanto termine te va a llegar una notificación a la campanita 🔔 avisándote que quedaron listas en tu cuenta."
+   - NOTACIÓN CIENTÍFICA/MATEMÁTICA: Si incluye fórmulas, integrales, derivadas o símbolos, usá notación matemática clara con símbolos estándar o formato LaTeX $ ... $.
+   - Genera EXACTAMENTE la cantidad solicitada analizando a fondo el material e incluí al final el bloque:
 \`\`\`tabe-action:flashcards
-{"deck_name": "Tema", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
+{"deck_name": "Tema", "subject_name": "${cleanSubjectFocus || "Nombre Oficial de la Materia"}", "cards": [{"pregunta": "¿Pregunta?", "respuesta": "Respuesta"}]}
 \`\`\`
 8. Si el usuario te pide evaluarlo, tomarle prueba, simulacro, quiz o cuestionario (o a partir de un PDF/imagen/texto/lista de preguntas):
-   - CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total gracias a los modelos de NVIDIA para generar cuestionarios masivos de hasta 80 preguntas completas. Si el usuario pide 10, 20, 40, 50 u 80 preguntas, o si te proporciona un texto o examen con 40, 50 u 80 preguntas, DEBES PROCESAR Y GENERAR LA TOTALIDAD DE LAS PREGUNTAS (hasta 80) sin recortar ni truncar.
-   - VINCULACIÓN INTELIGENTE DE MATERIAS Y MANEJO DE DUDAS/AMBIGÜEDAD (MUY IMPORTANTE):
-     Revisa siempre el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS] antes de generar el cuestionario:
-     * Reconoce acrónimos y apodos comunes de inmediato: "RD" = "Redes de Datos", "BD" = "Bases de Datos", "SO" = "Sistemas Operativos", "Redes" = "Redes de Datos", "Álgebra" = "Álgebra y Geometría Analítica", "Análisis" = "Análisis Matemático", etc. Si el apodo o acrónimo apunta con claridad a una única materia de su plan, vincúlala directamente usando su nombre oficial completo en "subject_name".
-     * PREGUNTAR ANTE DUDAS O AMBIGÜEDAD: Si el estudiante menciona un término ambiguo que puede referirse a 2 o más materias de su plan (por ejemplo: dice "Datos" y cursa "Redes de Datos" y "Bases de Datos", o dice "Sistemas" y tiene "Sistemas Operativos" y "Análisis de Sistemas"): NO crees el cuestionario a ciegas ni adivines. Respóndele primero con amabilidad preguntándole a cuál de las materias candidatas desea vincular el cuestionario, listando las opciones con viñetas o números para que elija. En cuanto el estudiante elija o confirme la materia, genera inmediatamente el cuestionario vinculado con el bloque de acción.
-   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO para que la app lo guarde automáticamente en la cuenta del estudiante con el nombre oficial de la materia en "subject_name":
+   - MATERIA DE ENFOQUE Y SELECCIÓN: Si el estudiante tiene una materia de enfoque seleccionada arriba ("${cleanSubjectFocus || ""}"), USALA DIRECTAMENTE como "subject_name". Si no, revisa el plan de estudios del estudiante [3. PLAN DE ESTUDIOS COMPLETO Y NOTAS].
+   - AVISO DE NOTIFICACIÓN EN TAREAS LARGAS: Al ser una tarea extensa de generación (10, 20, 40, 50 u 80 preguntas), inicia tu respuesta diciendo: "¡Dale! Me pongo a armar el cuestionario de [Materia] con X preguntas. En cuanto termine te va a llegar una notificación a la campanita 🔔 avisándote que quedó guardado en tu sección de Cuestionarios."
+   - CUMPLIMIENTO EXACTO Y SOPORTE DE HASTA 80 PREGUNTAS: Tienes capacidad total para generar cuestionarios masivos de hasta 80 preguntas completas. Procesa y genera la TOTALIDAD de las preguntas solicitadas sin truncar.
+   - VINCULACIÓN INTELIGENTE E INSENSIBILIDAD A ACENTOS: Reconoce de inmediato materias sin importar si el usuario escribe con o sin tildes ("analisis", "álgebra", "fisica", "quimica") o números romanos/arábigos ("1" / "I").
+   - NOTACIÓN CIENTÍFICA/MATEMÁTICA: En preguntas y opciones con integrales (simples, dobles, triples, de línea), derivadas parciales o límites, usá formato claro o delimitadores $ ... $ para garantizar su renderizado de alta fidelidad.
+   - OBLIGATORIO: Cuando generes el cuestionario, incluí SIEMPRE al final de tu mensaje el bloque de acción EXACTO:
 \`\`\`tabe-action:quiz
-{"quiz_name": "Nombre del Quiz", "subject_name": "Nombre Oficial de la Materia", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
+{"quiz_name": "Nombre del Quiz", "subject_name": "${cleanSubjectFocus || "Nombre Oficial de la Materia"}", "questions": [{"pregunta": "¿Pregunta?", "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"], "respuesta_correcta": 0, "explicacion": "Explicación"}]}
 \`\`\`
 9. PROMEDIO Y CALIFICACIONES: Si el estudiante te consulta sobre su promedio ('cuál es mi promedio', 'cómo voy con mi promedio', 'mis notas', 'situación académica'):
    - Presentalo de manera estructurada, limpia y visualmente ordenada con viñetas Markdown:
@@ -869,7 +931,14 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
              "tipo": "manual"
            }
        - Si te pide borrar una sesión: target: "study_sessions", operation: "delete".
-    h) APUNTES Y ARCHIVOS (target: "notion_documents", target: "library_files"): crear, modificar o borrar.
+    h) APUNTES Y DOCUMENTOS (target: "notion_documents"):
+       - Si el estudiante te pide armar, resumir o guardar un apunte ("creame un apunte de...", "resumí esta clase y guardala en mis apuntes"):
+         * target: "notion_documents", operation: "create".
+         * data: { "titulo": "Título del apunte", "subject_name": "Materia", "emoji": "📝", "contenido": "Texto completo estructurado con títulos (#, ##) y párrafos." }
+       - Si te pide modificar o actualizar un apunte: target: "notion_documents", operation: "update".
+       - Si te pide borrar un apunte: target: "notion_documents", operation: "delete".
+    i) PLANES INTEGRALES DE ESTUDIO (Rutinas + Calendario):
+       - Si el estudiante te pide "armame un plan para rendir...", "cómo estudio para...", organizale un cronograma y podés generar en el mismo array de \`\`\`tabe-action:db tanto las rutinas ("routines") como los exámenes o repasos ("calendar_events").
     ⚠️ SEGURIDAD CRÍTICA Y DATOS SENSIBLES ESTRICTAMENTE PROHIBIDOS:
     - NUNCA intentes modificar ni borrar datos sensibles de la cuenta: Nombre del usuario, Apellido, Nombre de usuario (username), Contraseña (password), Correo electrónico (email), Teléfono, Suscripción/Plan de pago, Nivel/XP de user_stats, ni eliminar la cuenta.
     - Si el estudiante te pide cambiar su nombre, contraseña, email o datos de cuenta, explicale con calidez que por razones de seguridad y privacidad esos datos sensibles están protegidos y solo pueden modificarse manualmente desde Configuración.
@@ -895,7 +964,16 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
     }
   }
 ]
-\`\`\``;
+\`\`\`
+
+15. AVISO DE NOTIFICACIÓN EN TAREAS LARGAS Y ACCIONES ABM:
+    Si el estudiante te pide generar cuestionarios, simulacros, flashcards o registrar/modificar/borrar múltiples acciones en su cuenta:
+    - INICIA tu respuesta diciéndole con calidez y cercanía que ya lo estás procesando y que le llegará una notificación a la campanita 🔔 en cuanto esté 100% listo y guardado en su cuenta.
+    - Luego genera todo el contenido completo y emite el bloque de acción correspondiente.
+
+16. INSENSIBILIDAD TOTAL A ACENTOS, TILDES Y NOMENCLATURA:
+    - El estudiante puede escribir con o sin tildes ("analisis", "álgebra", "fisica", "quimica", "programacion") o usar números arábigos/romanos ("1" / "I").
+    - Reconoce y asocia las materias automáticamente sin pedir aclaraciones por tildes o mayúsculas.`;
 
   contextCache.set(cacheKey, { data: contextText, timestamp: Date.now() });
   return contextText;
@@ -1098,14 +1176,20 @@ async function executeDatabaseMutations(
 
   const results: Array<{ target: string; operation: string; message: string }> = [];
   const norm = (s: string) =>
-    (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   let userSubjects: any[] = [];
   try {
     const { data: subs } = await (supabase as any)
       .from("subjects")
       .select("id, nombre, codigo, año, numero_materia")
-      .eq("user_id", currentUserId);
+      .or(`user_id.eq.${currentUserId},user_id.is.null`);
     userSubjects = subs || [];
   } catch {}
 
@@ -1915,7 +1999,17 @@ async function executeDatabaseMutations(
 
       // 6. FLASHCARDS & QUIZZES
       else if (rawTarget.includes("flashcard") || rawTarget.includes("mazo")) {
-        if (op === "delete") {
+        if (op === "update") {
+          const deckId = act.id || match.id;
+          const newName = data.nombre || data.nuevo_nombre || data.name;
+          if (newName) {
+            const query = (supabase as any).from("flashcard_decks").update({ nombre: newName }).eq("user_id", currentUserId);
+            if (deckId) query.eq("id", deckId);
+            else if (match.nombre || match.name) query.ilike("nombre", match.nombre || match.name);
+            await query;
+            results.push({ target: "flashcard_decks", operation: "update", message: `Mazo renombrado a "${newName}".` });
+          }
+        } else if (op === "delete") {
           const deckId = act.id || match.id;
           if (deckId) {
             await (supabase as any).from("flashcards").delete().eq("deck_id", deckId).eq("user_id", currentUserId);
@@ -1929,29 +2023,206 @@ async function executeDatabaseMutations(
           }
           results.push({ target: "flashcard_decks", operation: "delete", message: "Mazo de flashcards eliminado." });
         }
-      } else if (rawTarget.includes("quiz") || rawTarget.includes("cuestionario")) {
-        if (op === "delete") {
-          const quizId = act.id || match.id;
-          let targetQuizId = quizId;
-          if (!targetQuizId && (match.nombre || match.name)) {
-            const { data: qd } = await (supabase as any).from("quiz_decks").select("id").eq("user_id", currentUserId).ilike("nombre", match.nombre || match.name).maybeSingle();
-            targetQuizId = qd?.id;
-          }
-          if (targetQuizId) {
-            const { data: qList } = await (supabase as any).from("quiz_questions").select("id").eq("deck_id", targetQuizId);
-            if (qList && qList.length > 0) {
-              await (supabase as any).from("quiz_options").delete().in("question_id", qList.map((q: any) => q.id));
-              await (supabase as any).from("quiz_questions").delete().eq("deck_id", targetQuizId);
+      } else if (
+        rawTarget.includes("quiz") ||
+        rawTarget.includes("cuestionario") ||
+        rawTarget.includes("pregunta") ||
+        rawTarget.includes("question")
+      ) {
+        const isQuestionTarget =
+          rawTarget.includes("pregunta") ||
+          rawTarget.includes("question") ||
+          Boolean(data.pregunta) ||
+          Boolean(match.pregunta);
+
+        if (isQuestionTarget) {
+          if (op === "create") {
+            let deckId = act.deck_id || data.deck_id || match.deck_id || act.id || match.id;
+            if (!deckId && (data.quiz_name || match.quiz_name || data.deck_name || match.deck_name || match.nombre)) {
+              const nameToMatch = data.quiz_name || match.quiz_name || data.deck_name || match.deck_name || match.nombre;
+              const { data: d } = await (supabase as any)
+                .from("quiz_decks")
+                .select("id, total_questions")
+                .eq("user_id", currentUserId)
+                .ilike("nombre", nameToMatch)
+                .maybeSingle();
+              deckId = d?.id;
             }
-            await (supabase as any).from("quiz_decks").delete().eq("id", targetQuizId).eq("user_id", currentUserId);
-            results.push({ target: "quiz_decks", operation: "delete", message: "Cuestionario eliminado." });
+            if (deckId && data.pregunta) {
+              const { data: newQ } = await (supabase as any)
+                .from("quiz_questions")
+                .insert({
+                  deck_id: deckId,
+                  user_id: currentUserId,
+                  pregunta: data.pregunta,
+                  explicacion: data.explicacion || null,
+                  is_multi_select: Boolean(data.is_multi_select),
+                })
+                .select("id")
+                .single();
+
+              if (newQ?.id && Array.isArray(data.opciones)) {
+                const correctIdx = typeof data.correcta === "number" ? data.correcta : (typeof data.respuesta_correcta === "number" ? data.respuesta_correcta : 0);
+                const optRows = data.opciones.map((optText, oi) => ({
+                  question_id: newQ.id,
+                  texto: typeof optText === "string" ? optText : (optText?.texto || "Opción " + (oi + 1)),
+                  es_correcta: typeof optText === "object" && optText !== null && "es_correcta" in optText ? Boolean(optText.es_correcta) : oi === correctIdx,
+                }));
+                await (supabase as any).from("quiz_options").insert(optRows);
+              }
+
+              const { data: deckData } = await (supabase as any).from("quiz_decks").select("total_questions").eq("id", deckId).single();
+              await (supabase as any).from("quiz_decks").update({ total_questions: (deckData?.total_questions || 0) + 1 }).eq("id", deckId);
+              results.push({ target: "quiz_questions", operation: "create", message: "Pregunta agregada al cuestionario." });
+            }
+          } else if (op === "update") {
+            const qId = act.id || match.id || act.question_id || match.question_id;
+            let targetQId = qId;
+            if (!targetQId && match.pregunta) {
+              const { data: qItem } = await (supabase as any)
+                .from("quiz_questions")
+                .select("id")
+                .ilike("pregunta", "%" + match.pregunta + "%")
+                .eq("user_id", currentUserId)
+                .maybeSingle();
+              targetQId = qItem?.id;
+            }
+            if (targetQId) {
+              const updatePayload = {};
+              if (data.pregunta) updatePayload.pregunta = data.pregunta;
+              if ("explicacion" in data) updatePayload.explicacion = data.explicacion;
+              if ("is_multi_select" in data) updatePayload.is_multi_select = data.is_multi_select;
+              if (Object.keys(updatePayload).length > 0) {
+                await (supabase as any).from("quiz_questions").update(updatePayload).eq("id", targetQId);
+              }
+              if (Array.isArray(data.opciones)) {
+                await (supabase as any).from("quiz_options").delete().eq("question_id", targetQId);
+                const correctIdx = typeof data.correcta === "number" ? data.correcta : (typeof data.respuesta_correcta === "number" ? data.respuesta_correcta : 0);
+                const optRows = data.opciones.map((optText, oi) => ({
+                  question_id: targetQId,
+                  texto: typeof optText === "string" ? optText : (optText?.texto || "Opción " + (oi + 1)),
+                  es_correcta: typeof optText === "object" && optText !== null && "es_correcta" in optText ? Boolean(optText.es_correcta) : oi === correctIdx,
+                }));
+                await (supabase as any).from("quiz_options").insert(optRows);
+              }
+              results.push({ target: "quiz_questions", operation: "update", message: "Pregunta modificada exitosamente." });
+            }
+          } else if (op === "delete") {
+            const qId = act.id || match.id || act.question_id || match.question_id;
+            let targetQId = qId;
+            let targetDeckId = act.deck_id || match.deck_id;
+            if (!targetQId && match.pregunta) {
+              const { data: qItem } = await (supabase as any)
+                .from("quiz_questions")
+                .select("id, deck_id")
+                .ilike("pregunta", "%" + match.pregunta + "%")
+                .eq("user_id", currentUserId)
+                .maybeSingle();
+              targetQId = qItem?.id;
+              targetDeckId = qItem?.deck_id;
+            }
+            if (targetQId) {
+              if (!targetDeckId) {
+                const { data: qItem } = await (supabase as any).from("quiz_questions").select("deck_id").eq("id", targetQId).maybeSingle();
+                targetDeckId = qItem?.deck_id;
+              }
+              await (supabase as any).from("quiz_options").delete().eq("question_id", targetQId);
+              await (supabase as any).from("quiz_questions").delete().eq("id", targetQId);
+              if (targetDeckId) {
+                const { data: deckData } = await (supabase as any).from("quiz_decks").select("total_questions").eq("id", targetDeckId).single();
+                await (supabase as any).from("quiz_decks").update({ total_questions: Math.max(0, (deckData?.total_questions || 1) - 1) }).eq("id", targetDeckId);
+              }
+              results.push({ target: "quiz_questions", operation: "delete", message: "Pregunta eliminada del cuestionario." });
+            }
+          }
+        } else {
+          if (op === "update") {
+            const quizId = act.id || match.id;
+            const newName = data.nombre || data.nuevo_nombre || data.name;
+            if (newName) {
+              const query = (supabase as any).from("quiz_decks").update({ nombre: newName }).eq("user_id", currentUserId);
+              if (quizId) query.eq("id", quizId);
+              else if (match.nombre || match.name) query.ilike("nombre", match.nombre || match.name);
+              await query;
+              results.push({ target: "quiz_decks", operation: "update", message: 'Cuestionario renombrado a "' + newName + '".' });
+            }
+          } else if (op === "delete") {
+            const quizId = act.id || match.id;
+            let targetQuizId = quizId;
+            if (!targetQuizId && (match.nombre || match.name)) {
+              const { data: qd } = await (supabase as any).from("quiz_decks").select("id").eq("user_id", currentUserId).ilike("nombre", match.nombre || match.name).maybeSingle();
+              targetQuizId = qd?.id;
+            }
+            if (targetQuizId) {
+              const { data: qList } = await (supabase as any).from("quiz_questions").select("id").eq("deck_id", targetQuizId);
+              if (qList && qList.length > 0) {
+                await (supabase as any).from("quiz_options").delete().in("question_id", qList.map((q) => q.id));
+                await (supabase as any).from("quiz_questions").delete().eq("deck_id", targetQuizId);
+              }
+              await (supabase as any).from("quiz_decks").delete().eq("id", targetQuizId).eq("user_id", currentUserId);
+              results.push({ target: "quiz_decks", operation: "delete", message: "Cuestionario eliminado." });
+            }
           }
         }
       }
 
-      // 7. NOTION DOCUMENTS
+      // 7. NOTION DOCUMENTS (Crear, Modificar o Borrar Apuntes)
       else if (rawTarget.includes("notion") || rawTarget.includes("apunte") || rawTarget.includes("document")) {
-        if (op === "delete") {
+        if (op === "create") {
+          const title = data.titulo || data.title || match.titulo || "Nuevo Apunte";
+          const sub = resolveSubject(data.subject_id || data.subject_name || data.materia || match.subject_name || match.materia);
+          const rawContent = data.contenido || data.content || data.texto || "";
+          
+          const parsedContent = {
+            type: "doc",
+            content: typeof rawContent === "string"
+              ? rawContent.split("\n\n").filter(Boolean).map((p: string) => {
+                  if (p.startsWith("### ")) return { type: "heading", attrs: { level: 3 }, content: [{ type: "text", text: p.replace(/^###\s+/, "") }] };
+                  if (p.startsWith("## ")) return { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: p.replace(/^##\s+/, "") }] };
+                  if (p.startsWith("# ")) return { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: p.replace(/^#\s+/, "") }] };
+                  return { type: "paragraph", content: [{ type: "text", text: p }] };
+                })
+              : rawContent,
+          };
+
+          const { data: newDoc } = await (supabase as any)
+            .from("notion_documents")
+            .insert({
+              user_id: currentUserId,
+              titulo: title,
+              subject_id: sub?.id || null,
+              emoji: data.emoji || "📝",
+              contenido: parsedContent,
+            })
+            .select()
+            .maybeSingle();
+
+          addInAppNotification({
+            title: `Apunte creado: ${title}`,
+            message: sub?.nombre ? `Guardado para ${sub.nombre} en tu sección de Apuntes.` : "Guardado en tu sección de Apuntes.",
+            type: "academic",
+            actionUrl: "/apuntes",
+            progress: 100,
+            status: "completed",
+          });
+
+          results.push({ target: "notion_documents", operation: "create", message: `Apunte "${title}" creado con éxito.` });
+        } else if (op === "update") {
+          const docId = act.id || match.id;
+          const updates: any = {};
+          if (data.titulo || data.title) updates.titulo = data.titulo || data.title;
+          if (data.emoji) updates.emoji = data.emoji;
+          if (data.contenido) {
+            updates.contenido = typeof data.contenido === "string"
+              ? { type: "doc", content: data.contenido.split("\n\n").filter(Boolean).map((p: string) => ({ type: "paragraph", content: [{ type: "text", text: p }] })) }
+              : data.contenido;
+          }
+          const query = (supabase as any).from("notion_documents").update(updates).eq("user_id", currentUserId);
+          if (docId) query.eq("id", docId);
+          else if (match.titulo || match.title) query.ilike("titulo", match.titulo || match.title);
+          await query;
+          results.push({ target: "notion_documents", operation: "update", message: "Apunte actualizado." });
+        } else if (op === "delete") {
           const docId = act.id || match.id;
           const query = (supabase as any).from("notion_documents").delete().eq("user_id", currentUserId);
           if (docId) query.eq("id", docId);
@@ -2105,9 +2376,175 @@ async function executeDatabaseMutations(
   return results;
 }
 
+
+async function resolveSubjectForUser(
+  currentUserId: string,
+  rawSubjectCandidate?: string | null,
+  titleCandidate?: string | null,
+  fallbackSubjectName?: string | null
+): Promise<string | null> {
+  if (!currentUserId || currentUserId === "guest") return null;
+
+  try {
+    let rawSubjectName = (rawSubjectCandidate || "").trim();
+    if (!rawSubjectName && fallbackSubjectName && fallbackSubjectName !== "Todas las materias") {
+      rawSubjectName = fallbackSubjectName.trim();
+    }
+    const title = (titleCandidate || "").trim();
+
+    if (!rawSubjectName && title) {
+      const parts = title.split(/[-–—:|]/);
+      for (const p of parts) {
+        const trimmed = p.trim();
+        if (!/^(parcial|final|recuperatorio|quiz|cuestionario|tp|examen|simulacro|flashcards|mazo|tarjetas|\d+)/i.test(trimmed) && trimmed.length > 1) {
+          rawSubjectName = trimmed;
+          break;
+        }
+      }
+    }
+
+    const { data: userSubs } = await (supabase as any)
+      .from("subjects")
+      .select("id, nombre, codigo, año")
+      .or(`user_id.eq.${currentUserId},user_id.is.null`);
+
+    const subjectsList: Array<{ id: string; nombre: string; codigo?: string }> = Array.isArray(userSubs) ? userSubs : [];
+
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+    const stopWords = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "con", "i", "ii", "iii", "iv", "v", "1", "2", "3"]);
+
+    const getAcronyms = (name: string): string[] => {
+      const words = normalize(name).split(" ").filter(Boolean);
+      const meaningfulWords = words.filter((w) => !stopWords.has(w));
+      const acrMeaningful = meaningfulWords.map((w) => w[0]).join("").toUpperCase();
+      const acrAll = words.map((w) => w[0]).join("").toUpperCase();
+      return Array.from(new Set([acrMeaningful, acrAll].filter((a) => a.length >= 2)));
+    };
+
+    if (rawSubjectName && subjectsList.length > 0) {
+      const cleanTarget = rawSubjectName.trim();
+      const normTarget = normalize(cleanTarget);
+      const toRoman = (s: string) => s.replace(/\b1\b/g, "i").replace(/\b2\b/g, "ii").replace(/\b3\b/g, "iii").replace(/\b4\b/g, "iv").replace(/\b5\b/g, "v");
+      const toArabic = (s: string) => s.replace(/\bv\b/g, "5").replace(/\biv\b/g, "4").replace(/\biii\b/g, "3").replace(/\bii\b/g, "2").replace(/\bi\b/g, "1");
+      const targetUpper = cleanTarget.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+      let matched = subjectsList.find((s) => {
+        const ns = normalize(s.nombre);
+        return ns === normTarget || toRoman(ns) === toRoman(normTarget) || toArabic(ns) === toArabic(normTarget);
+      });
+
+      if (!matched && targetUpper.length >= 2 && targetUpper.length <= 5) {
+        const acronymMatches = subjectsList.filter((s) => {
+          const acrs = getAcronyms(s.nombre);
+          return acrs.includes(targetUpper);
+        });
+        if (acronymMatches.length === 1) {
+          matched = acronymMatches[0];
+        } else if (acronymMatches.length > 1) {
+          const normTitle = normalize(title);
+          const titleMatch = acronymMatches.find((s) =>
+            normalize(s.nombre).split(" ").some((w) => !stopWords.has(w) && normTitle.includes(w))
+          );
+          matched = titleMatch || acronymMatches[0];
+        }
+      }
+
+      if (!matched && normTarget.length >= 3) {
+        const substringMatches = subjectsList.filter((s) => {
+          const normSub = normalize(s.nombre);
+          return normSub.includes(normTarget) || normTarget.includes(normSub);
+        });
+
+        if (substringMatches.length === 1) {
+          matched = substringMatches[0];
+        } else if (substringMatches.length > 1) {
+          const normTitle = normalize(title);
+          const bestCandidate = substringMatches.find((s) => {
+            const sWords = normalize(s.nombre).split(" ").filter((w) => !stopWords.has(w));
+            return sWords.every((w) => normTitle.includes(w));
+          });
+          matched = bestCandidate || substringMatches[0];
+        }
+      }
+
+      if (matched) return matched.id;
+    }
+
+    if (title && subjectsList.length > 0) {
+      const normTitle = normalize(title);
+      const titleMatched = subjectsList.find((s) => {
+        const normSub = normalize(s.nombre);
+        return normSub.length > 3 && normTitle.includes(normSub);
+      });
+      if (titleMatched) return titleMatched.id;
+    }
+
+    if (rawSubjectName && rawSubjectName.length >= 3) {
+      const cleanName = rawSubjectName.trim();
+      const subjectCode = cleanName
+        .split(" ")
+        .filter(Boolean)
+        .map((w: string) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 5) || "MAT";
+
+      const { data: createdSub, error: subCreateErr } = await (supabase as any)
+        .from("subjects")
+        .insert({
+          user_id: currentUserId,
+          nombre: cleanName,
+          codigo: subjectCode,
+          año: 1,
+          numero_materia: 1,
+        })
+        .select("id")
+        .single();
+
+      if (!subCreateErr && createdSub?.id) {
+        return createdSub.id;
+      }
+    }
+
+    if (subjectsList.length > 0) {
+      return subjectsList[0].id;
+    }
+
+    const { data: prof } = await (supabase as any)
+      .from("profiles")
+      .select("carrera")
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (prof?.carrera) {
+      const defaultName = rawSubjectName || `General (${prof.carrera})`;
+      const { data: createdSub } = await (supabase as any)
+        .from("subjects")
+        .insert({
+          user_id: currentUserId,
+          nombre: defaultName,
+          codigo: "GEN",
+          año: 1,
+          numero_materia: 1,
+        })
+        .select("id")
+        .single();
+
+      if (createdSub?.id) return createdSub.id;
+    }
+  } catch (err) {
+    console.warn("Error in resolveSubjectForUser:", err);
+  }
+
+  return null;
+}
+
 async function executeActionBlock(
   content: string,
-  userId: string
+  userId: string,
+  focusedSubject?: string
 ): Promise<{ event_created?: any; flashcards_created?: any; quiz_created?: any; db_mutations?: any[]; cleanedContent: string }> {
   let cleanedContent = content;
   let event_created = null;
@@ -2157,6 +2594,50 @@ async function executeActionBlock(
       } catch (e) {
         console.warn("Failed to parse/execute db action:", e);
       }
+    } else if (
+      block.type === "utn-encuestas" ||
+      block.type === "utn_encuestas" ||
+      block.type === "encuestas"
+    ) {
+      try {
+        let parsed: any = {};
+        try {
+          parsed = JSON.parse(block.raw);
+        } catch {}
+        const { data: prof } = await (supabase as any)
+          .from("profiles")
+          .select("*")
+          .eq("user_id", currentUserId)
+          .maybeSingle();
+
+        const res = await resolveUtnFrmEncuestas(
+          currentUserId,
+          {
+            rating: parsed?.rating || parsed?.valoracion || "muy_bueno",
+            comment: parsed?.comment || parsed?.comentario,
+            materia: parsed?.materia || parsed?.subject,
+          },
+          prof
+        );
+
+        toast.success("Encuestas Docentes UTN FRM", {
+          description: res.message,
+          duration: 6000,
+        });
+
+        db_mutations = [
+          ...(db_mutations || []),
+          {
+            target: "utn_encuestas",
+            operation: "resolve",
+            message: res.message,
+          },
+        ];
+      } catch (err: any) {
+        toast.error("No se pudieron resolver las encuestas docentes", {
+          description: err?.message || "Verifica tu permiso o tus credenciales UTN FRM.",
+        });
+      }
     } else if (block.type === "calendar") {
       try {
         const parsed = JSON.parse(block.raw);
@@ -2178,6 +2659,14 @@ async function executeActionBlock(
           }
           event_created = items;
           invalidateCalendarCache(currentUserId);
+          addInAppNotification({
+            title: "¡Examen agendado en tu calendario! 📅",
+            message: items.length === 1 ? `"${items[0].titulo}" agendado para el ${items[0].fecha}.` : `${items.length} eventos guardados en tu calendario.`,
+            type: "calendar",
+            actionUrl: "/calendario",
+            progress: 100,
+            status: "completed",
+          });
         }
       } catch (e) {
         console.warn("Failed to parse calendar action:", e);
@@ -2186,15 +2675,43 @@ async function executeActionBlock(
       try {
         const data = JSON.parse(block.raw);
         if (data.deck_name && Array.isArray(data.cards) && data.cards.length > 0 && currentUserId && currentUserId !== "guest") {
-          const { data: deck } = await (supabase as any)
-            .from("flashcard_decks")
-            .insert({
-              user_id: currentUserId,
-              nombre: data.deck_name,
-              total_cards: data.cards.length,
-            })
-            .select()
-            .single();
+          const subjectId = await resolveSubjectForUser(
+            currentUserId,
+            data.subject_name || data.materia || data.subject,
+            data.deck_name,
+            focusedSubject
+          );
+
+          let deck: any = null;
+          if (subjectId) {
+            const { data: d1 } = await (supabase as any)
+              .from("flashcard_decks")
+              .insert({
+                user_id: currentUserId,
+                nombre: data.deck_name,
+                subject_id: subjectId,
+                category: "Resumen",
+                total_cards: data.cards.length,
+              })
+              .select()
+              .single();
+            if (d1) deck = d1;
+          }
+
+          if (!deck) {
+            const { data: d2 } = await (supabase as any)
+              .from("flashcard_decks")
+              .insert({
+                user_id: currentUserId,
+                nombre: data.deck_name,
+                subject_id: null,
+                category: "Resumen",
+                total_cards: data.cards.length,
+              })
+              .select()
+              .single();
+            if (d2) deck = d2;
+          }
 
           if (deck) {
             await (supabase as any).from("flashcards").insert(
@@ -2271,143 +2788,13 @@ async function executeActionBlock(
         } catch {}
       }
 
-      // Detección y resolución inteligente de materias (acrónimos como RD, apodos como Redes, desempate y auto-creación)
-      let rawSubjectName = (quizData.subject_name || quizData.materia || quizData.subject || "").trim();
-      const quizTitle = quizData.quiz_name || "";
-
-      if (!rawSubjectName && quizTitle) {
-        // Extraer candidato si viene en el título (ej: "Parcial 2 - Redes de Datos" o "Redes de Datos: Parcial 2")
-        const parts = quizTitle.split(/[-–—:|]/);
-        for (const p of parts) {
-          const trimmed = p.trim();
-          if (!/^(parcial|final|recuperatorio|quiz|cuestionario|tp|examen|simulacro|\d+)/i.test(trimmed) && trimmed.length > 1) {
-            rawSubjectName = trimmed;
-            break;
-          }
-        }
-      }
-
-      let subjectId: string | null = null;
-      if (currentUserId && currentUserId !== "guest") {
-        try {
-          // Traer todas las materias del usuario
-          const { data: userSubs } = await (supabase as any)
-            .from("subjects")
-            .select("id, nombre, codigo, año")
-            .eq("user_id", currentUserId);
-
-          const subjectsList: Array<{ id: string; nombre: string; codigo?: string }> = Array.isArray(userSubs) ? userSubs : [];
-
-          // Helper para normalizar texto (sin tildes, minúsculas, sin puntuación)
-          const normalize = (s: string) =>
-            s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-
-          const stopWords = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "con", "i", "ii", "iii", "iv", "v", "1", "2", "3"]);
-
-          // Función para calcular acrónimos de una materia (ej: "Redes de Datos" -> ["RD", "RDD"])
-          const getAcronyms = (name: string): string[] => {
-            const words = normalize(name).split(" ").filter(Boolean);
-            const meaningfulWords = words.filter((w) => !stopWords.has(w));
-            const acrMeaningful = meaningfulWords.map((w) => w[0]).join("").toUpperCase();
-            const acrAll = words.map((w) => w[0]).join("").toUpperCase();
-            return Array.from(new Set([acrMeaningful, acrAll].filter((a) => a.length >= 2)));
-          };
-
-          if (rawSubjectName && subjectsList.length > 0) {
-            const cleanTarget = rawSubjectName.trim();
-            const normTarget = normalize(cleanTarget);
-            const targetUpper = cleanTarget.toUpperCase().replace(/[^A-Z0-9]/g, "");
-
-            // 1. Coincidencia exacta por nombre
-            let matched = subjectsList.find((s) => normalize(s.nombre) === normTarget);
-
-            // 2. Coincidencia por acrónimo (ej: "RD" coincide con "Redes de Datos", "BD" con "Bases de Datos")
-            if (!matched && targetUpper.length >= 2 && targetUpper.length <= 5) {
-              const acronymMatches = subjectsList.filter((s) => {
-                const acrs = getAcronyms(s.nombre);
-                return acrs.includes(targetUpper);
-              });
-              if (acronymMatches.length === 1) {
-                matched = acronymMatches[0];
-              } else if (acronymMatches.length > 1) {
-                // Desempate si el título del quiz contiene alguna palabra de la materia
-                const normTitle = normalize(quizTitle);
-                const titleMatch = acronymMatches.find((s) =>
-                  normalize(s.nombre).split(" ").some((w) => !stopWords.has(w) && normTitle.includes(w))
-                );
-                matched = titleMatch || acronymMatches[0];
-              }
-            }
-
-            // 3. Coincidencia por subcadena / apodo (ej: "Redes" en "Redes de Datos", "Datos" en "Bases de Datos")
-            if (!matched && normTarget.length >= 3) {
-              const substringMatches = subjectsList.filter((s) => {
-                const normSub = normalize(s.nombre);
-                return normSub.includes(normTarget) || normTarget.includes(normSub);
-              });
-
-              if (substringMatches.length === 1) {
-                matched = substringMatches[0];
-              } else if (substringMatches.length > 1) {
-                // Si compiten varias (ej: "Datos" -> "Redes de Datos" y "Bases de Datos")
-                // Desempate usando el título del quiz o contexto
-                const normTitle = normalize(quizTitle);
-                const bestCandidate = substringMatches.find((s) => {
-                  const sWords = normalize(s.nombre).split(" ").filter((w) => !stopWords.has(w));
-                  return sWords.every((w) => normTitle.includes(w));
-                });
-                matched = bestCandidate || substringMatches[0];
-              }
-            }
-
-            if (matched) {
-              subjectId = matched.id;
-            }
-          }
-
-          // 4. Si el título del quiz contiene una materia del usuario y no teníamos match
-          if (!subjectId && quizTitle && subjectsList.length > 0) {
-            const normTitle = normalize(quizTitle);
-            const titleMatched = subjectsList.find((s) => {
-              const normSub = normalize(s.nombre);
-              return normSub.length > 3 && normTitle.includes(normSub);
-            });
-            if (titleMatched) {
-              subjectId = titleMatched.id;
-            }
-          }
-
-          // 5. Si no se encontró ninguna materia existente pero el usuario especificó un nombre legítimo, crearla
-          if (!subjectId && rawSubjectName && rawSubjectName.length >= 3) {
-            const cleanName = rawSubjectName.trim();
-            const subjectCode = cleanName
-              .split(" ")
-              .filter(Boolean)
-              .map((w: string) => w[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 5) || "MAT";
-
-            const { data: createdSub, error: subCreateErr } = await (supabase as any)
-              .from("subjects")
-              .insert({
-                user_id: currentUserId,
-                nombre: cleanName,
-                codigo: subjectCode,
-                año: 1,
-                numero_materia: 1,
-              })
-              .select("id")
-              .single();
-
-            if (!subCreateErr && createdSub?.id) {
-              subjectId = createdSub.id;
-            }
-          }
-        } catch (subErr) {
-          console.warn("Error in smart subject resolution for quiz:", subErr);
-        }
-      }
+      // Detección y resolución inteligente de materias
+      const subjectId = await resolveSubjectForUser(
+        currentUserId,
+        quizData.subject_name || quizData.materia || quizData.subject,
+        quizData.quiz_name,
+        focusedSubject
+      );
 
       if (currentUserId && currentUserId !== "guest") {
         let deck: any = null;
@@ -2420,6 +2807,7 @@ async function executeActionBlock(
               user_id: currentUserId,
               nombre: quizData.quiz_name,
               subject_id: subjectId,
+              category: "Resumen",
               total_questions: totalQCount,
             })
             .select()
@@ -2436,6 +2824,7 @@ async function executeActionBlock(
               user_id: currentUserId,
               nombre: quizData.quiz_name,
               subject_id: null,
+              category: "Resumen",
               total_questions: totalQCount,
             })
             .select()
@@ -2537,6 +2926,70 @@ async function executeActionBlock(
     }
   }
 
+  if (db_mutations && db_mutations.length > 0) {
+    const isProf = db_mutations.some((m) => m.target === "professors" || m.target === "office_hours");
+    const isCal = db_mutations.some((m) => m.target === "calendar_events");
+    const isSub = db_mutations.some((m) => m.target === "subjects" || m.target === "subject_status");
+    const isRoutine = db_mutations.some((m) => m.target === "routines");
+    const isSession = db_mutations.some((m) => m.target === "study_sessions");
+
+    if (isProf) {
+      addInAppNotification({
+        title: "¡Consultas y profesores guardados! 👨‍🏫",
+        message: "Se registraron los profesores y horarios de consulta en tu cuenta.",
+        type: "professors",
+        actionUrl: "/consultas",
+        progress: 100,
+        status: "completed",
+      });
+    } else if (isCal) {
+      addInAppNotification({
+        title: "¡Calendario actualizado! 📅",
+        message: "Se guardaron los exámenes y eventos en tu calendario.",
+        type: "calendar",
+        actionUrl: "/calendario",
+        progress: 100,
+        status: "completed",
+      });
+    } else if (isSub) {
+      addInAppNotification({
+        title: "¡Notas y materias actualizadas! 📝",
+        message: "Se actualizaron las notas y el estado de tus materias en tu plan.",
+        type: "academic",
+        actionUrl: "/materias",
+        progress: 100,
+        status: "completed",
+      });
+    } else if (isRoutine) {
+      addInAppNotification({
+        title: "¡Rutinas de estudio actualizadas! ⏰",
+        message: "Se guardaron tus rutinas y horarios de estudio semanales.",
+        type: "ai_background",
+        actionUrl: "/rutinas",
+        progress: 100,
+        status: "completed",
+      });
+    } else if (isSession) {
+      addInAppNotification({
+        title: "¡Tiempo de estudio registrado! ⏱️",
+        message: "Se registraron tus horas de estudio en tus estadísticas.",
+        type: "academic",
+        actionUrl: "/metricas",
+        progress: 100,
+        status: "completed",
+      });
+    } else {
+      addInAppNotification({
+        title: "¡Cambios guardados! ✅",
+        message: "Tus modificaciones se guardaron exitosamente en tu cuenta.",
+        type: "ai_background",
+        actionUrl: "/TABEAI",
+        progress: 100,
+        status: "completed",
+      });
+    }
+  }
+
   if (event_created || flashcards_created || quiz_created || (db_mutations && db_mutations.length > 0)) {
     if (currentUserId) invalidateStudentContextCache(currentUserId);
   }
@@ -2554,12 +3007,13 @@ export async function streamAIChat(params: {
   powerLevel?: PowerEffort;
   userId: string;
   image?: { data: string; mime_type: string };
+  selectedSubject?: string;
   onDelta: (text: string) => void;
   onReset?: () => void;          // Called when switching to a fallback model (clears UI)
   onComplete: (result: StreamResult) => void;
   onError: (error: Error) => void;
 }): Promise<void> {
-  const { messages, systemPrompt, powerLevel = "medio", userId, image, onDelta, onReset, onComplete, onError } = params;
+  const { messages, systemPrompt, powerLevel = "medio", userId, image, selectedSubject, onDelta, onReset, onComplete, onError } = params;
 
   let success = false;
   let finalContent = "";
@@ -2691,7 +3145,8 @@ export async function streamAIChat(params: {
   try {
     const { event_created, flashcards_created, quiz_created, db_mutations, cleanedContent } = await executeActionBlock(
       finalContent,
-      userId
+      userId,
+      selectedSubject
     );
     const finalCleaned = cleanedContent || cleanAIResponse(finalContent);
     onComplete({
@@ -2722,7 +3177,8 @@ async function streamFromNvidiaProxy(opts: {
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const bearer = session?.access_token ? `Bearer ${session.access_token}` : "";
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+    const bearer = session?.access_token ? `Bearer ${session.access_token}` : (anonKey ? `Bearer ${anonKey}` : "");
     if (!bearer) return false;
 
     const formattedMessages = [
@@ -2736,10 +3192,10 @@ async function streamFromNvidiaProxy(opts: {
 
     const temperature = powerLevel === "bajo" ? 0.2 : powerLevel === "alto" ? 0.35 : 0.25;
     // Hasta 16384 tokens para permitir cuestionarios de hasta 80 preguntas sin truncamiento
-    const maxTokens = isBulkContent ? 16384 : (powerLevel === "bajo" ? 180 : 8192);
+    const maxTokens = isBulkContent ? 16384 : (powerLevel === "bajo" ? 1024 : 8192);
 
     const controller = new AbortController();
-    const initialTimeoutMs = isBulkContent ? 60000 : (powerLevel === "bajo" ? 8000 : 25000);
+    const initialTimeoutMs = isBulkContent ? 60000 : 25000;
     let timeoutId = setTimeout(() => controller.abort(), initialTimeoutMs);
 
     const response = await fetch("/api/nvidia-ai", {
@@ -2789,10 +3245,14 @@ async function streamFromNvidiaProxy(opts: {
         if (!payload || payload === "[DONE]") continue;
         try {
           const parsed = JSON.parse(payload);
-          const chunk = parsed.choices?.[0]?.delta?.content || "";
+          const delta = parsed.choices?.[0]?.delta;
+          const chunk = delta?.content || "";
           if (chunk) {
             receivedContent = true;
             onDelta(chunk);
+          } else if (delta?.reasoning_content) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => controller.abort(), isBulkContent ? 45000 : 25000);
           }
         } catch {
           // ignore non-json keepalives

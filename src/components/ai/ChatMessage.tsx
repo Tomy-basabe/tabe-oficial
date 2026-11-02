@@ -5,6 +5,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { cn } from "@/lib/utils";
+import { preprocessMathText } from "@/components/ui/MathText";
 
 /**
  * Normaliza y preprocesa fórmulas LaTeX, tablas y listas de Markdown generadas por la IA
@@ -108,6 +109,8 @@ export function preprocessMarkdownAndLaTeX(content: string): string {
       });
     }
 
+    // 12. Preprocesar integrales, derivadas parciales y expresiones científicas
+    text = preprocessMathText(text);
     return text;
   });
 

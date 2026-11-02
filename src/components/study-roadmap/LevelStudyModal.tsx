@@ -13,6 +13,7 @@ import { ComicConfetti } from "./ComicConfetti";
 import { IsoCubesLoader } from "./IsoCubesLoader";
 import { MermaidRenderer } from "./MermaidRenderer";
 import { EmojiPng } from "@/components/common/EmojiPng";
+import { MathText } from "@/components/ui/MathText";
 import { X, CheckCircle2, AlertCircle, ArrowRight, BookOpen, Volume2, VolumeX, FileText, Clock, RotateCcw, ChevronDown, ChevronUp, Layers, Target, Check, RefreshCw, ShieldAlert, Radio, Play, Pause, SkipForward, SkipBack, Mic, MicOff, Award, Send, MessageSquare, Flame, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -1252,16 +1253,16 @@ export const LevelStudyModal: React.FC<LevelStudyModalProps> = ({
                       <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                         {wrongAnswers.map((item, idx) => (
                           <div key={idx} className="p-3 rounded-xl bg-card border border-border/60/50 text-xs space-y-1">
-                            <p className="font-black text-foreground">{item.question.pregunta}</p>
+                            <MathText text={item.question.pregunta} as="p" className="font-black text-foreground" />
                             <p className="text-rose-500 font-bold">
-                              ✗ Tu respuesta: {item.question.opciones[item.chosen]}
+                              <span>✗ Tu respuesta:</span> <MathText text={item.question.opciones[item.chosen]} as="span" />
                             </p>
                             <p className="text-emerald-600 dark:text-emerald-500 font-black">
-                              ✓ Correcta: {item.question.opciones[item.question.correcta]}
+                              <span>✓ Correcta:</span> <MathText text={item.question.opciones[item.question.correcta]} as="span" />
                             </p>
                             <p className="text-muted-foreground font-medium pt-0.5 flex items-center gap-1">
                               <EmojiPng emoji="💡" size="xs" />
-                              <span>{item.question.explicacion}</span>
+                              <MathText text={item.question.explicacion} as="span" />
                             </p>
                           </div>
                         ))}
@@ -1318,7 +1319,7 @@ export const LevelStudyModal: React.FC<LevelStudyModalProps> = ({
                   </div>
 
                   <h4 className="font-black text-sm md:text-base text-foreground leading-snug whitespace-pre-line">
-                    {currentQ.pregunta}
+                    <MathText text={currentQ.pregunta} as="span" />
                   </h4>
 
                   <div className="space-y-2.5">
@@ -1345,7 +1346,7 @@ export const LevelStudyModal: React.FC<LevelStudyModalProps> = ({
                             btnStyle
                           )}
                         >
-                          <span>{op}</span>
+                          <MathText text={op} as="span" className="flex-1" />
                           {isAnswerChecked && isCorrect && <CheckCircle2 className="w-4 h-4 text-black shrink-0 ml-2" />}
                           {isAnswerChecked && isSelected && !isCorrect && <AlertCircle className="w-4 h-4 text-white shrink-0 ml-2" />}
                         </button>
@@ -1358,7 +1359,7 @@ export const LevelStudyModal: React.FC<LevelStudyModalProps> = ({
                       <span className="font-black block uppercase text-[10px] text-primary mb-0.5">
                         💡 Fundamentación:
                       </span>
-                      {currentQ.explicacion}
+                      <MathText text={currentQ.explicacion} as="div" className="mt-1" />
                     </div>
                   )}
 

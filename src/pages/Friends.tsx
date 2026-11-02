@@ -38,6 +38,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import UserInfoCard from "@/components/friends/UserInfoCard";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirm } from "@/contexts/ConfirmModalContext";
 
 const QUICK_MESSAGES = [
   "¡Vamos a meterle una sesión de Pomodoro! 🍅",
@@ -87,6 +89,7 @@ export default function Friends() {
   } = useFriendsSocial();
 
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const { createRoom, sendFriendChallenge } = useGameRoom();
   const [mainTab, setMainTab] = useState<string>("leaderboard");
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,8 +190,21 @@ export default function Friends() {
   };
 
   if (loading && friends.length === 0 && friendStats.length === 0 && !myProfile) {
-    return <LoadingScreen message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
+    return <LoadingScreen type="friends" message="Cargando Amigos..." submessage="Buscando compañeros de estudio..." />;
   }
+
+  const handleRemoveFriend = async (friendshipId: string, friendName?: string) => {
+    const ok = await confirm({
+      title: "¿Eliminar de amigos?",
+      description: `¿Estás seguro de que querés eliminar a ${friendName || "este usuario"} de tus amigos? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar amigo",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+    if (ok) {
+      await removeFriend(friendshipId);
+    }
+  };
 
   const handleSendRequest = async () => {
     if (!friendIdentifier.trim()) return;
@@ -533,9 +549,20 @@ export default function Friends() {
           {/* Tabla / Tarjeta de Ranking */}
           <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden">
             {loading ? (
-              <div className="p-12 text-center text-zinc-400 text-sm font-medium flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
-                <span>Cargando posiciones del ranking...</span>
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80 p-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3.5">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-6 h-6 rounded-md" />
+                      <Skeleton className="w-9 h-9 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-28 rounded" />
+                        <Skeleton className="h-3 w-16 rounded" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-16 rounded-lg" />
+                  </div>
+                ))}
               </div>
             ) : friendStats.length === 0 ? (
               <div className="p-12 text-center space-y-3">
@@ -705,9 +732,19 @@ export default function Friends() {
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-zinc-400 text-sm font-medium flex flex-col items-center justify-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
-              <span>Cargando lista de amigos...</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/70 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-32 rounded" />
+                      <Skeleton className="h-3 w-20 rounded" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-full rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : friends.length === 0 ? (
             <div className="p-12 text-center bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xs space-y-3">
@@ -841,8 +878,8 @@ export default function Friends() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeFriend(friendship.id)}
-                            className="h-8 w-8 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10"
+                            onClick={() => handleRemoveFriend(friendship.id, friendship.friend?.display_name || friendship.friend?.username)}
+                            className="h-8 w-8 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
                             title="Eliminar amigo"
                           >
                             <UserX className="w-4 h-4" />

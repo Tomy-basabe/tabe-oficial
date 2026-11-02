@@ -26,7 +26,8 @@
     (function () {
       try {
         var stored = localStorage.getItem("theme");
-        var isDark = stored === "dark" || (stored === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var isDark = stored === "dark" || ((!stored || stored === "system") && systemDark);
         if (isDark) {
           document.documentElement.classList.add("dark");
           document.documentElement.classList.remove("light");

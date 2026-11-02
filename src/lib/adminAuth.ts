@@ -12,9 +12,10 @@ export const isSuperAdmin = (
   user: { email?: string | null; id?: string; user_metadata?: any; app_metadata?: any } | null | undefined
 ): boolean => {
   if (!user) return false;
-  const userEmail = (user.email || user.user_metadata?.email || "").trim().toLowerCase();
+  const userEmail = (user.email || "").trim().toLowerCase();
   const emailMatch = userEmail ? SUPER_ADMIN_EMAILS.includes(userEmail) : false;
   const idMatch = user.id ? SUPER_ADMIN_IDS.includes(user.id) : false;
-  const roleMatch = user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+  // Seguridad: Nunca confiar en user_metadata (modificable por el cliente vía supabase.auth.updateUser)
+  const roleMatch = user.app_metadata?.role === "admin";
   return Boolean(emailMatch || idMatch || roleMatch);
 };

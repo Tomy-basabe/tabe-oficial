@@ -38,6 +38,7 @@ import {
   AVAILABLE_FACULTADES,
   ALL_PROVINCIAS,
 } from "@/lib/careerData";
+import { getCareerCategoryMeta } from "@/lib/careerCategoryIcons";
 import careerStatsRaw from "@/lib/careerStats.json";
 
 const careerStats = careerStatsRaw as Record<string, [number, number]>;
@@ -194,12 +195,9 @@ export default function Careers() {
         provinciaName: "Mendoza",
       };
 
-      const icon = getCareerIcon(career.label);
-      const degreeType = career.label.toLowerCase().includes("tecnicatura")
-        ? "Tecnicatura"
-        : career.label.toLowerCase().includes("profesorado")
-        ? "Profesorado"
-        : "Grado";
+      const catMeta = getCareerCategoryMeta(career.label);
+      const icon = catMeta.icon;
+      const degreeType = catMeta.label;
 
       const finalYears = maxYear || 5;
       const durationLabel = `${finalYears} ${finalYears === 1 ? "año" : "años"}`;
@@ -217,7 +215,7 @@ export default function Careers() {
         durationLabel,
         totalSubjects: totalSubs,
         icon,
-        color: uniDef.accentColor || "#0072CE",
+        color: catMeta.accentColor,
         provinciaId: uniDef.provinciaId,
         provinciaName: uniDef.provinciaName,
       });
@@ -500,7 +498,7 @@ export default function Careers() {
               </button>
             </div>
           ) : viewMode === "map" ? (
-            <div className="space-y-10">
+            <div className="space-y-10 relative isolate z-0">
               {/* Mapa Interactivo de Argentina con Ubicaciones Reales */}
               <ArgentinaInteractiveMap
                 universities={mapUniversities}
@@ -689,6 +687,20 @@ export default function Careers() {
                                   <h4 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 line-clamp-2 group-hover:text-blue-500 transition-colors mb-1">
                                     {career.name}
                                   </h4>
+
+                                  {/* Badge de Especialidad */}
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <span
+                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md border"
+                                      style={{
+                                        backgroundColor: `${career.color}14`,
+                                        color: career.color,
+                                        borderColor: `${career.color}25`,
+                                      }}
+                                    >
+                                      {career.degreeType}
+                                    </span>
+                                  </div>
 
                                   {/* Subtítulo de Facultad */}
                                   <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 font-normal mb-3">

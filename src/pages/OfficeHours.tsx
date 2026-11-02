@@ -634,7 +634,7 @@ export default function OfficeHours() {
   const currentTimePx = isTimeInGrid ? ((currentHour - 7) * 60 + currentMinute) * (52 / 60) : null;
 
   if (loading && professors.length === 0 && !isGuest) {
-    return <LoadingScreen message="Cargando Consultas..." submessage="Sincronizando horarios de docentes..." />;
+    return <LoadingScreen type="office_hours" message="Cargando Consultas..." submessage="Sincronizando horarios de docentes..." />;
   }
 
   return (

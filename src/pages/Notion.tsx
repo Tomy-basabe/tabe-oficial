@@ -32,6 +32,7 @@ import { getTrashItems, restoreFromTrash, moveToTrash, extractSubPageIds, perman
 import { useFriends } from "@/hooks/useFriends";
 import { useAchievements } from "@/hooks/useAchievements";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { NotionEditorSkeleton, NotionGallerySkeleton } from "@/components/ui/AppSkeletons";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { JSONContent } from "@tiptap/core";
 import { tipTapTemplates, TipTapTemplate } from "@/lib/tipTapTemplates";
@@ -1577,7 +1578,18 @@ export default function Notion() {
       try {
         let sharedDoc: any = null;
 
-        // 1. Buscar primero por share_token
+        // 0. Redimir token de forma segura en el servidor (registra al colaborador en notion_document_collaborators antes del SELECT bajo RLS estricto)
+        let redeemedDocId: string | null = null;
+        try {
+          const { data: rpcDocId } = await (supabase as any).rpc("redeem_notion_share_token", {
+            p_token: shareToken,
+          });
+          if (typeof rpcDocId === "string" && rpcDocId.length > 0) {
+            redeemedDocId = rpcDocId;
+          }
+        } catch {}
+
+        // 1. Buscar primero por share_token (o por el ID devuelto por el RPC seguro)
         const tokenRes = await supabase
           .from("notion_documents")
           .select(`
@@ -1586,7 +1598,7 @@ export default function Notion() {
             owner:profiles(nombre, avatar_url, username),
             subject:subjects(id, nombre, codigo, año)
           `)
-          .eq("share_token", shareToken)
+          .eq(redeemedDocId ? "id" : "share_token", redeemedDocId || shareToken)
           .maybeSingle();
 
         if (tokenRes.data) {
@@ -2303,25 +2315,6 @@ export default function Notion() {
     return list.sort((a, b) => a.año - b.año || a.name.localeCompare(b.name));
   }, [subjects, documents]);
 
-  // Loading Skeleton
-  if (loading && documents.length === 0) {
-    return (
-      <div className="notion-app p-4 lg:p-8 space-y-6 animate-pulse">
-        <div className="h-12 w-full bg-muted/40 rounded-xl border border-border/40" />
-        <div className="h-32 w-full bg-muted/30 rounded-2xl border border-border/40" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-48 bg-card border-2 border-border/30 rounded-2xl p-4 space-y-3">
-              <div className="w-8 h-8 rounded-lg bg-muted/80" />
-              <div className="w-3/4 h-5 rounded bg-muted/60" />
-              <div className="w-1/2 h-4 rounded bg-muted/40" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="notion-app">
       {/* Notion Sidebar (Clon de navegación lateral Notion) */}
@@ -2861,18 +2854,9 @@ export default function Notion() {
         <div className="notion-editor-area overflow-hidden flex flex-col h-full min-h-0 relative">
           {activeDocument ? (
             isOpeningDoc && !editorContent ? (
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                <p className="text-muted-foreground animate-pulse font-medium">
-                  Cargando apunte...
-                </p>
-              </div>
+              <NotionEditorSkeleton />
             ) : (
-              <Suspense fallback={
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              }>
+              <Suspense fallback={<NotionEditorSkeleton />}>
                 {isOpeningDoc && (
                   <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 z-50 overflow-hidden">
                     <div className="h-full bg-primary w-full animate-pulse" />
@@ -3495,7 +3479,9 @@ export default function Notion() {
 
               {/* Grid */}
               <div className="flex-1 overflow-y-auto p-8 md:p-12 tour-notion-list">
-                {documents.filter((d) => !d.parent_id || !docIdSet.has(d.parent_id)).length === 0 ? (
+                {loading && documents.length === 0 ? (
+                  <NotionGallerySkeleton />
+                ) : documents.filter((d) => !d.parent_id || !docIdSet.has(d.parent_id)).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p>No tienes apuntes todavía. ¡Creá una nueva página para empezar!</p>
                   </div>
