@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 import utnFrmMcpHandler from "./api/utnfrm-mcp";
+import tabeActionsHandler from "./api/tabe-actions";
 
 function setupNvidiaProxy(middlewares: any, apiKey: string) {
   middlewares.use("/api/nvidia-ai", async (req: any, res: any) => {
@@ -417,6 +418,16 @@ export default defineConfig(({ mode }) => {
             } catch (err: any) {
               console.error("[Vite utnfrm-mcp ssrLoadModule error]:", err);
               await utnFrmMcpHandler(req, res);
+            }
+          });
+          server.middlewares.use("/api/tabe-actions", async (req, res) => {
+            try {
+              const mod = await server.ssrLoadModule("./api/tabe-actions.ts");
+              const handler = mod?.default || tabeActionsHandler;
+              await handler(req, res);
+            } catch (err: any) {
+              console.error("[Vite tabe-actions ssrLoadModule error]:", err);
+              await tabeActionsHandler(req, res);
             }
           });
         },

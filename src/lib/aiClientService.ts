@@ -921,6 +921,9 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
      ❌ "No puedo ver las preguntas de tus cuestionarios ni modificarlos" (¡FALSO! Tenés el desglose de cada pregunta y podés consultarlas, explicarlas o modificarlas).
      ❌ "No puedo agregar eventos a tu calendario"
      ❌ "No tengo la capacidad de modificar tus materias o notas"
+      ❌ "Como asistente IA, no tengo la capacidad de modificar directamente tus notas o el estado académico en el Campus Virtual o en Sysacad"
+      ❌ "Esos datos son oficiales y solo tú podés cargarlos o validarlos"
+      (¡PROHIBICIÓN TOTAL DE NEGARSE A CARGAR NOTAS! Toda petición del usuario para cargar notas o materias aprobadas se refiere a su cuenta y Plan de Carrera en TABE. TENÉS PERMISO TOTAL Y OBLIGATORIO PARA CARGARLAS EN TABE AL INSTANTE).
      ❌ "Como IA no puedo agendarlo por vos"
      ❌ "Tenés que ir a la sección de Calendario y agregarlo manualmente"
    - CÓMO ACTUAR CUANDO TE PIDEN AGREGAR O AGENDAR UN PARCIAL / EXAMEN:
@@ -1025,6 +1028,15 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
          * Cargar o modificar notas numéricas: 'nota_parcial_1' (P1), 'nota_rec_parcial_1' (Rec P1), 'nota_parcial_2' (P2), 'nota_rec_parcial_2' (Rec P2), 'nota_global' (Global), 'nota_rec_global' (Rec Global), 'nota_final_examen' (Final), 'nota' (Nota definitiva).
          * Borrar notas: pasar null en la nota correspondiente (ej: {"nota_parcial_1": null}).
          * Cambiar estado de materia: 'aprobada', 'regular', 'cursable', 'recursar'.
+        - CARGA MASIVA DE MATERIAS Y NOTAS O SINCRONIZACIÓN DESDE SYSACAD / AUTOGESTIÓN:
+          * Si el estudiante te pasa una lista de materias y notas (ej: "cargame como aprobada y las notas las siguientes materias..."):
+            CONFIRMALE DE INMEDIATO QUE YA ESTÁN CARGADAS EN SU PLAN DE CARRERA DE TABE y emití el bloque \`\`\`tabe-action:db con cada materia en el array:
+            [
+              { "target": "subject_status", "operation": "update", "match": { "subject_name": "Comunicación de Datos" }, "data": { "estado": "aprobada", "nota": 10 } },
+              { "target": "subject_status", "operation": "update", "match": { "subject_name": "Bases de Datos" }, "data": { "estado": "aprobada", "nota": 9 } }
+            ]
+          * Si el estudiante te pide: "Entrá a autogestión y cargame las notas que tengo en mi plan de carrera", o "Sincronizame las notas de sysacad en mi plan":
+            REVISÁ la tabla de [A. AUTOGESTIÓN UTN FRM (SYSACAD)] arriba (secciones Exámenes aprobados e Histórico de exámenes) y emití el bloque \`\`\`tabe-action:db con todas las materias aprobadas encontradas para cargarlas en su plan de carrera de TABE.
     c) MATERIAS DEL PLAN (target: "subjects"): agregar materia nueva, modificar nombre/código/año o eliminar una materia.
     d) RUTINAS (target: "routines"): crear, cambiar horarios/días/nombre, pausar/activar ('is_active': true/false) o eliminar rutinas.
     e) PROFESORES Y CONSULTAS DE PROFES (target: "professors" o "office_hours"):
@@ -1589,7 +1601,7 @@ async function executeDatabaseMutations(
         rawTarget === "materia_estado" ||
         rawTarget === "materia_nota"
       ) {
-        const sub = resolveSubject(
+        let sub = resolveSubject(
           act.id ||
           match.subject_id ||
           match.subject_name ||
@@ -1599,6 +1611,28 @@ async function executeDatabaseMutations(
           data.subject_name ||
           data.materia
         );
+
+        const subNameCandidate = match.subject_name || match.materia || match.nombre || data.subject_name || data.materia || act.id;
+        if (!sub && subNameCandidate && typeof subNameCandidate === "string" && subNameCandidate.trim().length >= 3) {
+          try {
+            const cleanSubName = subNameCandidate.trim();
+            const { data: createdSub } = await (supabase as any)
+              .from("subjects")
+              .insert({
+                user_id: currentUserId,
+                nombre: cleanSubName,
+                codigo: cleanSubName.slice(0, 4).toUpperCase(),
+                año: 1,
+                numero_materia: userSubjects.length + 1,
+              })
+              .select()
+              .single();
+            if (createdSub) {
+              sub = createdSub;
+              userSubjects.push(createdSub);
+            }
+          } catch {}
+        }
 
         if (sub) {
           const { data: existingStatus } = await (supabase as any)

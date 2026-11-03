@@ -35,7 +35,12 @@ import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { addInAppNotification } from "@/lib/notificationsStore";
-import { resolveUtnFrmCampusQuiz } from "@/lib/utnFrmMcpService";
+import { resolveUtnFrmCampusQuiz, getStoredUtnFrmSnapshot } from "@/lib/utnFrmMcpService";
+import {
+  parseBulkSubjectGradesFromText,
+  extractApprovedSubjectsFromSysacad,
+  applyBulkSubjectGrades,
+} from "@/lib/bulkGradesService";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1170,6 +1175,133 @@ export default function AIAssistant() {
         content: text,
       };
     });
+
+    // ── INTERCEPTOR 1: Carga masiva de notas pasadas en texto (ej: Facundo Blanes) ──
+    const parsedBulkGrades = parseBulkSubjectGradesFromText(textContent);
+    const isBulkGradeLoad = parsedBulkGrades.length >= 2 && (
+      /carg|aprob|nota|materia|paso|estas/i.test(normalizedInput)
+    );
+
+    if (isBulkGradeLoad && user?.id) {
+      const assistantMsgId = `bulk-grades-${Date.now()}`;
+      toast.loading(`Cargando ${parsedBulkGrades.length} materias en tu plan de carrera...`, { id: "tabe-bulk-grades" });
+
+      try {
+        const result = await applyBulkSubjectGrades(user.id, parsedBulkGrades);
+        toast.success(`¡${result.appliedCount} materias y notas cargadas con éxito!`, { id: "tabe-bulk-grades" });
+
+        const tableRows = result.updatedSubjects
+          .map((s) => `| ${s.name} | **${s.grade}** | ✅ ${s.estado} |`)
+          .join("\n");
+
+        const responseMarkdown = `🎉 **¡Listo! Ya cargué tus ${result.appliedCount} materias aprobadas con sus respectivas notas en tu plan de carrera de TABE.**
+
+📊 **Resumen de materias registradas:**
+| Materia | Nota | Estado |
+| :--- | :---: | :---: |
+${tableRows}
+
+📈 **Estado actualizado de tu Carrera:**
+- **Materias Aprobadas:** ${result.totalAprobadas} / ${result.totalMaterias}
+- **Progreso de Carrera:** ${result.progressPercent}%
+- **Promedio General Actual:** **${result.average.toFixed(2)}**
+
+✅ *Tus notas quedaron guardadas inmediatamente en tu cuenta de TABE. Ya podés verlas reflejadas en tu Plan de Carrera y en tu Árbol de Correlatividades.*`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            content: responseMarkdown,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+
+        if (sessionId) {
+          await saveMessage(sessionId, "assistant", responseMarkdown);
+        }
+
+        return;
+      } catch (err: any) {
+        toast.error("Error al registrar notas", { id: "tabe-bulk-grades", description: err?.message });
+      }
+    }
+
+    // ── INTERCEPTOR 2: Sincronizar materias y notas desde Autogestión Sysacad ──
+    const isSysacadSyncRequest = (
+      /autogesti[oó]n|sysacad/i.test(normalizedInput) &&
+      /carg|sincroniz|actualiz|pas|import|trae|pon/i.test(normalizedInput) &&
+      /nota|materia|aprobada|final|carrera/i.test(normalizedInput)
+    );
+
+    if (isSysacadSyncRequest && user?.id) {
+      const assistantMsgId = `sysacad-sync-${Date.now()}`;
+      toast.loading("Buscando tus notas en Autogestión Sysacad...", { id: "tabe-sysacad-sync" });
+
+      const snapshot = getStoredUtnFrmSnapshot(user.id);
+      const approvedItems = snapshot ? extractApprovedSubjectsFromSysacad(snapshot) : [];
+
+      if (approvedItems.length > 0) {
+        const result = await applyBulkSubjectGrades(user.id, approvedItems);
+        toast.success(`¡${result.appliedCount} materias sincronizadas desde Sysacad!`, { id: "tabe-sysacad-sync" });
+
+        const tableRows = result.updatedSubjects
+          .slice(0, 30)
+          .map((s) => `| ${s.name} | **${s.grade}** | ✅ ${s.estado} |`)
+          .join("\n");
+
+        const responseMarkdown = `🎉 **¡Listo! He sincronizado ${result.appliedCount} materias aprobadas directamente desde tu Autogestión (Sysacad) a tu plan de carrera de TABE.**
+
+📊 **Materias sincronizadas:**
+| Materia | Nota Oficial | Estado |
+| :--- | :---: | :---: |
+${tableRows}
+${result.updatedSubjects.length > 30 ? `*... y ${result.updatedSubjects.length - 30} materias más.*` : ""}
+
+📈 **Tu nuevo estado académico:**
+- **Materias Aprobadas:** ${result.totalAprobadas} / ${result.totalMaterias}
+- **Progreso de Carrera:** ${result.progressPercent}%
+- **Promedio General:** **${result.average.toFixed(2)}**
+
+✅ *Todas las notas quedaron guardadas en tu cuenta de TABE y ya están disponibles en tu Plan de Carrera y en tu Mapa de Correlatividades.*`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            content: responseMarkdown,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+
+        if (sessionId) {
+          await saveMessage(sessionId, "assistant", responseMarkdown);
+        }
+
+        return;
+      } else {
+        toast.dismiss("tabe-sysacad-sync");
+        const noSnapshotMsg = `ℹ️ **Para cargar tus notas de Autogestión (Sysacad) en TABE:**\n\n1. Si ya tenés tus notas a mano, **pegamelas directamente acá en el chat** (ej: *"Álgebra: 8, Análisis 1: 7..."*) y te las cargo al instante en tu plan de carrera.\n2. Para sincronizarlas automáticamente, ingresá a **Configuración → Integraciones → MCP Oficial UTN FRM** con tu usuario (DNI) y clave de Autogestión para conectar tu historial oficial de exámenes.`;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            content: noSnapshotMsg,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+
+        if (sessionId) {
+          await saveMessage(sessionId, "assistant", noSnapshotMsg);
+        }
+
+        return;
+      }
+    }
 
     // Notificación proactiva en tareas extensas de generación de cuestionario local
     const hasQuizLink = /https?:\/\/[^\s"'<>]*(?:mod\/quiz|campusvirtual\.frm\.utn\.edu\.ar)/i.test(normalizedInput);

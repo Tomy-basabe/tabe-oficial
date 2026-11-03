@@ -3052,3 +3052,6 @@ export default async function handler(req: any, res: any) {
     });
   }
 }
+
+export { resolveCampusQuiz, resolveSysacadAndCampusEncuestas as resolveDocenteEncuestas, fetchCampusData, fetchSysacadData };
+

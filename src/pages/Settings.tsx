@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award, Search, X, Compass, RotateCcw, Play } from "lucide-react";
+import { Bell, Calendar, LogOut, Moon, Sun, ChevronRight, ChevronDown, Star, Monitor, MessageSquare, Send, Zap, Volume2, VolumeX, CheckCircle2, Check, Loader2, Unlink, GraduationCap, Building2, Copy, ExternalLink, Shield, FileText, Cookie, AlertOctagon, User, Clock, Palette, Minus, Plus, Radio, CheckCheck, Award, Search, X, Compass, RotateCcw, Play, Bot, Sparkles } from "lucide-react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MoodleConnectModal } from "@/components/moodle/MoodleConnectModal";
 import { UtnFrmMcpModal } from "@/components/utn/UtnFrmMcpModal";
+import { TabeUniversalAiModal } from "@/components/mcp/TabeUniversalAiModal";
 import { GoogleCalendarSyncModal } from "@/components/calendar/GoogleCalendarSyncModal";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -312,6 +313,7 @@ export default function Settings() {
   const [unlinkingGoogle, setUnlinkingGoogle] = useState(false);
   const [showMoodleModal, setShowMoodleModal] = useState(false);
   const [showUtnMcpModal, setShowUtnMcpModal] = useState(false);
+  const [showUniversalAiModal, setShowUniversalAiModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [hasGoogleFeed, setHasGoogleFeed] = useState<boolean>(() => !!getStoredGoogleFeedUrl());
@@ -803,6 +805,41 @@ export default function Settings() {
             {/* ========================================================================= */}
             {activeTab === "integrations" && (
               <div className="space-y-4 animate-in fade-in duration-150">
+
+                {/* TABE UNIVERSAL HUB (CLAUDE, CHATGPT, GEMINI) */}
+                <div className="p-5 rounded-2xl border border-purple-200/80 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/40 via-white to-white dark:from-purple-950/20 dark:via-[#18181b] dark:to-[#18181b] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/20 flex items-center justify-center shrink-0">
+                        <Bot className="w-5 h-5 stroke-[2]" />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                            Conectar con Claude, ChatGPT o Gemini
+                          </h3>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30">
+                            Súper Sencillo · 1 Clic
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          Usá tus IAs favoritas (Claude Desktop, ChatGPT o Google Gemini) para resolver cuestionarios del Campus Virtual, consultar tus notas oficiales, ver entregas y crear flashcards automáticamente vinculadas a tu cuenta de TABE.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowUniversalAiModal(true)}
+                        className="h-9 px-4 rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Conectar mis IAs</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 {/* MCP EXCLUSIVO UTN FRM (SOLO VISIBLE Y ACTIVO SI EL USUARIO PERTENECE A UTN FRM) */}
                 {isUtnFrm && (
@@ -1702,6 +1739,12 @@ export default function Settings() {
       <DeleteAccountModal
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
+      />
+
+      <TabeUniversalAiModal
+        open={showUniversalAiModal}
+        onOpenChange={setShowUniversalAiModal}
+        userId={user?.id}
       />
     </div>
   );

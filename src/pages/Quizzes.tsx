@@ -1332,7 +1332,7 @@ export default function Quizzes() {
         if (currentQ.is_multi_select) {
             if (selectedAnswers.size === 0 || answered) return;
             setAnswered(true);
-            const correctIds = new Set(currentQ.options.filter(o => o.es_correcta).map(o => o.id));
+            const correctIds = new Set((currentQ.options || []).filter(o => o.es_correcta).map(o => o.id));
             const isCorrect = correctIds.size === selectedAnswers.size && 
                 [...correctIds].every(id => selectedAnswers.has(id));
             if (isCorrect) {
@@ -1343,7 +1343,7 @@ export default function Quizzes() {
         } else {
             if (!selectedAnswer || answered) return;
             setAnswered(true);
-            const selectedOpt = currentQ.options.find(o => o.id === selectedAnswer);
+            const selectedOpt = (currentQ.options || []).find(o => o.id === selectedAnswer);
             if (selectedOpt?.es_correcta) {
                 setScore(prev => prev + 1);
             } else {
@@ -1451,6 +1451,18 @@ export default function Quizzes() {
                                 <RotateCcw className="w-4 h-4 mr-1.5" /> Reintentar
                             </button>
                         </div>
+                    </div>
+                </div>
+            );
+        }
+
+const currentQ = studyQuestions[currentIndex];
+        if (!currentQ) {
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+                    <div className="text-center space-y-4">
+                        <p className="text-zinc-500">No se encontró la pregunta actual.</p>
+                        <button onClick={exitStudy} className="px-4 py-2 bg-zinc-900 text-white rounded-lg">Salir</button>
                     </div>
                 </div>
             );
@@ -1573,7 +1585,7 @@ const clozeData = parseCloze(currentQ.pregunta);
                     ) : currentQ.is_multi_select ? (
                         /* Multi-select: checkboxes */
                         <div className="space-y-3">
-                            {currentQ.options.map((opt, i) => {
+                            {(currentQ.options || []).map((opt, i) => {
                                 const letter = String.fromCharCode(65 + i);
                                 const isSelected = selectedAnswers.has(opt.id);
                                 
@@ -1635,7 +1647,7 @@ const clozeData = parseCloze(currentQ.pregunta);
                         /* Single-select: radio buttons */
                         <RadioGroup value={selectedAnswer || ""} onValueChange={(v) => { if (!answered) setSelectedAnswer(v); }}>
                             <div className="space-y-3">
-                                {currentQ.options.map((opt, i) => {
+                                {(currentQ.options || []).map((opt, i) => {
                                     const letter = String.fromCharCode(65 + i);
                                     const isSelected = selectedAnswer === opt.id;
 
