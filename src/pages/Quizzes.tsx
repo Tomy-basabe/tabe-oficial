@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClipboardList, Plus,  GraduationCap,
     BookOpen, Zap, Trash2, X, Check, ChevronRight,
     ChevronLeft, Trophy, RotateCcw, Upload, Store,
-    Edit, AlertCircle, Filter, Timer, ListChecks, FileUp } from "lucide-react";
+    Edit, AlertCircle, Filter, Timer, ListChecks, FileUp, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,39 @@ import { SubjectSelect } from "@/components/subjects/SubjectSelect";
 import HoldButton from "@/components/ui/HoldButton";
 import { PARAMETRIC_TAGS } from "@/hooks/useMarketplace";
 import { MathText } from "@/components/ui/MathText";
+
+export function parseCloze(text: string) {
+    if (!text || !text.includes('[[')) return { isCloze: false, parts: [text || ''], blanks: [] as { index: number; expected: string; alternatives: string[] }[] };
+    const parts = text.split(/\[\[(.*?)\]\]/g);
+    const blanks: { index: number; expected: string; alternatives: string[] }[] = [];
+    for (let i = 1; i < parts.length; i += 2) {
+        const raw = parts[i];
+        const alts = raw.split('|').map(s => s.trim());
+        blanks.push({
+            index: (i - 1) / 2,
+            expected: alts[0],
+            alternatives: alts
+        });
+    }
+    return { isCloze: blanks.length > 0, parts, blanks };
+}
+
+export function cleanStringForMatch(str: string): string {
+    return (str || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^@+/, '')
+        .replace(/[;,\."']/g, '')
+        .replace(/\s+/g, ' ');
+}
+
+export function isBlankMatch(userVal: string, rawExpected: string): boolean {
+    if (!userVal) return false;
+    const cleanUser = cleanStringForMatch(userVal);
+    if (!cleanUser) return false;
+    const alternatives = rawExpected.split('|').map(cleanStringForMatch);
+    return alternatives.some(alt => cleanUser === alt);
+}
 
 interface QuizDeck {
     id: string;
@@ -275,6 +308,7 @@ export default function Quizzes() {
     const [questionFormTarget, setQuestionFormTarget] = useState<'manage' | 'draft'>('manage');
     const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
     const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
+    const [formQuestionType, setFormQuestionType] = useState<'single' | 'multi' | 'cloze'>('single');
 
     const [formQuestionText, setFormQuestionText] = useState("");
     const [formExplanation, setFormExplanation] = useState("");
@@ -326,6 +360,7 @@ export default function Quizzes() {
     const [selectedAnswers, setSelectedAnswers] = useState<Set<string>>(new Set());
     const [answered, setAnswered] = useState(false);
     const [score, setScore] = useState(0);
+    const [clozeAnswers, setClozeAnswers] = useState<Record<number, string>>({});
     const [finished, setFinished] = useState(false);
     const [studyTime, setStudyTime] = useState(0);
 
@@ -617,6 +652,7 @@ export default function Quizzes() {
         setQuestionFormTarget('manage');
         setEditingQuestion(null);
         setEditingDraftIndex(null);
+        setFormQuestionType('single');
         setFormQuestionText("");
         setFormExplanation("");
         setFormIsMultiSelect(false);
@@ -633,6 +669,7 @@ export default function Quizzes() {
         setQuestionFormTarget('manage');
         setEditingQuestion(q);
         setEditingDraftIndex(null);
+        setFormQuestionType(parseCloze(q.pregunta).isCloze ? 'cloze' : q.is_multi_select ? 'multi' : 'single');
         setFormQuestionText(q.pregunta);
         setFormExplanation(q.explicacion || "");
         setFormIsMultiSelect(q.is_multi_select);
@@ -748,6 +785,7 @@ export default function Quizzes() {
         setQuestionFormTarget('draft');
         setEditingQuestion(null);
         setEditingDraftIndex(null);
+        setFormQuestionType('single');
         setFormQuestionText("");
         setFormExplanation("");
         setFormIsMultiSelect(false);
@@ -766,6 +804,7 @@ export default function Quizzes() {
         setQuestionFormTarget('draft');
         setEditingQuestion(null);
         setEditingDraftIndex(index);
+        setFormQuestionType(parseCloze(qDraft.pregunta).isCloze ? 'cloze' : qDraft.is_multi_select ? 'multi' : 'single');
         setFormQuestionText(qDraft.pregunta);
         setFormExplanation(qDraft.explicacion || "");
         setFormIsMultiSelect(qDraft.is_multi_select);
@@ -830,15 +869,36 @@ export default function Quizzes() {
             toast.error("Por favor escribe el texto de la pregunta");
             return;
         }
-        const filledOptions = formOptions.filter(o => o.texto.trim());
-        if (filledOptions.length < 2) {
-            toast.error("Debes ingresar al menos 2 opciones con texto");
-            return;
-        }
-        const correctCount = filledOptions.filter(o => o.es_correcta).length;
-        if (correctCount === 0) {
-            toast.error("Debes marcar al menos una opción como correcta");
-            return;
+
+        let filledOptions: { id?: string; texto: string; es_correcta: boolean }[] = [];
+
+        if (formQuestionType === 'cloze') {
+            const clozeInfo = parseCloze(formQuestionText);
+            if (clozeInfo.blanks.length === 0) {
+                toast.error("Debes incluir al menos un espacio con [[palabra]] para completar");
+                return;
+            }
+            filledOptions = clozeInfo.blanks.map(b => ({
+                texto: b.expected,
+                es_correcta: true
+            }));
+            if (filledOptions.length === 1) {
+                filledOptions.push({
+                    texto: clozeInfo.blanks[0].expected,
+                    es_correcta: true
+                });
+            }
+        } else {
+            filledOptions = formOptions.filter(o => o.texto.trim());
+            if (filledOptions.length < 2) {
+                toast.error("Debes ingresar al menos 2 opciones con texto");
+                return;
+            }
+            const correctCount = filledOptions.filter(o => o.es_correcta).length;
+            if (correctCount === 0) {
+                toast.error("Debes marcar al menos una opción como correcta");
+                return;
+            }
         }
 
         if (questionFormTarget === 'draft') {
@@ -1193,6 +1253,7 @@ export default function Quizzes() {
         setAnswered(false);
         setScore(0);
         setFinished(false);
+        setClozeAnswers({});
         setStudyTime(0);
         setWrongQuestionIds(new Set());
         setShowStudyOptions(false);
@@ -1251,6 +1312,23 @@ export default function Quizzes() {
 
     const submitAnswer = () => {
         const currentQ = studyQuestions[currentIndex];
+        const clozeData = parseCloze(currentQ.pregunta);
+
+        if (clozeData.isCloze) {
+            if (answered) return;
+            setAnswered(true);
+            const allCorrect = clozeData.blanks.length > 0 && clozeData.blanks.every(b => {
+                const userVal = clozeAnswers[b.index] || "";
+                return isBlankMatch(userVal, b.expected);
+            });
+            if (allCorrect) {
+                setScore(prev => prev + 1);
+            } else {
+                setWrongQuestionIds(prev => new Set(prev).add(currentQ.id));
+            }
+            return;
+        }
+
         if (currentQ.is_multi_select) {
             if (selectedAnswers.size === 0 || answered) return;
             setAnswered(true);
@@ -1289,6 +1367,7 @@ export default function Quizzes() {
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
             setSelectedAnswers(new Set());
+            setClozeAnswers({});
             setAnswered(false);
         }
     };
@@ -1314,6 +1393,7 @@ export default function Quizzes() {
         }
         setStudyDeck(null);
         setStudyQuestions([]);
+        setClozeAnswers({});
     };
 
     // ---------- STUDY MODE VIEW ----------
@@ -1376,7 +1456,8 @@ export default function Quizzes() {
             );
         }
 
-        const currentQ = studyQuestions[currentIndex];
+const clozeData = parseCloze(currentQ.pregunta);
+
         return (
             <div className="min-h-screen p-4 md:p-8 space-y-6 bg-background">
                 {/* Header */}
@@ -1417,15 +1498,79 @@ export default function Quizzes() {
                 {/* Question Card */}
                 <div className="bg-white dark:bg-[#1f1f1f] border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs rounded-2xl max-w-3xl mx-auto overflow-hidden p-6 md:p-8 space-y-6">
                     <div className="flex items-start justify-between gap-4">
-                        <MathText text={currentQ.pregunta} as="h3" className="text-lg md:text-xl font-semibold leading-relaxed text-zinc-900 dark:text-zinc-100" />
-                        {currentQ.is_multi_select && (
+                        {!clozeData.isCloze ? (
+                            <MathText text={currentQ.pregunta} as="h3" className="text-lg md:text-xl font-semibold leading-relaxed text-zinc-900 dark:text-zinc-100" />
+                        ) : (
+                            <h3 className="text-lg md:text-xl font-semibold leading-relaxed text-zinc-900 dark:text-zinc-100">
+                                Completa los espacios faltantes:
+                            </h3>
+                        )}
+                        {clozeData.isCloze ? (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">
+                                <PenLine className="w-3.5 h-3.5" /> Completar Palabras ({clozeData.blanks.length})
+                            </span>
+                        ) : currentQ.is_multi_select ? (
                             <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                                 <ListChecks className="w-3.5 h-3.5" /> Opción Múltiple
                             </span>
-                        )}
+                        ) : null}
                     </div>
 
-                    {currentQ.is_multi_select ? (
+                    {clozeData.isCloze ? (
+                        <div className="space-y-3">
+                            <div className="p-4 md:p-5 rounded-2xl bg-zinc-950 text-zinc-100 dark:bg-black/75 border border-zinc-800/80 font-mono text-xs md:text-sm leading-relaxed overflow-x-auto shadow-inner">
+                                {clozeData.parts.map((part, i) => {
+                                    if (i % 2 === 0) {
+                                        return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+                                    }
+                                    const blankIdx = (i - 1) / 2;
+                                    const blank = clozeData.blanks[blankIdx];
+                                    if (!blank) return null;
+                                    const userVal = clozeAnswers[blankIdx] || "";
+                                    const isCorrect = isBlankMatch(userVal, blank.expected);
+                                    const widthCh = Math.max(10, Math.min(32, blank.expected.length + 3));
+
+                                    return (
+                                        <span key={i} className="inline-flex items-center align-middle mx-1 my-0.5">
+                                            <input
+                                                type="text"
+                                                value={userVal}
+                                                disabled={answered}
+                                                placeholder="..."
+                                                onChange={(e) => {
+                                                    if (!answered) {
+                                                        setClozeAnswers(prev => ({ ...prev, [blankIdx]: e.target.value }));
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" && !answered) {
+                                                        submitAnswer();
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "font-mono text-xs md:text-sm px-2.5 py-1 rounded-lg border text-center transition-all focus:outline-none",
+                                                    answered ? (
+                                                        isCorrect 
+                                                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500 ring-1 ring-emerald-500 font-semibold"
+                                                            : "bg-rose-500/20 text-rose-300 border-rose-500 ring-1 ring-rose-500 font-semibold"
+                                                    ) : "bg-zinc-800 text-zinc-100 border-zinc-700 focus:border-zinc-300 focus:bg-zinc-700/80 focus:ring-1 focus:ring-zinc-400 placeholder:text-zinc-500"
+                                                )}
+                                                style={{ width: `${widthCh}ch` }}
+                                            />
+                                            {answered && !isCorrect && (
+                                                <span className="ml-1.5 px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/80 text-[11px] font-mono font-medium shadow-2xs">
+                                                    ✓ {blank.expected}
+                                                </span>
+                                            )}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Escribe en cada campo la palabra o código correspondiente y haz clic en Confirmar Respuesta.
+                            </p>
+                        </div>
+                    ) : currentQ.is_multi_select ? (
                         /* Multi-select: checkboxes */
                         <div className="space-y-3">
                             {currentQ.options.map((opt, i) => {
@@ -1551,7 +1696,7 @@ export default function Quizzes() {
                         {!answered ? (
                             <button 
                                 onClick={submitAnswer} 
-                                disabled={currentQ.is_multi_select ? selectedAnswers.size === 0 : !selectedAnswer} 
+                                disabled={clozeData.isCloze ? !Object.values(clozeAnswers).some(v => v && v.trim().length > 0) : (currentQ.is_multi_select ? selectedAnswers.size === 0 : !selectedAnswer)} 
                                 className="px-5 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                             >
                                 Confirmar Respuesta
@@ -1600,54 +1745,117 @@ export default function Quizzes() {
                         />
                     </div>
 
-                    {/* Question Type: Single vs Multiple Choice */}
+                    {/* Question Type: Single vs Multi vs Cloze */}
                     <div className="space-y-2">
                         <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             Tipo de Pregunta *
                         </Label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-2.5">
                             <button
                                 type="button"
-                                onClick={() => handleSetMultiSelect(false)}
+                                onClick={() => {
+                                    setFormQuestionType('single');
+                                    handleSetMultiSelect(false);
+                                }}
                                 className={cn(
-                                    "flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer",
-                                    !formIsMultiSelect
+                                    "flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer",
+                                    formQuestionType === 'single'
                                         ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs"
                                         : "bg-white dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                                 )}
                             >
-                                <div className="w-7 h-7 rounded-full border border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-1 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs">
+                                <div className="w-6 h-6 rounded-full border border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-1 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs">
                                     ●
                                 </div>
                                 <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Opción Única</span>
-                                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">1 respuesta correcta</span>
+                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">1 correcta</span>
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => handleSetMultiSelect(true)}
+                                onClick={() => {
+                                    setFormQuestionType('multi');
+                                    handleSetMultiSelect(true);
+                                }}
                                 className={cn(
-                                    "flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer",
-                                    formIsMultiSelect
+                                    "flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer",
+                                    formQuestionType === 'multi'
                                         ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs"
                                         : "bg-white dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                                 )}
                             >
-                                <div className="w-7 h-7 rounded-lg border border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-1 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs">
-                                    <ListChecks className="w-3.5 h-3.5" />
+                                <div className="w-6 h-6 rounded-lg border border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-1 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs">
+                                    <ListChecks className="w-3 h-3" />
                                 </div>
                                 <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Opción Múltiple</span>
-                                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">Elegir varias correctas</span>
+                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">Varias</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormQuestionType('cloze');
+                                    setFormIsMultiSelect(false);
+                                }}
+                                className={cn(
+                                    "flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer",
+                                    formQuestionType === 'cloze'
+                                        ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs"
+                                        : "bg-white dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                                )}
+                            >
+                                <div className="w-6 h-6 rounded-lg border border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-1 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold text-xs">
+                                    <PenLine className="w-3 h-3" />
+                                </div>
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Completar</span>
+                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal mt-0.5">Espacios [[ ]]</span>
                             </button>
                         </div>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
-                            {formIsMultiSelect 
-                                ? "Haz clic en la letra de cada opción para marcar una o más respuestas correctas." 
-                                : "Haz clic en la letra de una opción para seleccionarla como la única correcta."}
+                            {formQuestionType === 'cloze'
+                                ? "Escribe [[palabra]] dentro de la pregunta para crear los espacios interactivos que el alumno deberá rellenar."
+                                : formQuestionType === 'multi'
+                                    ? "Marca con un clic una o más opciones como respuestas correctas."
+                                    : "Marca una sola opción como la respuesta correcta."}
                         </p>
                     </div>
 
-                    {/* Dynamic Options */}
+                    {/* Cloze vs Options View */}
+                    {formQuestionType === 'cloze' ? (
+                        <div className="space-y-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                    <PenLine className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                    Espacios detectados ({parseCloze(formQuestionText).blanks.length})
+                                </Label>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormQuestionText(prev => prev + " [[palabra]]")}
+                                    className="text-xs font-medium px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-900 dark:text-amber-200 hover:bg-amber-500/30 transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Insertar [[espacio]]
+                                </button>
+                            </div>
+
+                            {parseCloze(formQuestionText).blanks.length === 0 ? (
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    Usa la sintaxis <code className="bg-amber-500/20 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded font-mono font-medium">[[palabra]]</code> en el texto de la pregunta para definir dónde irá cada campo. Si aceptas variantes separa con barra vertical: <code className="bg-amber-500/20 text-amber-900 dark:text-amber-200 px-1 py-0.5 rounded font-mono font-medium">[[CascadeType.ALL|ALL]]</code>.
+                                </p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {parseCloze(formQuestionText).blanks.map((b, bi) => (
+                                        <div key={bi} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-800/60 rounded-xl text-xs font-mono text-zinc-800 dark:text-zinc-200 shadow-2xs">
+                                            <span className="text-[10px] bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 px-1.5 py-0.5 rounded font-sans font-semibold">
+                                                #{bi + 1}
+                                            </span>
+                                            <span>{b.expected}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                    /* Dynamic Options */
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
@@ -1719,6 +1927,7 @@ export default function Quizzes() {
                             <Plus className="w-3.5 h-3.5" /> Agregar otra opción ({String.fromCharCode(65 + formOptions.length)})
                         </button>
                     </div>
+                    )}
 
                     {/* Explanation */}
                     <div className="space-y-1.5">
@@ -1744,7 +1953,7 @@ export default function Quizzes() {
                         <button
                             type="button"
                             onClick={handleSaveQuestionForm}
-                            disabled={!formQuestionText.trim() || formOptions.filter(o => o.texto.trim()).length < 2 || !formOptions.some(o => o.es_correcta)}
+                            disabled={!formQuestionText.trim() || (formQuestionType === 'cloze' ? parseCloze(formQuestionText).blanks.length === 0 : (formOptions.filter(o => o.texto.trim()).length < 2 || !formOptions.some(o => o.es_correcta)))}
                             className="flex-1 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-xs rounded-xl shadow-2xs transition-colors disabled:opacity-50 disabled:pointer-events-none"
                         >
                             {editingQuestion || editingDraftIndex !== null ? "Guardar Cambios" : "Guardar Pregunta"}
@@ -1866,11 +2075,15 @@ export default function Quizzes() {
                                             </span>
                                             <MathText text={q.pregunta} as="p" className="font-semibold text-base text-zinc-900 dark:text-zinc-100 leading-snug" />
                                         </div>
-                                        {q.is_multi_select && (
+                                        {parseCloze(q.pregunta).isCloze ? (
+                                            <span className="inline-flex items-center gap-1 mt-2 ml-8.5 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">
+                                                <PenLine className="w-3 h-3" /> Completar Palabras ({parseCloze(q.pregunta).blanks.length} espacios)
+                                            </span>
+                                        ) : q.is_multi_select ? (
                                             <span className="inline-flex items-center gap-1 mt-2 ml-8.5 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                                                 <ListChecks className="w-3 h-3" /> Opción Múltiple
                                             </span>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0">
                                         <button 
@@ -1898,23 +2111,39 @@ export default function Quizzes() {
                                     </div>
                                 </div>
                                 <div className="grid gap-2 ml-8.5">
-                                    {q.options.map((o, oi) => (
-                                        <div key={o.id} className={cn(
-                                            "px-3.5 py-2.5 rounded-xl border flex items-center gap-2.5 text-xs font-normal transition-colors",
-                                            o.es_correcta 
-                                                ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200" 
-                                                : "bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200/60 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-                                        )}>
-                                            <span className={cn(
-                                                "flex items-center justify-center w-6 h-6 rounded-md font-semibold text-xs shrink-0",
-                                                o.es_correcta ? "bg-emerald-500 text-white" : "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
-                                            )}>
-                                                {String.fromCharCode(65 + oi)}
-                                            </span>
-                                            <MathText text={o.texto} as="span" className="flex-1" />
-                                            {o.es_correcta && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                                    {parseCloze(q.pregunta).isCloze ? (
+                                        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-1.5">
+                                            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Respuestas esperadas en los espacios:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {parseCloze(q.pregunta).blanks.map((b, bi) => (
+                                                    <div key={bi} className="px-2.5 py-1 rounded-lg border bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 text-xs font-mono flex items-center gap-1.5">
+                                                        <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 px-1 py-0.2 rounded font-sans font-semibold">
+                                                            #{bi + 1}
+                                                        </span>
+                                                        <span>{b.expected}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        q.options.map((o, oi) => (
+                                            <div key={o.id} className={cn(
+                                                "px-3.5 py-2.5 rounded-xl border flex items-center gap-2.5 text-xs font-normal transition-colors",
+                                                o.es_correcta 
+                                                    ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200" 
+                                                    : "bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200/60 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                                            )}>
+                                                <span className={cn(
+                                                    "flex items-center justify-center w-6 h-6 rounded-md font-semibold text-xs shrink-0",
+                                                    o.es_correcta ? "bg-emerald-500 text-white" : "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+                                                )}>
+                                                    {String.fromCharCode(65 + oi)}
+                                                </span>
+                                                <MathText text={o.texto} as="span" className="flex-1" />
+                                                {o.es_correcta && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                                 {q.explicacion && (
                                     <div className="mt-3 ml-8.5 p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex gap-2 items-start text-xs text-zinc-500 dark:text-zinc-400 font-normal">
@@ -2350,7 +2579,7 @@ export default function Quizzes() {
                                                             {qIdx + 1}
                                                         </span>
                                                         <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-                                                            {qDraft.is_multi_select ? "Opción Múltiple" : "Opción Única"} · {qDraft.options.length} opciones
+                                                            {parseCloze(qDraft.pregunta).isCloze ? `Completar Espacios · ${parseCloze(qDraft.pregunta).blanks.length} espacios` : qDraft.is_multi_select ? `Opción Múltiple · ${qDraft.options.length} opciones` : `Opción Única · ${qDraft.options.length} opciones`}
                                                         </span>
                                                     </div>
                                                     <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{qDraft.pregunta}</p>

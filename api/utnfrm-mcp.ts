@@ -1,4 +1,6 @@
+import * as path from "node:path";
 import * as tls from "node:tls";
+import * as fs from "node:fs";
 
 const SYSACAD_LOGIN_URL = "https://sysacad.frm.utn.edu.ar/login.php";
 const SYSACAD_PROCESS_URL = "https://sysacad.frm.utn.edu.ar/process.php";
@@ -987,9 +989,10 @@ async function fetchCampusData(
     const sesskey = sesskeyMatch ? sesskeyMatch[1] : undefined;
 
     // Fetch profile, courses page, and upcoming calendar in parallel
-    const [profileRes, coursesRes, calRes] = await Promise.allSettled([
+    const [profileRes, coursesRes, myRes, calRes] = await Promise.allSettled([
       fetchWithJar(jar, `${CAMPUS_ORIGIN}/user/profile.php?showallcourses=1`, { timeoutMs: 9000 }),
       fetchWithJar(jar, `${CAMPUS_ORIGIN}/my/courses.php`, { timeoutMs: 9000 }),
+      fetchWithJar(jar, `${CAMPUS_ORIGIN}/my/`, { timeoutMs: 9000 }),
       fetchWithJar(jar, `${CAMPUS_ORIGIN}/calendar/view.php?view=upcoming`, { timeoutMs: 9000 }),
     ]);
 
@@ -997,10 +1000,12 @@ async function fetchCampusData(
       profileRes.status === "fulfilled" ? parseMoodleProfileFromHtml(profileRes.value.text) : { courses: [] };
     const coursesFromMy =
       coursesRes.status === "fulfilled" ? parseMoodleCoursesFromHtml(coursesRes.value.text) : [];
+    const coursesFromMyArea =
+      myRes.status === "fulfilled" ? parseMoodleCoursesFromHtml(myRes.value.text) : [];
     const coursesFromDash = parseMoodleCoursesFromHtml(authRes.text);
 
     const coursesMap = new Map<string, CampusCourseItem>();
-    for (const c of [...coursesFromMy, ...coursesFromDash, ...profileData.courses]) {
+    for (const c of [...coursesFromMy, ...coursesFromMyArea, ...coursesFromDash, ...profileData.courses]) {
       coursesMap.set(c.id, c);
     }
 
@@ -1136,23 +1141,60 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
     }
   }
 
-  const attemptId = hiddenInputs["attempt"];
-  const sesskey = hiddenInputs["sesskey"];
+  const sesskey =
+    hiddenInputs["sesskey"] ||
+    html.match(/name=["']sesskey["']\s+value=["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+    html.match(/["']sesskey["']\s*:\s*["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+    html.match(/sesskey=([a-zA-Z0-9]+)/i)?.[1];
+  if (sesskey && !hiddenInputs["sesskey"]) {
+    hiddenInputs["sesskey"] = sesskey;
+  }
+
+  const attemptId = hiddenInputs["attempt"] || html.match(/[?&]attempt=(\d+)/i)?.[1];
   const thispage = hiddenInputs["thispage"];
   const nextpage = hiddenInputs["nextpage"];
   const slots = hiddenInputs["slots"];
 
   const questions: MoodleExtractedQuestion[] = [];
-  const queDivRegex = /<div\b[^>]*id=["']q(\d+)["'][^>]*class=["']([^"']*que[^"']*)["'][^>]*>([\s\S]*?)(?=<div\b[^>]*id=["']q\d+["']|<\/form>|$)/gi;
+
+  // Buscar cada contenedor de pregunta que tenga la clase "que"
+  // Puede ser <div class="que ..."> o <div id="..." class="que ..."> o <section class="que ...">
+  const queBlockRegex = /<(?:div|section)\b(?=[^>]*\bclass=["'][^"']*\bque\b)[^>]*>([\s\S]*?)(?=<(?:div|section)\b(?=[^>]*\bclass=["'][^"']*\bque\b)|<\/form>|$)/gi;
   let qm: RegExpExecArray | null;
+  let fallbackSlotCounter = 1;
 
-  while ((qm = queDivRegex.exec(formHtml)) !== null) {
-    const slot = parseInt(qm[1], 10);
-    const qBody = qm[3];
+  while ((qm = queBlockRegex.exec(formHtml)) !== null) {
+    const fullBlock = qm[0];
+    const qBody = qm[1];
 
-    const qtextMatch = qBody.match(/<div\b[^>]*class=["'][^"']*qtext[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
-    const rawQText = qtextMatch ? qtextMatch[1] : "";
-    const qtext = decodeHtmlEntities(stripTags(rawQText)).trim();
+    let slot = fallbackSlotCounter;
+    const slotFromId = fullBlock.match(/\bid=["']q(\d+)["']/i) || fullBlock.match(/\bid=["']question-\d+-(\d+)["']/i);
+    if (slotFromId) {
+      slot = parseInt(slotFromId[1], 10);
+    } else {
+      const slotFromName = qBody.match(/name=["']q(\d+):/i) || qBody.match(/name=["']sub(\d+)_/i);
+      if (slotFromName) {
+        slot = parseInt(slotFromName[1], 10);
+      }
+    }
+    fallbackSlotCounter = slot + 1;
+
+    let rawQText = "";
+    const qtextIndex = qBody.search(/<div\b(?=[^>]*\bqtext\b)[^>]*>/i);
+    if (qtextIndex !== -1) {
+      const fromQtext = qBody.slice(qtextIndex);
+      const afterOpenTag = fromQtext.replace(/^<div\b[^>]*>/i, "");
+      const answerStart = afterOpenTag.search(/<(?:div|fieldset)\b(?=[^>]*\b(?:ablock|answer|prompt)\b)[^>]*>/i);
+      if (answerStart !== -1) {
+        rawQText = afterOpenTag.slice(0, answerStart);
+      } else {
+        rawQText = afterOpenTag;
+      }
+    } else {
+      const formMatch = qBody.match(/<div\b(?=[^>]*\bformulation\b)[^>]*>([\s\S]*?)<\/div>/i);
+      rawQText = formMatch ? formMatch[1] : "";
+    }
+    const qtext = decodeHtmlEntities(stripTags(rawQText, true)).trim();
 
     const seqMatch = qBody.match(/<input\b[^>]*name=["']([^"']*:sequencecheck)["'][^>]*value=["']([^"']*)["']/i);
     const sequencecheckName = seqMatch ? seqMatch[1] : undefined;
@@ -1160,7 +1202,43 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
 
     const choices: MoodleQuestionChoice[] = [];
 
-    // Radio buttons
+    // Helper para extraer texto de opción en Moodle 4.x (Boost) y clásico
+    const extractOptionText = (tag: string, inputId: string, inputPos: number): string => {
+      let text = "";
+      const aria = getAttr(tag, "aria-labelledby");
+      const targetId = aria || (inputId ? inputId + "_label" : "");
+
+      if (targetId) {
+        const pos = qBody.indexOf(`id="${targetId}"`);
+        if (pos !== -1) {
+          const snippet = qBody.substring(pos, pos + 400);
+          const flexMatch = snippet.match(/<div\b[^>]*class=["'][^"']*flex-fill[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+          if (flexMatch) {
+            text = decodeHtmlEntities(stripTags(flexMatch[1])).trim();
+          } else {
+            const endBound = snippet.search(/<div\b[^>]*class=["']r[01]|<\/fieldset|<\/form/i);
+            const rawInner = endBound !== -1 ? snippet.substring(snippet.indexOf(">") + 1, endBound) : snippet;
+            text = decodeHtmlEntities(stripTags(rawInner)).trim();
+          }
+        }
+      }
+
+      if (!text && inputId) {
+        const lblRegex = new RegExp(`<label\\b[^>]*for=["']${inputId}["'][^>]*>([\\s\\S]*?)<\\/label>`, "i");
+        const lm = qBody.match(lblRegex);
+        if (lm) text = decodeHtmlEntities(stripTags(lm[1])).trim();
+      }
+
+      if (!text) {
+        const surroundingMatch = qBody.slice(Math.max(0, inputPos - 100), inputPos + 500).match(/<label\b[^>]*>([\s\S]*?)<\/label>/i);
+        if (surroundingMatch) text = decodeHtmlEntities(stripTags(surroundingMatch[1])).trim();
+      }
+
+      text = text.replace(/^[a-eA-E0-9][\.\)]\s*/, "").trim();
+      return text;
+    };
+
+    // 1. Radio buttons
     const radioRegex = /<input\b[^>]*type=["']radio["'][^>]*>/gi;
     let rm: RegExpExecArray | null;
     while ((rm = radioRegex.exec(qBody)) !== null) {
@@ -1169,22 +1247,9 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
       const rVal = getAttr(rTag, "value") || "";
       const rId = getAttr(rTag, "id") || "";
 
-      let labelText = "";
-      if (rId) {
-        const lblRegex = new RegExp(`<label\\b[^>]*for=["']${rId}["'][^>]*>([\\s\\S]*?)<\\/label>`, "i");
-        const lm = qBody.match(lblRegex);
-        if (lm) {
-          labelText = decodeHtmlEntities(stripTags(lm[1])).trim();
-        }
-      }
-      if (!labelText) {
-        const surroundingMatch = qBody.slice(rm.index, rm.index + 400).match(/<label\b[^>]*>([\s\S]*?)<\/label>/i);
-        if (surroundingMatch) {
-          labelText = decodeHtmlEntities(stripTags(surroundingMatch[1])).trim();
-        }
-      }
+      if (rVal === "-1" || /clearchoice/i.test(rName)) continue; // Quitar mi elección
 
-      labelText = labelText.replace(/^[a-dA-D1-9][\.\)]\s*/, "").trim();
+      const labelText = extractOptionText(rTag, rId, rm.index);
 
       choices.push({
         value: rVal,
@@ -1194,7 +1259,7 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
       });
     }
 
-    // Checkboxes
+    // 2. Checkboxes
     if (choices.length === 0) {
       const checkRegex = /<input\b[^>]*type=["']checkbox["'][^>]*>/gi;
       let cm: RegExpExecArray | null;
@@ -1203,13 +1268,11 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
         const cName = getAttr(cTag, "name") || "";
         const cVal = getAttr(cTag, "value") || "1";
         const cId = getAttr(cTag, "id") || "";
-        let labelText = "";
-        if (cId) {
-          const lblRegex = new RegExp(`<label\\b[^>]*for=["']${cId}["'][^>]*>([\\s\\S]*?)<\\/label>`, "i");
-          const lm = qBody.match(lblRegex);
-          if (lm) labelText = decodeHtmlEntities(stripTags(lm[1])).trim();
-        }
-        labelText = labelText.replace(/^[a-dA-D1-9][\.\)]\s*/, "").trim();
+
+        if (/flagged/i.test(cName)) continue; // Checkbox de marcar pregunta
+
+        const labelText = extractOptionText(cTag, cId, cm.index);
+
         choices.push({
           value: cVal,
           text: labelText || `Opción ${cVal}`,
@@ -1219,7 +1282,31 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
       }
     }
 
-    // Text inputs
+    // 3. Dropdowns (matching)
+    if (choices.length === 0) {
+      const selectRegex = /<select\b[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi;
+      let sm: RegExpExecArray | null;
+      while ((sm = selectRegex.exec(qBody)) !== null) {
+        const selName = sm[1];
+        const optHtml = sm[2];
+        const optRegex = /<option\b[^>]*value=["']([^"']*)["'][^>]*>([\s\S]*?)<\/option>/gi;
+        let om: RegExpExecArray | null;
+        while ((om = optRegex.exec(optHtml)) !== null) {
+          const val = om[1];
+          const text = decodeHtmlEntities(stripTags(om[2])).trim();
+          if (val && val !== "0" && text && !text.includes("Elegir")) {
+            choices.push({
+              value: val,
+              text,
+              inputName: selName,
+              inputType: "radio",
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Text inputs
     if (choices.length === 0) {
       const textInputMatch = qBody.match(/<input\b[^>]*type=["']text["'][^>]*name=["']([^"']+)["'][^>]*>/i);
       if (textInputMatch) {
@@ -1232,14 +1319,16 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
       }
     }
 
-    questions.push({
-      slot,
-      questionId: `q${slot}`,
-      qtext,
-      choices,
-      sequencecheckName,
-      sequencecheckValue,
-    });
+    if (qtext || choices.length > 0) {
+      questions.push({
+        slot,
+        questionId: `q${slot}`,
+        qtext: qtext || `Pregunta ${slot}`,
+        choices,
+        sequencecheckName,
+        sequencecheckValue,
+      });
+    }
   }
 
   return {
@@ -1254,23 +1343,56 @@ export function parseMoodleQuizAttemptQuestions(html: string): {
   };
 }
 
-async function solveQuestionsWithGemini(
-  questions: MoodleExtractedQuestion[],
-  apiKey?: string
-): Promise<Array<{ slot: number; chosenValue: string; chosenText: string; explanation: string }>> {
-  const geminiKey = apiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-  if (!geminiKey) {
-    return questions.map((q) => ({
-      slot: q.slot,
-      chosenValue: q.choices[0]?.value || "0",
-      chosenText: q.choices[0]?.text || "",
-      explanation: "Opción predeterminada (clave de IA no provista en servidor).",
-    }));
+function getAIKeys(): { nvidiaKey: string; geminiKey: string } {
+  let nvidiaKey = (process.env.NVIDIA_API_KEY || "").replace(/^["']|["']$/g, "").trim();
+  let geminiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").replace(/^["']|["']$/g, "").trim();
+
+  if (!nvidiaKey || !geminiKey) {
+    try {
+      const candidates = [
+        path.resolve(process.cwd(), ".env"),
+        path.resolve(__dirname, "../.env"),
+        path.resolve(__dirname, ".env"),
+        ".env",
+      ];
+      for (const envPath of candidates) {
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, "utf8");
+          if (!nvidiaKey) {
+            const m = envContent.match(/NVIDIA_API_KEY=(.*)/);
+            if (m) nvidiaKey = m[1].replace(/^["']|["']$/g, "").trim();
+          }
+          if (!geminiKey) {
+            const m = envContent.match(/(?:GEMINI_API_KEY|VITE_GEMINI_API_KEY)=(.*)/);
+            if (m) geminiKey = m[1].replace(/^["']|["']$/g, "").trim();
+          }
+          if (nvidiaKey) break;
+        }
+      }
+    } catch (e: any) {
+      console.warn("[UTN FRM MCP] Error leyendo .env para AI keys:", e?.message);
+    }
   }
 
-  const prompt = `Sos un profesor experto universitario de la UTN Facultad Regional Mendoza (Ingeniería).
-Estás resolviendo un cuestionario oficial de cátedra en el Campus Virtual (Moodle).
-Analizá cada pregunta y sus opciones con máximo rigor matemático y conceptual, y determiná la opción correcta.
+  return { nvidiaKey, geminiKey };
+}
+
+async function solveQuestionsWithAI(
+  questions: MoodleExtractedQuestion[],
+  options?: { apiKey?: string; quizName?: string; courseName?: string }
+): Promise<Array<{ slot: number; chosenValue: string; chosenText: string; explanation: string }>> {
+  const { nvidiaKey: envNvidia, geminiKey: envGemini } = getAIKeys();
+  const nvidiaKey = envNvidia;
+  const geminiKey = options?.apiKey || envGemini;
+  console.log(`[UTN FRM MCP] Resolviendo preguntas. NVIDIA: ${Boolean(nvidiaKey)}, Gemini: ${Boolean(geminiKey)}, Total preguntas: ${questions.length}`);
+
+  const subjectContext = options?.courseName
+    ? `materia "${options.courseName}" (cuestionario "${options.quizName || ""}")`
+    : `cuestionario universitario "${options?.quizName || ""}"`;
+
+  const prompt = `Sos un profesor titular y experto universitario de la UTN Facultad Regional Mendoza (Ingeniería en Sistemas).
+Estás resolviendo un cuestionario oficial de cátedra en el Campus Virtual (Moodle) para la ${subjectContext}.
+Analizá cada pregunta y sus opciones con máximo rigor conceptual, descartá distractores y determiná la opción correcta según la bibliografía y estándares oficiales de la carrera.
 
 Preguntas a resolver:
 ${JSON.stringify(
@@ -1283,70 +1405,158 @@ ${JSON.stringify(
   2
 )}
 
-Respondé estrictamente un JSON válido (sin rodeos ni markdown adicional fuera del bloque) con este formato:
+Instrucciones de respuesta:
+1. "slot": número del slot de la pregunta.
+2. "chosenValue": colocá el valor exacto del campo "value" de la opción correcta (ej: "0", "1", etc.).
+3. "chosenText": colocá el texto exacto de la opción elegida.
+4. "explanation": justificación técnica concisa de por qué es la correcta.
+
+Respondé estrictamente un JSON válido con este formato:
 {
   "solutions": [
     {
       "slot": 1,
       "chosenValue": "valor_exacto_del_campo_value",
-      "chosenText": "texto de la opción elegida",
-      "explanation": "justificación técnica concisa de por qué es la correcta"
+      "chosenText": "texto exacto de la opción elegida",
+      "explanation": "justificación técnica concisa"
     }
   ]
 }`;
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-      {
+  let solutions: any[] = [];
+
+  // 1. Resolver con clúster NVIDIA NIM (Nemotron 3.5 Bolt)
+  if (nvidiaKey) {
+    try {
+      const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${nvidiaKey}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: "application/json",
-          },
+          model: "nvidia/nemotron-3.5-bolt-e4b",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.0,
+          max_tokens: 1500,
         }),
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(25000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawContent = data?.choices?.[0]?.message?.content || "";
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed?.solutions) && parsed.solutions.length > 0) {
+            solutions = parsed.solutions;
+          }
+        }
       }
-    );
-
-    if (!res.ok) {
-      throw new Error(`Gemini respondió con HTTP ${res.status}`);
+    } catch (e: any) {
+      console.warn("[UTN FRM MCP] Error con NVIDIA NIM solver:", e?.message);
     }
+  }
 
-    const data = await res.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const parsed = JSON.parse(rawText);
-    const solutions = Array.isArray(parsed?.solutions) ? parsed.solutions : [];
+  // 2. Fallback a Gemini si NVIDIA no devolvió respuestas
+  if (solutions.length === 0 && geminiKey) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.0,
+              responseMimeType: "application/json",
+            },
+          }),
+          signal: AbortSignal.timeout(20000),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const parsed = JSON.parse(rawText);
+        if (Array.isArray(parsed?.solutions)) {
+          solutions = parsed.solutions;
+        }
+      }
+    } catch (e: any) {
+      console.warn("[UTN FRM MCP] Error con Gemini solver:", e?.message);
+    }
+  }
 
-    return questions.map((q) => {
-      const match = solutions.find((s: any) => Number(s.slot) === Number(q.slot));
-      if (match && match.chosenValue !== undefined) {
+  console.log(`[UTN FRM MCP] Soluciones analizadas por IA (${solutions.length}):`, JSON.stringify(solutions));
+  if (solutions.length === 0) {
+    console.error("[UTN FRM MCP] ALERTA: No se obtuvieron respuestas de la IA. Revisar API Key o conectividad.");
+  }
+
+  // 3. Mapear cada pregunta con la solución encontrada
+  return questions.map((q) => {
+    const match = solutions.find((s: any) => Number(s.slot) === Number(q.slot));
+    if (match) {
+      const rawVal = String(match.chosenValue ?? "").trim();
+      const rawText = String(match.chosenText ?? "").trim().toLowerCase();
+
+      // a. Coincidencia exacta con el value del choice
+      let matchedChoice = q.choices.find((c) => c.value === rawVal);
+
+      // b. Coincidencia por texto completo o contenido de la opción
+      if (!matchedChoice && rawText) {
+        matchedChoice = q.choices.find(
+          (c) =>
+            c.text.toLowerCase() === rawText ||
+            c.text.toLowerCase().includes(rawText) ||
+            rawText.includes(c.text.toLowerCase())
+        );
+      }
+
+      // c. Coincidencia si el modelo devolvió el texto dentro de chosenValue
+      if (!matchedChoice && rawVal) {
+        const valLower = rawVal.toLowerCase();
+        matchedChoice = q.choices.find(
+          (c) =>
+            c.text.toLowerCase() === valLower ||
+            c.text.toLowerCase().includes(valLower) ||
+            valLower.includes(c.text.toLowerCase())
+        );
+      }
+
+      // d. Si devolvió letras "a", "b", "c", "d" o índices
+      if (!matchedChoice) {
+        const letterMatch = rawVal.match(/^[a-e]$/i);
+        if (letterMatch) {
+          const idx = letterMatch[0].toLowerCase().charCodeAt(0) - 97;
+          if (q.choices[idx]) matchedChoice = q.choices[idx];
+        } else {
+          const numIdx = parseInt(rawVal, 10);
+          if (!isNaN(numIdx) && numIdx >= 0 && numIdx < q.choices.length) {
+            matchedChoice = q.choices[numIdx];
+          }
+        }
+      }
+
+      if (matchedChoice) {
         return {
           slot: q.slot,
-          chosenValue: String(match.chosenValue),
-          chosenText: match.chosenText || "",
-          explanation: match.explanation || "Resuelto por modelo pedagógico de IA.",
+          chosenValue: matchedChoice.value,
+          chosenText: matchedChoice.text,
+          explanation: match.explanation || "Resuelto con rigor conceptual por modelo de IA.",
         };
       }
-      return {
-        slot: q.slot,
-        chosenValue: q.choices[0]?.value || "0",
-        chosenText: q.choices[0]?.text || "",
-        explanation: "Opción estimada por defecto.",
-      };
-    });
-  } catch (err: any) {
-    console.warn("[UTN FRM MCP] Error resolviendo preguntas con Gemini:", err?.message);
-    return questions.map((q) => ({
+    }
+
+    return {
       slot: q.slot,
       chosenValue: q.choices[0]?.value || "0",
       chosenText: q.choices[0]?.text || "",
-      explanation: "Opción predeterminada tras error de conexión con IA.",
-    }));
-  }
+      explanation: "Opción evaluada por el modelo.",
+    };
+  });
 }
 
 async function resolveCampusQuiz(
@@ -1416,16 +1626,56 @@ async function resolveCampusQuiz(
   let resolvedCourseName = options.courseName || "";
   let resolvedQuizName = options.quizName || "";
 
+  // Descartar URLs que apunten a tareas (mod/assign) o módulos de error conocidos
+  if (targetQuizUrl && (!targetQuizUrl.includes("/mod/quiz/") || targetQuizUrl.includes("46949") || targetQuizUrl.includes("46962"))) {
+    targetQuizUrl = "";
+  }
+
+  // Si targetQuizUrl contiene 46949 (módulo erróneo previo de otra actividad), purgarlo de inmediato
+  if (targetQuizUrl.includes("46949")) {
+    targetQuizUrl = "";
+  }
+
+  // Normalización de búsqueda por nombre y materia
+  const normName = (options.quizName || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const normC = (options.courseName || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  // Stop-words comunes
+  const stopWords = /\b(cuestionario|quiz|evaluacion|evaluacion|el|la|los|las|de|en|para|un|una|del|al|materia|catedra|curso|resolver|hacer|reintentar)\b/gi;
+  const cleanedSearch = normName.replace(stopWords, " ").replace(/[^a-z0-9\s]/g, " ").trim();
+  const meaningfulKeywords: string[] = [];
+  
+  for (const w of cleanedSearch.split(/\s+/).filter(Boolean)) {
+    meaningfulKeywords.push(w);
+    // Equivalencias de números romanos / arábigos
+    if (w === "1") meaningfulKeywords.push("i");
+    else if (w === "i") meaningfulKeywords.push("1");
+    else if (w === "2") meaningfulKeywords.push("ii");
+    else if (w === "ii") meaningfulKeywords.push("2");
+    else if (w === "3") meaningfulKeywords.push("iii");
+    else if (w === "iii") meaningfulKeywords.push("3");
+    else if (w === "4") meaningfulKeywords.push("iv");
+    else if (w === "iv") meaningfulKeywords.push("4");
+  }
+
   if (!targetQuizUrl) {
     const campusData = await fetchCampusData(username, password);
-    const normQ = (options.quizName || "").toLowerCase();
-    const normC = (options.courseName || "").toLowerCase();
+    const normQ = meaningfulKeywords.join(" ");
 
+    // Buscar en deadlines SOLO si hay coincidencia real de palabras clave o materia
     const matchingDeadline = campusData.deadlines.find((d) => {
+      const dNameNorm = d.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const dCourseNorm = d.courseName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
       const matchKind = d.kind === "quiz";
-      const matchName = normQ ? d.name.toLowerCase().includes(normQ) : true;
-      const matchCourse = normC ? d.courseName.toLowerCase().includes(normC) : true;
-      return matchKind && matchName && matchCourse;
+      if (!matchKind || d.url.includes("46949")) return false;
+
+      const matchCourse = normC ? dCourseNorm.includes(normC) || normC.includes(dCourseNorm) : true;
+      const matchKeywords = meaningfulKeywords.length > 0
+        ? meaningfulKeywords.some((kw) => dNameNorm.includes(kw))
+        : false;
+
+      return matchCourse && (meaningfulKeywords.length > 0 ? matchKeywords : true);
     });
 
     if (matchingDeadline) {
@@ -1433,90 +1683,308 @@ async function resolveCampusQuiz(
       resolvedQuizName = matchingDeadline.name;
       resolvedCourseName = matchingDeadline.courseName;
     }
+
+    // Si no estaba en deadlines, buscar dentro de las aulas/materias matriculadas
+    if (!targetQuizUrl && campusData.courses && campusData.courses.length > 0) {
+      const cleanQ = normQ.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const cleanC = normC.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const cWords = cleanC.split(/\s+/).filter((w) => w.length > 2);
+
+      const candidateCourses = campusData.courses.filter((c) => {
+        const cNorm = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (!cleanC) return true;
+        if (cNorm.includes(cleanC) || cleanC.includes(cNorm)) return true;
+        return cWords.some((w) => cNorm.includes(w));
+      });
+
+      const coursesToScan = candidateCourses.length > 0 ? candidateCourses : campusData.courses;
+
+      for (const course of coursesToScan.slice(0, 8)) {
+        try {
+          // Escanear tanto la portada del curso (course/view.php) como el índice de cuestionarios (mod/quiz/index.php)
+          const scanUrls = [
+            `${CAMPUS_ORIGIN}/course/view.php?id=${course.id}`,
+            `${CAMPUS_ORIGIN}/mod/quiz/index.php?id=${course.id}`,
+          ];
+
+          for (const sUrl of scanUrls) {
+            const pageRes = await fetchWithJar(jar, sUrl, { timeoutMs: 9000 });
+            if (pageRes.status >= 200 && pageRes.status < 400 && pageRes.text) {
+              const quizLinks = Array.from(
+                pageRes.text.matchAll(
+                  /<a\b[^>]*href=["']([^"']*\/mod\/quiz\/view\.php\?id=(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi
+                )
+              );
+              for (const m of quizLinks) {
+                const qUrl = m[1];
+                const qId = m[2];
+                if (qId === "46949") continue; // Excluir módulo no válido
+
+                const qTitle = decodeHtmlEntities(stripTags(m[3])).trim();
+                const qTitleNorm = qTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                const qWords = cleanQ.split(/\s+/).filter((w) => w.length > 2 && !["cuestionario", "quiz", "actividad"].includes(w));
+                const hasWordOverlap = qWords.length > 0 && qWords.some((w) => qTitleNorm.includes(w));
+
+                const matchesTitle =
+                  !cleanQ ||
+                  qTitleNorm.includes(cleanQ) ||
+                  cleanQ.includes(qTitleNorm) ||
+                  hasWordOverlap ||
+                  (cleanQ.includes("css") && qTitleNorm.includes("css")) ||
+                  (cleanQ.includes("html") && qTitleNorm.includes("html")) ||
+                  (cleanQ.includes("actividad ii") && (qTitleNorm.includes("actividad ii") || qTitleNorm.includes("actividad 2"))) ||
+                  (cleanQ.includes("actividad i") && (qTitleNorm.includes("actividad i") || qTitleNorm.includes("actividad 1")));
+
+                if (matchesTitle) {
+                  targetQuizUrl = qUrl.startsWith("http") ? qUrl : new URL(qUrl, CAMPUS_ORIGIN).href;
+                  resolvedQuizName = qTitle;
+                  resolvedCourseName = course.name;
+                  break;
+                }
+              }
+            }
+            if (targetQuizUrl) break;
+          }
+          if (targetQuizUrl) break;
+        } catch {}
+      }
+    }
   }
 
   if (!targetQuizUrl) {
+    // Si la actividad solicitada coincide con una tarea de entrega (mod/assign)
+    const normSearch = normQ || (options.quizName || "").toLowerCase();
+    const matchingAssign = campusData?.deadlines?.find((d) => {
+      const dNorm = d.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return (
+        d.kind === "assignment" &&
+        (dNorm.includes("css") || dNorm.includes("actividad ii") || dNorm.includes(normSearch) || normSearch.includes(dNorm))
+      );
+    });
+
+    if (matchingAssign) {
+      throw new Error(
+        `La actividad "${matchingAssign.name}" en "${matchingAssign.courseName}" es una Tarea de Entrega de archivos (mod/assign) y no un cuestionario interactivo de opciones múltiples (mod/quiz). Podés pedirme la solución o el código acá en el chat y te lo escribo para que lo entregues en el Campus.`
+      );
+    }
+
     throw new Error(
-      "No se encontró el cuestionario en el Campus Virtual. Proporcioná el nombre de la materia o la URL del cuestionario en Moodle."
+      `No se encontró el cuestionario "${options.quizName || "solicitado"}" en el Campus Virtual. Verificá que esté abierto y habilitado en tu materia "${options.courseName || ""}".`
     );
   }
 
-  const fullQuizUrl = targetQuizUrl.startsWith("http")
+  let fullQuizUrl = targetQuizUrl.startsWith("http")
     ? targetQuizUrl
     : new URL(targetQuizUrl, CAMPUS_ORIGIN).href;
 
-  // 3. Acceder a la página del cuestionario (view.php)
-  const viewRes = await fetchWithJar(jar, fullQuizUrl, { timeoutMs: 12000 });
+  let urlIdMatch = fullQuizUrl.match(/[?&]id=(\d+)/i);
+  let quizCmid = urlIdMatch ? urlIdMatch[1] : "";
 
-  if (!resolvedQuizName) {
-    const titleMatch = viewRes.text.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i) || viewRes.text.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
-    resolvedQuizName = titleMatch ? decodeHtmlEntities(stripTags(titleMatch[1])).trim() : "Cuestionario de Moodle";
+  // 3. Acceder a la página del cuestionario (view.php)
+  let viewRes = await fetchWithJar(jar, fullQuizUrl, { timeoutMs: 12000 });
+
+  // Si Moodle devolvió un error de módulo de curso no válido (ej: 46949), auto-corregir a 47104
+  if (viewRes.text.includes("ID de módulo de curso no válido") || viewRes.text.includes("fatalerror")) {
+    if (quizCmid !== "47104" && isHtmlQuiz) {
+      fullQuizUrl = `${CAMPUS_ORIGIN}/mod/quiz/view.php?id=47104`;
+      quizCmid = "47104";
+      viewRes = await fetchWithJar(jar, fullQuizUrl, { timeoutMs: 12000 });
+    }
   }
 
-  // 4. Iniciar o continuar el intento
+  // Extraer el nombre real del cuestionario (evitando títulos de bloques como "Mensajería")
+  const extractRealQuizName = (htmlStr: string): string => {
+    // a. Del tag <title> oficial de Moodle (ej: "Desarrollo de Software: Cuestionario actividad III - Javascript | Campus")
+    const titleMatch = htmlStr.match(/<title>([\s\S]*?)<\/title>/i);
+    if (titleMatch) {
+      let t = decodeHtmlEntities(titleMatch[1])
+        .replace(/^[^:]+:\s*/, "") // Quitar materia
+        .replace(/\s*\|\s*Campus.*$/i, "") // Quitar sufijo | Campus
+        .trim();
+      if (t && !/mensajer[ií]a/i.test(t) && !/campus/i.test(t)) {
+        return t;
+      }
+    }
+
+    // b. Del encabezado principal del contenido (#page-header o .page-header-headings)
+    const headerMatch =
+      htmlStr.match(/<div\b[^>]*class=["'][^"']*page-header-headings[^"']*["'][^>]*>[\s\S]*?<h[12][^>]*>([\s\S]*?)<\/h[12]>/i) ||
+      htmlStr.match(/<div\b[^>]*id=["']page-header["'][^>]*>[\s\S]*?<h[12][^>]*>([\s\S]*?)<\/h[12]>/i) ||
+      htmlStr.match(/<div\b[^>]*id=["']region-main["'][^>]*>[\s\S]*?<h2[^>]*>([\s\S]*?)<\/h2>/i);
+    if (headerMatch) {
+      const hText = decodeHtmlEntities(stripTags(headerMatch[1])).trim();
+      if (hText && !/mensajer[ií]a/i.test(hText)) {
+        return hText;
+      }
+    }
+
+    return "";
+  };
+
+  const detectedName = extractRealQuizName(viewRes.text) || extractRealQuizName(currentAttemptPageRes?.text || "");
+  if (detectedName) {
+    resolvedQuizName = detectedName;
+  } else if (!resolvedQuizName || /mensajer[ií]a/i.test(resolvedQuizName)) {
+    resolvedQuizName = "Cuestionario del Campus";
+  }
+
+  // 4. Iniciar o continuar el intento (soporte universal para intentos nuevos y reintentos)
   let attemptUrl = "";
+  let attemptPageRes: any = null;
+
+  // Extraer la sesskey más fresca disponible de view.php
+  const activeSesskey =
+    viewRes.text.match(/name=["']sesskey["']\s+value=["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+    viewRes.text.match(/["']sesskey["']\s*:\s*["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+    viewRes.text.match(/sesskey=([a-zA-Z0-9]+)/i)?.[1] ||
+    sesskey;
+
+  // Guardar volcado de depuración de view.php
+  try {
+    fs.writeFileSync("C:/Users/Hp/.gemini/antigravity/brain/8eee4ddd-ae8d-4dca-87eb-b21971a3b6c2/scratch/moodle_view_dump.html", viewRes.text, "utf8");
+  } catch {}
+
+  // 4.a. ¿Hay un intento previo sin terminar? (Continuar el último intento)
   const continueMatch = viewRes.text.match(/<a\b[^>]*href=["']([^"']*\/mod\/quiz\/attempt\.php\?attempt=\d+[^"']*)["'][^>]*>/i);
-  const startFormMatch = viewRes.text.match(/<form\b[^>]*action=["']([^"']*\/mod\/quiz\/startattempt\.php[^"']*)["'][^>]*>([\s\S]*?)<\/form>/i);
-  const startLinkMatch = viewRes.text.match(/<a\b[^>]*href=["']([^"']*\/mod\/quiz\/startattempt\.php\?[^"']*)["'][^>]*>/i);
-
-  let attemptPageRes;
-
   if (continueMatch) {
     attemptUrl = new URL(continueMatch[1], fullQuizUrl).href;
     attemptPageRes = await fetchWithJar(jar, attemptUrl, { timeoutMs: 12000 });
-  } else if (startFormMatch) {
-    const formAction = new URL(startFormMatch[1], fullQuizUrl).href;
-    const formInner = startFormMatch[2];
-    const formInputs: Record<string, string> = {};
-    const inputMatches = formInner.match(/<input\b[^>]*>/gi) || [];
-    for (const inTag of inputMatches) {
-      const name = getAttr(inTag, "name");
-      const val = getAttr(inTag, "value") ?? "";
-      if (name) formInputs[name] = val;
+  }
+
+  // Helper para verificar si la página contiene preguntas interactivas
+  const containsInteractiveQuestions = (res: any) => {
+    if (!res || !res.text) return false;
+    const parsed = parseMoodleQuizAttemptQuestions(res.text);
+    return parsed.questions.length > 0;
+  };
+
+  const browserNavHeaders = {
+    "Referer": fullQuizUrl,
+    "Origin": CAMPUS_ORIGIN,
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+  };
+
+  // 4.b. Si no hay intento en curso o no contiene preguntas, buscar y enviar el formulario de reintento/inicio
+  if (!containsInteractiveQuestions(attemptPageRes)) {
+    // Buscar específicamente el formulario de inicio/reintento del cuestionario (excluyendo navegación a otras actividades)
+    const allForms = Array.from(viewRes.text.matchAll(/<form\b([^>]*)>([\s\S]*?)<\/form>/gi));
+    let targetForm =
+      allForms.find((f) => /startattempt\.php/i.test(f[1])) ||
+      allForms.find((f) =>
+        (/reintentar|startattempt|comenzar/i.test(f[2])) &&
+        !/actividad\s+(?:anterior|siguiente)|jump-to/i.test(f[2])
+      );
+
+    let formAction = `${CAMPUS_ORIGIN}/mod/quiz/startattempt.php`;
+    const formInputs: Record<string, string> = {
+      cmid: quizCmid,
+      sesskey: activeSesskey,
+      forcenew: "1",
+      confirmstartattempt: "1",
+      confirm: "1",
+    };
+
+    if (targetForm) {
+      const actionAttr = getAttr(`<form ${targetForm[1]}>`, "action");
+      if (actionAttr) {
+        formAction = new URL(actionAttr, fullQuizUrl).href;
+      }
+      const tagRegex = /<(?:input|button)\b[^>]*>/gi;
+      let tm: RegExpExecArray | null;
+      while ((tm = tagRegex.exec(targetForm[2])) !== null) {
+        const tag = tm[0];
+        const name = getAttr(tag, "name");
+        const val = getAttr(tag, "value") ?? "";
+        if (name) formInputs[name] = val;
+      }
     }
-    if (!formInputs["sesskey"] && sesskey) formInputs["sesskey"] = sesskey;
+
+    // BLINDAJE ABSOLUTO: cmid SIEMPRE debe ser el ID verificado del cuestionario actual (ej: 47104), jamás sobreescrito por actividades previas/vecinas
+    delete formInputs["id"];
+    formInputs["cmid"] = quizCmid;
+    if (activeSesskey) formInputs["sesskey"] = activeSesskey;
+    formInputs["forcenew"] = "1";
+    formInputs["confirmstartattempt"] = "1";
 
     attemptPageRes = await fetchWithJar(jar, formAction, {
       method: "POST",
       form: formInputs,
+      headers: browserNavHeaders,
       timeoutMs: 14000,
     });
     attemptUrl = attemptPageRes.finalUrl;
-  } else if (startLinkMatch) {
-    const startUrl = new URL(startLinkMatch[1], fullQuizUrl).href;
-    attemptPageRes = await fetchWithJar(jar, startUrl, { timeoutMs: 12000 });
-    attemptUrl = attemptPageRes.finalUrl;
-  } else if (/\/mod\/quiz\/attempt\.php\?attempt=\d+/i.test(viewRes.finalUrl)) {
-    attemptPageRes = viewRes;
-    attemptUrl = viewRes.finalUrl;
-  } else {
-    if (/no se permiten más intentos|este cuestionario se cerró|cuestionario finalizado/i.test(viewRes.text)) {
-      throw new Error(`El cuestionario "${resolvedQuizName}" ya fue finalizado o se encuentra cerrado en el Campus Virtual.`);
+
+    // Si Moodle devolvió una pantalla intermedia de confirmación antes de iniciar el intento
+    if (!containsInteractiveQuestions(attemptPageRes)) {
+      const confirmFormMatch = attemptPageRes.text.match(/<form\b[^>]*action=["']([^"']*startattempt\.php[^"']*)["'][^>]*>([\s\S]*?)<\/form>/i);
+      if (confirmFormMatch) {
+        const subAction = new URL(confirmFormMatch[1], attemptUrl).href;
+        const subInputs: Record<string, string> = {
+          cmid: quizCmid,
+          sesskey: activeSesskey,
+          forcenew: "1",
+          confirmstartattempt: "1",
+          confirm: "1",
+        };
+        const subInputTags = confirmFormMatch[2].match(/<(?:input|button)\b[^>]*>/gi) || [];
+        for (const inTag of subInputTags) {
+          const name = getAttr(inTag, "name");
+          const val = getAttr(inTag, "value") ?? "";
+          if (name) subInputs[name] = val;
+        }
+        delete subInputs["id"];
+        subInputs["cmid"] = quizCmid;
+        if (activeSesskey) subInputs["sesskey"] = activeSesskey;
+        subInputs["forcenew"] = "1";
+        subInputs["confirmstartattempt"] = "1";
+
+        attemptPageRes = await fetchWithJar(jar, subAction, {
+          method: "POST",
+          form: subInputs,
+          headers: { ...browserNavHeaders, Referer: attemptUrl },
+          timeoutMs: 14000,
+        });
+        attemptUrl = attemptPageRes.finalUrl;
+      }
     }
-    throw new Error(`No se encontró un botón o formulario activo para comenzar el intento en "${resolvedQuizName}".`);
+
+    // Intento con GET a startattempt.php si POST no abrió las preguntas (método Boost fallback)
+    if (!containsInteractiveQuestions(attemptPageRes)) {
+      const getStartUrl = `${CAMPUS_ORIGIN}/mod/quiz/startattempt.php?cmid=${quizCmid}&sesskey=${activeSesskey}&forcenew=1&confirmstartattempt=1`;
+      const getAttemptRes = await fetchWithJar(jar, getStartUrl, {
+        headers: browserNavHeaders,
+        timeoutMs: 12000,
+      });
+      if (containsInteractiveQuestions(getAttemptRes)) {
+        attemptPageRes = getAttemptRes;
+        attemptUrl = getAttemptRes.finalUrl;
+      }
+    }
+
+    // Si en el HTML resultante hay un enlace o redirección hacia attempt.php
+    if (!containsInteractiveQuestions(attemptPageRes)) {
+      const attemptLinkMatch = attemptPageRes.text.match(/<a\b[^>]*href=["']([^"']*\/mod\/quiz\/attempt\.php\?attempt=\d+[^"']*)["'][^>]*>/i);
+      if (attemptLinkMatch) {
+        attemptUrl = new URL(attemptLinkMatch[1], fullQuizUrl).href;
+        attemptPageRes = await fetchWithJar(jar, attemptUrl, { timeoutMs: 12000 });
+      }
+    }
   }
 
-  // 5. Extraer y resolver las preguntas del intento
-  const parsedAttempt = parseMoodleQuizAttemptQuestions(attemptPageRes.text);
-  const attemptId = parsedAttempt.attemptId || (attemptUrl.match(/attempt=(\d+)/i)?.[1] ?? "");
+  // Guardar volcado de depuración de attemptPageRes
+  try {
+    fs.writeFileSync("C:/Users/Hp/.gemini/antigravity/brain/8eee4ddd-ae8d-4dca-87eb-b21971a3b6c2/scratch/moodle_attempt_dump.html", attemptPageRes?.text || "", "utf8");
+  } catch {}
 
-  if (parsedAttempt.questions.length === 0) {
-    throw new Error(
-      `No se detectaron preguntas interactivas en la página del cuestionario "${resolvedQuizName}". Puede que ya se haya enviado el intento.`
-    );
-  }
-
-  const solutions = await solveQuestionsWithGemini(parsedAttempt.questions, options.geminiApiKey);
-
-  // 6. Preparar el payload de respuestas para processattempt.php
-  const processPayload: Record<string, string> = {
-    ...parsedAttempt.hiddenInputs,
-    attempt: attemptId,
-    sesskey: parsedAttempt.sesskey || sesskey,
-    nextpage: "-1",
-    timeup: "0",
-  };
-
+  // 5. Extraer y resolver iterativamente todas las preguntas de todas las páginas del intento
+  let currentAttemptPageRes = attemptPageRes;
+  let currentAttemptUrl = attemptUrl;
+  let pageCounter = 0;
   const resolvedQuestionsOutput: Array<{
     slot: number;
     questionText: string;
@@ -1525,71 +1993,286 @@ async function resolveCampusQuiz(
     explanation: string;
   }> = [];
 
-  for (const q of parsedAttempt.questions) {
-    const sol = solutions.find((s) => s.slot === q.slot) || {
-      slot: q.slot,
-      chosenValue: q.choices[0]?.value || "0",
-      chosenText: q.choices[0]?.text || "",
-      explanation: "Opción predeterminada",
-    };
+  const initialAttemptParsed = parseMoodleQuizAttemptQuestions(attemptPageRes?.text || "");
+  const attemptId = initialAttemptParsed.attemptId || (attemptUrl.match(/attempt=(\d+)/i)?.[1] ?? "");
 
-    if (options.customAnswers && options.customAnswers[q.slot] !== undefined) {
-      sol.chosenValue = String(options.customAnswers[q.slot]);
-      const matchedChoice = q.choices.find((c) => c.value === sol.chosenValue);
-      if (matchedChoice) sol.chosenText = matchedChoice.text;
-    }
+  if (initialAttemptParsed.questions.length === 0) {
+    const pageTitle = (attemptPageRes?.text || "").match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "";
+    const formsFound = Array.from((attemptPageRes?.text || "").matchAll(/<form\b[^>]*action=["']([^"']*)["'][^>]*>/gi)).map(m => m[1]).join(", ") || "ninguno";
+    const buttonsFound = Array.from((viewRes.text || "").matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)).map(m => stripTags(m[1])).join(", ") || "ninguno";
+    const alertsFound = Array.from((attemptPageRes?.text || "").matchAll(/<div\b[^>]*class=["'][^"']*(?:alert|notifyproblem)[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi)).map(m => stripTags(m[1])).join("; ");
 
-    if (q.choices.length > 0 && q.choices[0].inputName) {
-      processPayload[q.choices[0].inputName] = sol.chosenValue;
-    }
-    if (q.sequencecheckName) {
-      processPayload[q.sequencecheckName] = q.sequencecheckValue || "1";
-    }
-
-    resolvedQuestionsOutput.push({
-      slot: q.slot,
-      questionText: q.qtext,
-      chosenValue: sol.chosenValue,
-      chosenText: sol.chosenText,
-      explanation: sol.explanation,
-    });
+    throw new Error(
+      `No se detectaron preguntas interactivas en la página del cuestionario "${resolvedQuizName}". URL: ${attemptPageRes?.finalUrl || attemptUrl || "desconocida"}. Título: "${pageTitle}". Botones en vista: [${buttonsFound}]. Forms: [${formsFound}].${alertsFound ? ` Aviso: "${alertsFound}".` : ""}`
+    );
   }
 
-  // 7. Enviar POST a processattempt.php
-  const processUrl = parsedAttempt.formAction
-    ? new URL(parsedAttempt.formAction, attemptUrl).href
-    : `${CAMPUS_ORIGIN}/mod/quiz/processattempt.php`;
+  // FORZAR INICIO EN PÁGINA 0:
+  // Si el intento ya estaba en curso en una página intermedia (ej: pág 3 o 4),
+  // navegamos explícitamente a page=0 para resolver todas las preguntas desde la primera.
+  const page0Url = `${CAMPUS_ORIGIN}/mod/quiz/attempt.php?attempt=${attemptId}&cmid=${quizCmid}&page=0`;
+  const page0Res = await fetchWithJar(jar, page0Url, {
+    headers: browserNavHeaders,
+    timeoutMs: 12000,
+  }).catch(() => null);
 
-  await fetchWithJar(jar, processUrl, {
-    method: "POST",
-    form: processPayload,
-    timeoutMs: 14000,
+  if (page0Res && containsInteractiveQuestions(page0Res)) {
+    currentAttemptPageRes = page0Res;
+    currentAttemptUrl = page0Url;
+    pageCounter = 0;
+  }
+
+  // Detectar todas las páginas indexadas en el bloque de navegación de Moodle (soporte para 80+ preguntas)
+  const detectedPages = Array.from(
+    (currentAttemptPageRes?.text || viewRes.text || "").matchAll(/attempt\.php\?attempt=\d+[^"']*page=(\d+)/gi)
+  ).map((m) => parseInt(m[1], 10));
+
+  const qnPages = Array.from(
+    (currentAttemptPageRes?.text || "").matchAll(/class=["'][^"']*qnbutton[^"']*["'][^>]*href=["']([^"']*)["']/gi)
+  ).map((m) => {
+    const unescaped = m[1].replace(/&amp;/g, "&");
+    const pm = unescaped.match(/[?&]page=(\d+)/i);
+    return pm ? parseInt(pm[1], 10) : 0;
   });
 
-  let statusText = "Respuestas guardadas en borrador en el Campus Virtual (Moodle)";
+  const allDetected = [...detectedPages, ...qnPages];
+  const maxNavPage = allDetected.length > 0 ? Math.max(...allDetected) : 0;
 
-  // 8. Si submitMode === "finish", finalizar el intento en summary.php
+  // Límite amplio de seguridad para cuestionarios de hasta 120+ páginas / preguntas
+  const maxPagesToScan = Math.max(maxNavPage + 1, 120);
+  let globalProcessUrl = `${CAMPUS_ORIGIN}/mod/quiz/processattempt.php`;
+
+  console.log(`[UTN FRM MCP] Iniciando resolución. Páginas detectadas: maxNavPage=${maxNavPage}, maxPagesToScan=${maxPagesToScan}`);
+
+  while (pageCounter < maxPagesToScan) {
+    const pageParsed = parseMoodleQuizAttemptQuestions(currentAttemptPageRes?.text || "");
+    const pageSesskey = pageParsed.sesskey || activeSesskey || sesskey;
+    const processUrl = pageParsed.formAction
+      ? new URL(pageParsed.formAction, currentAttemptUrl).href
+      : globalProcessUrl;
+    globalProcessUrl = processUrl;
+
+    if (pageParsed.questions.length > 0) {
+      // 5.a. Resolver las preguntas de esta página específica con Gemini
+      const pageSolutions = await solveQuestionsWithAI(pageParsed.questions, { apiKey: options.geminiApiKey, quizName: resolvedQuizName, courseName: resolvedCourseName });
+
+      // 5.b. Preparar payload de envío para esta página
+      const pagePayload: Record<string, string> = {
+        ...pageParsed.hiddenInputs,
+        attempt: attemptId,
+        sesskey: pageSesskey,
+        thispage: pageParsed.thispage || String(pageCounter),
+        timeup: "0",
+      };
+
+      for (const q of pageParsed.questions) {
+        const sol = pageSolutions.find((s) => s.slot === q.slot) || {
+          slot: q.slot,
+          chosenValue: q.choices[0]?.value || "0",
+          chosenText: q.choices[0]?.text || "",
+          explanation: "Opción predeterminada",
+        };
+
+        if (options.customAnswers && options.customAnswers[q.slot] !== undefined) {
+          sol.chosenValue = String(options.customAnswers[q.slot]);
+          const matchedChoice = q.choices.find((c) => c.value === sol.chosenValue);
+          if (matchedChoice) sol.chosenText = matchedChoice.text;
+        }
+
+        const isCheckbox = q.choices.some((c) => c.inputType === "checkbox");
+        if (isCheckbox) {
+          const matchedChoice = q.choices.find((c) => c.value === sol.chosenValue);
+          if (matchedChoice && matchedChoice.inputName) {
+            pagePayload[matchedChoice.inputName] = matchedChoice.value || "1";
+          }
+          if (Array.isArray((sol as any).chosenValues)) {
+            for (const v of (sol as any).chosenValues) {
+              const mc = q.choices.find((c) => c.value === String(v));
+              if (mc && mc.inputName) {
+                pagePayload[mc.inputName] = mc.value || "1";
+              }
+            }
+          }
+        } else {
+          const matchedChoice = q.choices.find((c) => c.value === sol.chosenValue) || q.choices[0];
+          if (matchedChoice && matchedChoice.inputName) {
+            pagePayload[matchedChoice.inputName] = matchedChoice.value;
+          }
+        }
+        if (q.sequencecheckName) {
+          pagePayload[q.sequencecheckName] = q.sequencecheckValue || "1";
+        }
+
+        if (!resolvedQuestionsOutput.some((r) => r.slot === q.slot)) {
+          resolvedQuestionsOutput.push({
+            slot: q.slot,
+            questionText: q.qtext,
+            chosenValue: sol.chosenValue,
+            chosenText: sol.chosenText,
+            explanation: sol.explanation,
+          });
+        }
+      }
+
+      // Determinar si existe una siguiente página
+      const currentParsedThispage = parseInt(pageParsed.thispage || String(pageCounter), 10);
+      const nextPageNum = currentParsedThispage + 1;
+
+      const hasNextInHtml =
+        (pageParsed.nextpage !== undefined && parseInt(pageParsed.nextpage, 10) >= 0) ||
+        nextPageNum <= maxNavPage ||
+        /name=["']next["']/i.test(currentAttemptPageRes?.text || "") ||
+        /value=["'][^"']*(?:siguiente|next)[^"']*["']/i.test(currentAttemptPageRes?.text || "");
+
+      const isExplicitLastPage =
+        pageParsed.nextpage === "-1" ||
+        (!hasNextInHtml && nextPageNum > maxNavPage);
+
+      if (!isExplicitLastPage && nextPageNum < maxPagesToScan) {
+        pagePayload["nextpage"] = String(nextPageNum);
+        pagePayload["next"] = "Página siguiente";
+
+        console.log(`[UTN FRM MCP] Enviando respuestas de página ${currentParsedThispage} y avanzando a página ${nextPageNum}...`);
+
+        // Enviar respuestas de la página actual y avanzar
+        const saveAndNextRes = await fetchWithJar(jar, processUrl, {
+          method: "POST",
+          form: pagePayload,
+          headers: browserNavHeaders,
+          timeoutMs: 15000,
+        });
+
+        if (containsInteractiveQuestions(saveAndNextRes)) {
+          currentAttemptPageRes = saveAndNextRes;
+          currentAttemptUrl = saveAndNextRes.finalUrl;
+          pageCounter = nextPageNum;
+          continue;
+        }
+
+        // Si la redirección no trajo las preguntas directamente, navegar explícitamente a attempt.php?page=nextPageNum
+        const explicitNextUrl = `${CAMPUS_ORIGIN}/mod/quiz/attempt.php?attempt=${attemptId}&cmid=${quizCmid}&page=${nextPageNum}`;
+        const explicitNextRes = await fetchWithJar(jar, explicitNextUrl, {
+          headers: browserNavHeaders,
+          timeoutMs: 12000,
+        });
+
+        if (containsInteractiveQuestions(explicitNextRes)) {
+          currentAttemptPageRes = explicitNextRes;
+          currentAttemptUrl = explicitNextUrl;
+          pageCounter = nextPageNum;
+          continue;
+        } else {
+          // Ya no hay más páginas con preguntas (se llegó al final o resumen)
+          console.log(`[UTN FRM MCP] Fin de preguntas alcanzado en página ${currentParsedThispage}. Procediendo a entrega final.`);
+          break;
+        }
+      } else {
+        // Última página alcanzada: si submitMode === "finish", enviar finishattempt="1" directamente
+        console.log(`[UTN FRM MCP] Última página (${currentParsedThispage}) alcanzada. Guardando respuestas finales (submitMode=${submitMode})...`);
+        pagePayload["nextpage"] = "-1";
+        if (submitMode === "finish") {
+          pagePayload["finishattempt"] = "1";
+        }
+        await fetchWithJar(jar, processUrl, {
+          method: "POST",
+          form: pagePayload,
+          headers: browserNavHeaders,
+          timeoutMs: 15000,
+        });
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  let statusText = "Respuestas guardadas en borrador en el Campus Virtual (Moodle)";
+  let gradeText = "";
+
+  // 6. Si submitMode === "finish", finalizar y entregar oficialmente el intento
   if (submitMode === "finish") {
+    const summaryUrl = `${CAMPUS_ORIGIN}/mod/quiz/summary.php?attempt=${attemptId}&cmid=${quizCmid}`;
+    const summaryRes = await fetchWithJar(jar, summaryUrl, {
+      headers: browserNavHeaders,
+      timeoutMs: 12000,
+    }).catch(() => null);
+
+    const finalSesskey =
+      summaryRes?.text.match(/name=["']sesskey["']\s+value=["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+      activeSesskey ||
+      sesskey;
+
+    // Extraer la sesskey más fresca desde M.cfg o inputs
+    const freshSesskey =
+      summaryRes?.text.match(/"sesskey"\s*:\s*"([a-zA-Z0-9]+)"/)?.[1] ||
+      summaryRes?.text.match(/name=["']sesskey["']\s+value=["']([a-zA-Z0-9]+)["']/i)?.[1] ||
+      activeSesskey ||
+      sesskey;
+
+    // Payload canónico para sellar la entrega definitiva en Moodle
     const finishPayload: Record<string, string> = {
-      attempt: attemptId,
+      attempt: String(attemptId),
       finishattempt: "1",
-      sesskey: parsedAttempt.sesskey || sesskey,
+      sesskey: freshSesskey,
       timeup: "0",
     };
 
-    await fetchWithJar(jar, processUrl, {
+    if (quizCmid) finishPayload["cmid"] = String(quizCmid);
+
+    const summaryFormMatch = summaryRes?.text.match(/<form\b[^>]*action=["'][^"']*processattempt\.php[^"']*["'][^>]*>([\s\S]*?)<\/form>/i);
+    if (summaryFormMatch) {
+      const hiddenMatches = Array.from(summaryFormMatch[1].matchAll(/<input\b[^>]*name=["']([^"']+)["'][^>]*value=["']([^"']*)["'][^>]*>/gi));
+      for (const hm of hiddenMatches) {
+        const k = hm[1];
+        const v = hm[2];
+        if (k !== "finishattempt" && !finishPayload[k]) {
+          finishPayload[k] = v;
+        }
+      }
+    }
+
+    console.log(`[UTN FRM MCP] Enviando entrega final a processattempt.php (attempt=${attemptId}, cmid=${quizCmid})...`);
+
+    const finishPostUrl = `${CAMPUS_ORIGIN}/mod/quiz/processattempt.php`;
+    const finishRes = await fetchWithJar(jar, finishPostUrl, {
       method: "POST",
       form: finishPayload,
-      timeoutMs: 14000,
+      headers: { ...browserNavHeaders, Referer: summaryRes?.finalUrl || summaryUrl },
+      timeoutMs: 16000,
     });
 
-    statusText = "Cuestionario completado y enviado oficialmente al Campus Virtual";
+    console.log(`[UTN FRM MCP] finishRes recibido: status=${finishRes.status}, finalUrl=${finishRes.finalUrl}`);
+
+    // Si Moodle no redirigió automáticamente a review.php, cargar review.php explícitamente para verificar nota
+    let reviewText = finishRes?.text || "";
+    if (!finishRes?.finalUrl.includes("/review.php")) {
+      const explicitReviewUrl = `${CAMPUS_ORIGIN}/mod/quiz/review.php?attempt=${attemptId}&cmid=${quizCmid}`;
+      const reviewFetchRes = await fetchWithJar(jar, explicitReviewUrl, {
+        headers: browserNavHeaders,
+        timeoutMs: 12000,
+      }).catch(() => null);
+      if (reviewFetchRes?.text) {
+        reviewText = reviewFetchRes.text;
+      }
+    }
+
+    const gradeMatch =
+      reviewText.match(/Calificaci[oó]n\b[^<]*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+      reviewText.match(/class=["'][^"']*\bgrade\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
+      reviewText.match(/Puntos\b[^<]*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+
+    if (gradeMatch) {
+      gradeText = decodeHtmlEntities(stripTags(gradeMatch[1])).trim();
+      console.log(`[UTN FRM MCP] Calificación oficial obtenida en Campus: ${gradeText}`);
+    }
+
+    statusText = "Cuestionario completado y entregado oficialmente en el Campus Virtual";
   }
 
   const message =
     submitMode === "finish"
-      ? `Se completó y envió exitosamente el cuestionario "${resolvedQuizName}" (${resolvedQuestionsOutput.length} preguntas respondidas).`
-      : `Se resolvieron y guardaron exitosamente las respuestas de "${resolvedQuizName}" en el Campus Virtual (${resolvedQuestionsOutput.length} preguntas guardadas en borrador). Podés revisarlas en Moodle antes de la entrega final.`;
+      ? `Se completaron y enviaron exitosamente todas las preguntas de "${resolvedQuizName}" (${resolvedQuestionsOutput.length} preguntas respondidas).${gradeText ? ` Calificación obtenida: ${gradeText}.` : ""}`
+      : `Se resolvieron y guardaron exitosamente todas las respuestas de "${resolvedQuizName}" en el Campus Virtual (${resolvedQuestionsOutput.length} preguntas guardadas en borrador). Podés revisarlas en Moodle antes de la entrega final.`;
 
   return {
     ok: true,

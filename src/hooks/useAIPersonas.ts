@@ -34,7 +34,7 @@ const DEFAULT_PERSONA: Omit<AIPersona, "id" | "user_id" | "created_at"> = {
     avatar_emoji: "🤖",
     description: "Tu asistente académico inteligente",
     personality_prompt:
-        "Sos un asistente académico motivador, amigable y cercano. Usás lenguaje informal argentino. Celebrás los logros del estudiante y lo alentás cuando tiene dificultades. Sos empático pero también honesto.",
+        "Sos un asistente académico motivador, dinámico y resolutivo. Usás lenguaje informal argentino. Celebrás los logros del estudiante y lo ayudás en todo lo que te pida sin vueltas ni sermones.",
     is_default: true,
 };
 

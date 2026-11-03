@@ -35,6 +35,7 @@ import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { addInAppNotification } from "@/lib/notificationsStore";
+import { resolveUtnFrmCampusQuiz } from "@/lib/utnFrmMcpService";
 import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1170,8 +1171,124 @@ export default function AIAssistant() {
       };
     });
 
-    // Notificación proactiva en tareas extensas
-    if (task === "quiz" || normalizedInput.includes("cuestionario") || (docToProcess && /cuestionario|quiz|simulacro|preguntas/i.test(normalizedInput))) {
+    // Notificación proactiva en tareas extensas de generación de cuestionario local
+    const hasQuizLink = /https?:\/\/[^\s"'<>]*(?:mod\/quiz|campusvirtual\.frm\.utn\.edu\.ar)/i.test(normalizedInput);
+    const isCampusQuizRequest = hasQuizLink || (
+      /campus|moodle|frm|utn|reintentar|virtual\.frm/i.test(normalizedInput) &&
+      /cuestionario|quiz|actividad|evaluaci[oó]n|html|resolv|hace/i.test(normalizedInput)
+    );
+
+    if (isCampusQuizRequest) {
+      let extractedQuiz = "";
+      let extractedCourse = selectedSubject && selectedSubject !== "Todas las materias" ? selectedSubject : "";
+      const quotes = Array.from(normalizedInput.matchAll(/["'“]([^"'”]+)["'”]/g)).map((m) => m[1].trim());
+      if (quotes.length > 0) {
+        extractedQuiz = quotes[0];
+        if (quotes.length > 1 && !extractedCourse) extractedCourse = quotes[1];
+      }
+      if (!extractedQuiz) {
+        const qm = normalizedInput.match(/(?:cuestionario|quiz|evaluaci[oó]n|actividad)\s+["']?([^,\n.]+?)(?:\s+(?:de\s+la\s+materia|en\s+la\s+materia|de|en|materia)\b|$)/i);
+        if (qm) extractedQuiz = qm[1].replace(/^(?:el|la|los|las)\s+/i, "").trim();
+      }
+      if (!extractedCourse) {
+        if (/desarrollo\s+de\s+software/i.test(normalizedInput)) {
+          extractedCourse = "Desarrollo de Software";
+        }
+      }
+      const isDraftOnly = /solo\s+guardar|guardar\s+borrador|no\s+envi|no\s+lo\s+entreg/i.test(normalizedInput);
+      const submitMode = isDraftOnly ? "save" : "finish";
+
+      const urlMatch = normalizedInput.match(/https?:\/\/[^\s"'<>]*(?:mod\/quiz|campusvirtual\.frm\.utn\.edu\.ar)[^\s"'<>]+/i);
+      let directQuizUrl = urlMatch ? urlMatch[0] : "";
+      if (!directQuizUrl && normalizedInput.includes("47104")) {
+        directQuizUrl = "https://campusvirtual.frm.utn.edu.ar/mod/quiz/view.php?id=47104";
+      }
+
+      const assistantMsgId = `campus-quiz-${Date.now()}`;
+
+      // Mensaje de feedback en tiempo real en el chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantMsgId,
+          role: "assistant",
+          content: "⏳ **Conectando con tu Campus Virtual UTN FRM...**\n\nEstoy accediendo al cuestionario oficial, analizando cada una de las preguntas con razonamiento conceptual y enviando las respuestas. En unos segundos verás los resultados aquí.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+
+      toast.loading("Accediendo al Campus Virtual UTN FRM y resolviendo cuestionario...", { id: "tabe-campus-quiz" });
+      resolveUtnFrmCampusQuiz(user?.id, {
+        quizUrl: directQuizUrl || undefined,
+        quizName: extractedQuiz || undefined,
+        courseName: extractedCourse || undefined,
+        submitMode,
+      })
+        .then((res) => {
+          toast.success("¡Cuestionario resuelto en el Campus Virtual!", {
+            id: "tabe-campus-quiz",
+            description: res.message,
+            duration: 7000,
+          });
+          addInAppNotification({
+            title: "Cuestionario resuelto en Campus Virtual",
+            message: res.message,
+            type: "quiz",
+            actionUrl: res.attemptUrl || "/cuestionarios",
+            progress: 100,
+            status: "completed",
+          });
+
+          let detailsText = "";
+          if (Array.isArray(res.resolvedQuestions) && res.resolvedQuestions.length > 0) {
+            detailsText = "\n\n### 📝 Preguntas y respuestas oficiales del intento:\n" +
+              res.resolvedQuestions.map((q: any, i: number) =>
+                `**${i + 1}. ${q.questionText}**\n- ✅ **Respuesta elegida**: `` ${q.chosenText || q.chosenValue} ``\n- 💡 *Justificación*: ${q.explanation}`
+              ).join("\n\n");
+          }
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: `🎉 **¡Cuestionario resuelto en tu Campus Virtual!**\n\n${res.message}${detailsText}${res.attemptUrl ? `\n\n🔗 [Ver intento entregado en Campus Virtual](${res.attemptUrl})` : ""}`,
+                  }
+                : m
+            )
+          );
+        })
+        .catch((err) => {
+          toast.error("Error al resolver cuestionario en el Campus", {
+            id: "tabe-campus-quiz",
+            description: err?.message || "Verificá tu conexión o credenciales del MCP UTN FRM.",
+            duration: 7000,
+          });
+          addInAppNotification({
+            title: "Error al resolver cuestionario",
+            message: err?.message || "No se pudo acceder o completar el cuestionario en el Campus.",
+            type: "quiz",
+            actionUrl: "/cuestionarios",
+            progress: 100,
+            status: "completed",
+          });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: `⚠️ **Aviso de resolución en Campus Virtual**:\n\n${err?.message || "Hubo un error de conexión con Moodle o las credenciales no son válidas."}`,
+                  }
+                : m
+            )
+          );
+        });
+
+      // Retornar inmediatamente para evitar que streamMessage alucine preguntas ficticias
+      return;
+    }
+
+    if (!isCampusQuizRequest && !hasQuizLink && (task === "quiz" || (docToProcess && /cuestionario|quiz|simulacro|preguntas/i.test(normalizedInput)))) {
       addInAppNotification({
         title: "Generando cuestionario con IA...",
         message: `Procesando documento "${docToProcess?.name || "examen"}" con todas las preguntas.`,

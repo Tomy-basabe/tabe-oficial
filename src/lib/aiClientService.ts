@@ -314,11 +314,13 @@ export async function buildStudentContext(
 
   // Resolución robusta de usuario: si userId viene como 'guest' o vacío pero hay sesión activa en el navegador
   let effectiveUserId = userId && userId !== "guest" ? userId : null;
+  let effectiveUserMeta: any = null;
   if (!effectiveUserId) {
     try {
       const { data: sess } = await supabase.auth.getSession();
       if (sess?.session?.user?.id) {
         effectiveUserId = sess.session.user.id;
+        effectiveUserMeta = sess.session.user.user_metadata;
       } else if (typeof window !== "undefined") {
         const rawDaily = localStorage.getItem("tabe_subjects_daily_cache");
         if (rawDaily) {
@@ -789,8 +791,20 @@ export async function buildStudentContext(
   }
   const calendarioCheatSheet = proximosDiasRef.join(" | ");
 
-  const contextText = `Sos ${personaName}, asistente y tutor académico de inteligencia artificial exclusivo de TABE (plataforma universitaria de Argentina).
+  const contextText = `Sos ${personaName.replace(/^Sos\s+/i, '')}, asistente y tutor académico de inteligencia artificial exclusivo de TABE (plataforma universitaria de Argentina).
 Personalidad: ${personaPrompt}
+
+CAMPUS VIRTUAL UTN FRM (INTEGRACIÓN OFICIAL MCP ACTIVA):
+Tenés integración directa y permisos de ejecución mediante el MCP de UTN FRM para ingresar al Campus Virtual (Moodle), gestionar aulas, consultar calificaciones y resolver o reintentar cuestionarios y actividades formativas de cátedra.
+Cuando el estudiante te solicite resolver, reintentar o completar un cuestionario en su Campus Virtual, confirmale de inmediato con entusiasmo y calidez que la tarea está siendo ejecutada en su cuenta de Moodle y que le llegará el aviso a la campanita cuando finalice.
+Emití siempre al final del mensaje el bloque de acción correspondiente:
+\`\`\`tabe-action:utn-quiz
+{
+  "quizName": "Nombre exacto del cuestionario",
+  "courseName": "Nombre de la materia",
+  "submitMode": "finish"
+}
+\`\`\`
 MODALIDAD OPERATIVA: ${powerDirectives}
 FECHA ACTUAL: ${hoyStr} (${hoyDia})
 ${cleanSubjectFocus ? `\n🎯 MATERIA DE ENFOQUE SELECCIONADA POR EL ESTUDIANTE: "${cleanSubjectFocus}"\nEl estudiante eligió explícitamente trabajar y enfocarse en "${cleanSubjectFocus}". Toda pregunta de contenido, creación de flashcards, cuestionarios o parciales que solicite sin indicar otra materia debe aplicarse y vincularse prioritariamente a "${cleanSubjectFocus}".\n` : ""}
@@ -849,7 +863,7 @@ ${moodleGeneralSection ? `\n${moodleGeneralSection}\n` : ""}${(() => {
     carrera: resolvedCarrera,
     utnfrm_encuestas_enabled: resolvedEncuestasEnabled,
     plan_type: resolvedPlanType,
-  });
+  }, effectiveUserMeta);
   return utnMcpBlock ? `\n${utnMcpBlock}\n` : "";
 })()}
 DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
@@ -941,7 +955,7 @@ DIRECTIVAS CRÍTICAS DE RESPUESTA Y FORMATO (NVIDIA NIM CLUSTER):
 \`\`\`
 8. CUESTIONARIOS DEL CAMPUS VIRTUAL, MODELOS DE EXAMEN Y EVALUACIONES (RESOLUCIÓN Y PRÁCTICA):
    - RESOLUCIÓN DIRECTA DE CUESTIONARIOS Y MODELOS:
-     * Si el estudiante te pide: "resolvé mis cuestionarios del campus", "resolvé este cuestionario", "ayudame a responder las preguntas de este quiz/modelo", "cuáles son las respuestas correctas de este examen o materia":
+     * Si el estudiante te pide: "resolvé mis cuestionarios del campus", "resolvé en mi campus el cuestionario...", "dale en reintentar cuestionario", "reintentar cuestionario", "resolvé este cuestionario", "ayudame a responder las preguntas de este quiz/modelo", "cuáles son las respuestas correctas de este examen o materia":
        TENÉS PERMISO TOTAL Y OBLIGATORIO PARA RESOLVERLOS DE INMEDIATO.
      * PROHIBICIÓN TOTAL: NUNCA le digas al estudiante:
        ❌ "Yo no puedo resolver tus cuestionarios del campus por vos porque el objetivo es que aprendas"
@@ -2667,7 +2681,8 @@ async function resolveSubjectForUser(
 async function executeActionBlock(
   content: string,
   userId: string,
-  focusedSubject?: string
+  focusedSubject?: string,
+  messages?: Array<{ role: string; content: string }>
 ): Promise<{ event_created?: any; flashcards_created?: any; quiz_created?: any; db_mutations?: any[]; cleanedContent: string }> {
   let cleanedContent = content;
   let event_created = null;
@@ -2695,6 +2710,72 @@ async function executeActionBlock(
       raw: (actionMatch[2] || "").trim(),
       fullMatch: actionMatch[0],
     });
+  }
+
+  // AUTO-TRIGGER DETERMINISTA: Si el modelo no emitió el bloque pero el usuario pidió resolver/reintentar un cuestionario
+  const hasQuizAction = blocksToProcess.some((b) =>
+    b.type === "utn-quiz" || b.type === "utn_quiz" || b.type === "campus-quiz" || b.type === "campus_quiz"
+  );
+
+  if (!hasQuizAction) {
+    const lastUserMsg = (messages || []).filter((m) => m.role === "user").pop()?.content || "";
+    const lowerUser = lastUserMsg.toLowerCase();
+    const lowerAi = content.toLowerCase();
+
+    const isCampusQuizIntent =
+      (lowerUser.includes("cuestionario") || lowerUser.includes("quiz") || lowerUser.includes("actividad")) &&
+      (lowerUser.includes("campus") || lowerUser.includes("moodle") || lowerUser.includes("reintentar") || lowerUser.includes("resolv") || lowerAi.includes("campus virtual"));
+
+    if (isCampusQuizIntent) {
+      let extractedQuiz = "";
+      let extractedCourse = focusedSubject || "";
+      let extractedUrl = "";
+
+      const urlMatch = lastUserMsg.match(/https?:\/\/[^\s"'<>]*(?:mod\/quiz|campusvirtual\.frm\.utn\.edu\.ar)[^\s"'<>]+/i);
+      if (urlMatch) {
+        extractedUrl = urlMatch[0];
+      }
+
+      // Extraer texto entre comillas (ej: "Cuestionario actividad I HTML", "Desarrollo de Software")
+      const quotes = Array.from(lastUserMsg.matchAll(/["'“]([^"'”]+)["'”]/g)).map((m) => m[1].trim());
+      if (quotes.length > 0) {
+        extractedQuiz = quotes[0];
+        if (quotes.length > 1 && !extractedCourse) {
+          extractedCourse = quotes[1];
+        }
+      }
+
+      if (!extractedQuiz) {
+        const qm = lastUserMsg.match(/(?:cuestionario|quiz|evaluaci[oó]n|actividad)\s+["']?([^,\n.]+?)(?:\s+(?:de\s+la\s+materia|en\s+la\s+materia|de|en|materia)\b|$)/i);
+      if (qm) extractedQuiz = qm[1].replace(/^(?:el|la|los|las)\s+/i, "").trim();
+      }
+
+      if (!extractedCourse) {
+        const cm = lastUserMsg.match(/(?:materia|curso|catedra)\s+["']?([^,"']+)["']?/i);
+        if (cm) extractedCourse = cm[1].trim();
+      }
+
+      // Si aún no tenemos materia, buscar nombres comunes como "Desarrollo de Software"
+      if (!extractedCourse) {
+        if (/desarrollo\s+de\s+software/i.test(lastUserMsg) || /desarrollo\s+de\s+software/i.test(content)) {
+          extractedCourse = "Desarrollo de Software";
+        }
+      }
+
+      const isDraftOnly = /solo\s+guardar|guardar\s+borrador|no\s+envi|no\s+lo\s+entreg/i.test(lastUserMsg);
+      const submitMode = isDraftOnly ? "save" : "finish";
+
+      blocksToProcess.push({
+        type: "utn-quiz",
+        raw: JSON.stringify({
+          quizName: extractedQuiz || "",
+          courseName: extractedCourse || "",
+          quizUrl: extractedUrl,
+          submitMode,
+        }),
+        fullMatch: "",
+      });
+    }
   }
 
   for (const block of blocksToProcess) {
@@ -3344,7 +3425,8 @@ export async function streamAIChat(params: {
     const { event_created, flashcards_created, quiz_created, db_mutations, cleanedContent } = await executeActionBlock(
       finalContent,
       userId,
-      selectedSubject
+      selectedSubject,
+      messages
     );
     const finalCleaned = cleanedContent || cleanAIResponse(finalContent);
     onComplete({

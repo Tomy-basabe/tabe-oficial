@@ -1728,7 +1728,7 @@ export const AVAILABLE_PROVINCIAS: ProvinciaOption[] = ALL_PROVINCIAS.filter((p)
 export function isUtnFrmFaculty(facultadStr?: string | null): boolean {
   if (!facultadStr) return false;
   const f = facultadStr.trim().toLowerCase();
-  if (f === 'utn' || f === 'utn_frm' || f === 'utn frm') return true;
+  if (f === 'utn' || f === 'utn_frm' || f === 'utn frm' || f === 'utn-frm') return true;
   const isUtn = f.includes('utn') || f.includes('tecnologica') || f.includes('tecnológica');
   const isFrm = f.includes('frm') || (f.includes('mendoza') && !f.includes('san rafael') && !f.includes('frsr'));
   const notOtherRegionals =
@@ -1738,9 +1738,15 @@ export function isUtnFrmFaculty(facultadStr?: string | null): boolean {
     !f.includes('frsf') &&
     !f.includes('frro') &&
     !f.includes('frt') &&
-    !f.includes('frvm');
-
-  return isUtn && isFrm && notOtherRegionals;
+    !f.includes('frvm') &&
+    !f.includes('buenos aires') &&
+    !f.includes('cordoba') &&
+    !f.includes('córdoba') &&
+    !f.includes('rosario') &&
+    !f.includes('santa fe');
+  if (isUtn && isFrm && notOtherRegionals) return true;
+  if (isUtn && notOtherRegionals) return true;
+  return false;
 }
 
 /**
@@ -1748,9 +1754,26 @@ export function isUtnFrmFaculty(facultadStr?: string | null): boolean {
  */
 export function isUtnFrmCareer(careerIdOrLabel?: string | null): boolean {
   if (!careerIdOrLabel) return false;
-  const clean = careerIdOrLabel.trim().toLowerCase();
+  const clean = careerIdOrLabel.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (
+    clean.includes('sistemas') &&
+    !clean.includes('unsj') &&
+    !clean.includes('unvime') &&
+    !clean.includes('uner') &&
+    !clean.includes('unlar') &&
+    !clean.includes('chaco') &&
+    !clean.includes('frsf') &&
+    !clean.includes('frba') &&
+    !clean.includes('frt') &&
+    !clean.includes('frcu')
+  ) {
+    return true;
+  }
   const match = AVAILABLE_CAREERS.find(
-    (c) => c.id.toLowerCase() === clean || c.label.toLowerCase() === clean
+    (c) =>
+      c.id.toLowerCase() === clean ||
+      c.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(clean) ||
+      clean.includes(c.id.toLowerCase())
   );
   return match?.facultad === 'UTN';
 }

@@ -218,17 +218,49 @@ function decodeCreds(raw: string): UtnFrmMcpCredentials | null {
   }
 }
 
-export function getStoredUtnFrmMcpCredentials(userId?: string | null): UtnFrmMcpCredentials | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw =
-      localStorage.getItem(getCredsKey(userId)) ||
-      localStorage.getItem(getCredsKey("guest"));
-    if (!raw) return null;
-    return decodeCreds(raw);
-  } catch {
-    return null;
+export function getStoredUtnFrmMcpCredentials(
+  userId?: string | null,
+  userMetadata?: any
+): UtnFrmMcpCredentials | null {
+  if (typeof window !== "undefined") {
+    try {
+      const direct =
+        localStorage.getItem(getCredsKey(userId)) ||
+        localStorage.getItem(getCredsKey("guest")) ||
+        localStorage.getItem("tabe_utnfrm_mcp_creds_persistent");
+      if (direct) {
+        const decoded = decodeCreds(direct);
+        if (decoded) return decoded;
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(UTN_FRM_MCP_CREDS_PREFIX)) {
+          const val = localStorage.getItem(k);
+          if (val) {
+            const decoded = decodeCreds(val);
+            if (decoded?.username && decoded?.password) {
+              localStorage.setItem(getCredsKey(userId), val);
+              return decoded;
+            }
+          }
+        }
+      }
+    } catch {}
   }
+
+  if (userMetadata?.utnfrm_mcp_creds) {
+    const fromMeta = decodeCreds(userMetadata.utnfrm_mcp_creds);
+    if (fromMeta?.username && fromMeta?.password) {
+      if (typeof window !== "undefined") {
+        try {
+          saveStoredUtnFrmMcpCredentials(userId, fromMeta);
+        } catch {}
+      }
+      return fromMeta;
+    }
+  }
+
+  return null;
 }
 
 export function saveStoredUtnFrmMcpCredentials(
@@ -238,12 +270,16 @@ export function saveStoredUtnFrmMcpCredentials(
   if (typeof window === "undefined") return;
   try {
     const key = getCredsKey(userId);
+    const guestKey = getCredsKey("guest");
     if (!creds) {
       localStorage.removeItem(key);
-      localStorage.removeItem(getCredsKey("guest"));
+      localStorage.removeItem(guestKey);
+      localStorage.removeItem("tabe_utnfrm_mcp_creds_persistent");
     } else {
       const encoded = encodeCreds(creds);
       localStorage.setItem(key, encoded);
+      localStorage.setItem(guestKey, encoded);
+      localStorage.setItem("tabe_utnfrm_mcp_creds_persistent", encoded);
     }
   } catch {}
 }
@@ -259,6 +295,19 @@ export function getStoredUtnFrmMcpSnapshot(
         localStorage.getItem(getSnapshotKey("guest"));
       if (raw) {
         return JSON.parse(raw) as UtnFrmMcpSnapshot;
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(UTN_FRM_MCP_SNAPSHOT_PREFIX)) {
+          const val = localStorage.getItem(k);
+          if (val) {
+            const parsed = JSON.parse(val) as UtnFrmMcpSnapshot;
+            if (parsed && (parsed.campus || parsed.sysacad || parsed.summary)) {
+              localStorage.setItem(getSnapshotKey(userId), val);
+              return parsed;
+            }
+          }
+        }
       }
     } catch {}
   }
@@ -351,23 +400,44 @@ export async function enforceUtnFrmMcpFacultyGate(
   userId: string | null | undefined,
   academic?: { facultad?: string | null; carrera?: string | null }
 ): Promise<boolean> {
+  if (!academic || (!academic.facultad && !academic.carrera)) {
+    return true;
+  }
   const eligible = isUserFromUtnFrm(academic);
   if (!eligible) {
-    const hasLocal =
-      typeof window !== "undefined" &&
-      Boolean(
-        localStorage.getItem(getSnapshotKey(userId)) ||
-          localStorage.getItem(getCredsKey(userId)) ||
-          localStorage.getItem(getSnapshotKey("guest")) ||
-          localStorage.getItem(getCredsKey("guest"))
-      );
-    if (hasLocal) {
-      await disconnectUtnFrmMcp(userId);
+    const facLower = (academic.facultad || '').toLowerCase();
+    const isExplicitlyOtherUni =
+      facLower &&
+      !facLower.includes('utn') &&
+      !facLower.includes('tecnologica') &&
+      !facLower.includes('tecnológica') &&
+      !facLower.includes('frm') &&
+      !facLower.includes('mendoza') &&
+      !facLower.includes('sistemas');
+
+    if (isExplicitlyOtherUni) {
+      const hasLocal =
+        typeof window !== 'undefined' &&
+        Boolean(
+          localStorage.getItem(getSnapshotKey(userId)) ||
+            localStorage.getItem(getCredsKey(userId)) ||
+            localStorage.getItem(getSnapshotKey('guest')) ||
+            localStorage.getItem(getCredsKey('guest'))
+        );
+      if (hasLocal) {
+        await disconnectUtnFrmMcp(userId);
+      }
+      return false;
+    }
+    const storedCreds = getStoredUtnFrmMcpCredentials(userId);
+    if (storedCreds?.username && storedCreds?.password) {
+      return true;
     }
     return false;
   }
   return true;
 }
+
 
 /**
  * Conecta y sincroniza el MCP de UTN FRM (Campus Virtual, Autogestión Sysacad, Correo Institucional y Avisos)
@@ -464,9 +534,16 @@ export async function syncUtnFrmMcp(
       },
       avisos: snapshot.avisos.slice(0, 5),
     };
+    const encodedCreds = encodeCreds({
+      username: cleanUsername,
+      password: cleanPassword,
+      email: snapshot.resolvedEmail,
+      legajo: snapshot.legajo,
+    });
     await supabase.auth.updateUser({
       data: {
         utnfrm_mcp_meta: compactMeta,
+        utnfrm_mcp_creds: encodedCreds,
       },
     });
   } catch {}
@@ -623,54 +700,72 @@ export interface ResolveCampusQuizResult {
  * inicia o continúa el intento del cuestionario, resuelve las preguntas con IA
  * y guarda las respuestas en Moodle (o las envía si submitMode es "finish").
  */
+// Mapa para deduplicar llamadas concurrentes a la resolución de un mismo cuestionario
+const activeQuizResolutions = new Map<string, Promise<ResolveCampusQuizResult>>();
+
 export async function resolveUtnFrmCampusQuiz(
   userId: string | null | undefined,
   options: ResolveCampusQuizOptions
 ): Promise<ResolveCampusQuizResult> {
-  const creds = getStoredUtnFrmMcpCredentials(userId);
-  if (!creds || !creds.username || !creds.password) {
-    throw new Error(
-      "Para resolver cuestionarios en el Campus Virtual, primero debés conectar tu usuario (DNI) y clave en Configuración → Integraciones → MCP UTN FRM."
-    );
+  const dedupKey = `${userId || "anon"}_${options.quizUrl || ""}_${options.quizName || ""}_${options.courseName || ""}_${options.submitMode || "save"}`;
+  const existing = activeQuizResolutions.get(dedupKey);
+  if (existing) {
+    return existing;
   }
 
-  let authHeader: Record<string, string> = {};
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-    if (token) {
-      authHeader = { Authorization: `Bearer ${token}` };
+  const promise = (async () => {
+    const creds = getStoredUtnFrmMcpCredentials(userId);
+    if (!creds || !creds.username || !creds.password) {
+      throw new Error(
+        "Para resolver cuestionarios en el Campus Virtual, primero debés conectar tu usuario (DNI) y clave en Configuración → Integraciones → MCP UTN FRM."
+      );
     }
-  } catch {}
 
-  const response = await fetch("/api/utnfrm-mcp", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader,
-    },
-    body: JSON.stringify({
-      action: "resolve_campus_quiz",
-      username: creds.username,
-      password: creds.password,
-      legajo: creds.legajo,
-      quizUrl: options.quizUrl,
-      quizName: options.quizName,
-      courseName: options.courseName,
-      submitMode: options.submitMode || "save",
-      geminiApiKey: GEMINI_API_KEY,
-      customAnswers: options.customAnswers,
-    }),
-  });
+    let authHeader: Record<string, string> = {};
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (token) {
+        authHeader = { Authorization: `Bearer ${token}` };
+      }
+    } catch {}
 
-  const data = await response.json().catch(() => null);
-  if (!data || !data.ok) {
-    throw new Error(
-      data?.error || data?.message || "No se pudo acceder o resolver el cuestionario en el Campus Virtual."
-    );
+    const response = await fetch("/api/utnfrm-mcp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader,
+      },
+      body: JSON.stringify({
+        action: "resolve_campus_quiz",
+        username: creds.username,
+        password: creds.password,
+        legajo: creds.legajo,
+        quizUrl: options.quizUrl,
+        quizName: options.quizName,
+        courseName: options.courseName,
+        submitMode: options.submitMode || "save",
+        geminiApiKey: GEMINI_API_KEY,
+        customAnswers: options.customAnswers,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!data || !data.ok) {
+      throw new Error(
+        data?.error || data?.message || "No se pudo acceder o resolver el cuestionario en el Campus Virtual."
+      );
+    }
+
+    return data;
+  })();
+
+  activeQuizResolutions.set(dedupKey, promise);
+  try {
+    return await promise;
+  } finally {
+    activeQuizResolutions.delete(dedupKey);
   }
-
-  return data;
 }
 
 /**
@@ -687,12 +782,16 @@ export function buildUtnFrmMcpContextSection(
   },
   userMetadata?: any
 ): string {
+  const hasAcademicData = Boolean(academic?.facultad || academic?.carrera);
+  if (hasAcademicData && !isUserFromUtnFrm(academic)) {
+    return "";
+  }
+
   const snapshot = getStoredUtnFrmMcpSnapshot(userId, userMetadata);
-  const creds = getStoredUtnFrmMcpCredentials(userId);
+  const creds = getStoredUtnFrmMcpCredentials(userId, userMetadata);
   const hasUtnData = !!snapshot || !!creds;
 
-  if (!isUserFromUtnFrm(academic) && !hasUtnData) {
-    purgeUtnFrmMcpLocalData(userId);
+  if (!hasAcademicData && !hasUtnData) {
     return "";
   }
 

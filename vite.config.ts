@@ -1,3 +1,4 @@
+import fs from "fs";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -403,7 +404,20 @@ export default defineConfig(({ mode }) => {
             }
           });
           server.middlewares.use("/api/utnfrm-mcp", async (req, res) => {
-            await utnFrmMcpHandler(req, res);
+            try {
+              // Asegurar que las variables de .env estén disponibles en process.env para los endpoints SSR
+              if (!process.env.NVIDIA_API_KEY && fs.existsSync(".env")) {
+                const envStr = fs.readFileSync(".env", "utf8");
+                const nMatch = envStr.match(/NVIDIA_API_KEY=(.*)/);
+                if (nMatch) process.env.NVIDIA_API_KEY = nMatch[1].replace(/^["']|["']$/g, "").trim();
+              }
+              const mod = await server.ssrLoadModule("./api/utnfrm-mcp.ts");
+              const handler = mod?.default || utnFrmMcpHandler;
+              await handler(req, res);
+            } catch (err: any) {
+              console.error("[Vite utnfrm-mcp ssrLoadModule error]:", err);
+              await utnFrmMcpHandler(req, res);
+            }
           });
         },
       },
