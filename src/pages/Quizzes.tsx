@@ -1276,14 +1276,14 @@ export default function Quizzes() {
                     pregunta: `Aquí puedes colocar preguntas de opción múltiple (Ejemplo #${i + 1})`,
                     explicacion: `Y aquí puedes añadir una explicacion detallada que aparecerá cuando elijas una respuesta. Esta es la explicación para la pregunta ${i + 1}.`,
                     is_multi_select: false,
-                    options: [
+                    options: shuffleArray([
                         { id: `opt-${i}-1`, question_id: `mock-q-${i}`, texto: "Aquí pondrías la respuesta correcta", es_correcta: true },
                         { id: `opt-${i}-2`, question_id: `mock-q-${i}`, texto: "Aquí una respuesta incorrecta", es_correcta: false },
                         { id: `opt-${i}-3`, question_id: `mock-q-${i}`, texto: "Otra opción distractora", es_correcta: false },
                         { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
-                    ]
+                    ])
                 }));
-                setStudyQuestions(shuffleArray(mockQs));
+                setStudyQuestions(order === 'random' ? shuffleArray(mockQs) : mockQs);
             } else {
                 setStudyQuestions([]);
             }
@@ -1306,15 +1306,19 @@ export default function Quizzes() {
             let enriched = questions.map((q: any) => ({
                 ...q,
                 is_multi_select: q.is_multi_select || false,
-                options: (options || []).filter((o: any) => o.question_id === q.id)
+                // Las opciones siempre se barajan completamente al azar para evitar que la opción correcta siempre esté en la misma posición
+                options: shuffleArray((options || []).filter((o: any) => o.question_id === q.id))
             }));
             
             if (filterIds.length > 0) {
                 enriched = enriched.filter((q: any) => filterIds.includes(q.id));
             }
 
-            // Siempre al azar con algoritmo Fisher-Yates sin sesgo
-            setStudyQuestions(shuffleArray(enriched));
+            if (order === 'random') {
+                setStudyQuestions(shuffleArray(enriched));
+            } else {
+                setStudyQuestions(enriched);
+            }
         }
     };
 
@@ -1389,7 +1393,13 @@ export default function Quizzes() {
         setFinished(false);
         setStudyTime(0);
         setWrongQuestionIds(new Set());
-        setStudyQuestions(prev => shuffleArray(prev));
+        setStudyQuestions(prev => {
+            const reShuffled = prev.map(q => ({
+                ...q,
+                options: shuffleArray(q.options || [])
+            }));
+            return studyOrder === 'random' ? shuffleArray(reShuffled) : reShuffled;
+        });
     };
 
     const exitStudy = () => {
@@ -2772,9 +2782,42 @@ const clozeData = parseCloze(currentQ.pregunta);
                             </div>
                         )}
 
-                        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center gap-2.5 text-xs text-zinc-700 dark:text-zinc-300">
-                            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                            <span>Las preguntas se mezclarán <strong>completamente al azar</strong> para una autoevaluación óptima.</span>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Orden de las preguntas</Label>
+                            <RadioGroup value={studyOrder} onValueChange={(v: any) => setStudyOrder(v)}>
+                                <div className="flex flex-col gap-2">
+                                    <label className={cn(
+                                        "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                                        studyOrder === 'random' ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs" : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                                    )}>
+                                        <RadioGroupItem value="random" className="sr-only" />
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
+                                            studyOrder === 'random' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100" : "border-zinc-400 dark:border-zinc-600 bg-transparent"
+                                        )}>
+                                            {studyOrder === 'random' && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-900" />}
+                                        </div>
+                                        <span className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Al azar (Recomendado)</span>
+                                    </label>
+                                    <label className={cn(
+                                        "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                                        studyOrder === 'sequential' ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs" : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                                    )}>
+                                        <RadioGroupItem value="sequential" className="sr-only" />
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
+                                            studyOrder === 'sequential' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100" : "border-zinc-400 dark:border-zinc-600 bg-transparent"
+                                        )}>
+                                            {studyOrder === 'sequential' && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-900" />}
+                                        </div>
+                                        <span className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Orden original</span>
+                                    </label>
+                                </div>
+                            </RadioGroup>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 pt-1">
+                                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                Las opciones de respuesta se mezclan siempre al azar para desafiar tu memoria.
+                            </p>
                         </div>
 
                         <div className="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-3">
