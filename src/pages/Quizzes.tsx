@@ -72,6 +72,17 @@ interface QuizDeck {
     subject?: { nombre: string; codigo: string; año: number };
 }
 
+export function shuffleArray<T>(array: T[]): T[] {
+    const copy = [...array];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+    }
+    return copy;
+}
+
 interface QuizQuestion {
     id: string;
     pregunta: string;
@@ -1272,7 +1283,7 @@ export default function Quizzes() {
                         { id: `opt-${i}-4`, question_id: `mock-q-${i}`, texto: "Y otra distracción más", es_correcta: false }
                     ]
                 }));
-                setStudyQuestions(order === 'random' ? mockQs.sort(() => Math.random() - 0.5) : mockQs);
+                setStudyQuestions(shuffleArray(mockQs));
             } else {
                 setStudyQuestions([]);
             }
@@ -1302,11 +1313,8 @@ export default function Quizzes() {
                 enriched = enriched.filter((q: any) => filterIds.includes(q.id));
             }
 
-            if (order === 'random') {
-                setStudyQuestions(enriched.sort(() => Math.random() - 0.5));
-            } else {
-                setStudyQuestions(enriched);
-            }
+            // Siempre al azar con algoritmo Fisher-Yates sin sesgo
+            setStudyQuestions(shuffleArray(enriched));
         }
     };
 
@@ -1381,9 +1389,7 @@ export default function Quizzes() {
         setFinished(false);
         setStudyTime(0);
         setWrongQuestionIds(new Set());
-        if (studyOrder === 'random') {
-            setStudyQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
-        }
+        setStudyQuestions(prev => shuffleArray(prev));
     };
 
     const exitStudy = () => {
@@ -2766,38 +2772,9 @@ const clozeData = parseCloze(currentQ.pregunta);
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Orden de las preguntas</Label>
-                            <RadioGroup value={studyOrder} onValueChange={(v: any) => setStudyOrder(v)}>
-                                <div className="flex flex-col gap-2">
-                                    <label className={cn(
-                                        "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
-                                        studyOrder === 'random' ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs" : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-                                    )}>
-                                        <RadioGroupItem value="random" className="sr-only" />
-                                        <div className={cn(
-                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
-                                            studyOrder === 'random' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100" : "border-zinc-400 dark:border-zinc-600 bg-transparent"
-                                        )}>
-                                            {studyOrder === 'random' && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-900" />}
-                                        </div>
-                                        <span className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Al azar (Recomendado)</span>
-                                    </label>
-                                    <label className={cn(
-                                        "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
-                                        studyOrder === 'sequential' ? "bg-zinc-100 dark:bg-zinc-800/80 border-zinc-900 dark:border-zinc-100 shadow-2xs" : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-                                    )}>
-                                        <RadioGroupItem value="sequential" className="sr-only" />
-                                        <div className={cn(
-                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
-                                            studyOrder === 'sequential' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100" : "border-zinc-400 dark:border-zinc-600 bg-transparent"
-                                        )}>
-                                            {studyOrder === 'sequential' && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-900" />}
-                                        </div>
-                                        <span className="font-medium text-xs text-zinc-900 dark:text-zinc-100">Orden original</span>
-                                    </label>
-                                </div>
-                            </RadioGroup>
+                        <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center gap-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span>Las preguntas se mezclarán <strong>completamente al azar</strong> para una autoevaluación óptima.</span>
                         </div>
 
                         <div className="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-3">
