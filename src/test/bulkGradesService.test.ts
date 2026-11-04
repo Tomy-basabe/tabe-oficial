@@ -123,4 +123,45 @@ Análisis Matemático I: 6`;
     expect(names).toContain("Comunicación de Datos");
     expect(names).toContain("Gestión de Datos");
   });
+
+  it("parsea lista con anotaciones de año y materias de ingreso", () => {
+    const rawAiList = `Ingreso Por Abanderado (0° año): Aprobada en 2024
+T.A.I.U. - Taller de Ambientación e Inte (0° año): Aprobada en 2024
+Algoritmos y Estructuras de Datos (1° año): 9
+Análisis Matemático I (1° año): 8
+Arquitectura de Computadoras (1° año): 7
+Física I (1° año): 8
+Lógica y Estructuras Discretas (1° año): 7
+Sistemas y Procesos de Negocio (1° año): 7
+Álgebra y Geometría Analítica (1° año): 7
+Análisis de Sistemas de Información (2° año): 6
+Análisis Matemático II (2° año): 8
+Física II (2° año): 10
+Ingeniería y Sociedad (2° año): 8
+Inglés I (2° año): 6
+Paradigmas de Programación (2° año): 8
+Sintaxis y Semántica de los Lenguajes (2° año): 8
+Sistemas Operativos (2° año): 7
+Bases de Datos (3° año): 9
+Comunicación de Datos (3° año): 10
+Economía (3° año): 8
+Probabilidad y Estadística (3° año): 6`;
+
+    const parsed = parseBulkSubjectGradesFromText(rawAiList);
+    expect(parsed.length).toBe(21);
+    expect(parsed.map((p) => p.subjectName)).toContain("Algoritmos y Estructuras de Datos");
+    expect(parsed.map((p) => p.subjectName)).toContain("Física II");
+  });
+
+  it("parsea sin problemas listas masivas de hasta 50 materias", () => {
+    const lines: string[] = [];
+    for (let i = 1; i <= 50; i++) {
+      lines.push(`${i}. Materia Universitaria ${i} (${Math.ceil(i / 10)}° año): ${6 + (i % 5)}`);
+    }
+    const raw50 = lines.join("\n");
+    const parsed50 = parseBulkSubjectGradesFromText(raw50);
+    expect(parsed50.length).toBe(50);
+    expect(parsed50[0].subjectName).toBe("Materia Universitaria 1");
+    expect(parsed50[49].subjectName).toBe("Materia Universitaria 50");
+  });
 });

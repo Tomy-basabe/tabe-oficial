@@ -208,10 +208,10 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
       }
     }
 
-    // CASO 2: Formato estándar con delimitador (: = - – — | /)
+    // CASO 2: Formato estándar con delimitador (: = - – — | /) soportando paréntesis en el nombre ej: "Física (1° año): 8"
     if (rawGrade === null) {
       const matchStandard = cleanedLine.match(
-        /^(?:[-*•🔹🔸👉✓✔\d.)\][#]+\s*)?(?:[a-zA-Z0-9]{3,7}\s*[-–—:]\s*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°-]+?)\s*[:=–—\-/\t]\s*(\d{1,2}(?:[.,]\d{1,2})?)(?:\s*\([a-záéíóúñA-ZÁÉÍÓÚÑ\s]+\))?(?:\s*\/10|\s*pts)?(?:\s*\(.*?\))?(?:\s*[-–—]\s*.*)?$/i
+        /^(?:[-*•🔹🔸👉✓✔\d.)\][#]+\s*)?(?:[a-zA-Z0-9]{3,7}\s*[-–—:]\s*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°() -]+?)\s*[:=–—\-/\t]\s*(\d{1,2}(?:[.,]\d{1,2})?)(?:\s*\([a-záéíóúñA-ZÁÉÍÓÚÑ\s]+\))?(?:\s*\/10|\s*pts)?(?:\s*\(.*?\))?(?:\s*[-–—]\s*.*)?$/i
       );
       if (matchStandard) {
         rawName = matchStandard[1].trim();
@@ -219,10 +219,22 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
       }
     }
 
+    // CASO 2B: Materia aprobada sin nota numérica (ej: "Ingreso: Aprobada en 2024", "T.A.I.U.: Aprobada")
+    if (rawGrade === null) {
+      const matchAprobadaDirecta = cleanedLine.match(
+        /^(?:[-*•🔹🔸👉✓✔\d.)\][#]+\s*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°() -]+?)\s*[:=–—\-/\t]\s*(?:aprobada?|promocion(?:ada)?)(?:\s+en\s+(\d{4}))?$/i
+      );
+      if (matchAprobadaDirecta) {
+        rawName = matchAprobadaDirecta[1].trim();
+        rawGrade = 6; // Nota estándar aprobada
+        if (matchAprobadaDirecta[2]) rawDate = `${matchAprobadaDirecta[2]}-12-01`;
+      }
+    }
+
     // CASO 3: Formato con conectores (con, nota, calificacion, obtuve, saque)
     if (rawGrade === null) {
       const matchConnector = cleanedLine.match(
-        /^(?:[-*•\d.)\]\s]*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°-]+?)\s+(?:con|nota|calificacion|obtuve|saque|calif)\s*[:=]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i
+        /^(?:[-*•\d.)\]\s]*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°() -]+?)\s+(?:con|nota|calificacion|obtuve|saque|calif)\s*[:=]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i
       );
       if (matchConnector) {
         rawName = matchConnector[1].trim();
@@ -233,7 +245,7 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
     // CASO 4: Formato con nota entre paréntesis o corchetes al final
     if (rawGrade === null) {
       const matchParen = cleanedLine.match(
-        /^(?:[-*•\d.)\]\s]*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°-]+?)\s*[([({](\d{1,2}(?:[.,]\d{1,2})?)[)\]}]/i
+        /^(?:[-*•\d.)\]\s]*)?([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°() -]+?)\s*[([({](\d{1,2}(?:[.,]\d{1,2})?)[)\]}]/i
       );
       if (matchParen) {
         rawName = matchParen[1].trim();
@@ -244,7 +256,7 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
     // CASO 5: Formato inverso ("8 - Álgebra", "Nota 9: Análisis")
     if (rawGrade === null) {
       const matchInverse = cleanedLine.match(
-        /^(?:nota\s*)?(\d{1,2}(?:[.,]\d{1,2})?)\s*[:=–—\-]\s*([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°-]+)$/i
+        /^(?:nota\s*)?(\d{1,2}(?:[.,]\d{1,2})?)\s*[:=–—\-]\s*([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s.,/'"°() -]+)$/i
       );
       if (matchInverse) {
         rawGrade = cleanGradeNum(matchInverse[1]);
@@ -258,6 +270,9 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
         .replace(/^[-*•🔹🔸👉✓✔\d.)\][#]+\s*/, "")
         .replace(/^(?:\d{5,8}|08\d{4}|K\d{2}|[A-Z0-9]{2,6})\s*[-–—:]\s*/i, "")
         .replace(/^(?:materia|asignatura|curso)\s*[:=–—\-]\s*/i, "")
+        .replace(/\s*\(\s*\d+°?\s*(?:a[nñ]o|semestre|cuatr(?:imestre)?)\s*\)/gi, "")
+        .replace(/\s*\[\s*\d+°?\s*(?:a[nñ]o|semestre|cuatr(?:imestre)?)\s*\]/gi, "")
+        .replace(/\s*-\s*\d+°?\s*a[nñ]o/gi, "")
         .replace(/\s*\((?:aprobada?|regular|promocion(?:ada)?|final|examen|libre|nota).*?\)$/i, "")
         .replace(/\s*[-–—]\s*(?:aprobada?|regular|promocion|final|examen|fecha).*$/i, "")
         .trim();
