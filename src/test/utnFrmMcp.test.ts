@@ -325,4 +325,81 @@ describe("UTN FRM Exclusive MCP Gate & Context", () => {
     expect(extracted[1].subjectName).toBe("Análisis Matemático 1");
     expect(extracted[1].grade).toBe(7);
   });
+
+  it("procesa exitosamente la tabla completa de Histórico de Exámenes de UTN FRM (21 registros con aplazos y aprobadas)", async () => {
+    const { parseSysacadTable } = await import("../../api/utnfrm-mcp");
+    const { extractApprovedSubjectsFromSysacad } = await import("@/lib/bulkGradesService");
+
+    // Replica exacta de la tabla de la imagen 2 del usuario (autogestion5.frm.utn.edu.ar/academico3/ver.frc)
+    const utnHistoricoExamenesHtml = `
+      <div id="cuerpo">
+        <b>Cantidad Total: 21</b>
+        <table border="1" cellpadding="2" cellspacing="0">
+          <tr>
+            <th></th>
+            <th>ESP</th>
+            <th>PLAN</th>
+            <th>MATERIA</th>
+            <th>TOMO</th>
+            <th>FOLIO</th>
+            <th>FECHA</th>
+            <th>NOTA</th>
+            <th>ANULADO</th>
+            <th>RESOL</th>
+          </tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Probabilidad y Estadística</td><td>670</td><td>75</td><td>30/06/2026</td><td>6</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Economía</td><td>670</td><td>88</td><td>30/06/2026</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Bases de Datos</td><td>671</td><td>123</td><td>30/06/2026</td><td>9</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Comunicación de Datos</td><td>671</td><td>134</td><td>30/06/2026</td><td>10</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Física II</td><td>663</td><td>134</td><td>28/11/2025</td><td>10</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Paradigmas de Programación</td><td>665</td><td>58</td><td>28/11/2025</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Sistemas Operativos</td><td>665</td><td>68</td><td>28/11/2025</td><td>7</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Análisis de Sistemas de Información</td><td>665</td><td>83</td><td>28/11/2025</td><td>6</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Inglés I</td><td>661</td><td>168</td><td>25/08/2025</td><td>6</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Inglés I</td><td>660</td><td>145</td><td>28/07/2025</td><td>5</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Análisis Matemático II</td><td>659</td><td>149</td><td>30/06/2025</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Ingeniería y Sociedad</td><td>659</td><td>165</td><td>30/06/2025</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Sintaxis y Semántica de los Lenguajes</td><td>659</td><td>51</td><td>30/06/2025</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Inglés I</td><td>657</td><td>164</td><td>07/04/2025</td><td>3</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Física I</td><td>654</td><td>18</td><td>29/11/2024</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Algoritmos y Estructuras de Datos</td><td>653</td><td>26</td><td>29/11/2024</td><td>9</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Arquitectura de Computadoras</td><td>655</td><td>90</td><td>29/11/2024</td><td>7</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Sistemas y Procesos de Negocio</td><td>653</td><td>43</td><td>29/11/2024</td><td>7</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Análisis Matemático I</td><td>649</td><td>189</td><td>30/07/2024</td><td>8</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Álgebra y Geometría Analítica</td><td>648</td><td>18</td><td>28/06/2024</td><td>7</td><td></td><td></td></tr>
+          <tr><td>></td><td>5</td><td>2023</td><td>Lógica y Estructuras Discretas</td><td>648</td><td>37</td><td>28/06/2024</td><td>7</td><td></td><td></td></tr>
+        </table>
+      </div>
+    `;
+
+    const parsedTable = parseSysacadTable(utnHistoricoExamenesHtml);
+    expect(parsedTable.columns).toContain("materia");
+    expect(parsedTable.columns).toContain("nota");
+    expect(parsedTable.rows.length).toBe(21);
+
+    const extracted = extractApprovedSubjectsFromSysacad({
+      consultas: {
+        historico_examenes: {
+          consulta: "historico_examenes",
+          label: "Histórico de exámenes",
+          ...parsedTable,
+        },
+      },
+    });
+
+    // De los 21 registros, deben resultar exactamente 19 materias aprobadas
+    // (Inglés 1 tuvo notas 3, 5 y 6; la materia queda aprobada con nota 6)
+    expect(extracted.length).toBe(19);
+
+    const ingles1 = extracted.find((m) => m.subjectName === "Inglés I");
+    expect(ingles1).toBeDefined();
+    expect(ingles1?.grade).toBe(6);
+    expect(ingles1?.estado).toBe("aprobada");
+
+    const comDatos = extracted.find((m) => m.subjectName === "Comunicación de Datos");
+    expect(comDatos?.grade).toBe(10);
+
+    const fis2 = extracted.find((m) => m.subjectName === "Física II");
+    expect(fis2?.grade).toBe(10);
+  });
 });

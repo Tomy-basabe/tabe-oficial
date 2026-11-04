@@ -344,16 +344,25 @@ export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): Bu
 
           // Descartar si el estado explícito es reprobado/aplazo/ausente/libre
           const isFailed = /aplaz|reprob|insuf|desaprob|ausente|libre/i.test(estadoStr);
+          // En exámenes finales de UTN FRM se aprueba con nota 6 o superior (1 a 5 son aplazos/reprobados)
+          const isApprovedGrade = numGrade >= 6 && !isFailed;
 
-          if (rawName && numGrade !== null && numGrade >= 4 && !isFailed) {
+          if (rawName && numGrade !== null && isApprovedGrade) {
             const normKey = norm(rawName);
-            if (!seenSubjects.has(normKey)) {
-              seenSubjects.add(normKey);
+            const existingIdx = items.findIndex((it) => norm(it.subjectName) === normKey);
+
+            if (existingIdx >= 0) {
+              // Si ya fue registrada en una fecha previa, conservar la nota aprobada más alta
+              if (numGrade > items[existingIdx].grade) {
+                items[existingIdx].grade = numGrade;
+                items[existingIdx].fechaAprobacion = rawDate || items[existingIdx].fechaAprobacion;
+              }
+            } else {
               tableRowsCount++;
               items.push({
                 subjectName: rawName,
                 grade: numGrade,
-                estado: numGrade >= 6 ? "aprobada" : "regular",
+                estado: "aprobada",
                 fechaAprobacion: rawDate || new Date().toISOString().split("T")[0],
                 source: "Autogestión Sysacad",
               });
