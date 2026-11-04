@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateSubjectsCache } from "@/hooks/useSubjects";
 import { invalidateDashboardStatsCache } from "@/hooks/useDashboardStats";
 import { invalidateStudentContextCache } from "@/lib/aiClientService";
+import { formatSysacadTableForPrompt } from "@/lib/utnFrmMcpService";
 import sistemasTemplate from "@/data/sistemas_template.json";
 import electronicaTemplate from "@/data/electronica_template.json";
 import civilTemplate from "@/data/civil_template.json";
@@ -324,6 +325,12 @@ export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): Bu
       for (const row of table.rows) {
         if (!row || typeof row !== "object") continue;
 
+        let rawName = "";
+        let numGrade: number | null = null;
+        let rawDate = "";
+        let estadoStr = "";
+
+        // Intento A: Por nombres de columnas
         const nameKey = Object.keys(row).find((k) =>
           /materia|asignatura|nombre|actividad|descripcion|descripci[oó]n|asig/i.test(k)
         );
@@ -335,35 +342,107 @@ export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): Bu
           /estado|condicion|condici[oó]n|situacion|situaci[oó]n/i.test(k)
         );
 
-        if (nameKey && gradeKey) {
-          const rawName = String(row[nameKey] || "").trim();
+        if (nameKey) rawName = String(row[nameKey] || "").trim();
+        if (gradeKey) {
           const rawGradeStr = String(row[gradeKey] || "").trim();
-          const numGrade = cleanGradeNum(rawGradeStr.replace(/[^\d.,]/g, ""));
-          const rawDate = dateKey ? String(row[dateKey] || "").trim() : "";
-          const estadoStr = estadoKey ? String(row[estadoKey] || "").toLowerCase() : "";
+          numGrade = cleanGradeNum(rawGradeStr.replace(/[^\d.,]/g, ""));
+        }
+        if (dateKey) rawDate = String(row[dateKey] || "").trim();
+        if (estadoKey) estadoStr = String(row[estadoKey] || "").toLowerCase();
 
-          // Descartar si el estado explícito es reprobado/aplazo/ausente/libre
-          const isFailed = /aplaz|reprob|insuf|desaprob|ausente|libre/i.test(estadoStr);
-          // En exámenes finales de UTN FRM se aprueba con nota 6 o superior (1 a 5 son aplazos/reprobados)
-          const isApprovedGrade = numGrade >= 6 && !isFailed;
+        // Intento B: Si faltó nombre o nota, escanear valores dentro del objeto row
+        if (!rawName || numGrade === null) {
+          const values = Object.values(row)
+            .map((v) => String(v || "").trim())
+            .filter(Boolean);
 
-          if (rawName && numGrade !== null && isApprovedGrade) {
-            const normKey = norm(rawName);
-            const existingIdx = items.findIndex((it) => norm(it.subjectName) === normKey);
+          for (const val of values) {
+            if (numGrade === null && /^(?:[1-9]|10)(?:\s*\([a-z\s]+\))?$/i.test(val)) {
+              numGrade = cleanGradeNum(val.replace(/[^\d.,]/g, ""));
+            } else if (!rawDate && /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(val)) {
+              rawDate = val;
+            } else if (
+              !rawName &&
+              val.length >= 4 &&
+              !/^\d+$/.test(val) &&
+              !/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(val) &&
+              !/^(?:aprobada?|regular|promocion|libre|insuficiente)$/i.test(val)
+            ) {
+              rawName = val;
+            }
+          }
+        }
 
-            if (existingIdx >= 0) {
-              // Si ya fue registrada en una fecha previa, conservar la nota aprobada más alta
-              if (numGrade > items[existingIdx].grade) {
-                items[existingIdx].grade = numGrade;
-                items[existingIdx].fechaAprobacion = rawDate || items[existingIdx].fechaAprobacion;
-              }
+        // Descartar si el estado explícito es reprobado/aplazo/ausente/libre
+        const isFailed = /aplaz|reprob|insuf|desaprob|ausente|libre/i.test(estadoStr);
+        // En exámenes finales de UTN FRM se aprueba con nota 6 o superior (1 a 5 son aplazos/reprobados)
+        const isApprovedGrade = numGrade !== null && numGrade >= 6 && !isFailed;
+
+        if (rawName && isApprovedGrade) {
+          const normKey = norm(rawName);
+          const existingIdx = items.findIndex((it) => norm(it.subjectName) === normKey);
+
+          if (existingIdx >= 0) {
+            // Si ya fue registrada en una fecha previa, conservar la nota aprobada más alta
+            if (numGrade! > items[existingIdx].grade) {
+              items[existingIdx].grade = numGrade!;
+              items[existingIdx].fechaAprobacion = rawDate || items[existingIdx].fechaAprobacion;
+            }
+          } else {
+            tableRowsCount++;
+            items.push({
+              subjectName: rawName,
+              grade: numGrade!,
+              estado: "aprobada",
+              fechaAprobacion: rawDate || new Date().toISOString().split("T")[0],
+              source: "Autogestión Sysacad",
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Fallback por texto crudo de la tabla
+    if (tableRowsCount === 0 && typeof table.text === "string" && table.text.trim()) {
+      const parsedFromText = parseBulkSubjectGradesFromText(table.text);
+      for (const it of parsedFromText) {
+        if (it.grade >= 6) {
+          const normKey = norm(it.subjectName);
+          const exIdx = items.findIndex((x) => norm(x.subjectName) === normKey);
+          if (exIdx >= 0) {
+            if (it.grade > items[exIdx].grade) items[exIdx].grade = it.grade;
+          } else {
+            items.push({
+              ...it,
+              estado: "aprobada",
+              source: "Autogestión Sysacad",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback Infalible Global: Convertir todas las tablas a texto formateado de prompt
+  if (items.length === 0 && consultas && typeof consultas === "object") {
+    for (const table of Object.values(consultas) as any[]) {
+      if (!table) continue;
+      const formattedText =
+        (typeof formatSysacadTableForPrompt === "function" ? formatSysacadTableForPrompt(table) : "") ||
+        table.text ||
+        "";
+      if (formattedText) {
+        const fromText = parseBulkSubjectGradesFromText(formattedText);
+        for (const it of fromText) {
+          if (it.grade >= 6) {
+            const normKey = norm(it.subjectName);
+            const exIdx = items.findIndex((x) => norm(x.subjectName) === normKey);
+            if (exIdx >= 0) {
+              if (it.grade > items[exIdx].grade) items[exIdx].grade = it.grade;
             } else {
-              tableRowsCount++;
               items.push({
-                subjectName: rawName,
-                grade: numGrade,
+                ...it,
                 estado: "aprobada",
-                fechaAprobacion: rawDate || new Date().toISOString().split("T")[0],
                 source: "Autogestión Sysacad",
               });
             }
@@ -371,22 +450,9 @@ export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): Bu
         }
       }
     }
-
-    // 2. Fallback inteligente: Si la tabla no devolvió filas estructuradas pero contiene texto crudo
-    if (tableRowsCount === 0 && typeof table.text === "string" && table.text.trim()) {
-      const parsedFromText = parseBulkSubjectGradesFromText(table.text);
-      for (const it of parsedFromText) {
-        const normKey = norm(it.subjectName);
-        if (!seenSubjects.has(normKey)) {
-          seenSubjects.add(normKey);
-          items.push({
-            ...it,
-            source: "Autogestión Sysacad",
-          });
-        }
-      }
-    }
   }
+
+  return items;
 
   return items;
 }

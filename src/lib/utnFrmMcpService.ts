@@ -658,7 +658,7 @@ export async function syncUtnFrmGrades(
 /**
  * Formatea una tabla de Sysacad en texto Markdown compacto para el prompt de TABE AI
  */
-function formatSysacadTableForPrompt(table?: {
+export function formatSysacadTableForPrompt(table?: {
   label: string;
   columns: string[];
   rows: Array<Record<string, string>>;

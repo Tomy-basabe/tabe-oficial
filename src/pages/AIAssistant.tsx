@@ -1276,6 +1276,21 @@ ${tableRows}
           }
         }
 
+        // Fallback de contexto: Si el chat o el asistente ya tenía listadas las notas de Autogestión
+        if (approvedItems.length === 0 && Array.isArray(messages)) {
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const msgContent = messages[i]?.content || "";
+            if (/materias aprobadas|notas en autogesti[oó]n|promedio general|a[nñ]o\):\s*\d+/i.test(msgContent)) {
+              const fromChat = parseBulkSubjectGradesFromText(msgContent);
+              const approvedFromChat = fromChat.filter((x) => x.grade >= 6);
+              if (approvedFromChat.length >= 3) {
+                approvedItems = approvedFromChat;
+                break;
+              }
+            }
+          }
+        }
+
         toast.dismiss("tabe-sysacad-sync");
 
         if (approvedItems.length > 0) {
