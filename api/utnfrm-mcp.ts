@@ -631,13 +631,41 @@ async function fetchSysacadData(
       }
     }
 
+    // Escanear dinámicamente homeHtml para encontrar los tokens t y p reales de cada menú de Sysacad
+    const dynamicVerTokens: Record<string, { t: string; p: string }> = {};
+    const irfRegex = /(?:href=["']javascript:|onclick=["'])iRf\s*\(\s*['"]ver\.frc['"]\s*,\s*['"](\d+)['"]\s*,\s*['"](\d+)['"]\s*\)[^>]*>([\s\S]*?)<\/a>/gi;
+    let irfMatch: RegExpExecArray | null;
+    while ((irfMatch = irfRegex.exec(homeHtml)) !== null) {
+      const tVal = irfMatch[1];
+      const pVal = irfMatch[2];
+      const labelText = stripTags(irfMatch[3]).trim().toLowerCase();
+
+      if (/hist[oó]rico\s+de\s+ex[aá]menes/i.test(labelText)) {
+        dynamicVerTokens["historico_examenes"] = { t: tVal, p: pVal };
+      } else if (/ex[aá]menes\s+aprobados|^aprobados/i.test(labelText)) {
+        dynamicVerTokens["aprobados"] = { t: tVal, p: pVal };
+      } else if (/cursado\s+en\s+este\s+a[nñ]o|^cursado/i.test(labelText)) {
+        dynamicVerTokens["cursado_actual"] = { t: tVal, p: pVal };
+      } else if (/materias\s+del\s+plan/i.test(labelText)) {
+        dynamicVerTokens["materias_plan"] = { t: tVal, p: pVal };
+      } else if (/horarios\s+de\s+cursado/i.test(labelText)) {
+        dynamicVerTokens["horarios_cursado"] = { t: tVal, p: pVal };
+      } else if (/mis\s+horarios/i.test(labelText)) {
+        dynamicVerTokens["mis_horarios"] = { t: tVal, p: pVal };
+      } else if (/aplazos/i.test(labelText)) {
+        dynamicVerTokens["aplazos"] = { t: tVal, p: pVal };
+      }
+    }
+
     // Helper to execute a 'ver' or 'manpet' consulta
     const runConsulta = async (key: SysacadConsultaKey): Promise<SysacadTableResult | null> => {
       const spec = SYSACAD_CONSULTAS[key];
       try {
         if (spec.kind === "ver") {
+          const tToken = dynamicVerTokens[key]?.t || spec.t;
+          const pToken = dynamicVerTokens[key]?.p || spec.p;
           const verUrl = new URL("ver.frc", homeUrl).href;
-          const payload = { ...baseHiddenFields, t: spec.t, p: spec.p };
+          const payload = { ...baseHiddenFields, t: tToken, p: pToken };
           let res = await fetchWithJar(jar, verUrl, {
             method: verFormMethod,
             form: verFormMethod === "POST" ? payload : undefined,
@@ -645,7 +673,7 @@ async function fetchSysacadData(
           });
           // Fallback to GET with query params if POST returned empty or login
           if (res.text.length < 200 || /login\.php/i.test(res.finalUrl)) {
-            const getUrl = new URL(`ver.frc?t=${spec.t}&p=${spec.p}`, homeUrl).href;
+            const getUrl = new URL(`ver.frc?t=${tToken}&p=${pToken}`, homeUrl).href;
             res = await fetchWithJar(jar, getUrl, { method: "GET", timeoutMs: 10000 });
           }
           const parsed = parseSysacadTable(res.text);
