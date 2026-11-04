@@ -1242,7 +1242,8 @@ ${tableRows}
       /nota|materia|aprobada|final|carrera|examen/i.test(normalizedInput)
     );
 
-    if (isSysacadSyncRequest && user?.id) {
+    if (isSysacadSyncRequest) {
+      const effectiveUserId = user?.id || "guest";
       const assistantMsgId = `sysacad-sync-${Date.now()}`;
       toast.loading("Buscando tus notas en Autogestión Sysacad...", { id: "tabe-sysacad-sync" });
 
@@ -1258,28 +1259,27 @@ ${tableRows}
       ]);
 
       try {
-        let snapshot = getStoredUtnFrmMcpSnapshot(user.id);
+        let snapshot = getStoredUtnFrmMcpSnapshot(effectiveUserId, user?.user_metadata);
         let approvedItems = snapshot ? extractApprovedSubjectsFromSysacad(snapshot) : [];
+        const creds = getStoredUtnFrmMcpCredentials(effectiveUserId, user?.user_metadata);
 
-        // Si no hay snapshot local con notas, intentar sincronizar en vivo de forma rápida y segura
-        if (approvedItems.length === 0) {
-          const creds = getStoredUtnFrmMcpCredentials(user.id);
-          if (creds?.username && creds?.password) {
-            try {
-              const gradeRes = await syncUtnFrmGrades(user.id, creds);
-              if (gradeRes.ok && gradeRes.snapshot) {
-                approvedItems = extractApprovedSubjectsFromSysacad(gradeRes.snapshot);
-              }
-            } catch (syncErr: any) {
-              console.warn("Fallo sincronización rápida de notas Sysacad:", syncErr);
+        // Si no hay snapshot local con notas o está vacío, intentar sincronizar en vivo de forma rápida y segura
+        if (approvedItems.length === 0 && creds?.username && creds?.password) {
+          try {
+            const gradeRes = await syncUtnFrmGrades(effectiveUserId, creds);
+            if (gradeRes.ok && gradeRes.snapshot) {
+              snapshot = gradeRes.snapshot;
+              approvedItems = extractApprovedSubjectsFromSysacad(gradeRes.snapshot);
             }
+          } catch (syncErr: any) {
+            console.warn("Fallo sincronización rápida de notas Sysacad:", syncErr);
           }
         }
 
         toast.dismiss("tabe-sysacad-sync");
 
         if (approvedItems.length > 0) {
-          const result = await applyBulkSubjectGrades(user.id, approvedItems);
+          const result = await applyBulkSubjectGrades(effectiveUserId, approvedItems);
           toast.success(`¡${result.appliedCount} materias sincronizadas desde Sysacad!`, { id: "tabe-sysacad-sync" });
 
           const tableRows = result.updatedSubjects
@@ -1316,7 +1316,14 @@ ${result.updatedSubjects.length > 35 ? `\n*... y ${result.updatedSubjects.length
 
           return;
         } else {
-          const noSnapshotMsg = `ℹ️ **No pude acceder automáticamente a tus notas de Autogestión Sysacad en este momento.**\n\n👉 **Podés cargarlas fácilmente de dos formas:**\n1. **Pegá tus notas acá directamente en el chat:** Podés copiar y pegar tu lista o la tabla entera de Sysacad/Autogestión (ej: *"Álgebra: 8, Análisis 1: 7, Física 1: 8..."*) y te las cargo al instante en tu plan de carrera.\n2. **O vinculá tu cuenta:** Ingresá a **Configuración → Integraciones → UTN FRM** con tu usuario (DNI) y clave de Autogestión para sincronizar tu historial oficial de exámenes.`;
+          const hasConnectedCreds = Boolean(creds?.username && creds?.password);
+          const hasConnectedSysacad = Boolean(
+            snapshot?.sysacad?.connected || snapshot?.summary?.sysacadConnected
+          );
+
+          const noSnapshotMsg = hasConnectedCreds || hasConnectedSysacad
+            ? `ℹ️ **Conecté con tu Autogestión Sysacad, pero no figuran exámenes finales aprobados asentados en tus actas oficiales en este momento.**\n\n👉 **Si ya rendiste materias recientemente:**\n1. **Pegá tus notas acá directamente en el chat:** Podés copiar y pegar tu lista de materias (ej: *"Álgebra: 8, Análisis 1: 7, Física 1: 8..."*) y te las cargo al instante en tu plan de carrera.\n2. **Si las actas son muy recientes:** Verificá en Autogestión web que la cátedra ya haya cerrado y firmado el acta de examen correspondiente.`
+            : `ℹ️ **No pude acceder automáticamente a tus notas de Autogestión Sysacad en este momento.**\n\n👉 **Podés cargarlas fácilmente de dos formas:**\n1. **Pegá tus notas acá directamente en el chat:** Podés copiar y pegar tu lista o la tabla entera de Sysacad/Autogestión (ej: *"Álgebra: 8, Análisis 1: 7, Física 1: 8..."*) y te las cargo al instante en tu plan de carrera.\n2. **O vinculá tu cuenta:** Ingresá a **Configuración → Integraciones → UTN FRM** con tu usuario (DNI) y clave de Autogestión para sincronizar tu historial oficial de exámenes.`;
 
           setMessages((prev) =>
             prev.map((m) =>

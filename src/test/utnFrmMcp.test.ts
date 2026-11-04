@@ -264,4 +264,65 @@ describe("UTN FRM Exclusive MCP Gate & Context", () => {
     expect(q2.choices.length).toBe(2);
     expect(q2.choices[1].text).toBe("Una integral doble sobre la región encerrada");
   });
+
+  it("parsea tablas de Sysacad con fila inicial de título colspan y extrae materias aprobadas", async () => {
+    const { parseSysacadTable } = await import("../../api/utnfrm-mcp");
+    const { extractApprovedSubjectsFromSysacad } = await import("@/lib/bulkGradesService");
+
+    const sampleSysacadAprobadosHtml = `
+      <table border="1" cellpadding="2" cellspacing="0" class="tabla">
+        <tr>
+          <td colspan="6" class="titulo">Exámenes Aprobados</td>
+        </tr>
+        <tr>
+          <th class="encabezado">Materia</th>
+          <th class="encabezado">Fecha</th>
+          <th class="encabezado">Nota</th>
+          <th class="encabezado">Libro</th>
+          <th class="encabezado">Folio</th>
+          <th class="encabezado">Tomo</th>
+        </tr>
+        <tr>
+          <td>Álgebra y Geometría Analítica</td>
+          <td>15/12/2023</td>
+          <td>8 (Ocho)</td>
+          <td>24</td>
+          <td>112</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>Análisis Matemático 1</td>
+          <td>20/02/2024</td>
+          <td>7 (Siete)</td>
+          <td>25</td>
+          <td>45</td>
+          <td>1</td>
+        </tr>
+      </table>
+    `;
+
+    const parsedTable = parseSysacadTable(sampleSysacadAprobadosHtml);
+    expect(parsedTable.columns).toContain("materia");
+    expect(parsedTable.columns).toContain("nota");
+    expect(parsedTable.rows.length).toBe(2);
+    expect(parsedTable.rows[0]["materia"]).toContain("Álgebra y Geometría Analítica");
+    expect(parsedTable.rows[0]["nota"]).toBe("8 (Ocho)");
+
+    const extracted = extractApprovedSubjectsFromSysacad({
+      consultas: {
+        aprobados: {
+          consulta: "aprobados",
+          label: "Exámenes aprobados",
+          ...parsedTable,
+        },
+      },
+    });
+
+    expect(extracted.length).toBe(2);
+    expect(extracted[0].subjectName).toBe("Álgebra y Geometría Analítica");
+    expect(extracted[0].grade).toBe(8);
+    expect(extracted[0].estado).toBe("aprobada");
+    expect(extracted[1].subjectName).toBe("Análisis Matemático 1");
+    expect(extracted[1].grade).toBe(7);
+  });
 });

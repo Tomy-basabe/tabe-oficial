@@ -518,6 +518,14 @@ export async function syncUtnFrmMcp(
       resolvedEmail: snapshot.resolvedEmail,
       legajo: snapshot.legajo,
       summary: snapshot.summary,
+      sysacad: {
+        connected: snapshot.sysacad.connected,
+        consultas: {
+          aprobados: snapshot.sysacad.consultas?.aprobados,
+          historico_examenes: snapshot.sysacad.consultas?.historico_examenes,
+          estado_academico: snapshot.sysacad.consultas?.estado_academico,
+        },
+      },
       campus: {
         connected: snapshot.campus.connected,
         courses: snapshot.campus.courses.slice(0, 15),
@@ -568,7 +576,7 @@ export async function syncUtnFrmGrades(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
     const response = await fetch("/api/utnfrm-mcp", {

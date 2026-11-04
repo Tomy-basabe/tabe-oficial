@@ -381,20 +381,24 @@ export function parseSysacadTable(html: string): Omit<SysacadTableResult, "consu
     const trMatches = tableHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
     if (trMatches.length < 2) continue;
 
-    const rows: string[][] = [];
+    const allRows: string[][] = [];
     for (const tr of trMatches) {
       const cellMatches = tr.match(/<(?:td|th)\b[^>]*>[\s\S]*?<\/(?:td|th)>/gi) || [];
-      const cells = cellMatches.map((c) => stripTags(c));
-      if (cells.length > 0) rows.push(cells);
+      const cells = cellMatches.map((c) => stripTags(c).trim());
+      if (cells.length > 0 && cells.some((c) => Boolean(c))) allRows.push(cells);
     }
 
-    if (rows.length < 2) continue;
-    const header = rows[0];
-    const nonEmptyHeaderCells = header.filter((cell) => /[\p{L}\d]/u.test(cell));
-    if (nonEmptyHeaderCells.length < 3) continue;
+    if (allRows.length < 2) continue;
 
-    if (!best || rows.length > best.rows.length) {
-      best = { rows, header };
+    // Detectar fila de encabezados: la primera fila con al menos 2 celdas no vacías con texto/números
+    const headerIdx = allRows.findIndex((r) => r.filter((cell) => /[\p{L}\d]/u.test(cell)).length >= 2);
+    if (headerIdx === -1 || headerIdx >= allRows.length - 1) continue;
+
+    const header = allRows[headerIdx];
+    const dataRows = allRows.slice(headerIdx + 1);
+
+    if (!best || dataRows.length > best.rows.length) {
+      best = { rows: dataRows, header };
     }
   }
 
@@ -413,11 +417,10 @@ export function parseSysacadTable(html: string): Omit<SysacadTableResult, "consu
     .map((cell, index) => (/[\p{L}\d]/u.test(cell) ? index : -1))
     .filter((index) => index >= 0);
 
-  result.columns = indexes.map((index) => best!.header[index].toLowerCase());
+  result.columns = indexes.map((index) => best!.header[index].trim().toLowerCase());
   result.rows = best.rows
-    .slice(1)
     .map((cells) =>
-      Object.fromEntries(indexes.map((index, position) => [result.columns[position], cells[index] ?? ""]))
+      Object.fromEntries(indexes.map((index, position) => [result.columns[position], (cells[index] ?? "").trim()]))
     )
     .filter((row) => Object.values(row).some(Boolean));
 
@@ -672,11 +675,12 @@ async function fetchSysacadData(
     };
 
     const keysToFetch: SysacadConsultaKey[] = requestedConsultas || [
-      "materias_plan",
+      "aprobados",
+      "historico_examenes",
       "estado_academico",
+      "materias_plan",
       "cursado_actual",
       "horarios_cursado",
-      "historico_examenes",
       "correlatividades_cursar",
       "correlatividades_rendir",
     ];

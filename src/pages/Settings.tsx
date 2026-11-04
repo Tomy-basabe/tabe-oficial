@@ -841,63 +841,6 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* MCP EXCLUSIVO UTN FRM (SOLO VISIBLE Y ACTIVO SI EL USUARIO PERTENECE A UTN FRM) */}
-                {isUtnFrm && (
-                  <div className="p-5 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/40 via-white to-white dark:from-indigo-950/20 dark:via-[#18181b] dark:to-[#18181b] shadow-xs space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-start gap-3.5 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/20 flex items-center justify-center shrink-0">
-                          <Zap className="w-5 h-5 stroke-[2]" />
-                        </div>
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-                              MCP Oficial UTN FRM (Sysacad + Campus + Correo)
-                            </h3>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
-                              Exclusivo UTN FRM · Contexto TABE AI
-                            </span>
-                            {hasUtnFrmPersonalData(utnMcpSnapshot) ? (
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-                                Conectado a TABE AI
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                                Sin configurar
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                            {utnMcpSnapshot && hasUtnFrmPersonalData(utnMcpSnapshot)
-                              ? `Sincronizado (${new Date(utnMcpSnapshot.syncedAt).toLocaleString("es-AR")}). TABE AI tiene acceso directo a tu Autogestión Sysacad${utnMcpSnapshot.legajo ? ` (Leg. ${utnMcpSnapshot.legajo})` : ""}, Campus Virtual (${utnMcpSnapshot.campus?.courses?.length || 0} aulas) y Correo Institucional.`
-                              : "Ingresa tu usuario (DNI) y clave de UTN FRM para conectar Autogestión (Sysacad), Campus Virtual y Correo Institucional directamente con TABE AI."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setShowUtnMcpModal(true)}
-                          className={cn(
-                            "h-8 px-3.5 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs",
-                            hasUtnFrmPersonalData(utnMcpSnapshot)
-                              ? "border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-zinc-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-zinc-700"
-                              : "bg-indigo-600 text-white hover:bg-indigo-700"
-                          )}
-                        >
-                          <Zap className="w-3.5 h-3.5" />
-                          <span>
-                            {hasUtnFrmPersonalData(utnMcpSnapshot)
-                              ? "Gestionar MCP UTN FRM"
-                              : "Cargar usuario y clave"}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
                 {/* Campus Virtual / Moodle */}
                   <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

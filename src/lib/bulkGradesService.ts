@@ -287,7 +287,7 @@ export function parseBulkSubjectGradesFromText(text: string): BulkGradeItem[] {
 
 /**
  * Extrae materias aprobadas con su nota desde las tablas de Sysacad
- * (consultas 'aprobados', 'historico_examenes' o 'estado_academico').
+ * (consultas 'aprobados', 'historico_examenes', 'estado_academico' o texto crudo).
  */
 export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): BulkGradeItem[] {
   if (!snapshotOrConsultas) return [];
@@ -296,36 +296,84 @@ export function extractApprovedSubjectsFromSysacad(snapshotOrConsultas: any): Bu
   const items: BulkGradeItem[] = [];
   const seenSubjects = new Set<string>();
 
-  const tablesToCheck = [consultas.aprobados, consultas.historico_examenes, consultas.estado_academico];
+  const candidateTables: any[] = [];
+  if (consultas && typeof consultas === "object") {
+    if (consultas.aprobados) candidateTables.push(consultas.aprobados);
+    if (consultas.historico_examenes) candidateTables.push(consultas.historico_examenes);
+    if (consultas.estado_academico) candidateTables.push(consultas.estado_academico);
 
-  for (const table of tablesToCheck) {
-    if (!table || !Array.isArray(table.rows)) continue;
+    for (const [k, v] of Object.entries(consultas)) {
+      if (
+        !["aprobados", "historico_examenes", "estado_academico"].includes(k) &&
+        v &&
+        typeof v === "object" &&
+        /examen|aprob|calific|nota|academico|regular/i.test(k)
+      ) {
+        candidateTables.push(v);
+      }
+    }
+  }
 
-    for (const row of table.rows) {
-      if (!row || typeof row !== "object") continue;
+  for (const table of candidateTables) {
+    if (!table) continue;
 
-      const nameKey = Object.keys(row).find((k) => /materia|asignatura|nombre|actividad/i.test(k));
-      const gradeKey = Object.keys(row).find((k) => /nota|calificaci|calif|resultado/i.test(k));
-      const dateKey = Object.keys(row).find((k) => /fecha|dia/i.test(k));
+    let tableRowsCount = 0;
 
-      if (nameKey && gradeKey) {
-        const rawName = String(row[nameKey] || "").trim();
-        const rawGradeStr = String(row[gradeKey] || "").trim();
-        const numGrade = cleanGradeNum(rawGradeStr.replace(/[^\d.,]/g, ""));
-        const rawDate = dateKey ? String(row[dateKey] || "").trim() : "";
+    // 1. Procesar filas estructuradas si existen
+    if (Array.isArray(table.rows) && table.rows.length > 0) {
+      for (const row of table.rows) {
+        if (!row || typeof row !== "object") continue;
 
-        if (rawName && numGrade !== null && numGrade >= 4) {
-          const normKey = norm(rawName);
-          if (!seenSubjects.has(normKey)) {
-            seenSubjects.add(normKey);
-            items.push({
-              subjectName: rawName,
-              grade: numGrade,
-              estado: numGrade >= 6 ? "aprobada" : "regular",
-              fechaAprobacion: rawDate || new Date().toISOString().split("T")[0],
-              source: "Autogestión Sysacad",
-            });
+        const nameKey = Object.keys(row).find((k) =>
+          /materia|asignatura|nombre|actividad|descripcion|descripci[oó]n|asig/i.test(k)
+        );
+        const gradeKey = Object.keys(row).find((k) =>
+          /nota|calificaci|calif|resultado|promedio|final|nota_examen/i.test(k)
+        );
+        const dateKey = Object.keys(row).find((k) => /fecha|dia|fec/i.test(k));
+        const estadoKey = Object.keys(row).find((k) =>
+          /estado|condicion|condici[oó]n|situacion|situaci[oó]n/i.test(k)
+        );
+
+        if (nameKey && gradeKey) {
+          const rawName = String(row[nameKey] || "").trim();
+          const rawGradeStr = String(row[gradeKey] || "").trim();
+          const numGrade = cleanGradeNum(rawGradeStr.replace(/[^\d.,]/g, ""));
+          const rawDate = dateKey ? String(row[dateKey] || "").trim() : "";
+          const estadoStr = estadoKey ? String(row[estadoKey] || "").toLowerCase() : "";
+
+          // Descartar si el estado explícito es reprobado/aplazo/ausente/libre
+          const isFailed = /aplaz|reprob|insuf|desaprob|ausente|libre/i.test(estadoStr);
+
+          if (rawName && numGrade !== null && numGrade >= 4 && !isFailed) {
+            const normKey = norm(rawName);
+            if (!seenSubjects.has(normKey)) {
+              seenSubjects.add(normKey);
+              tableRowsCount++;
+              items.push({
+                subjectName: rawName,
+                grade: numGrade,
+                estado: numGrade >= 6 ? "aprobada" : "regular",
+                fechaAprobacion: rawDate || new Date().toISOString().split("T")[0],
+                source: "Autogestión Sysacad",
+              });
+            }
           }
+        }
+      }
+    }
+
+    // 2. Fallback inteligente: Si la tabla no devolvió filas estructuradas pero contiene texto crudo
+    if (tableRowsCount === 0 && typeof table.text === "string" && table.text.trim()) {
+      const parsedFromText = parseBulkSubjectGradesFromText(table.text);
+      for (const it of parsedFromText) {
+        const normKey = norm(it.subjectName);
+        if (!seenSubjects.has(normKey)) {
+          seenSubjects.add(normKey);
+          items.push({
+            ...it,
+            source: "Autogestión Sysacad",
+          });
         }
       }
     }
