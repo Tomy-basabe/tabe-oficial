@@ -3961,10 +3961,12 @@ async function streamFromGoogle(opts: {
   messages: Array<{ role: string; content: string }>;
   powerLevel: PowerEffort;
   onDelta: (text: string) => void;
+  apiKey?: string;
 }): Promise<boolean> {
-  const { modelId, systemPrompt, messages, powerLevel, onDelta } = opts;
+  const { modelId, systemPrompt, messages, powerLevel, onDelta, apiKey } = opts;
 
-  if (!GEMINI_API_KEY) return false;
+  const keyToUse = apiKey || GEMINI_API_KEY || (typeof window !== "undefined" ? localStorage.getItem("tabe_gemini_api_key") || "" : "");
+  if (!keyToUse) return false;
 
   // Convert conversation to Gemini contents
   const contents = messages.map((m) => ({
@@ -3979,7 +3981,7 @@ async function streamFromGoogle(opts: {
   const maxTokens = powerLevel === "alto" ? 8192 : powerLevel === "bajo" ? 4096 : 8192;
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${keyToUse}`;
 
     const res = await fetch(endpoint, {
       method: "POST",

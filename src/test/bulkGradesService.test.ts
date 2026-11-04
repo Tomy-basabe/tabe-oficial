@@ -79,4 +79,48 @@ Análisis Matemático I: 6`;
     expect(extracted[0].estado).toBe("aprobada");
     expect(extracted[0].fechaAprobacion).toBe("2024-07-15");
   });
+
+  it("parsea listas extensas con múltiples formatos sin omitir materias", () => {
+    const rawComplexList = `Hola, te paso todas mis notas de la carrera:
+1. Álgebra y Geometría Analítica: 8
+2) 950101 - Análisis Matemático I - 7 (Promocionado)
+3. Física I: 8 (Final del 15/12/2023)
+4. Química General con 8
+5. Sistemas y Organizaciones = 9
+6. Algoritmos y Estructuras de Datos\t8 (Ocho)\t10/12/2023\tAprobado
+7. Arquitectura de Computadoras   7
+8. Inglés 1 (9)
+9. Ingeniería y Sociedad: 9, Economía: 8, Legislación: 7
+10. 8 - Sistemas Operativos
+11. Paradigmas de Programación: 8
+12. Sintaxis y Semántica de los Lenguajes - 7
+13. Probabilidad y Estadística = 8
+14. Diseño de Sistemas con 9
+15. Comunicación de Datos: 10
+16. Gestión de Datos: 9`;
+
+    const parsed = parseBulkSubjectGradesFromText(rawComplexList);
+    // Debería haber parseado las 18 materias completas (la línea 9 contenía 3 materias)
+    expect(parsed.length).toBe(18);
+
+    const names = parsed.map((p) => p.subjectName);
+    expect(names).toContain("Álgebra y Geometría Analítica");
+    expect(names).toContain("Análisis Matemático I");
+    expect(names).toContain("Física I");
+    expect(names).toContain("Química General");
+    expect(names).toContain("Sistemas y Organizaciones");
+    expect(names).toContain("Algoritmos y Estructuras de Datos");
+    expect(names).toContain("Arquitectura de Computadoras");
+    expect(names).toContain("Inglés 1");
+    expect(names).toContain("Ingeniería y Sociedad");
+    expect(names).toContain("Economía");
+    expect(names).toContain("Legislación");
+    expect(names).toContain("Sistemas Operativos");
+    expect(names).toContain("Paradigmas de Programación");
+    expect(names).toContain("Sintaxis y Semántica de los Lenguajes");
+    expect(names).toContain("Probabilidad y Estadística");
+    expect(names).toContain("Diseño de Sistemas");
+    expect(names).toContain("Comunicación de Datos");
+    expect(names).toContain("Gestión de Datos");
+  });
 });

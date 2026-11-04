@@ -28,11 +28,25 @@
  */
 
 const readline = require("readline");
+const fs = require("fs");
+const path = require("path");
 
 // Configuración inicial
 const args = process.argv.slice(2);
 let token = process.env.TABE_TOKEN || "";
-let host = process.env.TABE_HOST || "http://localhost:8080";
+let host = process.env.TABE_HOST || "https://www.tabe.com.ar";
+let username = process.env.TABE_USER || process.env.TABE_EMAIL || "";
+let password = process.env.TABE_PASSWORD || "";
+
+const SESSION_FILE = path.resolve(process.cwd(), ".tabe_current_session.json");
+
+// Recuperar sesión previa guardada si existe y no hay token explícito
+if (!token && fs.existsSync(SESSION_FILE)) {
+  try {
+    const s = JSON.parse(fs.readFileSync(SESSION_FILE, "utf8"));
+    if (s && s.token) token = s.token;
+  } catch {}
+}
 
 // Parsing de argumentos CLI
 for (let i = 0; i < args.length; i++) {
@@ -46,14 +60,44 @@ for (let i = 0; i < args.length; i++) {
     i++;
   } else if (args[i].startsWith("--host=")) {
     host = args[i].split("=")[1];
+  } else if ((args[i] === "--user" || args[i] === "--username") && args[i + 1]) {
+    username = args[i + 1];
+    i++;
+  } else if (args[i].startsWith("--user=")) {
+    username = args[i].split("=")[1];
+  } else if (args[i].startsWith("--username=")) {
+    username = args[i].split("=")[1];
+  } else if (args[i] === "--password" && args[i + 1]) {
+    password = args[i + 1];
+    i++;
+  } else if (args[i].startsWith("--password=")) {
+    password = args[i].split("=")[1];
   }
 }
 
 // Catálogo de Tools de TABE
 const TOOLS = [
   {
+    name: "login",
+    description: "Inicia sesión en TABE con tu usuario (email o legajo) y contraseña para conectar tu cuenta y acceder a tus notas, materias y campus virtual.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        username: {
+          type: "string",
+          description: "Email o usuario de TABE (ej: tu-email@utn.edu.ar).",
+        },
+        password: {
+          type: "string",
+          description: "Contraseña de tu cuenta de TABE.",
+        },
+      },
+      required: ["username", "password"],
+    },
+  },
+  {
     name: "get_academic_context",
-    description: "Obtiene el contexto académico completo del estudiante: perfil, carrera, materias en curso, notas de cursada y finales aprobados en TABE.",
+    description: "Obtiene el contexto académico completo del estudiante: perfil, carrera, materias en curso, materias aprobadas con sus notas y promedio en TABE.",
     inputSchema: {
       type: "object",
       properties: {
@@ -64,6 +108,31 @@ const TOOLS = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: "manage_subjects",
+    description: "Carga o actualiza materias con sus notas y estados en el plan de carrera de TABE. Permite enviar pares de 'Materia: Nota' o lista de asignaturas.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: {
+          type: "string",
+          description: "Texto con materias y notas (ej: 'Bases de Datos: 9\\nFísica I: 8').",
+        },
+        subjects: {
+          type: "array",
+          description: "Lista de materias a actualizar con su nota",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              grade: { type: "number" },
+              estado: { type: "string" },
+            },
+          },
+        },
+      },
     },
   },
   {
@@ -203,6 +272,24 @@ const TOOLS = [
       required: ["query"],
     },
   },
+  {
+    name: "save_quick_note",
+    description: "Guarda un apunte o apunte de clase en Notion de TABE.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Título del documento.",
+        },
+        content: {
+          type: "string",
+          description: "Contenido del apunte o resumen.",
+        },
+      },
+      required: ["title"],
+    },
+  },
 ];
 
 // Función para enviar respuestas JSON-RPC 2.0 por stdout
@@ -212,13 +299,69 @@ function sendResponse(response) {
 
 // Ejecutar tool llamando al backend de TABE
 async function executeTool(name, args) {
+  const cleanHost = host.replace(/\/+$/, "");
+
+  // Acción especial: login con usuario y contraseña
+  if (name === "login") {
+    const loginUser = args?.username || username;
+    const loginPass = args?.password || password;
+    if (!loginUser || !loginPass) {
+      throw new Error("Se requiere 'username' y 'password' para iniciar sesión en TABE.");
+    }
+    const url = `${cleanHost}/api/tabe-actions/login`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: loginUser, password: loginPass }),
+    });
+
+    const text = await response.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = { raw: text };
+    }
+
+    if (!response.ok || !json.ok) {
+      throw new Error(json?.error || `Error en login (${response.status}): ${text}`);
+    }
+
+    token = json.token;
+    try {
+      fs.writeFileSync(
+        SESSION_FILE,
+        JSON.stringify(
+          {
+            token,
+            userId: json.userId,
+            email: loginUser,
+            estudiante: json.estudiante,
+            updatedAt: new Date().toISOString(),
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
+    } catch {}
+
+    return json;
+  }
+
+  // Si no tenemos token pero tenemos credenciales en env vars o argumentos, intentar auto-login
+  if (!token && username && password) {
+    try {
+      await executeTool("login", { username, password });
+    } catch {}
+  }
+
   if (!token) {
     throw new Error(
-      "No se configuró el TABE_TOKEN. Agregá 'TABE_TOKEN': 'tabe_usr_...' en la configuración del servidor MCP en Claude Desktop."
+      "No has iniciado sesión en TABE. Por favor ejecuta la herramienta 'login' con tu usuario (email) y contraseña de TABE, o configúralos en las variables TABE_USER y TABE_PASSWORD."
     );
   }
 
-  const cleanHost = host.replace(/\/+$/, "");
   const url = `${cleanHost}/api/tabe-actions/${name}`;
 
   const response = await fetch(url, {

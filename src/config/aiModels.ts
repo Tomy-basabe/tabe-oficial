@@ -96,6 +96,22 @@ export const TABE_AI_MODEL: AIModelOption = {
   },
 };
 
+export const GEMINI_MODEL: AIModelOption = {
+  id: "google-gemini",
+  name: "Google Gemini (DeepMind)",
+  shortName: "Gemini",
+  provider: "google",
+  badge: "Google DeepMind",
+  description: "Modelo multimodal con razonamiento académico y resolución de cuestionarios",
+  reasoningLevel: "Alto",
+  color: "#1a73e8",
+  tokenPolicy: {
+    windowHours: 24,
+    dailyTokens: 1_000_000,
+    costByPower: { bajo: 0, medio: 0, alto: 0 },
+  },
+};
+
 export interface PowerEffortConfig {
   name: string;
   tag: string;

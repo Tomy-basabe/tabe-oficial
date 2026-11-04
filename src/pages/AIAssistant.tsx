@@ -35,7 +35,14 @@ import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import { TabeLogo } from "@/components/ui/TabeLogo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { addInAppNotification } from "@/lib/notificationsStore";
-import { resolveUtnFrmCampusQuiz, getStoredUtnFrmSnapshot } from "@/lib/utnFrmMcpService";
+import {
+  resolveUtnFrmCampusQuiz,
+  getStoredUtnFrmSnapshot,
+  getStoredUtnFrmMcpSnapshot,
+  getStoredUtnFrmMcpCredentials,
+  syncUtnFrmMcp,
+  syncUtnFrmGrades,
+} from "@/lib/utnFrmMcpService";
 import {
   parseBulkSubjectGradesFromText,
   extractApprovedSubjectsFromSysacad,
@@ -1176,10 +1183,10 @@ export default function AIAssistant() {
       };
     });
 
-    // ── INTERCEPTOR 1: Carga masiva de notas pasadas en texto (ej: Facundo Blanes) ──
+    // ── INTERCEPTOR 1: Carga masiva de notas pasadas en texto ──
     const parsedBulkGrades = parseBulkSubjectGradesFromText(textContent);
-    const isBulkGradeLoad = parsedBulkGrades.length >= 2 && (
-      /carg|aprob|nota|materia|paso|estas/i.test(normalizedInput)
+    const isBulkGradeLoad = parsedBulkGrades.length >= 2 || (
+      parsedBulkGrades.length === 1 && /carg|aprob|nota|materia|paso|estas|final|examen/i.test(normalizedInput)
     );
 
     if (isBulkGradeLoad && user?.id) {
@@ -1231,33 +1238,62 @@ ${tableRows}
     // ── INTERCEPTOR 2: Sincronizar materias y notas desde Autogestión Sysacad ──
     const isSysacadSyncRequest = (
       /autogesti[oó]n|sysacad/i.test(normalizedInput) &&
-      /carg|sincroniz|actualiz|pas|import|trae|pon/i.test(normalizedInput) &&
-      /nota|materia|aprobada|final|carrera/i.test(normalizedInput)
+      /carg|sincroniz|actualiz|pas|import|trae|pon|busc|ver/i.test(normalizedInput) &&
+      /nota|materia|aprobada|final|carrera|examen/i.test(normalizedInput)
     );
 
     if (isSysacadSyncRequest && user?.id) {
       const assistantMsgId = `sysacad-sync-${Date.now()}`;
       toast.loading("Buscando tus notas en Autogestión Sysacad...", { id: "tabe-sysacad-sync" });
 
-      const snapshot = getStoredUtnFrmSnapshot(user.id);
-      const approvedItems = snapshot ? extractApprovedSubjectsFromSysacad(snapshot) : [];
+      // Mensaje de estado visible de inmediato en el chat para evitar sensación de congelamiento
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantMsgId,
+          role: "assistant",
+          content: "⏳ **Conectando con Autogestión UTN FRM...**\n\nBuscando tus exámenes aprobados y notas oficiales en Sysacad.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
 
-      if (approvedItems.length > 0) {
-        const result = await applyBulkSubjectGrades(user.id, approvedItems);
-        toast.success(`¡${result.appliedCount} materias sincronizadas desde Sysacad!`, { id: "tabe-sysacad-sync" });
+      try {
+        let snapshot = getStoredUtnFrmMcpSnapshot(user.id);
+        let approvedItems = snapshot ? extractApprovedSubjectsFromSysacad(snapshot) : [];
 
-        const tableRows = result.updatedSubjects
-          .slice(0, 30)
-          .map((s) => `| ${s.name} | **${s.grade}** | ✅ ${s.estado} |`)
-          .join("\n");
+        // Si no hay snapshot local con notas, intentar sincronizar en vivo de forma rápida y segura
+        if (approvedItems.length === 0) {
+          const creds = getStoredUtnFrmMcpCredentials(user.id);
+          if (creds?.username && creds?.password) {
+            try {
+              const gradeRes = await syncUtnFrmGrades(user.id, creds);
+              if (gradeRes.ok && gradeRes.snapshot) {
+                approvedItems = extractApprovedSubjectsFromSysacad(gradeRes.snapshot);
+              }
+            } catch (syncErr: any) {
+              console.warn("Fallo sincronización rápida de notas Sysacad:", syncErr);
+            }
+          }
+        }
 
-        const responseMarkdown = `🎉 **¡Listo! He sincronizado ${result.appliedCount} materias aprobadas directamente desde tu Autogestión (Sysacad) a tu plan de carrera de TABE.**
+        toast.dismiss("tabe-sysacad-sync");
+
+        if (approvedItems.length > 0) {
+          const result = await applyBulkSubjectGrades(user.id, approvedItems);
+          toast.success(`¡${result.appliedCount} materias sincronizadas desde Sysacad!`, { id: "tabe-sysacad-sync" });
+
+          const tableRows = result.updatedSubjects
+            .slice(0, 35)
+            .map((s) => `| ${s.name} | **${s.grade}** | ✅ ${s.estado} |`)
+            .join("\n");
+
+          const responseMarkdown = `🎉 **¡Listo! He sincronizado ${result.appliedCount} materias aprobadas directamente desde tu Autogestión (Sysacad) a tu plan de carrera de TABE.**
 
 📊 **Materias sincronizadas:**
 | Materia | Nota Oficial | Estado |
 | :--- | :---: | :---: |
 ${tableRows}
-${result.updatedSubjects.length > 30 ? `*... y ${result.updatedSubjects.length - 30} materias más.*` : ""}
+${result.updatedSubjects.length > 35 ? `\n*... y ${result.updatedSubjects.length - 35} materias más registradas.*` : ""}
 
 📈 **Tu nuevo estado académico:**
 - **Materias Aprobadas:** ${result.totalAprobadas} / ${result.totalMaterias}
@@ -1266,41 +1302,48 @@ ${result.updatedSubjects.length > 30 ? `*... y ${result.updatedSubjects.length -
 
 ✅ *Todas las notas quedaron guardadas en tu cuenta de TABE y ya están disponibles en tu Plan de Carrera y en tu Mapa de Correlatividades.*`;
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantMsgId,
-            role: "assistant",
-            content: responseMarkdown,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? { ...m, content: responseMarkdown }
+                : m
+            )
+          );
 
-        if (sessionId) {
-          await saveMessage(sessionId, "assistant", responseMarkdown);
+          if (sessionId) {
+            await saveMessage(sessionId, "assistant", responseMarkdown);
+          }
+
+          return;
+        } else {
+          const noSnapshotMsg = `ℹ️ **No pude acceder automáticamente a tus notas de Autogestión Sysacad en este momento.**\n\n👉 **Podés cargarlas fácilmente de dos formas:**\n1. **Pegá tus notas acá directamente en el chat:** Podés copiar y pegar tu lista o la tabla entera de Sysacad/Autogestión (ej: *"Álgebra: 8, Análisis 1: 7, Física 1: 8..."*) y te las cargo al instante en tu plan de carrera.\n2. **O vinculá tu cuenta:** Ingresá a **Configuración → Integraciones → UTN FRM** con tu usuario (DNI) y clave de Autogestión para sincronizar tu historial oficial de exámenes.`;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId
+                ? { ...m, content: noSnapshotMsg }
+                : m
+            )
+          );
+
+          if (sessionId) {
+            await saveMessage(sessionId, "assistant", noSnapshotMsg);
+          }
+
+          return;
         }
-
-        return;
-      } else {
+      } catch (err: any) {
         toast.dismiss("tabe-sysacad-sync");
-        const noSnapshotMsg = `ℹ️ **Para cargar tus notas de Autogestión (Sysacad) en TABE:**\n\n1. Si ya tenés tus notas a mano, **pegamelas directamente acá en el chat** (ej: *"Álgebra: 8, Análisis 1: 7..."*) y te las cargo al instante en tu plan de carrera.\n2. Para sincronizarlas automáticamente, ingresá a **Configuración → Integraciones → MCP Oficial UTN FRM** con tu usuario (DNI) y clave de Autogestión para conectar tu historial oficial de exámenes.`;
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantMsgId,
-            role: "assistant",
-            content: noSnapshotMsg,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
-
-        if (sessionId) {
-          await saveMessage(sessionId, "assistant", noSnapshotMsg);
-        }
-
-        return;
+        const errMsg = `⚠️ **No pudimos consultar Autogestión Sysacad**:\n\n${err?.message || "Hubo un error de conexión con el servidor de la UTN FRM."}\n\n👉 *Podés pegar tus notas directamente en el chat para cargarlas de inmediato.*`;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: errMsg }
+              : m
+          )
+        );
       }
+      return;
     }
 
     // Notificación proactiva en tareas extensas de generación de cuestionario local

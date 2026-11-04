@@ -71,3 +71,7 @@ TABE 2.0/
 # Scratch & temporary scripts
 scratch/
 scripts/
+
+.gemini_key
+.tabe_user_creds.json
+.tabe_current_session.json

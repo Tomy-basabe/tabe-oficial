@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -42,8 +42,16 @@ export function TabeUniversalAiModal({
   const [copiedClaude, setCopiedClaude] = useState(false);
   const [copiedGptUrl, setCopiedGptUrl] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedGeminiCli, setCopiedGeminiCli] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Sincronizar automáticamente el contexto del usuario con su token cuando se abre el modal
+  useEffect(() => {
+    if (open && userId) {
+      handleSyncCredentials();
+    }
+  }, [open, userId]);
 
   const token = userId ? encodeUserToken(userId) : "tabe_usr_no_auth";
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:8080";
@@ -55,6 +63,42 @@ export function TabeUniversalAiModal({
     callback(true);
     toast.success(msg);
     setTimeout(() => callback(false), 2000);
+  };
+
+  // Descargar lanzador .bat para Gemini en Windows
+  const downloadGeminiLauncher = () => {
+    const geminiScriptPath = mcpScriptPath.replace("tabe-mcp-server.cjs", "tabe-gemini-chat.cjs");
+    const batContent = `@echo off
+chcp 65001 >nul
+title TABE AI x Google Gemini (MCP Local)
+echo ========================================================
+echo        TABE AI - Google Gemini MCP (Modo Local)
+echo ========================================================
+echo.
+echo Conectando con servidor local de TABE (${baseUrl})...
+echo.
+node "${geminiScriptPath.replace(/\\/g, "\\\\")}" --host="${baseUrl}"
+if errorlevel 1 (
+  echo.
+  echo Revisa que el servidor local de TABE este corriendo (npm run dev).
+  pause
+)
+`;
+
+    const blob = new Blob([batContent], { type: "application/bat" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "iniciar_gemini_tabe.bat";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success("Lanzador de Gemini descargado", {
+      description: "Abrí 'iniciar_gemini_tabe.bat' e ingresá tu usuario y contraseña de TABE para conectar Gemini.",
+      duration: 6000,
+    });
   };
 
   // Descargar instalador automático .bat para Claude Desktop en Windows
@@ -113,6 +157,58 @@ pause
         if (raw) creds = JSON.parse(raw);
       } catch {}
 
+      // Extraer contexto académico real desde el caché local del usuario
+      let academicContext: any = null;
+      try {
+        const cachedRaw = localStorage.getItem("tabe_subjects_daily_cache");
+        if (cachedRaw) {
+          const parsedCache = JSON.parse(cachedRaw);
+          if (parsedCache && Array.isArray(parsedCache.subjects) && Array.isArray(parsedCache.userStatuses)) {
+            const subs = parsedCache.subjects;
+            const statuses = parsedCache.userStatuses;
+
+            const aprobadas: any[] = [];
+            const regulares: any[] = [];
+            const cursando: any[] = [];
+            let suma = 0;
+            let cant = 0;
+
+            statuses.forEach((st: any) => {
+              const sub = subs.find((s: any) => s.id === st.subject_id);
+              const name = sub?.nombre || "Materia";
+              const grade = st.nota_final_examen ?? st.nota;
+              const isAprobada = st.estado === "aprobada" || (typeof grade === "number" && grade >= 6);
+
+              if (isAprobada) {
+                aprobadas.push({ materia: name, nota: grade, fecha: st.fecha_aprobacion });
+                if (typeof grade === "number" && grade > 0) {
+                  suma += grade;
+                  cant++;
+                }
+              } else if (st.estado === "regular") {
+                regulares.push({ materia: name, nota: grade });
+              } else if (st.estado === "cursando" || st.estado === "cursable") {
+                cursando.push({ materia: name });
+              }
+            });
+
+            const avg = cant > 0 ? parseFloat((suma / cant).toFixed(2)) : 0;
+            academicContext = {
+              materiasAprobadas: aprobadas,
+              materiasRegulares: regulares,
+              materiasCursando: cursando,
+              promedio: avg,
+              progreso: {
+                materiasAprobadas: aprobadas.length,
+                totalMaterias: subs.length || 37,
+                porcentajeCarrera: `${Math.round((aprobadas.length / (subs.length || 37)) * 100)}%`,
+                promedioGeneral: avg,
+              },
+            };
+          }
+        }
+      } catch {}
+
       const res = await fetch("/api/tabe-actions/sync-credentials", {
         method: "POST",
         headers: {
@@ -123,14 +219,15 @@ pause
           username: creds?.username || "",
           password: creds?.password || "",
           legajo: creds?.legajo || "",
+          academicContext,
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.ok) {
-        toast.success(data.message || "Tus datos de UTN quedaron vinculados a tu Token.");
+        toast.success("¡Tus notas y datos de TABE quedaron vinculados a tus IAs externas!");
       } else {
-        toast.error(data.error || "No se pudieron sincronizar las credenciales.");
+        toast.error(data.error || "No se pudieron sincronizar los datos.");
       }
     } catch (e: any) {
       toast.error(e?.message || "Error al conectar con el servidor.");
@@ -312,38 +409,39 @@ pause
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
-                      Google Gemini (AI Studio)
+                      Google Gemini (MCP con Usuario y Contraseña)
                     </h4>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Conectá Gemini mediante Function Calling o Tools OpenAPI.
+                      Conectá Gemini directamente a tu cuenta de TABE para consultar notas, materias y resolver cuestionarios del campus.
                     </p>
                   </div>
                 </div>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                  Google AI Studio
+                  MCP Gemini
                 </span>
               </div>
+
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
+                Al arrancar, ingresás tu <span className="font-semibold text-zinc-800 dark:text-zinc-200">Usuario (Email)</span> y <span className="font-semibold text-zinc-800 dark:text-zinc-200">Contraseña</span> de TABE y Gemini queda 100% autenticado con tu perfil académico.
+              </p>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button
                   size="sm"
-                  onClick={() => {
-                    copyText(openApiUrl, setCopiedGptUrl, "URL de TABE copiada para Gemini");
-                    window.open("https://aistudio.google.com/", "_blank");
-                  }}
+                  onClick={downloadGeminiLauncher}
                   className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3 gap-1.5 shadow-2xs cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Abrir Google AI Studio</span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar Lanzador (.bat)</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => copyText(`${baseUrl}/api/tabe-actions/gemini-tools.json`, setCopiedGptUrl, "URL de herramientas copiada")}
+                  onClick={() => copyText("npm run gemini", setCopiedGeminiCli, "Comando 'npm run gemini' copiado")}
                   className="text-xs h-8 px-3 gap-1.5 border-blue-200 dark:border-blue-800 hover:bg-blue-100/50 dark:hover:bg-blue-950/30"
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copiar URL de Tools</span>
+                  {copiedGeminiCli ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Terminal className="w-3.5 h-3.5" />}
+                  <span>Copiar 'npm run gemini'</span>
                 </Button>
               </div>
             </div>

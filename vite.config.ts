@@ -421,6 +421,21 @@ export default defineConfig(({ mode }) => {
             }
           });
           server.middlewares.use("/api/tabe-actions", async (req, res) => {
+            // Leer body de forma inmediata antes de cualquier await para evitar stream starvation
+            if (req.method === "POST" || req.method === "PUT") {
+              const chunks: Buffer[] = [];
+              for await (const chunk of req) {
+                chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+              }
+              const rawBody = Buffer.concat(chunks).toString("utf-8");
+              (req as any).rawBody = rawBody;
+              try {
+                (req as any).body = rawBody ? JSON.parse(rawBody) : {};
+              } catch {
+                (req as any).body = {};
+              }
+            }
+
             try {
               const mod = await server.ssrLoadModule("./api/tabe-actions.ts");
               const handler = mod?.default || tabeActionsHandler;

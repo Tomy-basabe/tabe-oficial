@@ -552,6 +552,102 @@ export async function syncUtnFrmMcp(
 }
 
 /**
+ * Consulta rápida y exclusiva de notas de Autogestión Sysacad (exámenes aprobados y estado académico),
+ * evitando timeouts al omitir Campus Moodle e IMAP de correo.
+ */
+export async function syncUtnFrmGrades(
+  userId: string | null | undefined,
+  creds: UtnFrmMcpCredentials
+): Promise<{ ok: boolean; snapshot?: UtnFrmMcpSnapshot; error?: string }> {
+  const cleanUsername = creds.username.trim();
+  const cleanPassword = creds.password;
+  const cleanLegajo = creds.legajo?.trim() || undefined;
+
+  if (!cleanUsername || !cleanPassword) {
+    return { ok: false, error: "Ingresá tu usuario (DNI) y tu contraseña de la UTN FRM." };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch("/api/utnfrm-mcp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "sync_grades",
+        username: cleanUsername,
+        password: cleanPassword,
+        legajo: cleanLegajo,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const data = await response.json().catch(() => null);
+    if (!data || !data.ok || !data.sysacad) {
+      return {
+        ok: false,
+        error: data?.error || "No se encontraron exámenes aprobados en Autogestión Sysacad.",
+      };
+    }
+
+    let existingSnapshot = getStoredUtnFrmMcpSnapshot(userId);
+    const updatedSnapshot: UtnFrmMcpSnapshot = {
+      ok: true,
+      syncedAt: data.syncedAt || new Date().toISOString(),
+      username: cleanUsername,
+      resolvedEmail: creds.email || existingSnapshot?.resolvedEmail,
+      legajo: data.summary?.legajo || cleanLegajo || existingSnapshot?.legajo,
+      summary: {
+        ...(existingSnapshot?.summary || {}),
+        sysacadConnected: data.sysacad.connected,
+        sysacadTablesCount: data.summary?.sysacadTablesCount || 0,
+        legajo: data.summary?.legajo || cleanLegajo,
+        studentLabel: data.summary?.studentLabel || existingSnapshot?.summary?.studentLabel,
+      },
+      sysacad: data.sysacad,
+      campus: existingSnapshot?.campus || {
+        connected: false,
+        courses: [],
+        deadlines: [],
+        grades: [],
+        calendarEvents: [],
+      },
+      mail: existingSnapshot?.mail || {
+        connected: false,
+        unreadCount: 0,
+        totalMessages: 0,
+        messages: [],
+      },
+      avisos: existingSnapshot?.avisos || [],
+    };
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(getSnapshotKey(userId), JSON.stringify(updatedSnapshot));
+        saveStoredUtnFrmMcpCredentials(userId, {
+          username: cleanUsername,
+          password: cleanPassword,
+          email: updatedSnapshot.resolvedEmail,
+          legajo: updatedSnapshot.legajo,
+        });
+      } catch {}
+    }
+
+    return { ok: true, snapshot: updatedSnapshot };
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    return {
+      ok: false,
+      error: err?.name === "AbortError"
+        ? "El servidor de Autogestión UTN FRM demoró demasiado en responder (timeout de conexión)."
+        : (err?.message || "Error al conectar con Autogestión Sysacad."),
+    };
+  }
+}
+
+/**
  * Formatea una tabla de Sysacad en texto Markdown compacto para el prompt de TABE AI
  */
 function formatSysacadTableForPrompt(table?: {

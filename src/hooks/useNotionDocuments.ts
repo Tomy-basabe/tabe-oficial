@@ -166,7 +166,7 @@ export function useNotionDocuments() {
           subject:subjects(id, nombre, codigo, año)
         `)
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .limit(300);
 
       const res = await Promise.race([fetchPromise, timeoutPromise]);
       let { data, error } = res as any;
@@ -183,7 +183,7 @@ export function useNotionDocuments() {
             subject:subjects(id, nombre, codigo, año)
           `)
           .order("updated_at", { ascending: false })
-          .limit(100);
+          .limit(300);
 
         if (!fallbackRes.error && fallbackRes.data) {
           data = fallbackRes.data;
@@ -197,7 +197,7 @@ export function useNotionDocuments() {
               id, user_id, subject_id, parent_id, titulo, emoji, cover_url, is_favorite, total_time_seconds, created_at, updated_at
             `)
             .order("updated_at", { ascending: false })
-            .limit(100);
+            .limit(300);
           if (!simpleRes.error && simpleRes.data) {
             data = simpleRes.data;
             error = null;

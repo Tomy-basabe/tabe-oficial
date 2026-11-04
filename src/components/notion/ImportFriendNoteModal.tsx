@@ -21,6 +21,7 @@ interface FriendNote {
   titulo: string;
   emoji: string;
   subject_id: string | null;
+  parent_id?: string | null;
   cover_url: string | null;
   subject?: {
     nombre: string;
@@ -131,18 +132,29 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
     setStep("select-note");
 
     try {
+      // Traer todos los apuntes del amigo (incluyendo subpáginas) con join a subjects
       const { data, error } = await supabase
         .from("notion_documents")
         .select(`
-          id, titulo, emoji, subject_id, cover_url,
+          id, titulo, emoji, subject_id, parent_id, cover_url,
           subject:subjects(nombre, codigo, año)
         `)
         .eq("user_id", friend.user_id)
-        .is("parent_id", null)
         .order("updated_at", { ascending: false });
 
-      if (error) throw error;
-      setFriendNotes((data || []) as FriendNote[]);
+      if (error) {
+        console.warn("Consulta con join falló en notas de amigo, reintentando consulta directa:", error.message);
+        const { data: fallbackData, error: fbErr } = await supabase
+          .from("notion_documents")
+          .select("id, titulo, emoji, subject_id, parent_id, cover_url")
+          .eq("user_id", friend.user_id)
+          .order("updated_at", { ascending: false });
+
+        if (fbErr) throw fbErr;
+        setFriendNotes((fallbackData || []) as FriendNote[]);
+      } else {
+        setFriendNotes((data || []) as FriendNote[]);
+      }
     } catch {
       toast.error("Error al cargar los apuntes del amigo");
       setFriendNotes([]);
@@ -340,7 +352,14 @@ export function ImportFriendNoteModal({ open, onOpenChange, friends, mySubjects,
                         <TabeIconRenderer iconId={note.emoji || "book"} size={18} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">{note.titulo || "Sin título"}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">{note.titulo || "Sin título"}</p>
+                          {note.parent_id && (
+                            <span className="text-[10px] px-1 py-0.2 bg-zinc-200/60 dark:bg-zinc-800 text-zinc-500 rounded font-medium shrink-0">
+                              Subpágina
+                            </span>
+                          )}
+                        </div>
                         {note.subject && (
                           <p className="text-[11px] text-zinc-400">
                             {note.subject.codigo || note.subject.nombre} · Año {note.subject.año}

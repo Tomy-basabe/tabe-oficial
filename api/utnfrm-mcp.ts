@@ -2968,6 +2968,32 @@ export default async function handler(req: any, res: any) {
       return sendJson(res, 200, result);
     }
 
+    // Action: sync_grades (Fast Sysacad grades and approved exams only, avoiding timeouts)
+    if (action === "sync_grades") {
+      const sysacad = await fetchSysacadData(username, password, legajo, [
+        "aprobados",
+        "historico_examenes",
+        "estado_academico",
+      ]);
+
+      const sysacadTablesCount = Object.values(sysacad.consultas).filter(
+        (t) => t.rows.length > 0 || Boolean(t.text)
+      ).length;
+
+      return sendJson(res, 200, {
+        ok: sysacad.connected,
+        error: sysacad.error,
+        syncedAt: new Date().toISOString(),
+        summary: {
+          sysacadConnected: sysacad.connected,
+          sysacadTablesCount,
+          legajo: sysacad.studentInfo?.legajo,
+          studentLabel: sysacad.studentInfo?.fullLabel,
+        },
+        sysacad,
+      });
+    }
+
     // Run Sysacad, Campus, and Public Avisos in parallel
     const [sysacad, campus, avisosRes] = await Promise.all([
       fetchSysacadData(username, password, legajo),

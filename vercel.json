@@ -74,6 +74,14 @@
     ],
     "rewrites": [
         {
+            "source": "/api/tabe-actions/:match*",
+            "destination": "/api/tabe-actions"
+        },
+        {
+            "source": "/api/utnfrm-mcp/:match*",
+            "destination": "/api/utnfrm-mcp"
+        },
+        {
             "source": "/((?!api/|sw\\.js|version\\.json|manifest\\.json|robots\\.txt|sitemap\\.xml|ads\\.txt).*)",
             "destination": "/index.html"
         }

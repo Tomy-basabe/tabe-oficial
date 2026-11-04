@@ -2375,7 +2375,8 @@ export default function Notion() {
     } else if (filterOwner === "collaborative") {
       result = result.filter(doc => doc.user_id !== user?.id && (doc.is_shared || doc.is_collaborator));
     } else if (filterOwner === "friends") {
-      result = result.filter(doc => doc.user_id !== user?.id && !doc.is_shared && !doc.is_collaborator);
+      const friendIds = new Set(friendsList.map(f => f.user_id));
+      result = result.filter(doc => doc.user_id !== user?.id && (friendIds.has(doc.user_id) || Boolean(doc.owner && friendsList.some(f => f.user_id === doc.user_id))));
     }
 
     // Filter by search query (accent-insensitive)
