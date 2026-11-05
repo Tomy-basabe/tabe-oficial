@@ -530,19 +530,7 @@ export default defineConfig(({ mode }) => {
           globIgnores: ["**/version.json"],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/],
           importScripts: ["/custom-sw.js"],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-              handler: "NetworkFirst",
-              options: {
-                cacheName: "supabase-cache",
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24, // 24 hours
-                },
-              },
-            },
-          ],
+          runtimeCaching: [],
         },
       }),
     ].filter(Boolean),

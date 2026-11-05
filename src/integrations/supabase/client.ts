@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || "https://ndmjrcinfugswtlknebl.supabase.co").replace(/\/+$/, "");
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWpyY2luZnVnc3d0bGtuZWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MjQzNTQsImV4cCI6MjA4NjQwMDM1NH0.WyraOyLFgUPz-PncB2qTYHwY60c0opLB0yWLc_6iBcs";
 
 const BACKUP_STORAGE_KEY = 'tabe_session_backup';
 

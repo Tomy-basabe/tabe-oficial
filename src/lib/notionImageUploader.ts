@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -27,8 +27,8 @@ async function optimizeImageForUpload(file: File | Blob): Promise<{ blob: Blob; 
   }
 
   return new Promise((resolve) => {
-    // Si la imagen es muy pequeña (< 120KB) y ya tiene formato válido, no requiere recompresión
-    if (file.size < 120 * 1024 && ALLOWED_MIME_TYPES.includes(file.type)) {
+    // Si la imagen es pequeña (< 150KB) y ya tiene formato válido, no requiere recompresión
+    if (file.size < 150 * 1024 && ALLOWED_MIME_TYPES.includes(file.type)) {
       const ext = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1] || "png";
       resolve({ blob: file, mimeType: file.type, extension: ext });
       return;
@@ -40,7 +40,7 @@ async function optimizeImageForUpload(file: File | Blob): Promise<{ blob: Blob; 
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
 
-      const maxDim = 1920; // Resolución Full HD suficiente para apuntes nítidos
+      const maxDim = 1920; // Full HD
       let { width, height } = img;
 
       if (width > maxDim || height > maxDim) {
@@ -71,7 +71,6 @@ async function optimizeImageForUpload(file: File | Blob): Promise<{ blob: Blob; 
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Si es PNG y potencialmente tiene transparencia, preferir WebP o PNG
       const targetMime = file.type === "image/png" ? "image/png" : "image/jpeg";
       const quality = 0.85;
 
@@ -108,8 +107,72 @@ async function optimizeImageForUpload(file: File | Blob): Promise<{ blob: Blob; 
 }
 
 /**
+ * Función auxiliar para subir binario a Supabase Storage con control estricto de respuesta.
+ * Lee siempre `res.text()` para evitar excepciones de `SyntaxError: Unexpected token '<'`.
+ */
+async function uploadToSupabaseBucket(
+  bucket: string,
+  path: string,
+  blob: Blob,
+  mimeType: string,
+  token: string
+): Promise<{ success: boolean; publicUrl?: string; error?: string; isMissingBucket?: boolean }> {
+  try {
+    const cleanBaseUrl = SUPABASE_URL.replace(/\/+$/, "");
+    const endpoint = `${cleanBaseUrl}/storage/v1/object/${bucket}/${path}`;
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": mimeType,
+        "x-upsert": "false",
+      },
+      body: blob,
+    });
+
+    const responseText = await res.text();
+
+    if (res.ok) {
+      const publicUrl = `${cleanBaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+      return { success: true, publicUrl };
+    }
+
+    // Analizar el contenido del error
+    const isHtml = responseText.trim().startsWith("<");
+    let errorDetail = responseText;
+
+    if (!isHtml) {
+      try {
+        const json = JSON.parse(responseText);
+        errorDetail = json.message || json.error || responseText;
+      } catch {}
+    } else {
+      errorDetail = `Error HTTP ${res.status}`;
+    }
+
+    const isMissingBucket =
+      res.status === 404 ||
+      errorDetail.toLowerCase().includes("not found") ||
+      errorDetail.toLowerCase().includes("bucket");
+
+    return {
+      success: false,
+      error: errorDetail,
+      isMissingBucket,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Fallo de conexión al servidor de almacenamiento",
+    };
+  }
+}
+
+/**
  * Sube una imagen a Supabase Storage con compresión inteligente,
- * control de ruta por usuario y tolerancia ante fallos de bucket.
+ * control de ruta por usuario y tolerancia ante fallos de bucket o proxy.
  */
 export async function uploadNotionImage(
   file: File | Blob,
@@ -126,79 +189,75 @@ export async function uploadNotionImage(
   }
 
   try {
-    // 1. Optimizar imagen
+    // 1. Optimizar imagen en cliente
     const { blob, mimeType, extension } = await optimizeImageForUpload(file);
 
-    // 2. Obtener usuario para respetar RLS (storage.foldername(name))[1] = auth.uid()
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || "anonymous";
+    // 2. Obtener sesión de Supabase
+    let userId = "anonymous";
+    let token = SUPABASE_PUBLISHABLE_KEY;
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.user?.id) {
+        userId = data.session.user.id;
+      }
+      if (data?.session?.access_token) {
+        token = data.session.access_token;
+      }
+    } catch {
+      // Continuar con anonymous y publishable key
+    }
 
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${extension}`;
     const filePath = `${userId}/${fileName}`;
 
-    // 3. Subir a notion-images
-    let uploadResult = await supabase.storage
-      .from("notion-images")
-      .upload(filePath, blob, {
-        cacheControl: "31536000",
-        upsert: false,
-        contentType: mimeType,
-      });
+    // 3. Intento 1: Bucket primario 'notion-images'
+    let result = await uploadToSupabaseBucket("notion-images", filePath, blob, mimeType, token);
 
-    let bucketUsed = "notion-images";
+    // 4. Fallback si el bucket 'notion-images' no existe o falla por 404
+    if (!result.success && result.isMissingBucket) {
+      console.warn("Bucket notion-images no disponible. Probando en library-files...", result.error);
+      const fallbackPath = `apuntes-imagenes/${filePath}`;
+      result = await uploadToSupabaseBucket("library-files", fallbackPath, blob, mimeType, token);
+    }
 
-    // 4. Fallback: Si el bucket notion-images no existe o falla por 404, usar library-files
-    if (uploadResult.error) {
-      const errMsg = uploadResult.error.message?.toLowerCase() || "";
-      const isBucketMissing = errMsg.includes("not found") || (uploadResult.error as any).statusCode === "404" || errMsg.includes("bucket");
+    // 5. Fallback secundario vía SDK nativo si fetch directo tuvo algún inconveniente
+    if (!result.success) {
+      console.warn("Intento directo falló, probando vía SDK Supabase Storage:", result.error);
+      const { error: sdkError } = await supabase.storage
+        .from("notion-images")
+        .upload(filePath, blob, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: mimeType,
+        });
 
-      if (isBucketMissing) {
-        console.warn("Bucket notion-images no disponible. Reintentando subida en library-files...", uploadResult.error);
-        const fallbackPath = `apuntes-imagenes/${userId}/${fileName}`;
-        const fallbackResult = await supabase.storage
-          .from("library-files")
-          .upload(fallbackPath, blob, {
-            cacheControl: "31536000",
-            upsert: false,
-            contentType: mimeType,
-          });
-
-        if (!fallbackResult.error) {
-          uploadResult = fallbackResult;
-          bucketUsed = "library-files";
-          // Actualizamos la ruta para el getPublicUrl
-          const { data: { publicUrl } } = supabase.storage
-            .from("library-files")
-            .getPublicUrl(fallbackPath);
-
+      if (!sdkError) {
+        const { data: { publicUrl } } = supabase.storage.from("notion-images").getPublicUrl(filePath);
+        if (publicUrl) {
           if (showToast) {
             toast.success("Imagen subida correctamente", { id: toastId });
           }
           return publicUrl;
         }
       }
-
-      // Si llegó aquí y sigue con error, lanzar excepción
-      throw uploadResult.error;
     }
 
-    // 5. Obtener URL pública
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucketUsed)
-      .getPublicUrl(filePath);
-
-    if (!publicUrl) {
-      throw new Error("No se pudo generar la URL pública de la imagen");
+    if (!result.success || !result.publicUrl) {
+      throw new Error(result.error || "No se pudo subir la imagen a Supabase Storage");
     }
 
     if (showToast) {
       toast.success("Imagen subida correctamente", { id: toastId });
     }
 
-    return publicUrl;
+    return result.publicUrl;
   } catch (error: any) {
     console.error("Error al subir imagen a Supabase Storage:", error);
-    const friendlyMsg = error?.message || "Error al subir la imagen. Verifica tu conexión.";
+    const friendlyMsg = error?.message?.startsWith("<")
+      ? "Error en la respuesta del servidor de archivos"
+      : error?.message || "Error al subir la imagen. Verifica tu conexión.";
+
     if (showToast) {
       toast.error(`Error al subir la imagen: ${friendlyMsg}`, { id: toastId });
     }
