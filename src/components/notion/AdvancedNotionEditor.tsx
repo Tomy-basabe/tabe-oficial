@@ -39,6 +39,7 @@ if (typeof window !== 'undefined') {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadNotionImage } from "@/lib/notionImageUploader";
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered,
@@ -377,46 +378,55 @@ export function AdvancedNotionEditor({
         }
         return newSlice;
       },
+            handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+          const files = Array.from(event.dataTransfer.files);
+          const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+          if (imageFiles.length > 0) {
+            event.preventDefault();
+            const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            (async () => {
+              for (const file of imageFiles) {
+                try {
+                  const url = await uploadNotionImage(file);
+                  if (url && editor) {
+                    if (coordinates) {
+                      editor.chain().focus().setTextSelection(coordinates.pos).setImage({ src: url }).run();
+                    } else {
+                      editor.chain().focus().setImage({ src: url }).run();
+                    }
+                  }
+                } catch (err) {
+                  console.error('Drop image upload failed:', err);
+                }
+              }
+            })();
+            return true;
+          }
+        }
+        return false;
+      },
       handlePaste: (view, event) => {
         // === IMAGE HANDLING (Storage) ===
         if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
           const files = Array.from(event.clipboardData.files);
-          const hasImages = files.some(f => f.type.startsWith('image/'));
+          const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-          if (hasImages) {
-            files.forEach(async (file) => {
-              if (file.type.startsWith('image/')) {
-                // Check file size (e.g., 5MB limit)
-                if (file.size > 5 * 1024 * 1024) {
-                  toast.error("La imagen es demasiado grande (máx 5MB)");
-                  return;
-                }
-
+          if (imageFiles.length > 0) {
+            event.preventDefault();
+            (async () => {
+              for (const file of imageFiles) {
                 try {
-                  const fileExt = file.name.split('.').pop() || 'png';
-                  const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-                  const filePath = `${fileName}`;
-
-                  const { error: uploadError } = await supabase.storage
-                    .from('notion-images')
-                    .upload(filePath, file, { cacheControl: '31536000', upsert: false });
-
-                  if (uploadError) throw uploadError;
-
-                  const { data: { publicUrl } } = supabase.storage
-                    .from('notion-images')
-                    .getPublicUrl(filePath);
-
+                  const publicUrl = await uploadNotionImage(file);
                   if (publicUrl && editor) {
                     editor.chain().focus().setImage({ src: publicUrl }).run();
                   }
                 } catch (error) {
-                  console.error("Error uploading image:", error);
-                  toast.error("Error al subir la imagen");
+                  console.error('Error uploading pasted image:', error);
                 }
               }
-            });
-            event.preventDefault();
+            })();
             return true;
           }
         }
@@ -443,19 +453,7 @@ export function AdvancedNotionEditor({
                   // Convert base64 to Blob
                   const response = await fetch(src);
                   const blob = await response.blob();
-
-                  const fileExt = blob.type.split('/')[1] || 'png';
-                  const fileName = `paste-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-
-                  const { error: uploadError } = await supabase.storage
-                    .from('notion-images')
-                    .upload(fileName, blob, { cacheControl: '31536000', upsert: false });
-
-                  if (uploadError) throw uploadError;
-
-                  const { data: { publicUrl } } = supabase.storage
-                    .from('notion-images')
-                    .getPublicUrl(fileName);
+                  const publicUrl = await uploadNotionImage(blob, { showToastFeedback: false });
 
                   if (publicUrl) {
                     img.setAttribute('src', publicUrl);

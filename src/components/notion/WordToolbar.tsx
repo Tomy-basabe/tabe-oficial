@@ -19,6 +19,7 @@ import {
   Indent,
   Outdent,
   Table as TableIcon,
+  Image as ImageIcon,
   Plus,
   Minus,
   Trash2,
@@ -49,6 +50,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ColorPicker } from './ColorPicker';
 import { cn } from '@/lib/utils';
+import { uploadNotionImage } from '@/lib/notionImageUploader';
 
 interface WordToolbarProps {
   editor: Editor | null;
@@ -557,6 +559,36 @@ export const WordToolbar: React.FC<WordToolbarProps> = ({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+
+                        {/* Image upload / insert */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/jpeg,image/png,image/webp,image/gif';
+                    input.onchange = async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const url = await uploadNotionImage(file);
+                          if (url && editor) {
+                            editor.chain().focus().setImage({ src: url }).run();
+                          }
+                        } catch {}
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Insertar o subir imagen</TooltipContent>
+            </Tooltip>
 
             {/* Math KaTeX */}
             <Tooltip>

@@ -6,6 +6,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState, useCallback, useR
 import { cn } from "@/lib/utils";
 import { Type, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Code, Minus, Image, Table, AlertCircle, ChevronRight, FileText, Lightbulb, AlertTriangle, Info, Palette, PaintBucket, Youtube, Twitter, Music, Video, ExternalLink, Columns, Bookmark, Smile, LayoutGrid, FileText as FileTextIcon, FileAudio, Paperclip, Link2, LayoutDashboard, Kanban, GalleryHorizontalEnd, ListFilter, AtSign, Calendar, Calculator, BarChart3, Sigma, Keyboard, HelpCircle, Bot } from "lucide-react";
 import { toast } from "sonner";
+import { uploadNotionImage } from "@/lib/notionImageUploader";
 import {
   NOTION_TEXT_COLORS,
   NOTION_BACKGROUND_COLORS,
@@ -261,10 +262,34 @@ const getSuggestionItems = (): CommandItem[] => [
   // ========== 3. CONTENIDO MULTIMEDIA ==========
   {
     title: "Imagen",
-    description: "Insertar imagen desde URL o archivo",
-    icon: <Image className="w-4 h-4" />,
+    description: "Subir imagen desde archivo o dispositivo",
+    icon: <Image className="w-4 h-4 text-sky-400" />,
     category: "Media",
-    keywords: ["image", "imagen", "foto", "picture", "subir", "img"],
+    keywords: ["image", "imagen", "foto", "picture", "subir", "img", "archivo"],
+    command: ({ editor, range }) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/jpeg,image/png,image/webp,image/gif";
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          try {
+            const url = await uploadNotionImage(file);
+            if (url) {
+              editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
+            }
+          } catch {}
+        }
+      };
+      input.click();
+    },
+  },
+  {
+    title: "Imagen por URL",
+    description: "Insertar imagen pegando un enlace web directo",
+    icon: <Image className="w-4 h-4 text-indigo-400" />,
+    category: "Media",
+    keywords: ["url", "imagen", "web", "link"],
     command: ({ editor, range }) => {
       const url = window.prompt("URL de la imagen:");
       if (url) {
@@ -357,7 +382,11 @@ const getSuggestionItems = (): CommandItem[] => [
           reader.onload = () => {
             const dataUrl = reader.result as string;
             if (file.type.startsWith("image/")) {
-              editor.chain().focus().deleteRange(range).setImage({ src: dataUrl }).run();
+              uploadNotionImage(file).then((url) => {
+                if (url) {
+                  editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
+                }
+              }).catch(() => {});
             } else {
               editor.chain().focus().deleteRange(range).insertContent(
                 `<p>📎 <a href="${dataUrl}" download="${file.name}" class="notion-link">${file.name}</a> <span style="color:#9B9B9B;font-size:0.85em;">(${(file.size / 1024).toFixed(1)} KB)</span></p>`

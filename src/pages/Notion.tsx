@@ -1,3 +1,4 @@
+import { uploadNotionImage } from "@/lib/notionImageUploader";
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -849,18 +850,7 @@ export default function Notion() {
           const src = node.attrs.src;
           const response = await fetch(src);
           const blob = await response.blob();
-          const fileExt = blob.type.split('/')[1] || 'png';
-          const fileName = `migration-${docId}-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('notion-images')
-            .upload(fileName, blob, { cacheControl: '31536000', upsert: false });
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('notion-images')
-            .getPublicUrl(fileName);
+          const publicUrl = await uploadNotionImage(blob, { showToastFeedback: false });
 
           if (publicUrl) {
             node.attrs.src = publicUrl;
