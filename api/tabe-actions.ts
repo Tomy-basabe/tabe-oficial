@@ -790,6 +790,72 @@ export default async function tabeActionsHandler(req: IncomingMessage, res: Serv
     }
   }
 
+  // 3.5. Subida de imágenes a Supabase Storage (bypasea CORS y Service Workers del navegador)
+  if (pathname === "/upload-image" && req.method === "POST") {
+    try {
+      const body = await parseJsonBody(req);
+      const { base64Data, mimeType = "image/png", userId = "anonymous" } = body;
+
+      if (!base64Data) {
+        return sendJson(res, 400, { ok: false, error: "Falta el campo 'base64Data'" });
+      }
+
+      const cleanBase64 = String(base64Data).replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "");
+      const buffer = Buffer.from(cleanBase64, "base64");
+
+      const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : mimeType === "image/gif" ? "gif" : "png";
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const filePath = `${userId}/${fileName}`;
+
+      const supabase = getSupabaseBackend();
+
+      let uploadRes = await supabase.storage
+        .from("notion-images")
+        .upload(filePath, buffer, {
+          contentType: mimeType,
+          upsert: false,
+        });
+
+      let bucketUsed = "notion-images";
+      let finalPath = filePath;
+
+      if (uploadRes.error) {
+        console.warn("[upload-image] Intento en notion-images falló, usando library-files:", uploadRes.error);
+        const fallbackPath = `apuntes-imagenes/${filePath}`;
+        const fallbackRes = await supabase.storage
+          .from("library-files")
+          .upload(fallbackPath, buffer, {
+            contentType: mimeType,
+            upsert: false,
+          });
+
+        if (!fallbackRes.error) {
+          bucketUsed = "library-files";
+          finalPath = fallbackPath;
+        } else {
+          return sendJson(res, 500, {
+            ok: false,
+            error: uploadRes.error.message || fallbackRes.error.message || "Error al subir a Supabase Storage",
+          });
+        }
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucketUsed)
+        .getPublicUrl(finalPath);
+
+      return sendJson(res, 200, {
+        ok: true,
+        publicUrl,
+        bucket: bucketUsed,
+        path: finalPath,
+      });
+    } catch (err: any) {
+      console.error("[upload-image error]:", err);
+      return sendJson(res, 500, { ok: false, error: err?.message || "Error interno del servidor" });
+    }
+  }
+
   // 4. Inicio de sesión directo con Usuario y Contraseña (para MCP de Gemini, Claude y ChatGPT Actions)
   if (pathname === "/login" && req.method === "POST") {
     const body = await parseJsonBody(req);

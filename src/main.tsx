@@ -105,8 +105,31 @@ async function verifyLatestVersionOnEntry() {
   }
 }
 
-// Registrar Service Worker unificado con protección estricta de 1 sola recarga
-if (typeof window !== "undefined") {
+// Limpieza estricta e inmediata de Service Workers en desarrollo para evitar colisiones con peticiones y APIs
+if (import.meta.env.DEV && typeof window !== "undefined" && "serviceWorker" in navigator) {
+  const hadActiveController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    if (registrations.length > 0 || hadActiveController) {
+      Promise.all(registrations.map((reg) => reg.unregister())).then(() => {
+        if ("caches" in window) {
+          caches.keys().then((names) => {
+            Promise.all(names.map((name) => caches.delete(name))).then(() => {
+              if (hadActiveController) {
+                console.info("[SW DEV] Service Worker obsoleto eliminado en localhost. Recargando para liberar red...");
+                window.location.reload();
+              }
+            });
+          });
+        } else if (hadActiveController) {
+          window.location.reload();
+        }
+      });
+    }
+  });
+}
+
+// Registrar Service Worker unificado con protección estricta de 1 sola recarga (sólo en producción)
+if (import.meta.env.PROD && typeof window !== "undefined") {
   verifyLatestVersionOnEntry();
 
   if ("serviceWorker" in navigator) {

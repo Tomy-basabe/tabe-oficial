@@ -28,16 +28,6 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-// Bypass Service Worker Cache for API and Supabase Storage (guarantees direct network response)
-self.addEventListener('fetch', function (event) {
-  if (event.request && event.request.url) {
-    var url = event.request.url;
-    if (url.indexOf('/api/') !== -1 || url.indexOf('supabase.co') !== -1 || url.indexOf('/storage/v1/') !== -1) {
-      event.respondWith(fetch(event.request));
-    }
-  }
-});
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. LISTEN FOR WEB PUSH NOTIFICATIONS (Wakes up SW even if app is closed)
 // ─────────────────────────────────────────────────────────────────────────────
